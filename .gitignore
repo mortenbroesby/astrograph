@@ -3,6 +3,7 @@ dist/
 observability-dist/
 coverage/
 .astrograph/
+tests/.ai-context-engine/
 .stryker-tmp/
 .vite/
 .profiles/
