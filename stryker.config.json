@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/@stryker-mutator/core/schema/stryker-schema.json",
+  "testRunner": "vitest",
+  "plugins": ["@stryker-mutator/vitest-runner"],
+  "reporters": ["clear-text"],
+  "tempDirName": ".stryker-tmp",
+  "ignoreStatic": true,
+  "mutate": [
+    "src/cli.ts:111-117",
+    "src/cli.ts:125-126",
+    "src/cli.ts:133-134",
+    "src/cli.ts:151-156",
+    "src/config.ts:63-66",
+    "src/config.ts:84-87",
+    "src/storage.ts:1014-1018"
+  ],
+  "testFiles": [
+    "tests/mutation-smoke.cli.test.ts",
+    "tests/mutation-smoke.watch.test.ts"
+  ],
+  "ignorePatterns": [
+    "coverage",
+    "dist",
+    ".astrograph",
+    ".stryker-tmp"
+  ],
+  "vitest": {
+    "related": true
+  }
+}

@@ -1,0 +1,126 @@
+{
+  "name": "@mortenbroesby/astrograph",
+  "version": "0.1.0-alpha.56",
+  "type": "module",
+  "license": "MIT",
+  "description": "Local deterministic context engine for AI-assisted code exploration",
+  "keywords": [
+    "astrograph",
+    "mcp",
+    "code-indexing",
+    "code-search",
+    "local-first",
+    "sqlite"
+  ],
+  "homepage": "https://github.com/mortenbroesby/astrograph",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mortenbroesby/astrograph.git"
+  },
+  "bugs": {
+    "url": "https://github.com/mortenbroesby/astrograph/issues"
+  },
+  "engines": {
+    "node": ">=24"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "astrograph": "./scripts/ai-context-engine.mjs",
+    "ai-context-engine": "./scripts/ai-context-engine.mjs"
+  },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "dist",
+    "observability-dist",
+    "scripts/ai-context-engine.mjs",
+    "scripts/install.mjs",
+    "scripts/observability-server.mjs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "pnpm run build:js && pnpm run build:workers && pnpm run build:types && pnpm run build:observability",
+    "build:js": "tsup src/index.ts src/cli.ts src/mcp.ts --format esm --target node24 --out-dir dist --clean --tsconfig tsconfig.build.json",
+    "build:workers": "tsup src/workers/analyze-file-worker.ts --format esm --target node24 --out-dir dist/workers --tsconfig tsconfig.build.json",
+    "build:types": "tsc -p tsconfig.build.json",
+    "build:observability": "vite build --config ./observability/vite.config.ts",
+    "cli": "node ./dist/cli.js",
+    "mcp": "node --no-warnings ./dist/mcp.js",
+    "observability": "bun ./scripts/observability-server.mjs",
+    "observability:dev": "bun ./scripts/observability-server.mjs --dev",
+    "dev:cli": "node --experimental-strip-types ./src/cli.ts",
+    "dev:mcp": "node --no-warnings --experimental-strip-types ./src/mcp.ts",
+    "bench:small": "node --experimental-strip-types ./scripts/benchmark-small.mjs",
+    "bench:cli": "node --experimental-strip-types ./scripts/benchmark-cli.mjs",
+    "bench:corpus": "node --experimental-strip-types ./bench/src/cli.ts",
+    "bench:perf": "node --experimental-strip-types ./scripts/perf.mjs",
+    "bench:perf:index": "node --experimental-strip-types ./scripts/perf-index.mjs",
+    "bench:perf:query": "node --experimental-strip-types ./scripts/perf-query.mjs",
+    "bench:perf:serialize": "node --experimental-strip-types ./scripts/perf-serialize.mjs",
+    "profile:index:clinic": "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./scripts/perf-index.mjs",
+    "profile:query:clinic": "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./scripts/perf-query.mjs",
+    "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./scripts/perf-index.mjs",
+    "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./scripts/perf-query.mjs",
+    "test:package-bin": "node ./scripts/smoke-package-bin.mjs",
+    "check:version-bump": "node --experimental-strip-types ./scripts/check-version-bump.mjs",
+    "type-lint": "pnpm run type-check && tsc -p ./bench/tsconfig.json --noEmit && tsc -p ./tsconfig.build.json --noEmit && tsc -p ./observability/tsconfig.json --noEmit",
+    "type-check": "tsc --noEmit",
+    "test": "node ./scripts/run-vitest.mjs",
+    "test:slow": "ASTROGRAPH_ENABLE_SLOW_TESTS=1 node ./scripts/run-vitest.mjs",
+    "test:mutation-smoke": "ASTROGRAPH_ENABLE_MUTATION_SMOKE_TESTS=1 node ./scripts/run-vitest.mjs tests/mutation-smoke.cli.test.ts tests/mutation-smoke.watch.test.ts",
+    "test:mutation": "node ./scripts/mutation-opt-in.mjs",
+    "test:mutation:full": "node ./scripts/mutation-opt-in.mjs full",
+    "mutation:smoke": "node ./scripts/run-stryker.mjs stryker.config.json",
+    "mutation:full": "node ./scripts/run-stryker.mjs stryker.full.config.json",
+    "prepack": "pnpm run build"
+  },
+  "devDependencies": {
+    "0x": "^6.0.0",
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^22.10.1",
+    "@types/picomatch": "^4.0.3",
+    "@types/react": "^18.3.18",
+    "@types/react-dom": "^18.3.5",
+    "@vitejs/plugin-react": "^4.3.4",
+    "clinic": "^13.0.0",
+    "tinybench": "^6.0.0",
+    "tsup": "^8.5.0",
+    "typescript": "^5.7.0",
+    "vite": "^5.4.11",
+    "vitest": "^2.1.9"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@msgpack/msgpack": "^3.1.2",
+    "@node-rs/xxhash": "^1.7.6",
+    "@parcel/watcher": "^2.5.6",
+    "@vscode/ripgrep": "^1.17.1",
+    "better-sqlite3": "^12.9.0",
+    "fast-json-stringify": "^6.3.0",
+    "fdir": "^6.5.0",
+    "oxc-parser": "^0.127.0",
+    "oxc-resolver": "^11.19.1",
+    "p-map": "^7.0.4",
+    "picomatch": "^4.0.4",
+    "pino": "^10.3.1",
+    "piscina": "^5.1.4",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "rxjs": "^7.8.2",
+    "tiktoken": "^1.0.22",
+    "tokenx": "^1.3.0",
+    "tree-sitter": "0.21.1",
+    "tree-sitter-javascript": "0.23.1",
+    "tree-sitter-typescript": "0.23.2",
+    "zod": "^4.3.6"
+  },
+  "packageManager": "pnpm@9.15.9"
+}
