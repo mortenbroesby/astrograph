@@ -9,7 +9,28 @@ import {
   isReleasePublishKind,
   nextAstrographReleaseVersion,
 } from "../release-policy.ts";
+import type { AstrographReleaseDecision, AstrographReleaseDecisionKind } from "../release-policy.ts";
 import { assessAstrographVersionBump, parseAstrographVersion } from "../version.ts";
+
+interface ReleaseAgentOptions {
+  apply: boolean;
+  base: string;
+}
+
+interface ReleaseDecision {
+  apply: boolean;
+  baseRef: string;
+  baseVersion: string;
+  currentVersion: string;
+  shouldRelease: boolean;
+  releaseKind: AstrographReleaseDecisionKind;
+  reason: string;
+  releaseFiles: AstrographReleaseDecision["releaseFiles"];
+  targetVersion: string;
+  targetTag: string;
+  tagAlreadyExists: boolean;
+  versionAlreadyCurrent: boolean;
+}
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -19,8 +40,8 @@ const packageRoot = path.resolve(
 const packageJsonPath = path.join(packageRoot, "package.json");
 const engineContractPath = path.join(packageRoot, "tests", "engine-contract.test.ts");
 
-function parseArgs(argv) {
-  const options = {
+function parseArgs(argv: string[]): ReleaseAgentOptions {
+  const options: ReleaseAgentOptions = {
     apply: false,
     base: "",
   };
@@ -42,15 +63,15 @@ function parseArgs(argv) {
   return options;
 }
 
-function git(args) {
-  return execFileSync("git", args, {
+function git(args: readonly string[]): string {
+  return execFileSync("git", [...args], {
     cwd: packageRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
 
-function gitMaybe(args) {
+function gitMaybe(args: readonly string[]): string {
   try {
     return git(args);
   } catch {
@@ -58,8 +79,8 @@ function gitMaybe(args) {
   }
 }
 
-function readPackageVersion(contents, label) {
-  const parsed = JSON.parse(contents);
+function readPackageVersion(contents: string, label: string): string {
+  const parsed = JSON.parse(contents) as { version?: unknown };
   if (typeof parsed.version !== "string" || parsed.version.length === 0) {
     throw new Error(`${label} is missing a version string.`);
   }
@@ -67,21 +88,31 @@ function readPackageVersion(contents, label) {
   return parsed.version;
 }
 
-function readWorkingPackageVersion() {
+function readWorkingPackageVersion(): string {
   return readPackageVersion(readFileSync(packageJsonPath, "utf8"), "package.json");
 }
 
-function findLatestReleaseTag() {
+function findLatestReleaseTag(): string {
   const tags = gitMaybe(["tag", "--merged", "HEAD", "--list", "v*.*.*", "--sort=-creatordate"]);
   return tags.split("\n").find(Boolean) ?? "";
 }
 
-function readPackageVersionAtRef(ref) {
+function readPackageVersionAtRef(ref: string): string {
   const contents = git(["show", `${ref}:package.json`]);
   return readPackageVersion(contents, `${ref}:package.json`);
 }
 
-function readCommitsSince(baseRef) {
+interface AstrographCommit {
+  subject: string;
+  body: string;
+}
+
+function parseCommitPayload(payload: string): { subject: string; body: string } {
+  const [, subject = "", body = ""] = payload.split("\x00");
+  return { subject, body };
+}
+
+function readCommitsSince(baseRef: string): AstrographCommit[] {
   const range = baseRef.length > 0 ? `${baseRef}..HEAD` : "HEAD";
   const output = gitMaybe(["log", "--format=%H%x00%s%x00%b%x1e", range]);
   if (output.length === 0) {
@@ -92,13 +123,10 @@ function readCommitsSince(baseRef) {
     .split("\x1e")
     .map((entry) => entry.trim())
     .filter(Boolean)
-    .map((entry) => {
-      const [, subject = "", body = ""] = entry.split("\x00");
-      return { subject, body };
-    });
+    .map((entry) => parseCommitPayload(entry));
 }
 
-function readChangedFilesSince(baseRef) {
+function readChangedFilesSince(baseRef: string): string[] {
   const args = baseRef.length > 0
     ? ["diff", "--name-only", `${baseRef}..HEAD`]
     : ["show", "--name-only", "--format=", "HEAD"];
@@ -106,13 +134,13 @@ function readChangedFilesSince(baseRef) {
   return output.split("\n").map((line) => line.trim()).filter(Boolean);
 }
 
-function writePackageVersion(version) {
-  const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8"));
+function writePackageVersion(version: string): void {
+  const parsed = JSON.parse(readFileSync(packageJsonPath, "utf8")) as { version?: string };
   parsed.version = version;
   writeFileSync(packageJsonPath, `${JSON.stringify(parsed, null, 2)}\n`);
 }
 
-function writeEngineContractVersion(previousVersion, nextVersion) {
+function writeEngineContractVersion(previousVersion: string, nextVersion: string): void {
   if (!existsSync(engineContractPath)) {
     return;
   }
@@ -125,7 +153,7 @@ function writeEngineContractVersion(previousVersion, nextVersion) {
   writeFileSync(engineContractPath, nextContents);
 }
 
-function writeGithubOutput(values) {
+function writeGithubOutput(values: Record<string, string>): void {
   if (!process.env.GITHUB_OUTPUT) {
     return;
   }
@@ -134,11 +162,11 @@ function writeGithubOutput(values) {
   writeFileSync(process.env.GITHUB_OUTPUT, `${lines.join("\n")}\n`, { flag: "a" });
 }
 
-function printDecision(decision) {
+function printDecision(decision: ReleaseDecision): void {
   console.log(JSON.stringify(decision, null, 2));
 }
 
-function main() {
+function main(): void {
   const options = parseArgs(process.argv.slice(2));
   const baseRef = options.base || findLatestReleaseTag();
   const currentVersion = readWorkingPackageVersion();
@@ -151,9 +179,13 @@ function main() {
   const changedFiles = readChangedFilesSince(baseRef);
   const releaseDecision = decideAstrographRelease({ commits, changedFiles });
   const shouldPublish = isReleasePublishKind(releaseDecision.kind);
-  const targetVersion = shouldPublish
-    ? nextAstrographReleaseVersion(baseParts, releaseDecision.kind)
-    : currentVersion;
+  let targetVersion = currentVersion;
+  if (shouldPublish) {
+    targetVersion = nextAstrographReleaseVersion(
+      baseParts,
+      releaseDecision.kind as Exclude<AstrographReleaseDecisionKind, "none" | "increment">,
+    );
+  }
   const targetTag = `v${targetVersion}`;
   const currentAssessment = assessAstrographVersionBump(baseParts, currentParts);
   const currentVersionAlreadyValid =
@@ -163,7 +195,7 @@ function main() {
   const tagAlreadyExists = gitMaybe(["rev-parse", "-q", "--verify", `refs/tags/${targetTag}`])
     .length > 0;
 
-  const decision = {
+  const decision: ReleaseDecision = {
     apply: options.apply,
     baseRef,
     baseVersion,
@@ -187,7 +219,7 @@ function main() {
 
   writeGithubOutput({
     should_release: decision.shouldRelease ? "true" : "false",
-    release_kind: decision.releaseKind,
+    release_kind: String(decision.releaseKind),
     target_version: decision.targetVersion,
     target_tag: decision.targetTag,
     tag_already_exists: decision.tagAlreadyExists ? "true" : "false",

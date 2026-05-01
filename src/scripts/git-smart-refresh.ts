@@ -23,14 +23,57 @@ const STRUCTURAL_FILES = new Set([
 const MAX_INCREMENTAL_FILES = 12;
 
 const scriptPath = fileURLToPath(import.meta.url);
-const packageRoot = path.resolve(path.dirname(scriptPath), "..");
+const packageRoot = path.resolve(path.dirname(scriptPath), "..", "..");
 const wrapperPath = path.join(packageRoot, "dist", "ai-context-engine.js");
 const sourceWrapperPath = path.join(packageRoot, "src", "ai-context-engine.ts");
 const wrapperArgs = existsSync(wrapperPath)
   ? [wrapperPath]
   : ["--experimental-strip-types", sourceWrapperPath];
 
-function runGit(args, cwd) {
+interface GitCommandResult {
+  status: number;
+  stdout: string;
+}
+
+interface NameStatusEntry {
+  status: string;
+  filePath: string;
+}
+
+interface TriggerIndexFolderDiff {
+  mode: "index-folder";
+  reason?: string;
+  filePaths: string[];
+}
+
+interface TriggerDiffEntries {
+  mode: "diff";
+  entries: NameStatusEntry[];
+}
+
+type TriggerDiff = TriggerIndexFolderDiff | TriggerDiffEntries;
+
+interface IndexFolderPlan {
+  mode: "index-folder";
+  reason?: string;
+  filePaths: string[];
+}
+
+interface IndexFilesPlan {
+  mode: "index-files";
+  reason: string;
+  filePaths: string[];
+}
+
+type RefreshPlan = IndexFolderPlan | IndexFilesPlan;
+
+interface ParsedArgs {
+  execute: boolean;
+  trigger: string;
+  extra: string[];
+}
+
+function runGit(args: string[], cwd: string): GitCommandResult {
   const result = spawnSync("git", args, {
     cwd,
     encoding: "utf8",
@@ -43,7 +86,7 @@ function runGit(args, cwd) {
   };
 }
 
-function resolveRepoRoot(cwd) {
+function resolveRepoRoot(cwd: string): string {
   const result = runGit(["rev-parse", "--show-toplevel"], cwd);
   if (result.status !== 0) {
     return cwd;
@@ -51,7 +94,7 @@ function resolveRepoRoot(cwd) {
   return result.stdout.trim() || cwd;
 }
 
-function parseArgs(argv) {
+function parseArgs(argv: string[]): ParsedArgs {
   const args = [...argv];
   const execute = args.includes("--execute");
   const filtered = args.filter((value) => value !== "--execute");
@@ -63,7 +106,7 @@ function parseArgs(argv) {
   };
 }
 
-function parseNameStatus(output) {
+function parseNameStatus(output: string): NameStatusEntry[] {
   return output
     .split(/\r?\n/)
     .map((line) => line.trim())
@@ -76,11 +119,11 @@ function parseNameStatus(output) {
     });
 }
 
-function isSupportedSourceFile(filePath) {
+function isSupportedSourceFile(filePath: string): boolean {
   return SUPPORTED_EXTENSIONS.has(path.extname(filePath).toLowerCase());
 }
 
-function isStructuralFile(filePath) {
+function isStructuralFile(filePath: string): boolean {
   const normalized = filePath.replaceAll("\\", "/");
   const base = path.posix.basename(normalized);
   return (
@@ -89,7 +132,7 @@ function isStructuralFile(filePath) {
   );
 }
 
-function diffForTrigger(repoRoot, trigger, extra) {
+function diffForTrigger(repoRoot: string, trigger: string, extra: readonly string[]): TriggerDiff {
   if (trigger === "manual") {
     return {
       mode: "index-folder",
@@ -169,7 +212,11 @@ function diffForTrigger(repoRoot, trigger, extra) {
   };
 }
 
-function buildRefreshPlan(repoRoot, trigger, extra) {
+function buildRefreshPlan(
+  repoRoot: string,
+  trigger: string,
+  extra: readonly string[],
+): RefreshPlan | null {
   const diff = diffForTrigger(repoRoot, trigger, extra);
   if (diff.mode === "index-folder") {
     return {
@@ -179,7 +226,7 @@ function buildRefreshPlan(repoRoot, trigger, extra) {
     };
   }
 
-  const incremental = new Set();
+  const incremental = new Set<string>();
 
   for (const entry of diff.entries) {
     if (!entry.filePath) {
@@ -237,8 +284,8 @@ function buildRefreshPlan(repoRoot, trigger, extra) {
   };
 }
 
-async function runChild(child) {
-  await new Promise((resolve, reject) => {
+function runChild(child: ReturnType<typeof spawn>): Promise<void> {
+  return new Promise((resolve, reject) => {
     child.once("error", reject);
     child.once("exit", (code) => {
       if (code === 0) {
@@ -250,7 +297,10 @@ async function runChild(child) {
   });
 }
 
-function spawnAstrographCli(repoRoot, args) {
+function spawnAstrographCli(
+  repoRoot: string,
+  args: readonly string[],
+): ReturnType<typeof spawn> {
   return spawn(
     process.execPath,
     [...wrapperArgs, "cli", ...args],
@@ -261,7 +311,7 @@ function spawnAstrographCli(repoRoot, args) {
   );
 }
 
-async function executePlan(repoRoot, plan) {
+async function executePlan(repoRoot: string, plan: RefreshPlan | null): Promise<void> {
   if (!plan) {
     return;
   }
@@ -301,7 +351,7 @@ async function executePlan(repoRoot, plan) {
   }
 }
 
-async function main() {
+async function main(): Promise<void> {
   const { execute, trigger, extra } = parseArgs(process.argv.slice(2));
   const repoRoot = resolveRepoRoot(process.cwd());
 
@@ -315,7 +365,7 @@ async function main() {
     try {
       const child = spawn(
         process.execPath,
-        [scriptPath, trigger, ...extra, "--execute"],
+        [scriptPath, "--execute", trigger, ...extra],
         {
           cwd: repoRoot,
           detached: true,
@@ -337,7 +387,7 @@ async function main() {
   }
 
   process.stdout.write(
-    `[astrograph-refresh] ${trigger}: ${plan.mode} (${plan.reason})\n`,
+    `[astrograph-refresh] ${trigger}: ${plan.mode} (${plan.reason ?? "n/a"})\n`,
   );
   await executePlan(repoRoot, plan);
 }

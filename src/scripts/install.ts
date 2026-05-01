@@ -19,14 +19,17 @@ import { fileURLToPath } from "node:url";
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
 const MCP_SERVER_NAME = "astrograph";
-const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const packageJson = JSON.parse(
   await readFile(path.join(packageRoot, "package.json"), "utf8"),
-);
+) as {
+  name: string;
+  version: string;
+};
 const PACKAGE_NAME = packageJson.name;
 const PACKAGE_VERSION = packageJson.version;
-const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"];
-const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"];
+const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"] as const;
+const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"] as const;
 const MCP_TOOLS = [
   "index_folder",
   "index_file",
@@ -36,9 +39,93 @@ const MCP_TOOLS = [
   "suggest_initial_queries",
   "query_code",
   "diagnostics",
-];
-const INSTALL_MODES = ["barebones", "some", "full"];
-const MCP_TOOL_PROFILE = {
+] as const;
+const INSTALL_MODES = ["barebones", "some", "full"] as const;
+const DEFAULT_INSTALL_MODE: InstallMode = "full";
+
+type InstallMode = (typeof INSTALL_MODES)[number];
+type InstallIde = (typeof ALL_INSTALL_IDES)[number];
+type RequestedIde = InstallIde | "all";
+type InstalledObject = Record<string, unknown>;
+
+interface ParsedSemVer {
+  major: number;
+  minor: number;
+  patch: number;
+  prerelease: string | null;
+  alphaIncrement: number | null;
+  raw: string;
+}
+
+interface ParsedArgs {
+  ides: RequestedIde[] | null;
+  repo: string;
+  dryRun: boolean;
+  nonInteractive: boolean;
+  mode: InstallMode | string;
+  hasExplicitArgs: boolean;
+  showHelp: boolean;
+}
+
+interface PackageJsonFile {
+  dependencies?: Record<string, unknown>;
+  devDependencies?: Record<string, unknown>;
+  optionalDependencies?: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+interface PackageDependencyResult {
+  packageDependencyUpdated: boolean;
+  packageDependencyReason: string;
+  packageDependencyPreview?: PackageJsonFile;
+}
+
+interface SetupResult {
+  ide: InstallIde;
+  mode: InstallMode;
+  repoRoot: string;
+  configPath: string;
+  packageName: string;
+  packageVersion: string;
+  configPreview: string;
+  localDependencyDetected: boolean;
+  packageDependencyUpdated: boolean;
+  packageDependencyReason: string;
+  packageDependencyPreview?: PackageJsonFile;
+}
+
+interface CliOptions {
+  ide?: string;
+  mode?: string;
+  dryRun?: boolean;
+  repo?: string;
+  yes?: boolean;
+  help?: boolean;
+}
+
+interface ManagedInvocation {
+  command: string;
+  args: string[];
+}
+
+interface ManagedConfig {
+  configPath: string;
+  nextContents: string;
+}
+
+interface SetupForIdeOptions {
+  ide?: InstallIde;
+  mode?: InstallMode;
+  dryRun?: boolean;
+}
+
+interface SetupForAllOptions {
+  ides?: RequestedIde[];
+  mode?: InstallMode | string;
+  dryRun?: boolean;
+}
+
+const MCP_TOOL_PROFILE: Record<InstallMode, readonly string[]> = {
   barebones: [
     "query_code",
     "get_file_tree",
@@ -53,9 +140,8 @@ const MCP_TOOL_PROFILE = {
   ],
   full: MCP_TOOLS,
 };
-const DEFAULT_INSTALL_MODE = "full";
 
-function parseComparableVersion(rawValue) {
+function parseComparableVersion(rawValue: unknown): ParsedSemVer | null {
   if (typeof rawValue !== "string") {
     return null;
   }
@@ -76,7 +162,11 @@ function parseComparableVersion(rawValue) {
   const major = Number.parseInt(match[1] ?? "0", 10);
   const minor = Number.parseInt(match[2] ?? "0", 10);
   const patch = Number.parseInt(match[3] ?? "0", 10);
-  if (!Number.isFinite(major) || !Number.isFinite(minor) || !Number.isFinite(patch)) {
+  if (
+    !Number.isFinite(major)
+    || !Number.isFinite(minor)
+    || !Number.isFinite(patch)
+  ) {
     return null;
   }
 
@@ -98,12 +188,17 @@ function parseComparableVersion(rawValue) {
     minor,
     patch,
     prerelease,
-    alphaIncrement: alphaMatch && alphaMatch[1] ? Number.parseInt(alphaMatch[1], 10) : null,
+    alphaIncrement: alphaMatch && alphaMatch[1]
+      ? Number.parseInt(alphaMatch[1], 10)
+      : null,
     raw: normalized,
   };
 }
 
-function isVersionNewer(compareTo, base) {
+function isVersionNewer(
+  compareTo: ParsedSemVer | null,
+  base: ParsedSemVer | null,
+): boolean {
   if (!compareTo || !base) {
     return false;
   }
@@ -139,7 +234,7 @@ function isVersionNewer(compareTo, base) {
   return compareTo.prerelease > base.prerelease;
 }
 
-function resolveLatestAstrographVersion() {
+function resolveLatestAstrographVersion(): ParsedSemVer | null {
   try {
     const latest = execFileSync(
       "npm",
@@ -156,7 +251,7 @@ function resolveLatestAstrographVersion() {
   }
 }
 
-function emitUpdateSuggestion(currentVersion) {
+function emitUpdateSuggestion(currentVersion: string): void {
   const latest = resolveLatestAstrographVersion();
   const current = parseComparableVersion(currentVersion);
 
@@ -171,8 +266,7 @@ function emitUpdateSuggestion(currentVersion) {
   );
 }
 
-
-function usage() {
+function usage(): void {
   process.stderr.write(
     [
       "Usage:",
@@ -193,10 +287,26 @@ function usage() {
   );
 }
 
-function parseArgs(argv) {
-  const knownFlag = new Set(["--yes", "--dry-run", "--repo", "--ide", "--mode", "--help", "-h"]);
+function isInstallMode(value: string): value is InstallMode {
+  return (INSTALL_MODES as readonly string[]).includes(value);
+}
+
+function isInstallIde(value: string): boolean {
+  return value === "codex" || value === "copilot" || value === "copilot-cli";
+}
+
+function parseArgs(argv: string[]): ParsedArgs {
+  const knownFlag = new Set<string>([
+    "--yes",
+    "--dry-run",
+    "--repo",
+    "--ide",
+    "--mode",
+    "--help",
+    "-h",
+  ]);
   for (const token of argv) {
-    if (!token?.startsWith("-")) {
+    if (!token.startsWith("-")) {
       continue;
     }
 
@@ -218,30 +328,19 @@ function parseArgs(argv) {
   }
 
   const cli = cac("astrograph-init");
-
   cli
-    .option("--yes", {
-      type: Boolean,
-      description: "Run setup without interactive prompts.",
-    })
-    .option("--dry-run", {
-      type: Boolean,
-      description: "Preview changes only.",
-    })
-    .option("--repo <path>", {
-      description: "Repository root path for setup.",
+    .option("--yes", "Run setup without interactive prompts.")
+    .option("--dry-run", "Preview changes only.")
+    .option("--repo <path>", "Repository root path for setup.", {
       default: process.cwd(),
     })
-    .option("--ide <ide-list>", {
-      description: "Comma-separated list of IDEs to configure (codex|copilot|copilot-cli|all).",
-    })
-    .option("--mode <mode>", {
-      description: "Profile mode (barebones|some|full).",
+    .option("--ide <ide-list>", "Comma-separated list of IDEs to configure (codex|copilot|copilot-cli|all).")
+    .option("--mode <mode>", "Profile mode (barebones|some|full).", {
       default: DEFAULT_INSTALL_MODE,
     })
-    .help("-h, --help");
+    .help();
 
-  const parsed = cli.parse(argv, { run: false });
+  const parsed = cli.parse(argv, { run: false }) as { options: CliOptions };
 
   if (parsed.options.help) {
     return {
@@ -255,27 +354,30 @@ function parseArgs(argv) {
     };
   }
 
-  const hasFlag = (name) =>
+  const hasFlag = (name: string): boolean =>
     argv.includes(`--${name}`) || argv.some((token) => token.startsWith(`--${name}=`));
 
   return {
     ides: hasFlag("ide")
-      ? parseIdeSelections(String(parsed.options.ide))
+      ? parseIdeSelections(parsed.options.ide)
       : null,
     repo: parsed.options.repo ?? process.cwd(),
-    dryRun: parsed.options.dryRun ?? false,
-    nonInteractive: parsed.options.yes ?? false,
-    mode: parsed.options.mode ?? DEFAULT_INSTALL_MODE,
+    dryRun: Boolean(parsed.options.dryRun),
+    nonInteractive: Boolean(parsed.options.yes),
+    mode: typeof parsed.options.mode === "string"
+      ? parsed.options.mode
+      : DEFAULT_INSTALL_MODE,
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("dry-run") ||
       hasFlag("repo") ||
       hasFlag("ide") ||
       hasFlag("mode"),
+    showHelp: false,
   };
 }
 
-function parseIdeSelections(raw) {
+function parseIdeSelections(raw: string | undefined): RequestedIde[] {
   if (!raw || typeof raw !== "string") {
     return [];
   }
@@ -291,13 +393,25 @@ function parseIdeSelections(raw) {
   }
 
   if (deduped.includes("all")) {
-    return ALL_INSTALL_IDES;
+    return [...ALL_INSTALL_IDES];
   }
 
-  return deduped;
+  const unexpected = deduped.filter((entry): boolean => !INSTALL_IDE_KEYWORDS.includes(entry as RequestedIde));
+  if (unexpected.length > 0) {
+    throw new Error(
+        `Unsupported ide value(s): ${unexpected.join(", ")}`,
+    );
+  }
+
+  return deduped as RequestedIde[];
 }
 
-async function promptForSetupArgs() {
+async function promptForSetupArgs(): Promise<{
+  ides: RequestedIde[];
+  mode: InstallMode;
+  repo: string;
+  dryRun: boolean;
+}> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
       "Interactive setup requires a TTY. Re-run with --yes --ide all|codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run]",
@@ -338,7 +452,7 @@ async function promptForSetupArgs() {
     process.exit(0);
   }
 
-  const selectedIdes = [...new Set(ides.filter((entry) => typeof entry === "string"))];
+  const selectedIdes = [...new Set(ides.filter((entry) => typeof entry === "string"))] as RequestedIde[];
 
   if (selectedIdes.length === 0) {
     outro("Setup cancelled.");
@@ -382,7 +496,7 @@ async function promptForSetupArgs() {
     ],
   });
 
-  if (isCancel(mode)) {
+  if (isCancel(mode) || !isInstallMode(typeof mode === "string" ? mode : "")) {
     outro("Setup cancelled.");
     process.exit(0);
   }
@@ -397,17 +511,17 @@ async function promptForSetupArgs() {
     process.exit(0);
   }
 
-  outro("Running setup.", { withGuide: false });
+  outro("Running setup.");
 
   return {
-    ides: selectedIdes,
+    ides: selectedIdes as RequestedIde[],
     mode,
     repo,
     dryRun,
   };
 }
 
-function parseJsonFromString(raw, configPath) {
+function parseJsonFromString(raw: string, configPath: string): InstalledObject {
   if (!raw.trim()) {
     return {};
   }
@@ -417,7 +531,7 @@ function parseJsonFromString(raw, configPath) {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("Expected a JSON object");
     }
-    return parsed;
+    return parsed as InstalledObject;
   } catch (error) {
     throw new Error(
       `Invalid package JSON: ${path.basename(configPath)} (${error instanceof Error ? error.message : String(error)})`,
@@ -425,7 +539,7 @@ function parseJsonFromString(raw, configPath) {
   }
 }
 
-function dependencyFieldHasAstrograph(pkgJson) {
+function dependencyFieldHasAstrograph(pkgJson: PackageJsonFile): boolean {
   return Boolean(
     pkgJson.dependencies?.[PACKAGE_NAME]
     || pkgJson.devDependencies?.[PACKAGE_NAME]
@@ -433,7 +547,17 @@ function dependencyFieldHasAstrograph(pkgJson) {
   );
 }
 
-async function ensureAstrographDependencyInRepo(repoRoot, dryRun) {
+function toStringRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return {};
+  }
+  return value as Record<string, unknown>;
+}
+
+async function ensureAstrographDependencyInRepo(
+  repoRoot: string,
+  dryRun: boolean,
+): Promise<PackageDependencyResult> {
   const packagePath = path.join(repoRoot, "package.json");
   let packageJsonRaw;
   try {
@@ -445,16 +569,16 @@ async function ensureAstrographDependencyInRepo(repoRoot, dryRun) {
     };
   }
 
-  const parsed = parseJsonFromString(packageJsonRaw, packagePath);
+  const parsed = parseJsonFromString(packageJsonRaw, packagePath) as PackageJsonFile;
   const hadAstrographDependency = dependencyFieldHasAstrograph(parsed);
 
   let didUpdate = false;
-  const sections = ["dependencies", "devDependencies", "optionalDependencies"];
+  const sections = ["dependencies", "devDependencies", "optionalDependencies"] as const;
   const namesToSync = [PACKAGE_NAME];
 
   for (const section of sections) {
-    const value = parsed[section];
-    if (!value || typeof value !== "object" || Array.isArray(value)) {
+    const value = toStringRecord(parsed[section]);
+    if (Object.keys(value).length === 0) {
       continue;
     }
 
@@ -464,10 +588,13 @@ async function ensureAstrographDependencyInRepo(repoRoot, dryRun) {
         didUpdate = true;
       }
     }
+    parsed[section] = value;
   }
 
   if (!dependencyFieldHasAstrograph(parsed)) {
-    if (!parsed.devDependencies || typeof parsed.devDependencies !== "object" || Array.isArray(parsed.devDependencies)) {
+    const devDependencies = toStringRecord(parsed.devDependencies);
+    parsed.devDependencies = devDependencies;
+    if (Object.keys(devDependencies).length === 0) {
       parsed.devDependencies = {};
     }
     parsed.devDependencies[PACKAGE_NAME] = "latest";
@@ -501,7 +628,7 @@ async function ensureAstrographDependencyInRepo(repoRoot, dryRun) {
   };
 }
 
-function validateIdes(args) {
+function validateIdes(args: { ides: RequestedIde[] }): { ides: InstallIde[] } {
   if (!Array.isArray(args.ides) || args.ides.length === 0) {
     throw new Error(
       "Astrograph init requires at least one --ide value",
@@ -509,32 +636,30 @@ function validateIdes(args) {
   }
 
   if (args.ides.includes("all")) {
-    args.ides = ALL_INSTALL_IDES;
-    return args;
+    return { ides: [...ALL_INSTALL_IDES] };
   }
 
   for (const ide of args.ides) {
-    if (!INSTALL_IDE_KEYWORDS.includes(ide)) {
+    if (ide !== "all" && !isInstallIde(ide)) {
       throw new Error(
         "Astrograph init supports --ide codex, --ide copilot, --ide copilot-cli, and --ide all",
       );
     }
   }
 
-  return args;
+  return { ides: args.ides as InstallIde[] };
 }
 
-function validateMode(args) {
-  if (!INSTALL_MODES.includes(args.mode)) {
+function validateMode(args: { mode: InstallMode | string }): { mode: InstallMode } {
+  if (typeof args.mode !== "string" || !isInstallMode(args.mode)) {
     throw new Error(
       "Astrograph init supports --mode barebones, --mode some, and --mode full",
     );
   }
-
-  return args;
+  return { mode: args.mode };
 }
 
-function resolveRepoRoot(repoRoot) {
+function resolveRepoRoot(repoRoot: string): string {
   const absoluteRepoRoot = path.resolve(repoRoot);
   try {
     return execFileSync("git", ["rev-parse", "--show-toplevel"], {
@@ -547,16 +672,19 @@ function resolveRepoRoot(repoRoot) {
   }
 }
 
-function hasLocalAstrographDependency(repoRoot) {
+function hasLocalAstrographDependency(repoRoot: string): boolean {
   try {
-  const packageData = JSON.parse(
-      execFileSync("node", ["-e", "process.stdout.write(require('fs').readFileSync('package.json','utf8'))"], {
-        cwd: repoRoot,
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-      }),
-    );
-
+    const packageData = JSON.parse(
+      execFileSync(
+        "node",
+        ["-e", "process.stdout.write(require('fs').readFileSync('package.json','utf8'))"],
+        {
+          cwd: repoRoot,
+          encoding: "utf8",
+          stdio: ["ignore", "pipe", "ignore"],
+        },
+      ),
+    ) as PackageJsonFile;
     return Boolean(
       packageData.dependencies?.[PACKAGE_NAME]
       || packageData.devDependencies?.[PACKAGE_NAME]
@@ -567,18 +695,18 @@ function hasLocalAstrographDependency(repoRoot) {
   }
 }
 
-function resolveManagedInvocation() {
+function resolveManagedInvocation(): ManagedInvocation {
   return {
     command: "npx",
     args: [PACKAGE_NAME, "mcp"],
   };
 }
 
-function resolveToolSet(mode = DEFAULT_INSTALL_MODE) {
+function resolveToolSet(mode: InstallMode = DEFAULT_INSTALL_MODE): readonly string[] {
   return MCP_TOOL_PROFILE[mode] ?? MCP_TOOL_PROFILE.full;
 }
 
-function astrographConfigBlock(mode = DEFAULT_INSTALL_MODE) {
+function astrographConfigBlock(mode: InstallMode = DEFAULT_INSTALL_MODE): string {
   const enabledTools = resolveToolSet(mode).map((tool) => `"${tool}"`).join(", ");
   const toolApprovals = resolveToolSet(mode).map((tool) =>
     `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
@@ -598,7 +726,7 @@ ${toolApprovals}
 ${MARKER_END}`;
 }
 
-function replaceManagedBlock(contents, block) {
+function replaceManagedBlock(contents: string, block: string): string {
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     return contents.replace(
       new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"),
@@ -617,7 +745,7 @@ function replaceManagedBlock(contents, block) {
   return normalized.length === 0 ? `${block}\n` : `${normalized}\n\n${block}\n`;
 }
 
-function parseJsonConfig(contents, configPath) {
+function parseJsonConfig(contents: string, configPath: string): InstalledObject {
   if (!contents.trim()) {
     return {};
   }
@@ -627,7 +755,7 @@ function parseJsonConfig(contents, configPath) {
     if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
       throw new Error("Expected a JSON object");
     }
-    return parsed;
+    return parsed as InstalledObject;
   } catch (error) {
     throw new Error(
       `Invalid JSON config file: ${path.basename(configPath)} (${error instanceof Error ? error.message : String(error)})`,
@@ -635,7 +763,12 @@ function parseJsonConfig(contents, configPath) {
   }
 }
 
-function replaceManagedServerInJson(contents, configPath, rootKey, managedServer) {
+function replaceManagedServerInJson(
+  contents: string,
+  configPath: string,
+  rootKey: string,
+  managedServer: InstalledObject,
+): string {
   const parsed = parseJsonConfig(contents, configPath);
   const existing = parsed[rootKey];
 
@@ -658,7 +791,7 @@ function replaceManagedServerInJson(contents, configPath, rootKey, managedServer
   ) + "\n";
 }
 
-function managedConfigForCopilot(ide, mode = DEFAULT_INSTALL_MODE) {
+function managedConfigForCopilot(ide: InstallIde, mode: InstallMode = DEFAULT_INSTALL_MODE): InstalledObject {
   const invocation = resolveManagedInvocation();
   const toolSet = resolveToolSet(mode);
 
@@ -680,7 +813,12 @@ function managedConfigForCopilot(ide, mode = DEFAULT_INSTALL_MODE) {
   };
 }
 
-function resolveManagedConfig(ide, repoRoot, currentContents, mode = DEFAULT_INSTALL_MODE) {
+function resolveManagedConfig(
+  ide: InstallIde,
+  repoRoot: string,
+  currentContents: string,
+  mode: InstallMode = DEFAULT_INSTALL_MODE,
+): ManagedConfig {
   if (ide === "codex") {
     return {
       configPath: path.join(repoRoot, ".codex", "config.toml"),
@@ -691,10 +829,9 @@ function resolveManagedConfig(ide, repoRoot, currentContents, mode = DEFAULT_INS
     };
   }
 
-  const configPath =
-    ide === "copilot"
-      ? path.join(repoRoot, ".vscode", "mcp.json")
-      : path.join(repoRoot, ".mcp.json");
+  const configPath = ide === "copilot"
+    ? path.join(repoRoot, ".vscode", "mcp.json")
+    : path.join(repoRoot, ".mcp.json");
   const rootKey = ide === "copilot" ? "servers" : "mcpServers";
 
   return {
@@ -709,16 +846,15 @@ function resolveManagedConfig(ide, repoRoot, currentContents, mode = DEFAULT_INS
 }
 
 export async function setupForIde(
-  repoRoot,
-  { ide = "copilot", mode = DEFAULT_INSTALL_MODE, dryRun = false } = {},
-) {
+  repoRoot: string,
+  {
+    ide = "copilot",
+    mode = DEFAULT_INSTALL_MODE,
+    dryRun = false,
+  }: SetupForIdeOptions = {},
+): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
-  const { configPath } = resolveManagedConfig(
-    ide,
-    resolvedRepoRoot,
-    "",
-    mode,
-  );
+  const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "", mode);
   const currentContents = await readFile(configPath, "utf8").catch(() => "");
   const { configPath: finalConfigPath, nextContents } = resolveManagedConfig(
     ide,
@@ -741,17 +877,54 @@ export async function setupForIde(
     packageVersion: PACKAGE_VERSION,
     configPreview: nextContents,
     localDependencyDetected: hasLocalAstrographDependency(resolvedRepoRoot),
+    packageDependencyUpdated: false,
+    packageDependencyReason: "dependency already at latest",
   };
 }
 
 export async function setupForCodex(
-  repoRoot,
-  { mode = DEFAULT_INSTALL_MODE, dryRun = false } = {},
-) {
+  repoRoot: string,
+  { mode = DEFAULT_INSTALL_MODE, dryRun = false }: SetupForIdeOptions = {},
+): Promise<SetupResult> {
   return setupForIde(repoRoot, { ide: "codex", mode, dryRun });
 }
 
-async function main() {
+export async function setupForAllIdes(
+  repoRoot: string,
+  {
+    ides = ["copilot"],
+    mode = DEFAULT_INSTALL_MODE,
+    dryRun = false,
+  }: SetupForAllOptions = {},
+): Promise<SetupResult | SetupResult[]> {
+  const normalizedIdes = validateIdes({ ides }).ides;
+  const normalizedMode = validateMode({ mode }).mode;
+  const resolvedRepoRoot = resolveRepoRoot(repoRoot);
+  const packageDependency = await ensureAstrographDependencyInRepo(
+    resolvedRepoRoot,
+    dryRun,
+  );
+
+  const results: SetupResult[] = [];
+  for (const ide of normalizedIdes) {
+    const result = await setupForIde(resolvedRepoRoot, {
+      ide,
+      mode: normalizedMode,
+      dryRun,
+    });
+
+    results.push({
+      ...result,
+      packageDependencyUpdated: packageDependency.packageDependencyUpdated,
+      packageDependencyReason: packageDependency.packageDependencyReason,
+      packageDependencyPreview: packageDependency.packageDependencyPreview,
+    });
+  }
+
+  return normalizedIdes.length === 1 ? results[0] : results;
+}
+
+async function main(): Promise<void> {
   const parsed = parseArgs(process.argv.slice(2));
 
   if (parsed.showHelp) {
@@ -759,7 +932,7 @@ async function main() {
     return;
   }
 
-  const normalizedArgs = {
+  const normalizedArgs: ParsedArgs = {
     ...parsed,
     ides: parsed.ides || ["copilot"],
     mode: parsed.mode || DEFAULT_INSTALL_MODE,
@@ -767,7 +940,14 @@ async function main() {
   };
 
   const args = parsed.hasExplicitArgs || parsed.nonInteractive
-    ? validateMode(validateIdes(normalizedArgs))
+    ? {
+      ...validateMode(normalizedArgs),
+      ...validateIdes({ ides: normalizedArgs.ides ?? [] }),
+      repo: normalizedArgs.repo,
+      dryRun: normalizedArgs.dryRun,
+      nonInteractive: normalizedArgs.nonInteractive,
+      hasExplicitArgs: normalizedArgs.hasExplicitArgs,
+    }
     : await promptForSetupArgs();
 
   const result = await setupForAllIdes(args.repo, {
@@ -778,34 +958,6 @@ async function main() {
 
   emitUpdateSuggestion(PACKAGE_VERSION);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-}
-
-export async function setupForAllIdes(
-  repoRoot,
-  { ides = ["copilot"], mode = DEFAULT_INSTALL_MODE, dryRun = false } = {},
-) {
-  const normalizedIdes = validateIdes({ ides }).ides;
-  const normalizedMode = validateMode({ mode }).mode;
-  const resolvedRepoRoot = resolveRepoRoot(repoRoot);
-  const packageDependency = await ensureAstrographDependencyInRepo(resolvedRepoRoot, dryRun);
-
-  const results = [];
-
-  for (const ide of normalizedIdes) {
-    const result = await setupForIde(resolvedRepoRoot, {
-      ide,
-      mode: normalizedMode,
-      dryRun,
-    });
-    results.push({
-      ...result,
-      packageDependencyUpdated: packageDependency.packageDependencyUpdated,
-      packageDependencyReason: packageDependency.packageDependencyReason,
-      packageDependencyPreview: packageDependency.packageDependencyPreview,
-    });
-  }
-
-  return normalizedIdes.length === 1 ? results[0] : results;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

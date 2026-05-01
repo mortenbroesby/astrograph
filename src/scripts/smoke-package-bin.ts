@@ -11,10 +11,15 @@ const execFile = promisify(execFileCallback);
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
+  "..",
 );
 
-async function run(command, args, cwd) {
-  const { stdout, stderr } = await execFile(command, args, {
+async function run(
+  command: string,
+  args: readonly string[],
+  cwd: string,
+): Promise<{ stdout: string; stderr: string }> {
+  const result = await execFile(command, [...args], {
     cwd,
     env: {
       ...process.env,
@@ -24,12 +29,12 @@ async function run(command, args, cwd) {
     maxBuffer: 10 * 1024 * 1024,
   });
   return {
-    stdout,
-    stderr,
+    stdout: result.stdout.toString(),
+    stderr: result.stderr.toString(),
   };
 }
 
-async function main() {
+async function main(): Promise<void> {
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-pack-"));
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");

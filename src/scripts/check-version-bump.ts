@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
+  "..",
 );
 const packageJsonPath = path.join(packageRoot, "package.json");
 const versionModuleUrl = pathToFileURL(
@@ -16,24 +17,22 @@ const {
   assessAstrographVersionBump,
   parseAstrographVersion,
   parseAstrographVersionFromCommitBaseline,
-} = await import(versionModuleUrl);
+} = await import(versionModuleUrl) as {
+  assessAstrographVersionBump: typeof import("../version.ts").assessAstrographVersionBump;
+  parseAstrographVersion: typeof import("../version.ts").parseAstrographVersion;
+  parseAstrographVersionFromCommitBaseline: typeof import("../version.ts").parseAstrographVersionFromCommitBaseline;
+};
 
-function git(args) {
-  return execFileSync("git", args, {
+function git(args: readonly string[]): string {
+  return execFileSync("git", [...args], {
     cwd: packageRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
 }
 
-function readVersionFromPackageJson(contents, sourceLabel) {
-  let parsed;
-  try {
-    parsed = JSON.parse(contents);
-  } catch (error) {
-    throw new Error(`${sourceLabel} is not valid JSON.`);
-  }
-
+function readVersionFromPackageJson(contents: string, sourceLabel: string): string {
+  const parsed: { version?: unknown } = JSON.parse(contents);
   if (typeof parsed.version !== "string" || parsed.version.length === 0) {
     throw new Error(`${sourceLabel} is missing a version string.`);
   }
@@ -41,7 +40,7 @@ function readVersionFromPackageJson(contents, sourceLabel) {
   return parsed.version;
 }
 
-function getHeadPackageVersion() {
+function getHeadPackageVersion(): string | null {
   try {
     const contents = git(["show", `HEAD:${path.relative(packageRoot, packageJsonPath)}`]);
     return readVersionFromPackageJson(contents, "HEAD package.json");
@@ -50,7 +49,7 @@ function getHeadPackageVersion() {
   }
 }
 
-function getStagedPackageVersion() {
+function getStagedPackageVersion(): string {
   const repoRelativePath = path.relative(
     packageRoot,
     packageJsonPath,
@@ -62,7 +61,7 @@ function getStagedPackageVersion() {
   );
 }
 
-function getStagedPaths() {
+function getStagedPaths(): string[] {
   const output = git(["diff", "--cached", "--name-only"]);
   if (output.length === 0) {
     return [];
@@ -71,7 +70,7 @@ function getStagedPaths() {
   return output.split("\n").filter(Boolean);
 }
 
-function main() {
+function main(): void {
   const stagedPaths = getStagedPaths();
   const astrographPaths = stagedPaths.filter((filePath) =>
     /^(package\.json|src\/|scripts\/|tests\/|bench\/|tsconfig|vitest\.config\.ts)/.test(filePath),
