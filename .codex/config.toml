@@ -1,0 +1,17 @@
+# BEGIN ASTROGRAPH
+[mcp_servers.astrograph]
+command = "npx"
+args = ["@mortenbroesby/astrograph", "mcp"]
+cwd = "."
+startup_timeout_sec = 90
+enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]
+
+[mcp_servers.astrograph.tools.query_code]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_file_tree]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_file_outline]
+approval_mode = "approve"
+# END ASTROGRAPH

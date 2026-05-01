@@ -416,6 +416,18 @@ describe("ai-context-engine contract", () => {
 
     expect(result.packageName).toBe("@mortenbroesby/astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
+    expect(result.engineConfigPath).toContain("astrograph.config.json");
+    expect(result.engineConfigPreview).toMatchObject({
+      summaryStrategy: "doc-comments-first",
+      observability: {
+        enabled: false,
+      },
+      performance: {
+        workerPool: {
+          enabled: false,
+        },
+      },
+    });
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain('args = ["@mortenbroesby/astrograph", "mcp"]');
@@ -485,6 +497,90 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"astrograph"');
     expect(result.configPreview).toContain('"command": "npx"');
     expect(result.configPreview).toContain('"type": "stdio"');
+  });
+
+  it("defaults standalone setup to Codex barebones with an Astrograph config", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-defaults-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await setupForAllIdes(repoRoot, { dryRun: true });
+    if (Array.isArray(result)) {
+      throw new Error("Expected default setup to target one IDE");
+    }
+
+    expect(result.ide).toBe("codex");
+    expect(result.mode).toBe("barebones");
+    expect(result.configPath).toContain(path.join(".codex", "config.toml"));
+    expect(result.engineConfigPath).toContain("astrograph.config.json");
+    expect(result.engineConfigPreview.performance.exclude).toContain("node_modules/**");
+    expect(result.configPreview).toContain('enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]');
+    expect(result.configPreview).not.toContain("index_folder");
+    expect(result.agentsPolicyPath).toContain("AGENTS.md");
+    expect(result.agentsPolicyUpdated).toBe(false);
+    expect(result.agentsPolicyReason).toBe("not requested");
+  });
+
+  it("can opt into an AGENTS.md Astrograph code exploration policy", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-agents-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await setupForAllIdes(repoRoot, {
+      dryRun: true,
+      agentsPolicy: true,
+    });
+    if (Array.isArray(result)) {
+      throw new Error("Expected default setup to target one IDE");
+    }
+
+    expect(result.agentsPolicyPath).toContain("AGENTS.md");
+    expect(result.agentsPolicyUpdated).toBe(false);
+    expect(result.agentsPolicyReason).toBe("would add Astrograph code exploration policy");
+    expect(result.agentsPolicyPreview).toContain("## Code Exploration Policy");
+    expect(result.agentsPolicyPreview).toContain("get_project_status");
+    expect(result.agentsPolicyPreview).toContain("index_folder");
+    expect(result.agentsPolicyPreview).toContain("query_code");
+  });
+
+  it("does not add Astrograph as a dependency of itself", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-self-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+    await writeFile(
+      path.join(repoRoot, "package.json"),
+      JSON.stringify({
+        name: "@mortenbroesby/astrograph",
+        private: false,
+      }, null, 2),
+    );
+
+    const result = await setupForAllIdes(repoRoot, { dryRun: true });
+    if (Array.isArray(result)) {
+      throw new Error("Expected default setup to target one IDE");
+    }
+
+    expect(result.packageDependencyUpdated).toBe(false);
+    expect(result.packageDependencyReason).toBe("target package is Astrograph itself");
+    expect(result.packageDependencyPreview).toBeUndefined();
   });
 
   it("writes a filtered Codex toolset for barebones install", async () => {
@@ -584,6 +680,6 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"command": "npx"');
     expect(result.configPreview).toContain('"type": "local"');
     expect(result.configPreview).toContain('"tools": [');
-    expect(result.configPreview).toContain('"diagnostics"');
+    expect(result.configPreview).not.toContain('"diagnostics"');
   });
 });

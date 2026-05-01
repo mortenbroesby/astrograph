@@ -5,19 +5,19 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   isCancel,
   intro,
-  multiselect,
   outro,
   select,
-  text,
   confirm,
 } from "@clack/prompts";
-import { cac } from "cac";
+import { Command, Option } from "commander";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
+const AGENTS_POLICY_BEGIN = "<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->";
+const AGENTS_POLICY_END = "<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->";
 const MCP_SERVER_NAME = "astrograph";
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const packageJson = JSON.parse(
@@ -41,7 +41,8 @@ const MCP_TOOLS = [
   "diagnostics",
 ] as const;
 const INSTALL_MODES = ["barebones", "some", "full"] as const;
-const DEFAULT_INSTALL_MODE: InstallMode = "full";
+const DEFAULT_INSTALL_MODE: InstallMode = "barebones";
+const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 
 type InstallMode = (typeof INSTALL_MODES)[number];
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
@@ -63,6 +64,7 @@ interface ParsedArgs {
   dryRun: boolean;
   nonInteractive: boolean;
   mode: InstallMode | string;
+  agentsPolicy: boolean;
   hasExplicitArgs: boolean;
   showHelp: boolean;
 }
@@ -72,6 +74,28 @@ interface PackageJsonFile {
   devDependencies?: Record<string, unknown>;
   optionalDependencies?: Record<string, unknown>;
   [key: string]: unknown;
+}
+
+interface EngineConfigFile {
+  summaryStrategy: "doc-comments-first";
+  observability: {
+    enabled: false;
+  };
+  performance: {
+    exclude: string[];
+    workerPool: {
+      enabled: false;
+    };
+  };
+  watch: {
+    backend: "auto";
+    debounceMs: number;
+  };
+  limits: {
+    maxFilesDiscovered: number;
+    maxFileBytes: number;
+    maxSymbolsPerFile: number;
+  };
 }
 
 interface PackageDependencyResult {
@@ -85,13 +109,19 @@ interface SetupResult {
   mode: InstallMode;
   repoRoot: string;
   configPath: string;
+  engineConfigPath: string;
   packageName: string;
   packageVersion: string;
   configPreview: string;
+  engineConfigPreview: EngineConfigFile;
   localDependencyDetected: boolean;
   packageDependencyUpdated: boolean;
   packageDependencyReason: string;
   packageDependencyPreview?: PackageJsonFile;
+  agentsPolicyPath: string;
+  agentsPolicyUpdated: boolean;
+  agentsPolicyReason: string;
+  agentsPolicyPreview?: string;
 }
 
 interface CliOptions {
@@ -100,6 +130,7 @@ interface CliOptions {
   dryRun?: boolean;
   repo?: string;
   yes?: boolean;
+  agents?: boolean;
   help?: boolean;
 }
 
@@ -123,6 +154,14 @@ interface SetupForAllOptions {
   ides?: RequestedIde[];
   mode?: InstallMode | string;
   dryRun?: boolean;
+  agentsPolicy?: boolean;
+}
+
+interface AgentsPolicyResult {
+  agentsPolicyPath: string;
+  agentsPolicyUpdated: boolean;
+  agentsPolicyReason: string;
+  agentsPolicyPreview?: string;
 }
 
 const MCP_TOOL_PROFILE: Record<InstallMode, readonly string[]> = {
@@ -270,19 +309,20 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx @mortenbroesby/astrograph init [--yes] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mode barebones|some|full] [--repo /abs/repo] [--dry-run]",
+      "  npx @mortenbroesby/astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mode barebones|some|full] [--repo /abs/repo] [--dry-run]",
       "",
-      "  Interactive mode (default):",
-      "  - Choose setup profile (barebones/some/full) in prompts",
-      "    npx @mortenbroesby/astrograph init",
-      "    npx @mortenbroesby/astrograph init --mode some --ide codex,copilot,copilot-cli --repo /abs/repo",
-      "  Setup also ensures an Astrograph dependency is set to `latest` in package.json.",
-      "  If missing, it adds `@mortenbroesby/astrograph: \"latest\"` to devDependencies.",
+      "Defaults:",
+      "  - repo: current git worktree, or current directory",
+      "  - IDE: Codex",
+      "  - profile: barebones",
+      "  - writes: astrograph.config.json and managed MCP config",
+      "  - optional: --agents adds an Astrograph code exploration policy to AGENTS.md",
+      "  - ensures: @mortenbroesby/astrograph is set to latest in package.json when package.json exists",
       "",
-      "  Non-interactive mode:",
-      "    npx @mortenbroesby/astrograph init --yes --ide copilot --mode full --repo /abs/repo [--dry-run]",
-      "    npx @mortenbroesby/astrograph init --yes --ide all --mode some --repo /abs/repo [--dry-run]",
-      "    npx @mortenbroesby/astrograph init --yes --ide codex,copilot --mode barebones --repo /abs/repo [--dry-run]",
+      "Examples:",
+      "  npx @mortenbroesby/astrograph init",
+      "  npx @mortenbroesby/astrograph init --yes",
+      "  npx @mortenbroesby/astrograph init --yes --ide all --mode some",
     ].join("\n") + "\n",
   );
 }
@@ -296,8 +336,22 @@ function isInstallIde(value: string): boolean {
 }
 
 function parseArgs(argv: string[]): ParsedArgs {
+  if (argv.includes("--help") || argv.includes("-h")) {
+    return {
+      ides: null,
+      repo: process.cwd(),
+      dryRun: false,
+      nonInteractive: false,
+      mode: DEFAULT_INSTALL_MODE,
+      agentsPolicy: false,
+      hasExplicitArgs: false,
+      showHelp: true,
+    };
+  }
+
   const knownFlag = new Set<string>([
     "--yes",
+    "--agents",
     "--dry-run",
     "--repo",
     "--ide",
@@ -327,28 +381,50 @@ function parseArgs(argv: string[]): ParsedArgs {
     }
   }
 
-  const cli = cac("astrograph-init");
-  cli
-    .option("--yes", "Run setup without interactive prompts.")
-    .option("--dry-run", "Preview changes only.")
-    .option("--repo <path>", "Repository root path for setup.", {
-      default: process.cwd(),
-    })
-    .option("--ide <ide-list>", "Comma-separated list of IDEs to configure (codex|copilot|copilot-cli|all).")
-    .option("--mode <mode>", "Profile mode (barebones|some|full).", {
-      default: DEFAULT_INSTALL_MODE,
-    })
-    .help();
+  const program = new Command("astrograph init")
+    .allowUnknownOption(false)
+    .exitOverride()
+    .helpOption("-h, --help", "Show setup help.")
+    .addOption(new Option("--yes", "Run setup with defaults and without prompts."))
+    .addOption(new Option("--agents", "Add Astrograph code exploration policy to AGENTS.md."))
+    .addOption(new Option("--dry-run", "Preview changes only."))
+    .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
+    .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined))
+    .addOption(
+      new Option("--mode <mode>", "Setup profile.")
+        .choices([...INSTALL_MODES])
+        .default(DEFAULT_INSTALL_MODE),
+    );
 
-  const parsed = cli.parse(["astrograph-init", ...argv], { run: false }) as { options: CliOptions };
+  let options: CliOptions;
+  try {
+    program.parse(["node", "astrograph-init", ...argv], { from: "node" });
+    options = program.opts<CliOptions>();
+  } catch (error) {
+    const commanderError = error as { code?: string; message?: string };
+    if (commanderError.code === "commander.helpDisplayed") {
+      return {
+        ides: null,
+        repo: process.cwd(),
+        dryRun: false,
+        nonInteractive: false,
+        mode: DEFAULT_INSTALL_MODE,
+        agentsPolicy: false,
+        hasExplicitArgs: false,
+        showHelp: true,
+      };
+    }
+    throw new Error(commanderError.message ?? String(error));
+  }
 
-  if (parsed.options.help) {
+  if (options.help) {
     return {
       ides: null,
       repo: process.cwd(),
       dryRun: false,
       nonInteractive: false,
       mode: DEFAULT_INSTALL_MODE,
+      agentsPolicy: false,
       hasExplicitArgs: false,
       showHelp: true,
     };
@@ -359,16 +435,18 @@ function parseArgs(argv: string[]): ParsedArgs {
 
   return {
     ides: hasFlag("ide")
-      ? parseIdeSelections(parsed.options.ide)
+      ? parseIdeSelections(options.ide)
       : null,
-    repo: parsed.options.repo ?? process.cwd(),
-    dryRun: Boolean(parsed.options.dryRun),
-    nonInteractive: Boolean(parsed.options.yes),
-    mode: typeof parsed.options.mode === "string"
-      ? parsed.options.mode
+    repo: options.repo ?? process.cwd(),
+    dryRun: Boolean(options.dryRun),
+    nonInteractive: Boolean(options.yes),
+    mode: typeof options.mode === "string"
+      ? options.mode
       : DEFAULT_INSTALL_MODE,
+    agentsPolicy: Boolean(options.agents),
     hasExplicitArgs:
       hasFlag("yes") ||
+      hasFlag("agents") ||
       hasFlag("dry-run") ||
       hasFlag("repo") ||
       hasFlag("ide") ||
@@ -411,6 +489,7 @@ async function promptForSetupArgs(): Promise<{
   mode: InstallMode;
   repo: string;
   dryRun: boolean;
+  agentsPolicy: boolean;
 }> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
@@ -420,80 +499,69 @@ async function promptForSetupArgs(): Promise<{
 
   intro("Astrograph init");
 
-  const ides = await multiselect({
-    message: "Which IDEs do you want to configure?",
+  const resolvedRepo = resolveRepoRoot(process.cwd());
+  const shouldContinue = await confirm({
+    message: `Set up Astrograph in ${resolvedRepo}?`,
+    initialValue: true,
+  });
+
+  if (isCancel(shouldContinue) || shouldContinue === false) {
+    outro("Setup cancelled.");
+    process.exit(0);
+  }
+
+  const ide = await select({
+    message: "Where should Astrograph be added?",
     options: [
-      {
-        value: "all",
-        label: "All",
-        hint: "Configure all supported IDEs at once",
-      },
       {
         value: "codex",
         label: "Codex",
-        hint: "writes .codex/config.toml",
+        hint: "Recommended. Writes .codex/config.toml",
       },
       {
         value: "copilot",
         label: "GitHub Copilot",
-        hint: "writes .vscode/mcp.json",
+        hint: "Writes .vscode/mcp.json",
       },
       {
         value: "copilot-cli",
         label: "GitHub Copilot CLI",
-        hint: "writes .mcp.json",
+        hint: "Writes .mcp.json",
+      },
+      {
+        value: "all",
+        label: "All supported clients",
+        hint: "Codex, Copilot, and Copilot CLI",
       },
     ],
-    required: true,
+    initialValue: "codex",
   });
 
-  if (isCancel(ides)) {
-    outro("Setup cancelled.");
-    process.exit(0);
-  }
-
-  const selectedIdes = [...new Set(ides.filter((entry) => typeof entry === "string"))] as RequestedIde[];
-
-  if (selectedIdes.length === 0) {
-    outro("Setup cancelled.");
-    process.exit(0);
-  }
-
-  const repo = await text({
-    message: "Repository root",
-    placeholder: process.cwd(),
-    defaultValue: process.cwd(),
-    validate: (value) => {
-      if (!value) return "Repository root is required";
-      if (typeof value !== "string") return "Invalid repository path";
-      return undefined;
-    },
-  });
-
-  if (isCancel(repo)) {
+  if (isCancel(ide) || typeof ide !== "string") {
     outro("Setup cancelled.");
     process.exit(0);
   }
 
   const mode = await select({
-    message: "What setup profile should we set up?",
+    message: "How much should Astrograph expose?",
     options: [
       {
-        value: "full",
-        label: "Full (batteries included)",
-        hint: "Recommended default for most users. Includes all Astrograph MCP tools and diagnostics.",
+        value: "barebones",
+        label: "Barebones",
+        hint: "Recommended. Query + file discovery only.",
       },
       {
         value: "some",
         label: "Some",
-        hint: "Query-focused workflow with suggested queries, but no deep diagnostics and index-management defaults.",
+        hint: "Adds repo outline and suggested queries.",
       },
       {
-        value: "barebones",
-        label: "Barebones",
-        hint: "Smallest MCP tool footprint. Query + file discovery only.",
+        value: "full",
+        label: "Full (batteries included)",
+        hint: "All MCP tools, including diagnostics and index management.",
       },
     ],
+    initialValue: DEFAULT_INSTALL_MODE,
   });
 
   if (isCancel(mode) || !isInstallMode(typeof mode === "string" ? mode : "")) {
@@ -501,12 +569,12 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
-  const dryRun = await confirm({
-    message: "Preview changes only?",
+  const agentsPolicy = await confirm({
+    message: "Add Astrograph code exploration policy to AGENTS.md?",
     initialValue: false,
   });
 
-  if (isCancel(dryRun)) {
+  if (isCancel(agentsPolicy)) {
     outro("Setup cancelled.");
     process.exit(0);
   }
@@ -514,10 +582,11 @@ async function promptForSetupArgs(): Promise<{
   outro("Running setup.");
 
   return {
-    ides: selectedIdes as RequestedIde[],
+    ides: [ide as RequestedIde],
     mode,
-    repo,
-    dryRun,
+    repo: resolvedRepo,
+    dryRun: false,
+    agentsPolicy: Boolean(agentsPolicy),
   };
 }
 
@@ -570,6 +639,12 @@ async function ensureAstrographDependencyInRepo(
   }
 
   const parsed = parseJsonFromString(packageJsonRaw, packagePath) as PackageJsonFile;
+  if (parsed.name === PACKAGE_NAME) {
+    return {
+      packageDependencyUpdated: false,
+      packageDependencyReason: "target package is Astrograph itself",
+    };
+  }
   const hadAstrographDependency = dependencyFieldHasAstrograph(parsed);
 
   let didUpdate = false;
@@ -706,6 +781,36 @@ function resolveToolSet(mode: InstallMode = DEFAULT_INSTALL_MODE): readonly stri
   return MCP_TOOL_PROFILE[mode] ?? MCP_TOOL_PROFILE.full;
 }
 
+function createBarebonesEngineConfig(): EngineConfigFile {
+  return {
+    summaryStrategy: "doc-comments-first",
+    observability: {
+      enabled: false,
+    },
+    performance: {
+      exclude: [
+        "node_modules/**",
+        "dist/**",
+        "coverage/**",
+        ".git/**",
+        ".astrograph/**",
+      ],
+      workerPool: {
+        enabled: false,
+      },
+    },
+    watch: {
+      backend: "auto",
+      debounceMs: 100,
+    },
+    limits: {
+      maxFilesDiscovered: 100_000,
+      maxFileBytes: 250_000,
+      maxSymbolsPerFile: 2_000,
+    },
+  };
+}
+
 function astrographConfigBlock(mode: InstallMode = DEFAULT_INSTALL_MODE): string {
   const enabledTools = resolveToolSet(mode).map((tool) => `"${tool}"`).join(", ");
   const toolApprovals = resolveToolSet(mode).map((tool) =>
@@ -743,6 +848,78 @@ function replaceManagedBlock(contents: string, block: string): string {
 
   const normalized = contents.trimEnd();
   return normalized.length === 0 ? `${block}\n` : `${normalized}\n\n${block}\n`;
+}
+
+function agentsPolicyBlock(): string {
+  return [
+    AGENTS_POLICY_BEGIN,
+    "## Code Exploration Policy",
+    "",
+    "Prefer Astrograph MCP tools for code exploration before falling back to raw file reads or shell search.",
+    "",
+    "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
+    "- Before reading a file, use `get_file_outline`, `get_file_summary`, or `query_code` with source intent.",
+    "- Before searching broadly, use `query_code`, `find_files`, or `search_text`.",
+    "- Before exploring structure, use `get_file_tree` or `get_repo_outline`.",
+    "- Use raw file reads or shell search only when Astrograph cannot answer the question or when debugging Astrograph itself.",
+    AGENTS_POLICY_END,
+  ].join("\n");
+}
+
+function replaceManagedAgentsPolicy(contents: string, block: string): string {
+  if (contents.includes(AGENTS_POLICY_BEGIN) && contents.includes(AGENTS_POLICY_END)) {
+    return contents.replace(
+      new RegExp(`${AGENTS_POLICY_BEGIN}[\\s\\S]*?${AGENTS_POLICY_END}`, "m"),
+      block,
+    );
+  }
+
+  const normalized = contents.trimEnd();
+  return normalized.length === 0 ? `${block}\n` : `${normalized}\n\n${block}\n`;
+}
+
+async function writeAgentsPolicy(
+  repoRoot: string,
+  dryRun: boolean,
+  enabled: boolean,
+): Promise<AgentsPolicyResult> {
+  const agentsPolicyPath = path.join(repoRoot, "AGENTS.md");
+  if (!enabled) {
+    return {
+      agentsPolicyPath,
+      agentsPolicyUpdated: false,
+      agentsPolicyReason: "not requested",
+    };
+  }
+
+  const block = agentsPolicyBlock();
+  const currentContents = await readFile(agentsPolicyPath, "utf8").catch(() => "");
+  const nextContents = replaceManagedAgentsPolicy(currentContents, block);
+  if (nextContents === currentContents) {
+    return {
+      agentsPolicyPath,
+      agentsPolicyUpdated: false,
+      agentsPolicyReason: "policy already up to date",
+      agentsPolicyPreview: nextContents,
+    };
+  }
+
+  if (dryRun) {
+    return {
+      agentsPolicyPath,
+      agentsPolicyUpdated: false,
+      agentsPolicyReason: "would add Astrograph code exploration policy",
+      agentsPolicyPreview: nextContents,
+    };
+  }
+
+  await writeFile(agentsPolicyPath, nextContents, "utf8");
+  return {
+    agentsPolicyPath,
+    agentsPolicyUpdated: true,
+    agentsPolicyReason: "added Astrograph code exploration policy",
+    agentsPolicyPreview: nextContents,
+  };
 }
 
 function parseJsonConfig(contents: string, configPath: string): InstalledObject {
@@ -848,13 +1025,15 @@ function resolveManagedConfig(
 export async function setupForIde(
   repoRoot: string,
   {
-    ide = "copilot",
+    ide = "codex",
     mode = DEFAULT_INSTALL_MODE,
     dryRun = false,
   }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
   const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "", mode);
+  const engineConfigPath = path.join(resolvedRepoRoot, "astrograph.config.json");
+  const engineConfigPreview = createBarebonesEngineConfig();
   const currentContents = await readFile(configPath, "utf8").catch(() => "");
   const { configPath: finalConfigPath, nextContents } = resolveManagedConfig(
     ide,
@@ -866,6 +1045,11 @@ export async function setupForIde(
   if (!dryRun) {
     await mkdir(path.dirname(finalConfigPath), { recursive: true });
     await writeFile(finalConfigPath, nextContents, "utf8");
+    await writeFile(
+      engineConfigPath,
+      `${JSON.stringify(engineConfigPreview, null, 2)}\n`,
+      "utf8",
+    );
   }
 
   return {
@@ -873,12 +1057,17 @@ export async function setupForIde(
     mode,
     repoRoot: resolvedRepoRoot,
     configPath: finalConfigPath,
+    engineConfigPath,
     packageName: PACKAGE_NAME,
     packageVersion: PACKAGE_VERSION,
     configPreview: nextContents,
+    engineConfigPreview,
     localDependencyDetected: hasLocalAstrographDependency(resolvedRepoRoot),
     packageDependencyUpdated: false,
     packageDependencyReason: "dependency already at latest",
+    agentsPolicyPath: path.join(resolvedRepoRoot, "AGENTS.md"),
+    agentsPolicyUpdated: false,
+    agentsPolicyReason: "not requested",
   };
 }
 
@@ -892,9 +1081,10 @@ export async function setupForCodex(
 export async function setupForAllIdes(
   repoRoot: string,
   {
-    ides = ["copilot"],
+    ides = [...DEFAULT_INSTALL_IDES],
     mode = DEFAULT_INSTALL_MODE,
     dryRun = false,
+    agentsPolicy = false,
   }: SetupForAllOptions = {},
 ): Promise<SetupResult | SetupResult[]> {
   const normalizedIdes = validateIdes({ ides }).ides;
@@ -903,6 +1093,11 @@ export async function setupForAllIdes(
   const packageDependency = await ensureAstrographDependencyInRepo(
     resolvedRepoRoot,
     dryRun,
+  );
+  const agentsPolicyResult = await writeAgentsPolicy(
+    resolvedRepoRoot,
+    dryRun,
+    agentsPolicy,
   );
 
   const results: SetupResult[] = [];
@@ -918,6 +1113,10 @@ export async function setupForAllIdes(
       packageDependencyUpdated: packageDependency.packageDependencyUpdated,
       packageDependencyReason: packageDependency.packageDependencyReason,
       packageDependencyPreview: packageDependency.packageDependencyPreview,
+      agentsPolicyPath: agentsPolicyResult.agentsPolicyPath,
+      agentsPolicyUpdated: agentsPolicyResult.agentsPolicyUpdated,
+      agentsPolicyReason: agentsPolicyResult.agentsPolicyReason,
+      agentsPolicyPreview: agentsPolicyResult.agentsPolicyPreview,
     });
   }
 
@@ -934,7 +1133,7 @@ async function main(): Promise<void> {
 
   const normalizedArgs: ParsedArgs = {
     ...parsed,
-    ides: parsed.ides || ["copilot"],
+    ides: parsed.ides || [...DEFAULT_INSTALL_IDES],
     mode: parsed.mode || DEFAULT_INSTALL_MODE,
     repo: parsed.repo || process.cwd(),
   };
@@ -945,6 +1144,7 @@ async function main(): Promise<void> {
       ...validateIdes({ ides: normalizedArgs.ides ?? [] }),
       repo: normalizedArgs.repo,
       dryRun: normalizedArgs.dryRun,
+      agentsPolicy: normalizedArgs.agentsPolicy,
       nonInteractive: normalizedArgs.nonInteractive,
       hasExplicitArgs: normalizedArgs.hasExplicitArgs,
     }
@@ -954,6 +1154,7 @@ async function main(): Promise<void> {
     ides: args.ides,
     mode: args.mode,
     dryRun: args.dryRun,
+    agentsPolicy: args.agentsPolicy,
   });
 
   emitUpdateSuggestion(PACKAGE_VERSION);
