@@ -1,6 +1,6 @@
 {
   "name": "@mortenbroesby/astrograph",
-  "version": "0.1.0-alpha.57",
+  "version": "0.1.0-alpha.58",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -16,6 +16,10 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/mortenbroesby/astrograph.git"
+  },
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
   },
   "bugs": {
     "url": "https://github.com/mortenbroesby/astrograph/issues"
