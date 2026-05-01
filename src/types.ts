@@ -619,7 +619,7 @@ export interface DoctorObservabilityHealth {
   enabled: boolean;
   configuredHost: string;
   configuredPort: number;
-  status: "disabled" | "running" | "not-running" | "unhealthy";
+  status: "disabled" | "recording";
   url: string | null;
 }
 

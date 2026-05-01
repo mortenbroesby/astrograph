@@ -233,11 +233,6 @@ interface RepoMetaReadinessRecord {
   } | null;
 }
 
-interface ObservabilityStatusRecord {
-  host: string;
-  port: number;
-}
-
 type RepoMetaHealthStatus =
   | "ok"
   | "missing"
@@ -4663,34 +4658,8 @@ export async function diagnostics(input: DiagnosticsOptions): Promise<Diagnostic
   }
 }
 
-async function readObservabilityStatusFile(storageDir: string): Promise<ObservabilityStatusRecord | null> {
-  try {
-    const parsed = JSON.parse(
-      await readFile(path.join(storageDir, "observability-server.json"), "utf8"),
-    ) as Record<string, unknown>;
-    return typeof parsed.host === "string" && typeof parsed.port === "number"
-      ? { host: parsed.host, port: parsed.port }
-      : null;
-  } catch {
-    return null;
-  }
-}
-
-async function isObservabilityHealthy(url: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${url}health`, {
-      signal: AbortSignal.timeout(750),
-      headers: { Accept: "application/json" },
-    });
-    return response.ok;
-  } catch {
-    return false;
-  }
-}
-
 async function resolveDoctorObservability(
   repoRoot: string,
-  storageDir: string,
 ): Promise<DoctorResult["observability"]> {
   const repoConfig = await loadRepoEngineConfig(repoRoot, { repoRootResolved: true });
 
@@ -4704,18 +4673,12 @@ async function resolveDoctorObservability(
     };
   }
 
-  const status = await readObservabilityStatusFile(storageDir);
-  const host = status?.host ?? repoConfig.observability.host;
-  const port = status?.port ?? repoConfig.observability.port;
-  const url = `http://${host}:${port}/`;
-  const healthy = await isObservabilityHealthy(url);
-
   return {
     enabled: true,
     configuredHost: repoConfig.observability.host,
     configuredPort: repoConfig.observability.port,
-    status: healthy ? "running" : status ? "unhealthy" : "not-running",
-    url,
+    status: "recording",
+    url: null,
   };
 }
 
@@ -4870,11 +4833,6 @@ function buildDoctorWarnings(result: DoctorResult): string[] {
       `Dependency graph contains ${result.dependencyGraph.brokenRelativeSymbolImportCount} unresolved relative symbol import(s).`,
     );
   }
-  if (result.observability.enabled && result.observability.status !== "running") {
-    warnings.push(
-      `Observability is enabled but currently ${result.observability.status}.`,
-    );
-  }
   if (result.privacy.secretLikeFileCount > 0) {
     warnings.push(
       `Indexed source contains ${result.privacy.secretLikeFileCount} file(s) with obvious secret-like content.`,
@@ -4928,9 +4886,6 @@ function buildDoctorSuggestedActions(result: DoctorResult): string[] {
         : "Update importer paths or restore the expected exported symbols in their relative dependencies.",
     );
   }
-  if (result.observability.enabled && result.observability.status !== "running") {
-    actions.push(`Run \`pnpm exec astrograph observability --repo ${result.repoRoot}\` to start the local observability server.`);
-  }
   if (result.privacy.secretLikeFileCount > 0) {
     const sample = result.privacy.sampleFilePaths[0];
     actions.push(
@@ -4978,10 +4933,7 @@ export async function doctor(input: DiagnosticsOptions): Promise<DoctorResult> {
     const importCount = countRows(db, "SELECT COUNT(*) AS count FROM imports");
     const dependencyGraph = loadDependencyGraphHealth(db);
     const privacy = loadPrivacyHealth(db);
-    const observability = await resolveDoctorObservability(
-      resolvedRepoRoot,
-      health.storageDir,
-    );
+    const observability = await resolveDoctorObservability(resolvedRepoRoot);
     const result: DoctorResult = {
       repoRoot: resolvedRepoRoot,
       storageDir: health.storageDir,

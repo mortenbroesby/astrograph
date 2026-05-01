@@ -36,7 +36,6 @@ const EXCLUDED_SEGMENTS = new Set([
   "coverage",
   "dist",
   "node_modules",
-  "observability-dist",
 ]);
 
 function round(value) {

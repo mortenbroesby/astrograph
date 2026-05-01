@@ -1,6 +1,6 @@
 {
   "name": "@mortenbroesby/astrograph",
-  "version": "0.1.0-alpha.56",
+  "version": "0.1.0-alpha.57",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -33,12 +33,9 @@
     "README.md",
     "LICENSE",
     "dist",
-    "observability-dist",
     "scripts/ai-context-engine.mjs",
     "scripts/git-smart-refresh.mjs",
-    "scripts/install.mjs",
-    "scripts/open-observability.mjs",
-    "scripts/observability-server.mjs"
+    "scripts/install.mjs"
   ],
   "exports": {
     ".": {
@@ -47,16 +44,12 @@
     }
   },
   "scripts": {
-    "build": "pnpm run build:js && pnpm run build:workers && pnpm run build:types && pnpm run build:observability",
+    "build": "pnpm run build:js && pnpm run build:workers && pnpm run build:types",
     "build:js": "tsup src/index.ts src/cli.ts src/mcp.ts --format esm --target node24 --out-dir dist --clean --tsconfig tsconfig.build.json",
     "build:workers": "tsup src/workers/analyze-file-worker.ts --format esm --target node24 --out-dir dist/workers --tsconfig tsconfig.build.json",
     "build:types": "tsc -p tsconfig.build.json",
-    "build:observability": "vite build --config ./observability/vite.config.ts",
     "cli": "node ./dist/cli.js",
     "mcp": "node --no-warnings ./dist/mcp.js",
-    "observability": "bun ./scripts/observability-server.mjs",
-    "observability:dev": "bun ./scripts/observability-server.mjs --dev",
-    "observability:open": "node ./scripts/open-observability.mjs",
     "git-refresh": "node ./scripts/git-smart-refresh.mjs",
     "dev:cli": "node --experimental-strip-types ./src/cli.ts",
     "dev:mcp": "node --no-warnings --experimental-strip-types ./src/mcp.ts",
@@ -73,7 +66,7 @@
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./scripts/perf-query.mjs",
     "test:package-bin": "node ./scripts/smoke-package-bin.mjs",
     "check:version-bump": "node --experimental-strip-types ./scripts/check-version-bump.mjs",
-    "type-lint": "pnpm run type-check && tsc -p ./bench/tsconfig.json --noEmit && tsc -p ./tsconfig.build.json --noEmit && tsc -p ./observability/tsconfig.json --noEmit",
+    "type-lint": "pnpm run type-check && tsc -p ./bench/tsconfig.json --noEmit && tsc -p ./tsconfig.build.json --noEmit",
     "type-check": "tsc --noEmit",
     "test": "node ./scripts/run-vitest.mjs",
     "test:slow": "ASTROGRAPH_ENABLE_SLOW_TESTS=1 node ./scripts/run-vitest.mjs",
@@ -91,19 +84,14 @@
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.1",
     "@types/picomatch": "^4.0.3",
-    "@types/react": "^18.3.18",
-    "@types/react-dom": "^18.3.5",
-    "@vitejs/plugin-react": "^4.3.4",
     "clinic": "^13.0.0",
     "tinybench": "^6.0.0",
     "tsup": "^8.5.0",
     "typescript": "^5.7.0",
-    "vite": "^5.4.11",
     "vitest": "^2.1.9"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "@msgpack/msgpack": "^3.1.2",
     "@node-rs/xxhash": "^1.7.6",
     "@parcel/watcher": "^2.5.6",
     "@vscode/ripgrep": "^1.17.1",
@@ -116,8 +104,6 @@
     "picomatch": "^4.0.4",
     "pino": "^10.3.1",
     "piscina": "^5.1.4",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
     "rxjs": "^7.8.2",
     "tiktoken": "^1.0.22",
     "tokenx": "^1.3.0",

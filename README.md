@@ -43,7 +43,7 @@ The package is currently a local-first npm alpha:
 - it is MIT-licensed, but that is not a support commitment
 - it is not positioned as a supported hosted product or managed service
 - normal indexing, CLI, MCP, and library use target Node only
-- Bun is only required when you explicitly invoke the observability server
+- no Bun runtime is required for package consumers
 
 ## Features
 
@@ -63,7 +63,7 @@ The package is currently a local-first npm alpha:
 - Serialization benchmark gate for evaluating stable machine-result envelopes
 - Stdio MCP server backed by the official MCP TypeScript SDK
 - CLI and library entry points for local debugging, benchmarks, and packaging checks
-- Local observability server for recent events and watch health
+- Privacy-safe local event retention for diagnostics and debugging
 
 ## Tech Stack
 
@@ -75,7 +75,6 @@ The package is currently a local-first npm alpha:
 - `@modelcontextprotocol/sdk` for the MCP server surface
 - `tsup` for build output
 - `Vitest` and package-local benchmark scripts for verification
-- `Bun` for the observability server runtime
 
 ## Architecture
 
@@ -92,7 +91,7 @@ Runtime artifacts for a given repo live under `.astrograph/`:
 
 - `index.sqlite` for the current index backend
 - `repo-meta.json` and `integrity.sha256` for repo-local metadata
-- `events.jsonl` for retained local observability events
+- `events.jsonl` for retained local engine events
 - `raw-cache/` for supporting source cache state
 
 Package build output stays in `dist/`. Repo-root `.astrograph/` data is runtime state, not npm
@@ -108,8 +107,6 @@ src/
 scripts/
   ai-context-engine.mjs   Bin wrapper for built/runtime selection
   install.mjs             Standalone installer flow
-  observability-server.mjs
-observability/            Local observability frontend and config
 bench/                    Benchmark sources
 tests/                    Package tests
 dist/                     Built JavaScript and type output
@@ -137,8 +134,6 @@ pnpm test
 pnpm type-check
 pnpm bench:small
 pnpm exec astrograph mcp
-pnpm exec astrograph observability --repo /abs/repo
-pnpm exec astrograph open-observability --repo /abs/repo
 pnpm exec astrograph git-refresh manual --execute
 ```
 
@@ -187,7 +182,6 @@ You can use Astrograph through:
 - the stdio MCP server in `src/mcp.ts`
 - the JSON CLI in `src/cli.ts`
 - the library exports in `src/index.ts`
-- the Bun-backed observability server in `scripts/observability-server.mjs`
 
 ### Runtime Notes
 
@@ -247,11 +241,11 @@ Astrograph reads optional repo-local defaults from `astrograph.config.json`:
   is durable and inspectable through diagnostics and doctor output
 - `ranking` lets you tune the shared symbol scoring weights used by `searchSymbols()`
   and ranked-context seed selection
-- `observability.redactSourceText` keeps observability event payloads privacy-safe
+- `observability.redactSourceText` keeps retained engine event payloads privacy-safe
   by default while still allowing an explicit local opt-out
-- `observability.retentionDays` keeps local observability history for a bounded
+- `observability.retentionDays` keeps local engine event history for a bounded
   time window; the default is 3 days
-- MCP observability token savings are heuristic by default and recalculated with
+- MCP token-savings event metadata is heuristic by default and recalculated with
   the benchmark tokenizer every 10th matching tool event
 - `performance.include` and `performance.exclude` apply the compiled picomatch
   path matcher to indexed discovery, freshness scans, and watch-triggered subtree rescans
@@ -302,8 +296,8 @@ Those values map to:
 ## Security
 
 - Treat `.astrograph/` as local runtime state, not a place for secrets.
-- Do not store credentials in observability output or test fixtures.
-- Observability event payloads redact source-like text by default and always scrub
+- Do not store credentials in retained event output or test fixtures.
+- Retained engine event payloads redact source-like text by default and always scrub
   obvious secret-shaped tokens before they are persisted.
 - `doctor` emits non-blocking warnings when indexed source contains obvious
   secret-like content so local leaks are surfaced without being treated as index drift.
@@ -312,7 +306,6 @@ Those values map to:
 - `diagnostics` and `doctor` report corrupted or tampered repo-local metadata sidecars
   and suggest rebuilding instead of silently treating them as missing state.
 - Keep repo-root runtime artifacts separate from package build output in `dist/`.
-- Prefer local-only observability when debugging repo indexing and watch behavior.
 
 ## How to Contribute
 
@@ -369,7 +362,7 @@ Notes:
 Current priorities are clear:
 
 - keep proving the repo-owned retrieval path on normal agent tasks
-- strengthen freshness, observability, and repair flows
+- strengthen freshness, retained event, and repair flows
 - keep the source of truth local, deterministic, and cheap to inspect
 - continue narrowing the gap between discovery, exact retrieval, and bounded assembly
 
@@ -400,7 +393,6 @@ MIT. See [LICENSE](./LICENSE).
 - `Oxc` for the primary parser path
 - `SQLite` and `better-sqlite3` for the local index backend
 - the official `Model Context Protocol` TypeScript SDK for the MCP surface
-- `Bun` for the local observability server runtime
 
 ---
 

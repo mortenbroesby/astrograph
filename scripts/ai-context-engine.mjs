@@ -15,8 +15,6 @@ function usage() {
       "Usage:",
       "  astrograph cli <args...>",
       "  astrograph mcp",
-      "  astrograph observability <args...>",
-      "  astrograph open-observability <args...>",
       "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
       "  astrograph install --ide codex",
     ].join("\n") + "\n",
@@ -30,29 +28,21 @@ const sourceTarget =
     ? path.join(packageRoot, "src", "cli.ts")
     : mode === "mcp"
       ? path.join(packageRoot, "src", "mcp.ts")
-      : mode === "observability"
-        ? path.join(packageRoot, "scripts", "observability-server.mjs")
-        : mode === "open-observability"
-          ? path.join(packageRoot, "scripts", "open-observability.mjs")
-        : mode === "git-refresh"
-          ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
-          : mode === "install"
-            ? path.join(packageRoot, "scripts", "install.mjs")
-            : null;
+      : mode === "git-refresh"
+        ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
+        : mode === "install"
+          ? path.join(packageRoot, "scripts", "install.mjs")
+          : null;
 const distTarget =
   mode === "cli"
     ? path.join(packageRoot, "dist", "cli.js")
     : mode === "mcp"
       ? path.join(packageRoot, "dist", "mcp.js")
-      : mode === "observability"
-        ? path.join(packageRoot, "scripts", "observability-server.mjs")
-        : mode === "open-observability"
-          ? path.join(packageRoot, "scripts", "open-observability.mjs")
-        : mode === "git-refresh"
-          ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
-          : mode === "install"
-            ? path.join(packageRoot, "scripts", "install.mjs")
-            : null;
+      : mode === "git-refresh"
+        ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
+        : mode === "install"
+          ? path.join(packageRoot, "scripts", "install.mjs")
+          : null;
 
 if (!sourceTarget || !distTarget) {
   usage();
@@ -64,22 +54,14 @@ const preferSource =
   || process.env.ASTROGRAPH_USE_SOURCE === "true";
 const useBuiltTarget = existsSync(distTarget) && (!preferSource || !existsSync(sourceTarget));
 const nodeArgs = mode === "mcp" ? ["--no-warnings"] : [];
-const executable = mode === "observability" ? "bun" : process.execPath;
 const child = spawn(
-  executable,
-  mode === "observability"
-    ? [sourceTarget, ...args]
-    : useBuiltTarget
-      ? [...nodeArgs, distTarget, ...args]
-      : [...nodeArgs, "--experimental-strip-types", sourceTarget, ...args],
+  process.execPath,
+  useBuiltTarget
+    ? [...nodeArgs, distTarget, ...args]
+    : [...nodeArgs, "--experimental-strip-types", sourceTarget, ...args],
   {
     stdio: "inherit",
-    env: mode === "observability"
-      ? {
-          ...process.env,
-          AI_CONTEXT_ENGINE_NODE_BIN: process.execPath,
-        }
-      : process.env,
+    env: process.env,
   },
 );
 
@@ -92,10 +74,6 @@ child.on("exit", (code, signal) => {
 });
 
 child.on("error", (error) => {
-  if (mode === "observability" && error && "code" in error && error.code === "ENOENT") {
-    process.stderr.write("bun is required for astrograph observability mode.\n");
-  } else {
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
-  }
+  process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
   process.exit(1);
 });

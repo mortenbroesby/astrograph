@@ -4,7 +4,6 @@
 
 - Node.js 24 or newer
 - pnpm 9.15.9 or compatible
-- Bun, only for observability server development
 
 ## Setup
 

@@ -74,7 +74,7 @@ function getStagedPaths() {
 function main() {
   const stagedPaths = getStagedPaths();
   const astrographPaths = stagedPaths.filter((filePath) =>
-    /^(package.json|src/|scripts/|tests/|bench/|observability/|tsconfig|vitest\.config\.ts|stryker)/.test(filePath),
+    /^(package\.json|src\/|scripts\/|tests\/|bench\/|tsconfig|vitest\.config\.ts|stryker)/.test(filePath),
   );
   if (astrographPaths.length === 0) {
     return;

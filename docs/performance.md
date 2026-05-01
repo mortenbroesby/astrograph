@@ -135,7 +135,7 @@ backend so regressions are visible without guesswork.
 
 ## Observability Privacy
 
-Observability payloads are privacy-safe by default.
+Retained engine event payloads are privacy-safe by default.
 
 - `observability.redactSourceText` defaults to `true`
 - `observability.retentionDays` defaults to `3`, so local event history is kept
@@ -169,7 +169,7 @@ That constraint is intentional:
 
 - it preserves deterministic write ordering
 - it avoids multi-writer contention in SQLite
-- it keeps recovery and observability simpler
+- it keeps recovery and retained event logging simpler
 - it allows worker and concurrency slices to speed up CPU-bound analysis without
   changing the durability model
 
