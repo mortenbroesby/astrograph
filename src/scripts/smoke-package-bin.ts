@@ -106,6 +106,7 @@ async function main(): Promise<void> {
         "exec",
         "astrograph",
         "init",
+        "--yes",
         "--ide",
         "codex",
         "--repo",

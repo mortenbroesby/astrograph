@@ -40,9 +40,9 @@ const distTarget =
     : mode === "mcp"
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
-        ? path.join(packageRoot, "dist", "git-smart-refresh.js")
+        ? path.join(packageRoot, "dist", "scripts", "git-smart-refresh.js")
         : mode === "init"
-          ? path.join(packageRoot, "dist", "install.js")
+          ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 
 if (!sourceTarget || !distTarget) {

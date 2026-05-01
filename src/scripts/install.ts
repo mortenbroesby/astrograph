@@ -340,7 +340,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     })
     .help();
 
-  const parsed = cli.parse(argv, { run: false }) as { options: CliOptions };
+  const parsed = cli.parse(["astrograph-init", ...argv], { run: false }) as { options: CliOptions };
 
   if (parsed.options.help) {
     return {
