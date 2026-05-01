@@ -105,16 +105,16 @@ describe("ai-context-engine contract", () => {
   });
 
   it("uses package.json as the canonical Astrograph version source", () => {
-    expect(ASTROGRAPH_PACKAGE_VERSION).toBe("0.1.0-alpha.61");
+    expect(ASTROGRAPH_PACKAGE_VERSION).toBe("0.2.0-alpha.61");
     expect(parseAstrographVersion(ASTROGRAPH_PACKAGE_VERSION)).toEqual({
       major: 0,
-      minor: 1,
+      minor: 2,
       patch: 0,
       increment: 61,
     });
     expect(ASTROGRAPH_VERSION_PARTS).toEqual({
       major: 0,
-      minor: 1,
+      minor: 2,
       patch: 0,
       increment: 61,
     });
