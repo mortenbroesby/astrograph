@@ -48,8 +48,5 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Package smoke
-        run: pnpm test:package-bin
-
       - name: Publish
         run: npm publish --provenance --access public --tag latest

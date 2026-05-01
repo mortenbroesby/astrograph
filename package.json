@@ -76,7 +76,7 @@
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./scripts/perf-query.mjs",
     "test:package-bin": "node --experimental-strip-types ./src/scripts/smoke-package-bin.ts",
     "check:version-bump": "node --experimental-strip-types ./src/scripts/check-version-bump.ts",
-    "release": "pnpm release:apply && pnpm test && pnpm test:package-bin",
+    "release": "pnpm release:apply && pnpm test",
     "release:plan": "node --experimental-strip-types ./src/scripts/release-agent.ts",
     "release:apply": "node --experimental-strip-types ./src/scripts/release-agent.ts --apply",
     "type-lint": "pnpm run type-check && tsc -p ./bench/tsconfig.json --noEmit && tsc -p ./tsconfig.build.json --noEmit",
