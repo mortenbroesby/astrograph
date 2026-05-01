@@ -1,6 +1,6 @@
 {
   "name": "@mortenbroesby/astrograph",
-  "version": "0.1.0-alpha.60",
+  "version": "0.1.0-alpha.61",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -71,6 +71,8 @@
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./scripts/perf-query.mjs",
     "test:package-bin": "node ./scripts/smoke-package-bin.mjs",
     "check:version-bump": "node --experimental-strip-types ./scripts/check-version-bump.mjs",
+    "release:plan": "node --experimental-strip-types ./scripts/release-agent.mjs",
+    "release:apply": "node --experimental-strip-types ./scripts/release-agent.mjs --apply",
     "type-lint": "pnpm run type-check && tsc -p ./bench/tsconfig.json --noEmit && tsc -p ./tsconfig.build.json --noEmit",
     "type-check": "tsc --noEmit",
     "test": "node ./scripts/run-vitest.mjs",

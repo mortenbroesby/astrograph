@@ -10,6 +10,7 @@ commands are project-specific.
 - [adr-authoring](./adr-authoring/SKILL.md) - Record architectural decisions.
 - [implementation-plan-authoring](./implementation-plan-authoring/SKILL.md) - Write executable implementation plans.
 - [spec-maintenance](./spec-maintenance/SKILL.md) - Keep spec indexes, links, and verification pointers current.
+- [release-decision](./release-decision/SKILL.md) - Decide when to publish and operate the release agent.
 
 ## Rules
 

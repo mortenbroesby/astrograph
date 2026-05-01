@@ -28,12 +28,26 @@ on:
       - "tsconfig*.json"
       - "vitest.config.ts"
   workflow_dispatch:
+    inputs:
+      release_mode:
+        description: "Run the release agent in plan mode or apply mode."
+        type: choice
+        required: true
+        default: plan
+        options:
+          - plan
+          - apply
+      release_base:
+        description: "Optional base tag/ref. Defaults to the latest merged v* tag."
+        type: string
+        required: false
+        default: ""
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_mode || 'ci' }}
   cancel-in-progress: true
 
 jobs:
@@ -110,3 +124,63 @@ jobs:
 
       - name: Package smoke
         run: pnpm test:package-bin
+
+  release_agent:
+    name: Release agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs:
+      - fast
+      - expensive
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    steps:
+      - name: Refuse apply mode outside main
+        if: inputs.release_mode == 'apply' && github.ref != 'refs/heads/main'
+        run: |
+          echo "Release apply mode must run from main."
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Decide release
+        id: release
+        run: |
+          if [ -n "${{ inputs.release_base }}" ]; then
+            pnpm release:${{ inputs.release_mode }} --base "${{ inputs.release_base }}"
+          else
+            pnpm release:${{ inputs.release_mode }}
+          fi
+
+      - name: Commit release version and push tag
+        if: inputs.release_mode == 'apply' && steps.release.outputs.should_release == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json tests/engine-contract.test.ts
+          if ! git diff --cached --quiet; then
+            pnpm check:version-bump
+            pnpm exec vitest run tests/engine-contract.test.ts tests/release-policy.test.ts
+            git commit -m "Release ${{ steps.release.outputs.target_version }}"
+            git push origin HEAD:main
+          fi
+          git tag "${{ steps.release.outputs.target_tag }}"
+          git push origin "${{ steps.release.outputs.target_tag }}"

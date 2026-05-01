@@ -16,9 +16,17 @@ Before creating or changing specs, use the repo-local skills in `.agents/skills/
 - `adr-authoring`
 - `implementation-plan-authoring`
 - `spec-maintenance`
+- `release-decision`
 
 Keep user-facing setup docs in `README.md`, release workflow in `docs/release.md`,
 and performance workflow in `docs/performance.md`.
+
+## Release Workflow
+
+Use `.agents/skills/release-decision/SKILL.md` before deciding whether a change
+needs an npm release. The CI manual dispatch exposes `release_mode=plan` for a
+dry run and `release_mode=apply` for the guarded main-only flow that commits the
+version update and pushes the release tag.
 
 ## GitHub Actions Cost Guardrail
 

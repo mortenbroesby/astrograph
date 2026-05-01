@@ -7,6 +7,7 @@ This directory contains internal implementation plans and subsystem specs.
 - [Storage Refactor Plan](./storage-refactor-plan.md) - Split `src/storage.ts` into focused modules.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.
+- [Release Agent Workflow](./release-agent.md) - Decide publish-worthy changes and push release tags.
 
 ## Planned Subsystem Specs
 
