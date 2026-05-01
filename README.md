@@ -138,6 +138,8 @@ pnpm type-check
 pnpm bench:small
 pnpm exec astrograph mcp
 pnpm exec astrograph observability --repo /abs/repo
+pnpm exec astrograph open-observability --repo /abs/repo
+pnpm exec astrograph git-refresh manual --execute
 ```
 
 ### Basic CLI Examples
@@ -149,6 +151,24 @@ pnpm exec astrograph cli query-code --repo /abs/repo --intent source --symbols i
 pnpm exec astrograph cli diagnostics --repo /abs/repo
 pnpm exec astrograph cli doctor --repo /abs/repo
 ```
+
+### Git Refresh Helper
+
+`astrograph git-refresh` provides the git-hook refresh planner that was
+originally embedded in the playground repo. It can run in the background by
+default or synchronously with `--execute`.
+
+```bash
+pnpm exec astrograph git-refresh manual
+pnpm exec astrograph git-refresh commit --execute
+pnpm exec astrograph git-refresh checkout <old-head> <new-head> --execute
+pnpm exec astrograph git-refresh merge --execute
+pnpm exec astrograph git-refresh push --execute
+```
+
+The helper chooses `index-file` for small supported source-file changes and
+falls back to `index-folder` for structural changes, deletes, renames, large
+change sets, or manual refreshes.
 
 ### Verification Baseline
 

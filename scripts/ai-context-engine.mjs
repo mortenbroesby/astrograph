@@ -16,6 +16,8 @@ function usage() {
       "  astrograph cli <args...>",
       "  astrograph mcp",
       "  astrograph observability <args...>",
+      "  astrograph open-observability <args...>",
+      "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
       "  astrograph install --ide codex",
     ].join("\n") + "\n",
   );
@@ -30,9 +32,13 @@ const sourceTarget =
       ? path.join(packageRoot, "src", "mcp.ts")
       : mode === "observability"
         ? path.join(packageRoot, "scripts", "observability-server.mjs")
-      : mode === "install"
-        ? path.join(packageRoot, "scripts", "install.mjs")
-      : null;
+        : mode === "open-observability"
+          ? path.join(packageRoot, "scripts", "open-observability.mjs")
+        : mode === "git-refresh"
+          ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
+          : mode === "install"
+            ? path.join(packageRoot, "scripts", "install.mjs")
+            : null;
 const distTarget =
   mode === "cli"
     ? path.join(packageRoot, "dist", "cli.js")
@@ -40,9 +46,13 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "observability"
         ? path.join(packageRoot, "scripts", "observability-server.mjs")
-      : mode === "install"
-        ? path.join(packageRoot, "scripts", "install.mjs")
-      : null;
+        : mode === "open-observability"
+          ? path.join(packageRoot, "scripts", "open-observability.mjs")
+        : mode === "git-refresh"
+          ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
+          : mode === "install"
+            ? path.join(packageRoot, "scripts", "install.mjs")
+            : null;
 
 if (!sourceTarget || !distTarget) {
   usage();

@@ -35,7 +35,9 @@
     "dist",
     "observability-dist",
     "scripts/ai-context-engine.mjs",
+    "scripts/git-smart-refresh.mjs",
     "scripts/install.mjs",
+    "scripts/open-observability.mjs",
     "scripts/observability-server.mjs"
   ],
   "exports": {
@@ -54,6 +56,8 @@
     "mcp": "node --no-warnings ./dist/mcp.js",
     "observability": "bun ./scripts/observability-server.mjs",
     "observability:dev": "bun ./scripts/observability-server.mjs --dev",
+    "observability:open": "node ./scripts/open-observability.mjs",
+    "git-refresh": "node ./scripts/git-smart-refresh.mjs",
     "dev:cli": "node --experimental-strip-types ./src/cli.ts",
     "dev:mcp": "node --no-warnings --experimental-strip-types ./src/mcp.ts",
     "bench:small": "node --experimental-strip-types ./scripts/benchmark-small.mjs",
