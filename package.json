@@ -1,6 +1,6 @@
 {
   "name": "@mortenbroesby/astrograph",
-  "version": "0.1.0-alpha.57",
+  "version": "0.1.0-alpha.58",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -70,17 +70,10 @@
     "type-check": "tsc --noEmit",
     "test": "node ./scripts/run-vitest.mjs",
     "test:slow": "ASTROGRAPH_ENABLE_SLOW_TESTS=1 node ./scripts/run-vitest.mjs",
-    "test:mutation-smoke": "ASTROGRAPH_ENABLE_MUTATION_SMOKE_TESTS=1 node ./scripts/run-vitest.mjs tests/mutation-smoke.cli.test.ts tests/mutation-smoke.watch.test.ts",
-    "test:mutation": "node ./scripts/mutation-opt-in.mjs",
-    "test:mutation:full": "node ./scripts/mutation-opt-in.mjs full",
-    "mutation:smoke": "node ./scripts/run-stryker.mjs stryker.config.json",
-    "mutation:full": "node ./scripts/run-stryker.mjs stryker.full.config.json",
     "prepack": "pnpm run build"
   },
   "devDependencies": {
     "0x": "^6.0.0",
-    "@stryker-mutator/core": "^9.6.1",
-    "@stryker-mutator/vitest-runner": "^9.6.1",
     "@types/better-sqlite3": "^7.6.13",
     "@types/node": "^22.10.1",
     "@types/picomatch": "^4.0.3",

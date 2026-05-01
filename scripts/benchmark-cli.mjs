@@ -14,7 +14,6 @@ const workspaceRoot = packageRoot;
 
 const EXCLUDED_SEGMENTS = new Set([
   ".astrograph",
-  ".stryker-tmp",
   ".vite",
   "coverage",
   "dist",

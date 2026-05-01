@@ -1,6 +1,6 @@
 import { realpath } from "node:fs/promises";
 
-import { afterEach, describe, expect, it as baseIt } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import { handleCli } from "../src/cli.ts";
 import { indexFolder, searchSymbols } from "../src/index.ts";
@@ -10,13 +10,8 @@ afterEach(async () => {
   await cleanupFixtureRepos();
 });
 
-const mutationSmokeIt =
-  process.env.ASTROGRAPH_ENABLE_MUTATION_SMOKE_TESTS === "1"
-    ? baseIt
-    : baseIt.skip;
-
-describe("mutation smoke cli boundaries", () => {
-  mutationSmokeIt("rejects malformed CLI numeric and enum arguments", async () => {
+describe("cli boundaries", () => {
+  it("rejects malformed CLI numeric and enum arguments", async () => {
     const repoRoot = await createFixtureRepo();
 
     await expect(
@@ -118,7 +113,7 @@ describe("mutation smoke cli boundaries", () => {
     ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
   });
 
-  mutationSmokeIt("preserves boolean flag and omitted optional number semantics", async () => {
+  it("preserves boolean flag and omitted optional number semantics", async () => {
     const repoRoot = await createFixtureRepo();
     const resolvedRepoRoot = await realpath(repoRoot);
     await indexFolder({ repoRoot });

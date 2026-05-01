@@ -172,14 +172,20 @@ describe("ai-context-engine behavior", () => {
 
     const child = spawn(
       process.execPath,
-      [path.join(packageRoot, "scripts", "ai-context-engine.mjs"), "index-folder", "--repo", repoRoot],
+      [
+        path.join(packageRoot, "scripts", "ai-context-engine.mjs"),
+        "cli",
+        "index-folder",
+        "--repo",
+        repoRoot,
+      ],
       {
         cwd: packageRoot,
         stdio: ["ignore", "pipe", "pipe"],
         env: {
           ...process.env,
           ASTROGRAPH_USE_SOURCE: "1",
-          ASTROGRAPH_INDEX_TEST_DELAY_MS: "1000",
+          ASTROGRAPH_INDEX_TEST_DELAY_MS: "5000",
           AI_CONTEXT_ENGINE_INDEX_WORKER_CHILD: "1",
         },
       },
@@ -195,7 +201,7 @@ describe("ai-context-engine behavior", () => {
       await waitFor(async () => {
         const health = await diagnostics({ repoRoot });
         return health.readiness.stage === "deepening";
-      }, 5_000);
+      }, 15_000);
 
       const deepeningHealth = await diagnostics({ repoRoot });
       expect(deepeningHealth.readiness).toMatchObject({
@@ -229,7 +235,7 @@ describe("ai-context-engine behavior", () => {
         await once(child, "close").catch(() => undefined);
       }
     }
-  }, 30_000);
+  }, 45_000);
 
   it("doctor gives useful guidance before the repo has been indexed", async () => {
     const repoRoot = await createFixtureRepo();

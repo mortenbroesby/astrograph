@@ -26,7 +26,6 @@ const packageRoot = path.resolve(
 
 const EXCLUDED_SEGMENTS = new Set([
   ".astrograph",
-  ".stryker-tmp",
   ".vite",
   "coverage",
   "dist",

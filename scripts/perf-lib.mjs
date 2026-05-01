@@ -30,7 +30,6 @@ const EXCLUDED_SEGMENTS = new Set([
   ".benchmarks",
   ".git",
   ".next",
-  ".stryker-tmp",
   ".turbo",
   ".vite",
   "coverage",

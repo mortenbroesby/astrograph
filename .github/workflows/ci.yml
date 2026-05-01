@@ -40,6 +40,9 @@ jobs:
       - name: Test
         run: pnpm test
 
+      - name: Slow tests
+        run: pnpm test:slow
+
       - name: Package smoke
         run: pnpm test:package-bin
 
