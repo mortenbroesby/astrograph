@@ -60,6 +60,20 @@ function retainEventLine(
   }
 }
 
+function parseEngineEventLine(line: string): EngineEventEnvelope | null {
+  const trimmedLine = line.trim();
+  if (trimmedLine === "") {
+    return null;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmedLine) as EngineEventEnvelope;
+    return typeof parsed.event === "string" ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
 function sanitizeEventValue(
   value: unknown,
   pathSegments: string[],
@@ -148,6 +162,7 @@ export async function readRecentEngineEvents(input: {
   return contents
     .trimEnd()
     .split("\n")
-    .slice(-limit)
-    .map((line) => JSON.parse(line) as EngineEventEnvelope);
+    .map(parseEngineEventLine)
+    .filter((event): event is EngineEventEnvelope => event !== null)
+    .slice(-limit);
 }
