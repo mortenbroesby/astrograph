@@ -105,18 +105,18 @@ describe("ai-context-engine contract", () => {
   });
 
   it("uses package.json as the canonical Astrograph version source", () => {
-    expect(ASTROGRAPH_PACKAGE_VERSION).toBe("0.1.0-alpha.58");
+    expect(ASTROGRAPH_PACKAGE_VERSION).toBe("0.1.0-alpha.59");
     expect(parseAstrographVersion(ASTROGRAPH_PACKAGE_VERSION)).toEqual({
       major: 0,
       minor: 1,
       patch: 0,
-      increment: 58,
+      increment: 59,
     });
     expect(ASTROGRAPH_VERSION_PARTS).toEqual({
       major: 0,
       minor: 1,
       patch: 0,
-      increment: 58,
+      increment: 59,
     });
   });
 
@@ -155,7 +155,7 @@ describe("ai-context-engine contract", () => {
     expect(packageJson.homepage).toBe("https://github.com/mortenbroesby/astrograph");
     expect(packageJson.repository).toEqual({
       type: "git",
-      url: "https://github.com/mortenbroesby/astrograph.git",
+      url: "git+https://github.com/mortenbroesby/astrograph.git",
     });
     expect(packageJson.bugs).toEqual({
       url: "https://github.com/mortenbroesby/astrograph/issues",
