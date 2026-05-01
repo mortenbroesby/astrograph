@@ -36,6 +36,7 @@
   "files": [
     "README.md",
     "LICENSE",
+    "assets/astrograph-logo.svg",
     "dist",
     "scripts/ai-context-engine.mjs",
     "scripts/git-smart-refresh.mjs",
