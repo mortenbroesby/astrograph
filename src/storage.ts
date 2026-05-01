@@ -64,6 +64,12 @@ import {
 } from "./language-registry.ts";
 import { createPathMatcher } from "./path-matcher.ts";
 import { containsSecretLikeText } from "./privacy.ts";
+import {
+  buildReadinessStatus,
+  normalizeRepoReadiness,
+  summarizeReadiness,
+} from "./readiness.ts";
+import type { RepoMetaReadinessRecord } from "./readiness.ts";
 import { getLogger } from "./logger.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import { subscribeRepo } from "./watch-backend.ts";
@@ -219,18 +225,6 @@ interface RepoMetaRecord {
   summaryStrategy?: SummaryStrategy;
   readiness?: RepoMetaReadinessRecord;
   watch?: WatchDiagnostics;
-}
-
-interface RepoMetaReadinessRecord {
-  discoveryIndexedAt: string | null;
-  discoveredFiles: number;
-  deepIndexedAt: string | null;
-  deepening: {
-    startedAt: string;
-    totalFiles: number;
-    processedFiles: number;
-    pendingFiles: number;
-  } | null;
 }
 
 type RepoMetaHealthStatus =
@@ -1177,49 +1171,6 @@ function createDefaultWatchDiagnostics(): WatchDiagnostics {
   };
 }
 
-function normalizeRepoReadiness(value: unknown): RepoMetaReadinessRecord {
-  if (typeof value !== "object" || value === null) {
-    return {
-      discoveryIndexedAt: null,
-      discoveredFiles: 0,
-      deepIndexedAt: null,
-      deepening: null,
-    };
-  }
-
-  const candidate = value as Partial<RepoMetaReadinessRecord>;
-  const deepeningCandidate =
-    typeof candidate.deepening === "object" && candidate.deepening !== null
-      ? candidate.deepening
-      : null;
-
-  return {
-    discoveryIndexedAt:
-      typeof candidate.discoveryIndexedAt === "string"
-        ? candidate.discoveryIndexedAt
-        : null,
-    discoveredFiles:
-      typeof candidate.discoveredFiles === "number" && Number.isFinite(candidate.discoveredFiles)
-        ? Math.max(0, Math.floor(candidate.discoveredFiles))
-        : 0,
-    deepIndexedAt:
-      typeof candidate.deepIndexedAt === "string" ? candidate.deepIndexedAt : null,
-    deepening:
-      deepeningCandidate
-      && typeof deepeningCandidate.startedAt === "string"
-      && typeof deepeningCandidate.totalFiles === "number"
-      && typeof deepeningCandidate.processedFiles === "number"
-      && typeof deepeningCandidate.pendingFiles === "number"
-        ? {
-            startedAt: deepeningCandidate.startedAt,
-            totalFiles: Math.max(0, Math.floor(deepeningCandidate.totalFiles)),
-            processedFiles: Math.max(0, Math.floor(deepeningCandidate.processedFiles)),
-            pendingFiles: Math.max(0, Math.floor(deepeningCandidate.pendingFiles)),
-          }
-        : null,
-  };
-}
-
 function normalizeWatchDiagnostics(value: unknown): WatchDiagnostics {
   if (typeof value !== "object" || value === null) {
     return createDefaultWatchDiagnostics();
@@ -1848,45 +1799,6 @@ function matchesFilePattern(filePath: string, pattern?: string): boolean {
   return createPathMatcher({ include: pattern ? [pattern] : undefined }).matches(
     filePath,
   );
-}
-
-function summarizeReadiness(discoveryReady: boolean, deepRetrievalReady: boolean): string {
-  if (deepRetrievalReady) {
-    return "discovery-ready and deep-retrieval-ready";
-  }
-  if (discoveryReady) {
-    return "discovery-ready but still deepening structured retrieval";
-  }
-  return "not discovery-ready yet";
-}
-
-function buildReadinessStatus(input: {
-  meta: RepoMetaRecord | null;
-  indexedFiles: number;
-}) {
-  const readiness = input.meta?.readiness ?? normalizeRepoReadiness(null);
-  const discoveryReady = readiness.discoveredFiles > 0;
-  const deepRetrievalReady = readiness.deepIndexedAt !== null || input.indexedFiles > 0;
-  const pendingDeepIndexedFiles = readiness.deepening?.pendingFiles ?? 0;
-  const deepening = readiness.deepening !== null && pendingDeepIndexedFiles > 0;
-  const stage =
-    deepening
-      ? "deepening"
-      : deepRetrievalReady
-        ? "deep-retrieval-ready"
-        : discoveryReady
-          ? "discovery-ready"
-          : "not-ready";
-
-  return {
-    stage,
-    discoveryReady,
-    deepRetrievalReady,
-    deepening,
-    discoveredFiles: readiness.discoveredFiles,
-    deepIndexedFiles: input.indexedFiles,
-    pendingDeepIndexedFiles,
-  } as const;
 }
 
 async function collectRepoFiles(
@@ -4615,7 +4527,7 @@ export async function diagnostics(input: DiagnosticsOptions): Promise<Diagnostic
     ) as DiagnosticsResult["summarySources"];
     const indexedFiles = meta?.indexedFiles ?? drift.indexedFiles;
     const readiness = buildReadinessStatus({
-      meta,
+      readiness: meta?.readiness,
       indexedFiles,
     });
     const languageRegistry = getLanguageRegistrySnapshot();
