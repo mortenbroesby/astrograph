@@ -1,3 +1,8 @@
+---
+name: release-decision
+description: Use when deciding whether Astrograph changes should publish a release, when planning a version bump, or when operating the release agent
+---
+
 # Release Decision Skill
 
 Use this skill when deciding whether Astrograph changes should publish an npm
