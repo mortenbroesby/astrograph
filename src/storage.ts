@@ -2391,7 +2391,7 @@ function rebuildFileDependencies(db: IndexBackendConnection) {
     `),
   );
   const insertDependency = db.prepare(`
-    INSERT INTO file_dependencies (importer_file_id, importer_path, target_path, source)
+    INSERT OR IGNORE INTO file_dependencies (importer_file_id, importer_path, target_path, source)
     VALUES (?, ?, ?, ?)
   `);
 

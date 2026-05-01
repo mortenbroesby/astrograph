@@ -1294,6 +1294,43 @@ export function renderFirst(value: number): string {
     });
   });
 
+  it("deduplicates repeated import sources while rebuilding file dependencies", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "duplicate-imports.ts"),
+      `import { area } from "./math.js";
+import { PI } from "./math.js";
+
+export function circleArea(radius: number): number {
+  return area(radius) * PI;
+}
+`,
+    );
+
+    await indexFolder({ repoRoot });
+
+    const paths = resolveEnginePaths(repoRoot);
+    const db = new Database(paths.databasePath, { readonly: true });
+    const rows = db.prepare(
+      `
+        SELECT importer_path, target_path, source
+        FROM file_dependencies
+        WHERE importer_path = ?
+        ORDER BY target_path ASC, source ASC
+      `,
+    ).all("src/duplicate-imports.ts");
+    db.close();
+
+    expect(rows).toEqual([
+      {
+        importer_path: "src/duplicate-imports.ts",
+        target_path: "src/math.ts",
+        source: "./math.js",
+      },
+    ]);
+  });
+
   it("rejects invalid search and retrieval boundaries at the library layer", async () => {
     const repoRoot = await createFixtureRepo();
 
