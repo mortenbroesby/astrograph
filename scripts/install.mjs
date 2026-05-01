@@ -11,6 +11,7 @@ import {
   text,
   confirm,
 } from "@clack/prompts";
+import { cac } from "cac";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -24,7 +25,6 @@ const packageJson = JSON.parse(
 );
 const PACKAGE_NAME = packageJson.name;
 const PACKAGE_VERSION = packageJson.version;
-const LEGACY_PACKAGE_NAME = "astrograph";
 const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"];
 const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"];
 const MCP_TOOLS = [
@@ -55,95 +55,224 @@ const MCP_TOOL_PROFILE = {
 };
 const DEFAULT_INSTALL_MODE = "full";
 
+function parseComparableVersion(rawValue) {
+  if (typeof rawValue !== "string") {
+    return null;
+  }
+  const value = rawValue.trim();
+  if (!value) {
+    return null;
+  }
+
+  const normalized = value[0] === "v" ? value.slice(1) : value;
+  const match = normalized.match(
+    /^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/,
+  );
+
+  if (!match) {
+    return null;
+  }
+
+  const major = Number.parseInt(match[1] ?? "0", 10);
+  const minor = Number.parseInt(match[2] ?? "0", 10);
+  const patch = Number.parseInt(match[3] ?? "0", 10);
+  if (!Number.isFinite(major) || !Number.isFinite(minor) || !Number.isFinite(patch)) {
+    return null;
+  }
+
+  const prerelease = match[4];
+  if (!prerelease) {
+    return {
+      major,
+      minor,
+      patch,
+      prerelease: null,
+      alphaIncrement: null,
+      raw: normalized,
+    };
+  }
+
+  const alphaMatch = prerelease.match(/^alpha\.(\d+)$/);
+  return {
+    major,
+    minor,
+    patch,
+    prerelease,
+    alphaIncrement: alphaMatch && alphaMatch[1] ? Number.parseInt(alphaMatch[1], 10) : null,
+    raw: normalized,
+  };
+}
+
+function isVersionNewer(compareTo, base) {
+  if (!compareTo || !base) {
+    return false;
+  }
+  if (compareTo.major !== base.major) {
+    return compareTo.major > base.major;
+  }
+  if (compareTo.minor !== base.minor) {
+    return compareTo.minor > base.minor;
+  }
+  if (compareTo.patch !== base.patch) {
+    return compareTo.patch > base.patch;
+  }
+
+  if (base.prerelease === null && compareTo.prerelease === null) {
+    return false;
+  }
+  if (base.prerelease === null) {
+    return false;
+  }
+  if (compareTo.prerelease === null) {
+    return true;
+  }
+
+  if (
+    base.prerelease.startsWith("alpha.")
+    && compareTo.prerelease.startsWith("alpha.")
+    && base.alphaIncrement !== null
+    && compareTo.alphaIncrement !== null
+  ) {
+    return compareTo.alphaIncrement > base.alphaIncrement;
+  }
+
+  return compareTo.prerelease > base.prerelease;
+}
+
+function resolveLatestAstrographVersion() {
+  try {
+    const latest = execFileSync(
+      "npm",
+      ["view", PACKAGE_NAME, "version"],
+      {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+        timeout: 2_500,
+      },
+    ).trim();
+    return parseComparableVersion(latest);
+  } catch {
+    return null;
+  }
+}
+
+function emitUpdateSuggestion(currentVersion) {
+  const latest = resolveLatestAstrographVersion();
+  const current = parseComparableVersion(currentVersion);
+
+  if (!latest || !current || !isVersionNewer(latest, current)) {
+    return;
+  }
+
+  const suggestion = `npm install ${PACKAGE_NAME}@latest`;
+  process.stderr.write(
+    `A newer Astrograph version is available: ${latest.raw} (current: ${currentVersion}).\n` +
+    `To update, run: ${suggestion}\n`,
+  );
+}
+
+
 function usage() {
   process.stderr.write(
     [
       "Usage:",
-      "  npx @mortenbroesby/astrograph install [--yes] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mode barebones|some|full] [--repo /abs/repo] [--dry-run]",
+      "  npx @mortenbroesby/astrograph init [--yes] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mode barebones|some|full] [--repo /abs/repo] [--dry-run]",
       "",
       "  Interactive mode (default):",
-      "  - Choose install profile (barebones/some/full) in prompts",
-      "    npx @mortenbroesby/astrograph install",
-      "    npx @mortenbroesby/astrograph install --mode some --ide codex,copilot,copilot-cli --repo /abs/repo",
+      "  - Choose setup profile (barebones/some/full) in prompts",
+      "    npx @mortenbroesby/astrograph init",
+      "    npx @mortenbroesby/astrograph init --mode some --ide codex,copilot,copilot-cli --repo /abs/repo",
+      "  Setup also ensures an Astrograph dependency is set to `latest` in package.json.",
+      "  If missing, it adds `@mortenbroesby/astrograph: \"latest\"` to devDependencies.",
       "",
       "  Non-interactive mode:",
-      "    npx @mortenbroesby/astrograph install --yes --ide copilot --mode full --repo /abs/repo [--dry-run]",
-      "    npx @mortenbroesby/astrograph install --yes --ide all --mode some --repo /abs/repo [--dry-run]",
-      "    npx @mortenbroesby/astrograph install --yes --ide codex,copilot --mode barebones --repo /abs/repo [--dry-run]",
+      "    npx @mortenbroesby/astrograph init --yes --ide copilot --mode full --repo /abs/repo [--dry-run]",
+      "    npx @mortenbroesby/astrograph init --yes --ide all --mode some --repo /abs/repo [--dry-run]",
+      "    npx @mortenbroesby/astrograph init --yes --ide codex,copilot --mode barebones --repo /abs/repo [--dry-run]",
     ].join("\n") + "\n",
   );
 }
 
 function parseArgs(argv) {
-  const args = {
-    ides: null,
-    repo: process.cwd(),
-    dryRun: false,
-    nonInteractive: false,
-    mode: DEFAULT_INSTALL_MODE,
-    hasExplicitArgs: false,
-  };
-
-  const isKnownFlag = new Set([
-    "dry-run",
-    "yes",
-    "repo",
-    "ide",
-    "mode",
-    "help",
-    "h",
-  ]);
-
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-
-    if (token === "--help" || token === "-h") {
-      return { ...args, showHelp: true };
-    }
-
-    if (token === "--dry-run") {
-      args.dryRun = true;
-      args.hasExplicitArgs = true;
+  const knownFlag = new Set(["--yes", "--dry-run", "--repo", "--ide", "--mode", "--help", "-h"]);
+  for (const token of argv) {
+    if (!token?.startsWith("-")) {
       continue;
     }
 
-    if (token === "--yes") {
-      args.nonInteractive = true;
-      args.hasExplicitArgs = true;
+    if (token === "-h" || token === "--help") {
       continue;
     }
 
-    if (!token?.startsWith("--")) {
+    const normalized = token.startsWith("--") && token.includes("=")
+      ? token.slice(0, token.indexOf("="))
+      : token;
+
+    if (!normalized.startsWith("--")) {
       continue;
     }
 
-    const key = token.slice(2);
-    if (!isKnownFlag.has(key)) {
-      throw new Error(`Unsupported argument --${key}`);
+    if (!knownFlag.has(normalized)) {
+      throw new Error(`Unsupported argument ${normalized}`);
     }
-
-    const value = argv[index + 1];
-    if (!value || value.startsWith("--")) {
-      throw new Error(`Missing value for argument --${key}`);
-    }
-
-    if (key === "ide") {
-      args.ides = parseIdeSelections(value);
-      args.hasExplicitArgs = true;
-    } else if (key === "repo") {
-      args.repo = value;
-      args.hasExplicitArgs = true;
-    } else if (key === "mode") {
-      args.mode = value;
-      args.hasExplicitArgs = true;
-    } else {
-      throw new Error(`Unsupported argument --${key}`);
-    }
-
-    index += 1;
   }
 
-  return args;
+  const cli = cac("astrograph-init");
+
+  cli
+    .option("--yes", {
+      type: Boolean,
+      description: "Run setup without interactive prompts.",
+    })
+    .option("--dry-run", {
+      type: Boolean,
+      description: "Preview changes only.",
+    })
+    .option("--repo <path>", {
+      description: "Repository root path for setup.",
+      default: process.cwd(),
+    })
+    .option("--ide <ide-list>", {
+      description: "Comma-separated list of IDEs to configure (codex|copilot|copilot-cli|all).",
+    })
+    .option("--mode <mode>", {
+      description: "Profile mode (barebones|some|full).",
+      default: DEFAULT_INSTALL_MODE,
+    })
+    .help("-h, --help");
+
+  const parsed = cli.parse(argv, { run: false });
+
+  if (parsed.options.help) {
+    return {
+      ides: null,
+      repo: process.cwd(),
+      dryRun: false,
+      nonInteractive: false,
+      mode: DEFAULT_INSTALL_MODE,
+      hasExplicitArgs: false,
+      showHelp: true,
+    };
+  }
+
+  const hasFlag = (name) =>
+    argv.includes(`--${name}`) || argv.some((token) => token.startsWith(`--${name}=`));
+
+  return {
+    ides: hasFlag("ide")
+      ? parseIdeSelections(String(parsed.options.ide))
+      : null,
+    repo: parsed.options.repo ?? process.cwd(),
+    dryRun: parsed.options.dryRun ?? false,
+    nonInteractive: parsed.options.yes ?? false,
+    mode: parsed.options.mode ?? DEFAULT_INSTALL_MODE,
+    hasExplicitArgs:
+      hasFlag("yes") ||
+      hasFlag("dry-run") ||
+      hasFlag("repo") ||
+      hasFlag("ide") ||
+      hasFlag("mode"),
+  };
 }
 
 function parseIdeSelections(raw) {
@@ -168,14 +297,14 @@ function parseIdeSelections(raw) {
   return deduped;
 }
 
-async function promptForInstallArgs() {
+async function promptForSetupArgs() {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
-      "Interactive install requires a TTY. Re-run with --yes --ide all|codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run]",
+      "Interactive setup requires a TTY. Re-run with --yes --ide all|codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run]",
     );
   }
 
-  intro("Astrograph install");
+  intro("Astrograph init");
 
   const ides = await multiselect({
     message: "Which IDEs do you want to configure?",
@@ -205,14 +334,14 @@ async function promptForInstallArgs() {
   });
 
   if (isCancel(ides)) {
-    outro("Install cancelled.");
+    outro("Setup cancelled.");
     process.exit(0);
   }
 
   const selectedIdes = [...new Set(ides.filter((entry) => typeof entry === "string"))];
 
   if (selectedIdes.length === 0) {
-    outro("Install cancelled.");
+    outro("Setup cancelled.");
     process.exit(0);
   }
 
@@ -228,12 +357,12 @@ async function promptForInstallArgs() {
   });
 
   if (isCancel(repo)) {
-    outro("Install cancelled.");
+    outro("Setup cancelled.");
     process.exit(0);
   }
 
   const mode = await select({
-    message: "What install profile should we set up?",
+    message: "What setup profile should we set up?",
     options: [
       {
         value: "full",
@@ -254,7 +383,7 @@ async function promptForInstallArgs() {
   });
 
   if (isCancel(mode)) {
-    outro("Install cancelled.");
+    outro("Setup cancelled.");
     process.exit(0);
   }
 
@@ -264,11 +393,11 @@ async function promptForInstallArgs() {
   });
 
   if (isCancel(dryRun)) {
-    outro("Install cancelled.");
+    outro("Setup cancelled.");
     process.exit(0);
   }
 
-  outro("Running install.", { withGuide: false });
+  outro("Running setup.", { withGuide: false });
 
   return {
     ides: selectedIdes,
@@ -278,10 +407,104 @@ async function promptForInstallArgs() {
   };
 }
 
+function parseJsonFromString(raw, configPath) {
+  if (!raw.trim()) {
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Expected a JSON object");
+    }
+    return parsed;
+  } catch (error) {
+    throw new Error(
+      `Invalid package JSON: ${path.basename(configPath)} (${error instanceof Error ? error.message : String(error)})`,
+    );
+  }
+}
+
+function dependencyFieldHasAstrograph(pkgJson) {
+  return Boolean(
+    pkgJson.dependencies?.[PACKAGE_NAME]
+    || pkgJson.devDependencies?.[PACKAGE_NAME]
+    || pkgJson.optionalDependencies?.[PACKAGE_NAME]
+  );
+}
+
+async function ensureAstrographDependencyInRepo(repoRoot, dryRun) {
+  const packagePath = path.join(repoRoot, "package.json");
+  let packageJsonRaw;
+  try {
+    packageJsonRaw = await readFile(packagePath, "utf8");
+  } catch {
+    return {
+      packageDependencyUpdated: false,
+      packageDependencyReason: "package.json not found",
+    };
+  }
+
+  const parsed = parseJsonFromString(packageJsonRaw, packagePath);
+  const hadAstrographDependency = dependencyFieldHasAstrograph(parsed);
+
+  let didUpdate = false;
+  const sections = ["dependencies", "devDependencies", "optionalDependencies"];
+  const namesToSync = [PACKAGE_NAME];
+
+  for (const section of sections) {
+    const value = parsed[section];
+    if (!value || typeof value !== "object" || Array.isArray(value)) {
+      continue;
+    }
+
+    for (const depName of namesToSync) {
+      if (Object.hasOwn(value, depName) && value[depName] !== "latest") {
+        value[depName] = "latest";
+        didUpdate = true;
+      }
+    }
+  }
+
+  if (!dependencyFieldHasAstrograph(parsed)) {
+    if (!parsed.devDependencies || typeof parsed.devDependencies !== "object" || Array.isArray(parsed.devDependencies)) {
+      parsed.devDependencies = {};
+    }
+    parsed.devDependencies[PACKAGE_NAME] = "latest";
+    didUpdate = true;
+  }
+
+  if (!didUpdate) {
+    return {
+      packageDependencyUpdated: false,
+      packageDependencyReason: "dependency already at latest",
+    };
+  }
+
+  const packageDependencyReason = hadAstrographDependency
+    ? "updated Astrograph dependency to latest"
+    : "added @mortenbroesby/astrograph@latest";
+
+  if (dryRun) {
+    return {
+      packageDependencyUpdated: false,
+      packageDependencyReason: `would ${packageDependencyReason}`,
+      packageDependencyPreview: parsed,
+    };
+  }
+
+  await writeFile(packagePath, `${JSON.stringify(parsed, null, 2)}\n`, "utf8");
+  return {
+    packageDependencyUpdated: true,
+    packageDependencyReason,
+    packageDependencyPreview: parsed,
+  };
+}
+
 function validateIdes(args) {
   if (!Array.isArray(args.ides) || args.ides.length === 0) {
     throw new Error(
-      "Astrograph install requires at least one --ide value",
+      "Astrograph init requires at least one --ide value",
     );
   }
 
@@ -293,7 +516,7 @@ function validateIdes(args) {
   for (const ide of args.ides) {
     if (!INSTALL_IDE_KEYWORDS.includes(ide)) {
       throw new Error(
-        "Astrograph install supports --ide codex, --ide copilot, --ide copilot-cli, and --ide all",
+        "Astrograph init supports --ide codex, --ide copilot, --ide copilot-cli, and --ide all",
       );
     }
   }
@@ -304,7 +527,7 @@ function validateIdes(args) {
 function validateMode(args) {
   if (!INSTALL_MODES.includes(args.mode)) {
     throw new Error(
-      "Astrograph install supports --mode barebones, --mode some, and --mode full",
+      "Astrograph init supports --mode barebones, --mode some, and --mode full",
     );
   }
 
@@ -326,7 +549,7 @@ function resolveRepoRoot(repoRoot) {
 
 function hasLocalAstrographDependency(repoRoot) {
   try {
-    const packageData = JSON.parse(
+  const packageData = JSON.parse(
       execFileSync("node", ["-e", "process.stdout.write(require('fs').readFileSync('package.json','utf8'))"], {
         cwd: repoRoot,
         encoding: "utf8",
@@ -338,9 +561,6 @@ function hasLocalAstrographDependency(repoRoot) {
       packageData.dependencies?.[PACKAGE_NAME]
       || packageData.devDependencies?.[PACKAGE_NAME]
       || packageData.optionalDependencies?.[PACKAGE_NAME]
-      || packageData.dependencies?.[LEGACY_PACKAGE_NAME]
-      || packageData.devDependencies?.[LEGACY_PACKAGE_NAME]
-      || packageData.optionalDependencies?.[LEGACY_PACKAGE_NAME],
     );
   } catch {
     return false;
@@ -488,7 +708,7 @@ function resolveManagedConfig(ide, repoRoot, currentContents, mode = DEFAULT_INS
   };
 }
 
-export async function installForIde(
+export async function setupForIde(
   repoRoot,
   { ide = "copilot", mode = DEFAULT_INSTALL_MODE, dryRun = false } = {},
 ) {
@@ -524,11 +744,11 @@ export async function installForIde(
   };
 }
 
-export async function installForCodex(
+export async function setupForCodex(
   repoRoot,
   { mode = DEFAULT_INSTALL_MODE, dryRun = false } = {},
 ) {
-  return installForIde(repoRoot, { ide: "codex", mode, dryRun });
+  return setupForIde(repoRoot, { ide: "codex", mode, dryRun });
 }
 
 async function main() {
@@ -548,33 +768,41 @@ async function main() {
 
   const args = parsed.hasExplicitArgs || parsed.nonInteractive
     ? validateMode(validateIdes(normalizedArgs))
-    : await promptForInstallArgs();
+    : await promptForSetupArgs();
 
-  const result = await installForAllIdes(args.repo, {
+  const result = await setupForAllIdes(args.repo, {
     ides: args.ides,
     mode: args.mode,
     dryRun: args.dryRun,
   });
 
+  emitUpdateSuggestion(PACKAGE_VERSION);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-export async function installForAllIdes(
+export async function setupForAllIdes(
   repoRoot,
   { ides = ["copilot"], mode = DEFAULT_INSTALL_MODE, dryRun = false } = {},
 ) {
   const normalizedIdes = validateIdes({ ides }).ides;
   const normalizedMode = validateMode({ mode }).mode;
+  const resolvedRepoRoot = resolveRepoRoot(repoRoot);
+  const packageDependency = await ensureAstrographDependencyInRepo(resolvedRepoRoot, dryRun);
 
   const results = [];
 
   for (const ide of normalizedIdes) {
-    const result = await installForIde(repoRoot, {
+    const result = await setupForIde(resolvedRepoRoot, {
       ide,
       mode: normalizedMode,
       dryRun,
     });
-    results.push(result);
+    results.push({
+      ...result,
+      packageDependencyUpdated: packageDependency.packageDependencyUpdated,
+      packageDependencyReason: packageDependency.packageDependencyReason,
+      packageDependencyPreview: packageDependency.packageDependencyPreview,
+    });
   }
 
   return normalizedIdes.length === 1 ? results[0] : results;

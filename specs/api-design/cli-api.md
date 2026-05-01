@@ -7,7 +7,7 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph cli <command>` runs JSON code-intelligence commands.
 - `astrograph mcp` starts the stdio MCP server.
 - `astrograph git-refresh <event>` plans or executes index refreshes for git workflows.
-- `astrograph install --ide codex` writes managed local MCP configuration.
+- `astrograph init --ide codex` writes managed local MCP configuration.
 
 ## JSON CLI Rules
 

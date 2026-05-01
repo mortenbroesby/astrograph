@@ -100,7 +100,7 @@ async function main() {
       [
         "exec",
         "astrograph",
-        "install",
+        "init",
         "--ide",
         "codex",
         "--repo",
@@ -111,7 +111,7 @@ async function main() {
 
     const installed = JSON.parse(installResult.stdout);
     if (!String(installed.configPreview).includes("[mcp_servers.astrograph]")) {
-      throw new Error(`Expected astrograph install to write a Codex MCP block: ${installResult.stdout}`);
+      throw new Error(`Expected astrograph init to write a Codex MCP block: ${installResult.stdout}`);
     }
   } finally {
     await rm(tempRoot, { recursive: true, force: true });

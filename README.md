@@ -46,18 +46,24 @@ Use dependency-based setup if you want `astrograph` in package scripts:
 npm install -D @mortenbroesby/astrograph
 ```
 
+Or install globally:
+
+```bash
+npm install -g @mortenbroesby/astrograph
+```
+
 ### 2) Configure MCP (default: Copilot)
 
 ```bash
-npx @mortenbroesby/astrograph install
+astrograph init
 ```
 
 Want control over what gets installed? Pick one profile:
 
 ```bash
-npx @mortenbroesby/astrograph install --ide codex --mode full
-npx @mortenbroesby/astrograph install --ide codex --mode some
-npx @mortenbroesby/astrograph install --ide codex --mode barebones
+astrograph init --ide codex --mode full
+astrograph init --ide codex --mode some
+astrograph init --ide codex --mode barebones
 ```
 
 Profiles:
@@ -73,7 +79,13 @@ Default is `full`.
 If you need non-interactive install:
 
 ```bash
-npx @mortenbroesby/astrograph install --yes --repo /absolute/path/to/repo
+npx @mortenbroesby/astrograph init --yes --repo /absolute/path/to/repo
+```
+
+If you are not using a global install:
+
+```bash
+npx @mortenbroesby/astrograph init
 ```
 
 ### 3) Start your IDE session and use your agent tools.
@@ -84,38 +96,38 @@ Your tooling reads the generated MCP config and you are done.
 
 Astrograph can configure MCP settings for Codex, GitHub Copilot, and GitHub
 Copilot CLI. Non-interactive default is `--ide copilot`.
+If a newer Astrograph release is published, `init` prints a short update hint:
+`npm install @mortenbroesby/astrograph@latest`.
 
 ```bash
-npx @mortenbroesby/astrograph install
+astrograph init
 ```
 
 Codex (`.codex/config.toml`):
 
 ```bash
-npx @mortenbroesby/astrograph install --yes --ide codex --repo /absolute/path/to/repo
+astrograph init --yes --ide codex --repo /absolute/path/to/repo
 ```
 
 GitHub Copilot (`.vscode/mcp.json`):
 
 ```bash
-npx @mortenbroesby/astrograph install --yes --ide copilot --repo /absolute/path/to/repo
+astrograph init --yes --ide copilot --repo /absolute/path/to/repo
 ```
 
 GitHub Copilot CLI (`.mcp.json`):
 
 ```bash
-npx @mortenbroesby/astrograph install --yes --ide copilot-cli --repo /absolute/path/to/repo
+astrograph init --yes --ide copilot-cli --repo /absolute/path/to/repo
 ```
 
 The installer resolves the repo root and preserves unrelated IDE config.
 
-You can also run `astrograph install` interactively and choose both IDE and profile.
-
 To configure multiple agent clients in one pass:
 
 ```bash
-npx @mortenbroesby/astrograph install --yes --ide all --repo /absolute/path/to/repo
-npx @mortenbroesby/astrograph install --yes --ide codex,copilot --repo /absolute/path/to/repo
+astrograph init --yes --ide all --repo /absolute/path/to/repo
+astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
 ```
 
 ## Documentation

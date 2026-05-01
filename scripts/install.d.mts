@@ -25,17 +25,17 @@ export interface CodexInstallResult extends BaseInstallResult {
   ide: "codex";
 }
 
-export function installForIde(
+export function setupForIde(
   repoRoot: string,
   options?: InstallModeOptions,
 ): Promise<BaseInstallResult>;
 
-export function installForAllIdes(
+export function setupForAllIdes(
   repoRoot: string,
   options?: InstallAllModeOptions,
 ): Promise<BaseInstallResult | BaseInstallResult[]>;
 
-export function installForCodex(
+export function setupForCodex(
   repoRoot: string,
   options?: Omit<InstallModeOptions, "ide">,
 ): Promise<CodexInstallResult>;

@@ -7,7 +7,7 @@ All CLI output is JSON by default.
 
 - `astrograph cli ...` — retrieval and maintenance commands
 - `astrograph mcp` — start the stdio MCP server
-- `astrograph install` — write IDE MCP config
+- `astrograph init` — write IDE MCP config
 - `astrograph git-refresh` — compute index refresh actions
 
 ## CLI command examples
@@ -23,18 +23,33 @@ Choose one profile to match how many tools you want installed:
 | `barebones` | Query + file tree + file outline | Lowest complexity and permissions |
 
 ```bash
-npx @mortenbroesby/astrograph install --ide copilot --mode full
-npx @mortenbroesby/astrograph install --yes --ide codex --mode some --repo /repo
-npx @mortenbroesby/astrograph install --yes --ide codex --mode barebones --repo /repo
-npx @mortenbroesby/astrograph install --yes --ide all --mode some --repo /repo
-npx @mortenbroesby/astrograph install --yes --ide codex,copilot-cli --mode full --repo /repo
+npx @mortenbroesby/astrograph init --ide copilot --mode full
+npx @mortenbroesby/astrograph init --yes --ide codex --mode some --repo /repo
+npx @mortenbroesby/astrograph init --yes --ide codex --mode barebones --repo /repo
+npx @mortenbroesby/astrograph init --yes --ide all --mode some --repo /repo
+npx @mortenbroesby/astrograph init --yes --ide codex,copilot-cli --mode full --repo /repo
 ```
 
 The interactive installer prompts for profile selection when run as:
 
 ```bash
-npx @mortenbroesby/astrograph install
+npx @mortenbroesby/astrograph init
 ```
+
+If the target repository has `package.json`, the setup run ensures Astrograph is tracked
+at `latest` in dependencies (updating existing entries when needed), and adds:
+
+```json
+{
+  "@mortenbroesby/astrograph": "latest"
+}
+```
+
+to `devDependencies`.
+
+After running `init`, the installer checks npm metadata and prints an update
+hint when a newer version is available:
+`npm install @mortenbroesby/astrograph@latest`.
 
 Query indexed metadata:
 

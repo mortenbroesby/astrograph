@@ -11,28 +11,29 @@ const packageRoot = path.resolve(scriptDir, "..");
 
 function usage() {
   process.stderr.write(
-    [
-      "Usage:",
-      "  astrograph cli <args...>",
-      "  astrograph mcp",
-      "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
-      "  astrograph install --ide codex",
-    ].join("\n") + "\n",
-  );
+  [
+    "Usage:",
+    "  astrograph cli <args...>",
+    "  astrograph mcp",
+    "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
+    "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mode barebones|some|full] [--repo /abs/repo] [--yes] [--dry-run]",
+    "  astrograph init --ide codex",
+  ].join("\n") + "\n",
+);
 }
 
 const [mode, ...args] = process.argv.slice(2);
 
 const sourceTarget =
   mode === "cli"
-    ? path.join(packageRoot, "src", "cli.ts")
-    : mode === "mcp"
-      ? path.join(packageRoot, "src", "mcp.ts")
-      : mode === "git-refresh"
-        ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
-        : mode === "install"
-          ? path.join(packageRoot, "scripts", "install.mjs")
-          : null;
+        ? path.join(packageRoot, "src", "cli.ts")
+        : mode === "mcp"
+          ? path.join(packageRoot, "src", "mcp.ts")
+          : mode === "git-refresh"
+            ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
+            : mode === "init"
+              ? path.join(packageRoot, "scripts", "install.mjs")
+              : null;
 const distTarget =
   mode === "cli"
     ? path.join(packageRoot, "dist", "cli.js")
@@ -40,7 +41,7 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
         ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
-        : mode === "install"
+        : mode === "init"
           ? path.join(packageRoot, "scripts", "install.mjs")
           : null;
 

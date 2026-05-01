@@ -27,7 +27,7 @@ import {
   parseAstrographVersion,
   resolveEnginePaths,
 } from "../src/index.ts";
-import { installForAllIdes, installForCodex, installForIde } from "../scripts/install.mjs";
+import { setupForAllIdes, setupForCodex, setupForIde } from "../scripts/install.mjs";
 
 const tempDirs: string[] = [];
 
@@ -415,7 +415,7 @@ describe("ai-context-engine contract", () => {
       });
     });
 
-    const result = await installForCodex(repoRoot, { dryRun: true });
+    const result = await setupForCodex(repoRoot, { dryRun: true });
 
     expect(result.packageName).toBe("@mortenbroesby/astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
@@ -457,7 +457,7 @@ describe("ai-context-engine contract", () => {
       ].join("\n"),
     );
 
-    const result = await installForCodex(repoRoot, { dryRun: true });
+    const result = await setupForCodex(repoRoot, { dryRun: true });
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
@@ -478,7 +478,7 @@ describe("ai-context-engine contract", () => {
       });
     });
 
-    const result = await installForIde(repoRoot, {
+    const result = await setupForIde(repoRoot, {
       ide: "copilot",
       dryRun: true,
     });
@@ -501,7 +501,7 @@ describe("ai-context-engine contract", () => {
       });
     });
 
-    const result = await installForCodex(repoRoot, {
+    const result = await setupForCodex(repoRoot, {
       mode: "barebones",
       dryRun: true,
     });
@@ -521,7 +521,7 @@ describe("ai-context-engine contract", () => {
       });
     });
 
-    const result = await installForIde(repoRoot, {
+    const result = await setupForIde(repoRoot, {
       ide: "copilot-cli",
       mode: "some",
       dryRun: true,
@@ -544,7 +544,7 @@ describe("ai-context-engine contract", () => {
       });
     });
 
-    const result = await installForAllIdes(repoRoot, {
+    const result = await setupForAllIdes(repoRoot, {
       ides: ["all"],
       mode: "full",
       dryRun: true,
@@ -576,7 +576,7 @@ describe("ai-context-engine contract", () => {
       });
     });
 
-    const result = await installForIde(repoRoot, {
+    const result = await setupForIde(repoRoot, {
       ide: "copilot-cli",
       dryRun: true,
     });
