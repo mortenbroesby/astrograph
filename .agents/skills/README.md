@@ -11,6 +11,10 @@ commands are project-specific.
 - [implementation-plan-authoring](./implementation-plan-authoring/SKILL.md) - Write executable implementation plans.
 - [spec-maintenance](./spec-maintenance/SKILL.md) - Keep spec indexes, links, and verification pointers current.
 
+## Rules
+
+- [GitHub Actions Cost Guardrail](../rules/github-actions-cost.md)
+
 ## Required Reference
 
 The spec system follows the structure in `specs/README.md`, inspired by the

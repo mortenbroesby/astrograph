@@ -27,6 +27,7 @@ Implementation specs, refactor plans, and internal subsystem ownership.
 
 - [Storage Refactor Plan](./implementation/storage-refactor-plan.md) - Current plan to split `src/storage.ts`.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
+- [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
 
 ### [Templates](./templates/README.md)
 

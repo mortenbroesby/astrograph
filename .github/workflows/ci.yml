@@ -2,17 +2,46 @@ name: CI
 
 on:
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
+    paths:
+      - ".github/workflows/**"
+      - "bench/**"
+      - "scripts/**"
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig*.json"
+      - "vitest.config.ts"
   push:
     branches:
       - main
+      - "release/**"
+    paths:
+      - ".github/workflows/**"
+      - "bench/**"
+      - "scripts/**"
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - "tsconfig*.json"
+      - "vitest.config.ts"
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  test:
-    name: Build and test
+  fast:
+    name: Fast required checks
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,14 +71,42 @@ jobs:
       - name: Test
         run: pnpm test
 
-      - name: Slow tests
-        run: pnpm test:slow
-
-      - name: Package smoke
-        run: pnpm test:package-bin
-
       - name: Version policy
         if: github.event_name == 'pull_request'
         run: |
           git reset --soft "origin/${{ github.base_ref }}"
           pnpm check:version-bump
+
+  expensive:
+    name: Expensive optional checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: fast
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'run-expensive-ci'))
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Slow tests
+        run: pnpm test:slow
+
+      - name: Package smoke
+        run: pnpm test:package-bin

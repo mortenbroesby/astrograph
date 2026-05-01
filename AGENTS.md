@@ -19,3 +19,11 @@ Before creating or changing specs, use the repo-local skills in `.agents/skills/
 
 Keep user-facing setup docs in `README.md`, release workflow in `docs/release.md`,
 and performance workflow in `docs/performance.md`.
+
+## GitHub Actions Cost Guardrail
+
+Before editing `.github/workflows/**`, read
+`.agents/rules/github-actions-cost.md`. Workflow changes must preserve scoped
+triggers, dependency caching, PR concurrency cancellation, and the split between
+fast required checks and expensive optional checks unless the task explicitly
+sets `ALLOW_GITHUB_ACTIONS_COST_INCREASE=true`.
