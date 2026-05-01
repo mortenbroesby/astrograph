@@ -14,6 +14,7 @@ import { assessAstrographVersionBump, parseAstrographVersion } from "../version.
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
+  "..",
 );
 const packageJsonPath = path.join(packageRoot, "package.json");
 const engineContractPath = path.join(packageRoot, "tests", "engine-contract.test.ts");
