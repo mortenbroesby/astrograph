@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@clack/prompts':
+        specifier: ^0.11.0
+        version: 0.11.0
       '@modelcontextprotocol/sdk':
         specifier: ^1.29.0
         version: 1.29.0(zod@4.4.1)
@@ -111,6 +114,12 @@ packages:
 
   '@assemblyscript/loader@0.19.23':
     resolution: {integrity: sha512-ulkCYfFbYj01ie1MDOyxv2F6SpRN1TOj7fQxbP07D6HmeR+gr2JLSmINKjga2emB+b1L2KGrFKBTc+e00p54nw==}
+
+  '@clack/core@0.5.0':
+    resolution: {integrity: sha512-p3y0FIOwaYRUPRcMO7+dlmLh8PSRcrjuTndsiA0WAFbWES0mLZlrjVoBRZ9DzkPFJZG6KGkJmoEAY0ZcVWTkow==}
+
+  '@clack/prompts@0.11.0':
+    resolution: {integrity: sha512-pMN5FcrEw9hUkZA4f+zLlzivQSeQf5dRGJjSUbvVYDLvpKCdQx5OaknvKzgbtXOizhP+SJJJjqEbOe55uKKfAw==}
 
   '@clinic/bubbleprof@10.0.0':
     resolution: {integrity: sha512-7Y0uYO4cz7+Y1advV891uMJLXbZMIriLsV1IHSSVJxmf8tEFm8vogKi/GdYyi4CY0D5heuqOFze/WNrv+U3LRw==}
@@ -3572,6 +3581,9 @@ packages:
   sinusoidal-decimal@1.0.0:
     resolution: {integrity: sha512-KPUi1ZqLocV64n0AuV+g4VDjAM+tEEY66nUd+rYaVBHIfeheGGUvIxe9bf7Mpc1PonDTVW2uRr9nigQa9odvuA==}
 
+  sisteransi@1.0.5:
+    resolution: {integrity: sha512-bLGGlR1QxBcynn2d5YmDX4MGjlZvy2MRBDRNHLJ8VI6l6+9FUiyTFNJ0IveOSP0bcXgVDPRcfGqA0pjaqUpfVg==}
+
   sonic-boom@1.4.1:
     resolution: {integrity: sha512-LRHh/A8tpW7ru89lrlkU4AszXt1dbwSjVWguGrmlxE7tawVmDBlI1PILMkXAxJTwqhgsEeTHzj36D5CmHgQmNg==}
 
@@ -4249,6 +4261,17 @@ snapshots:
       - supports-color
 
   '@assemblyscript/loader@0.19.23': {}
+
+  '@clack/core@0.5.0':
+    dependencies:
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
+
+  '@clack/prompts@0.11.0':
+    dependencies:
+      '@clack/core': 0.5.0
+      picocolors: 1.1.1
+      sisteransi: 1.0.5
 
   '@clinic/bubbleprof@10.0.0':
     dependencies:
@@ -7870,6 +7893,8 @@ snapshots:
       string-width: 1.0.2
 
   sinusoidal-decimal@1.0.0: {}
+
+  sisteransi@1.0.5: {}
 
   sonic-boom@1.4.1:
     dependencies:

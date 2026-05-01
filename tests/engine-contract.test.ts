@@ -27,7 +27,7 @@ import {
   parseAstrographVersion,
   resolveEnginePaths,
 } from "../src/index.ts";
-import { installForCodex } from "../scripts/install.mjs";
+import { installForCodex, installForIde } from "../scripts/install.mjs";
 
 const tempDirs: string[] = [];
 
@@ -465,5 +465,52 @@ describe("ai-context-engine contract", () => {
     );
     expect(result.configPreview.match(/\[mcp_servers\.astrograph\]/g)).toHaveLength(1);
     expect(result.configPreview).toContain("# END ASTROGRAPH\n\n[features]");
+  });
+
+  it("renders a managed Copilot MCP block for workspace installs", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await installForIde(repoRoot, {
+      ide: "copilot",
+      dryRun: true,
+    });
+
+    expect(result.configPath).toContain(path.join(".vscode", "mcp.json"));
+    expect(result.configPreview).toContain('"servers"');
+    expect(result.configPreview).toContain('"astrograph"');
+    expect(result.configPreview).toContain('"command": "npx"');
+    expect(result.configPreview).toContain('"type": "stdio"');
+  });
+
+  it("renders a managed Copilot CLI MCP block for workspace installs", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await installForIde(repoRoot, {
+      ide: "copilot-cli",
+      dryRun: true,
+    });
+
+    expect(result.configPath).toContain(path.join(".mcp.json"));
+    expect(result.configPreview).toContain('"mcpServers"');
+    expect(result.configPreview).toContain('"astrograph"');
+    expect(result.configPreview).toContain('"command": "npx"');
+    expect(result.configPreview).toContain('"type": "local"');
+    expect(result.configPreview).toContain('"tools": ["*"]');
   });
 });

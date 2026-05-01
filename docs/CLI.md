@@ -1,0 +1,114 @@
+# Astrograph CLI
+
+The CLI is useful for scripting, debugging, and repo automation.
+All CLI output is JSON by default.
+
+## Available command groups
+
+- `astrograph cli ...` — retrieval and maintenance commands
+- `astrograph mcp` — start the stdio MCP server
+- `astrograph install` — write IDE MCP config
+- `astrograph git-refresh` — compute index refresh actions
+
+## CLI command examples
+
+Query indexed metadata:
+
+```bash
+npx astrograph cli query-code \
+  --repo /absolute/path/to/repo \
+  --intent assemble \
+  --query "how does watch refresh remove deleted files?" \
+  --token-budget 8000 \
+  --include-references
+```
+
+Find files and search text:
+
+```bash
+npx astrograph cli find-files --repo /repo --query storage
+npx astrograph cli search-text --repo /repo --query "readiness"
+```
+
+Get exact source shape:
+
+```bash
+npx astrograph cli get-file-outline --repo /repo --file src/storage.ts
+```
+
+Check status and health:
+
+```bash
+npx astrograph cli get-project-status --repo /repo --scan-freshness
+npx astrograph cli diagnostics --repo /repo
+npx astrograph cli doctor --repo /repo
+```
+
+## Git refresh helper
+
+`astrograph git-refresh` plans index refresh actions for automation:
+
+```bash
+npx astrograph git-refresh manual
+npx astrograph git-refresh commit --execute
+npx astrograph git-refresh checkout <old-head> <new-head> --execute
+npx astrograph git-refresh merge --execute
+npx astrograph git-refresh push --execute
+```
+
+## Repo configuration
+
+Astrograph reads optional defaults from `astrograph.config.json`.
+
+```json
+{
+  "summaryStrategy": "doc-comments-first",
+  "storageMode": "wal",
+  "observability": {
+    "retentionDays": 3,
+    "redactSourceText": true
+  },
+  "ranking": {
+    "exactName": 1000,
+    "filePathContains": 120,
+    "exportedBonus": 20
+  },
+  "performance": {
+    "include": ["src/**/*.{ts,tsx,js,jsx}"],
+    "exclude": ["**/*.test.ts"],
+    "fileProcessingConcurrency": "auto",
+    "workerPool": {
+      "enabled": false,
+      "maxWorkers": "auto"
+    }
+  },
+  "watch": {
+    "backend": "auto",
+    "debounceMs": 100
+  },
+  "limits": {
+    "maxFilesDiscovered": 100000,
+    "maxFileBytes": 250000,
+    "maxSymbolsPerFile": 2000,
+    "maxSymbolResults": 20,
+    "maxTextResults": 100,
+    "maxChildProcessOutputBytes": 1000000,
+    "maxLiveSearchMatches": 100
+  }
+}
+```
+
+## Development examples
+
+```bash
+pnpm install
+pnpm build
+pnpm type-lint
+pnpm test:package-bin
+```
+
+Source-mode execution:
+
+```bash
+ASTROGRAPH_USE_SOURCE=1 pnpm exec astrograph cli diagnostics --repo /repo
+```
