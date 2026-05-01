@@ -22,8 +22,12 @@ git tag v0.1.0-alpha.56
 git push origin v0.1.0-alpha.56
 ```
 
-The release workflow publishes with npm provenance, public access, and the
-explicit `latest` dist-tag. After publish, verify:
+The release workflow uses `npm publish` for the publish step because npm
+trusted publishing is authenticated through npm CLI OIDC support. The rest of
+the workflow still uses `pnpm` for install, build, and verification.
+
+It publishes with npm provenance, public access, and the explicit `latest`
+dist-tag. After publish, verify:
 
 ```sh
 npm view @mortenbroesby/astrograph dist-tags
