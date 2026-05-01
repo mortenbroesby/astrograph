@@ -1,0 +1,3 @@
+#!/bin/sh
+
+node scripts/post-merge-hook.mjs "$@"

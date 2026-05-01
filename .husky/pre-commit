@@ -1,0 +1,3 @@
+#!/bin/sh
+
+node scripts/pre-commit-hook.mjs || exit 1

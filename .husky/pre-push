@@ -1,0 +1,3 @@
+#!/bin/sh
+
+node scripts/prepush-checks.mjs "$@" || exit 1

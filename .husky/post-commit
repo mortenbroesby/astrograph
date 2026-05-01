@@ -1,0 +1,4 @@
+#!/bin/sh
+
+changed=$(git diff --name-only HEAD~1 HEAD -- src/ scripts/ bench/)
+[ -z "$changed" ] || pnpm type-lint

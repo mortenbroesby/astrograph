@@ -90,6 +90,9 @@ importers:
       clinic:
         specifier: ^13.0.0
         version: 13.0.0
+      husky:
+        specifier: ^9.1.7
+        version: 9.1.7
       tinybench:
         specifier: ^6.0.0
         version: 6.0.1
@@ -2423,6 +2426,11 @@ packages:
   human-signals@1.1.1:
     resolution: {integrity: sha512-SEQu7vl8KjNL2eoGBLF3+wAjpsNfA9XMlXAYj/3EdaNfAlxKthD1xjEQfGOUhllCGGJVNY34bRr6lPINhNjyZw==}
     engines: {node: '>=8.12.0'}
+
+  husky@9.1.7:
+    resolution: {integrity: sha512-5gs5ytaNjBrh5Ow3zrvdUUY+0VxIuWVL4i9irt6friV+BqdCfmV11CQTWMiBYWHbXhco+J1kHfTOUkePhCDvMA==}
+    engines: {node: '>=18'}
+    hasBin: true
 
   hyperid@3.3.0:
     resolution: {integrity: sha512-7qhCVT4MJIoEsNcbhglhdmBKb09QtcmJNiIQGq7js/Khf5FtQQ9bzcAuloeqBeee7XD7JqDeve9KNlQya5tSGQ==}
@@ -6624,6 +6632,8 @@ snapshots:
       - supports-color
 
   human-signals@1.1.1: {}
+
+  husky@9.1.7: {}
 
   hyperid@3.3.0:
     dependencies:

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+# Keep lightweight for now: use manual install when project dependencies change.
