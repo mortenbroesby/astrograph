@@ -430,7 +430,9 @@ describe("ai-context-engine contract", () => {
     });
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
-    expect(result.configPreview).toContain('args = ["@mortenbroesby/astrograph", "mcp"]');
+    expect(result.configPreview).toContain(
+      'args = ["-y", "--package", "@mortenbroesby/astrograph@latest", "astrograph", "mcp"]',
+    );
   });
 
   it("replaces a legacy repo-local astrograph block with the portable package command", async () => {
@@ -470,7 +472,7 @@ describe("ai-context-engine contract", () => {
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["@mortenbroesby/astrograph", "mcp"]',
+      'args = ["-y", "--package", "@mortenbroesby/astrograph@latest", "astrograph", "mcp"]',
     );
     expect(result.configPreview.match(/\[mcp_servers\.astrograph\]/g)).toHaveLength(1);
     expect(result.configPreview).toContain("# END ASTROGRAPH\n\n[features]");

@@ -773,7 +773,7 @@ function hasLocalAstrographDependency(repoRoot: string): boolean {
 function resolveManagedInvocation(): ManagedInvocation {
   return {
     command: "npx",
-    args: [PACKAGE_NAME, "mcp"],
+    args: ["-y", "--package", `${PACKAGE_NAME}@latest`, "astrograph", "mcp"],
   };
 }
 

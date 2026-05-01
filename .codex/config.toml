@@ -1,7 +1,7 @@
 # BEGIN ASTROGRAPH
 [mcp_servers.astrograph]
 command = "npx"
-args = ["@mortenbroesby/astrograph", "mcp"]
+args = ["-y", "--package", "@mortenbroesby/astrograph@latest", "astrograph", "mcp"]
 cwd = "."
 startup_timeout_sec = 90
 enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]
