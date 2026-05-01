@@ -12,6 +12,30 @@ All CLI output is JSON by default.
 
 ## CLI command examples
 
+### Install profiles
+
+Choose one profile to match how many tools you want installed:
+
+| Profile | Included tool set | Trade-off |
+|---|---|---|
+| `full` | All tools (`query_code`, indexing, diagnostics) | Richest experience; largest surface |
+| `some` | Query/discovery + helper tools | Strong day-to-day productivity with fewer hooks |
+| `barebones` | Query + file tree + file outline | Lowest complexity and permissions |
+
+```bash
+npx @mortenbroesby/astrograph install --ide copilot --mode full
+npx @mortenbroesby/astrograph install --yes --ide codex --mode some --repo /repo
+npx @mortenbroesby/astrograph install --yes --ide codex --mode barebones --repo /repo
+npx @mortenbroesby/astrograph install --yes --ide all --mode some --repo /repo
+npx @mortenbroesby/astrograph install --yes --ide codex,copilot-cli --mode full --repo /repo
+```
+
+The interactive installer prompts for profile selection when run as:
+
+```bash
+npx @mortenbroesby/astrograph install
+```
+
 Query indexed metadata:
 
 ```bash

@@ -1,5 +1,18 @@
-export interface CodexInstallResult {
-  ide: "codex";
+export type InstallMode = "barebones" | "some" | "full";
+export type InstallModeOptions = {
+  ide?: "codex" | "copilot" | "copilot-cli";
+  mode?: InstallMode;
+  dryRun?: boolean;
+};
+export type InstallAllModeOptions = {
+  ides?: ("codex" | "copilot" | "copilot-cli")[] | ("all" | "codex" | "copilot" | "copilot-cli")[];
+  mode?: InstallMode;
+  dryRun?: boolean;
+};
+
+export interface BaseInstallResult {
+  ide: "copilot" | "copilot-cli" | "codex";
+  mode: InstallMode;
   repoRoot: string;
   configPath: string;
   packageName: string;
@@ -8,7 +21,21 @@ export interface CodexInstallResult {
   localDependencyDetected: boolean;
 }
 
+export interface CodexInstallResult extends BaseInstallResult {
+  ide: "codex";
+}
+
+export function installForIde(
+  repoRoot: string,
+  options?: InstallModeOptions,
+): Promise<BaseInstallResult>;
+
+export function installForAllIdes(
+  repoRoot: string,
+  options?: InstallAllModeOptions,
+): Promise<BaseInstallResult | BaseInstallResult[]>;
+
 export function installForCodex(
   repoRoot: string,
-  options?: { dryRun?: boolean },
+  options?: Omit<InstallModeOptions, "ide">,
 ): Promise<CodexInstallResult>;

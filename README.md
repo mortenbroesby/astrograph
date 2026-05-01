@@ -52,6 +52,24 @@ npm install -D @mortenbroesby/astrograph
 npx @mortenbroesby/astrograph install
 ```
 
+Want control over what gets installed? Pick one profile:
+
+```bash
+npx @mortenbroesby/astrograph install --ide codex --mode full
+npx @mortenbroesby/astrograph install --ide codex --mode some
+npx @mortenbroesby/astrograph install --ide codex --mode barebones
+```
+
+Profiles:
+
+| Profile | Tools included | What you get | Trade-off |
+|---|---|---|---|
+| `full` | All (`query_code`, indexing, diagnostics) | Batteries included, broadest capabilities | Highest surface area and config size |
+| `some` | Core query/discovery + suggestion tools | Most useful features for daily agent work | Reduced introspection and admin surface |
+| `barebones` | Query + tree/outline tools only | Fastest onboarding and smallest permissions | Less automation and diagnostics |
+
+Default is `full`.
+
 If you need non-interactive install:
 
 ```bash
@@ -90,6 +108,15 @@ npx @mortenbroesby/astrograph install --yes --ide copilot-cli --repo /absolute/p
 ```
 
 The installer resolves the repo root and preserves unrelated IDE config.
+
+You can also run `astrograph install` interactively and choose both IDE and profile.
+
+To configure multiple agent clients in one pass:
+
+```bash
+npx @mortenbroesby/astrograph install --yes --ide all --repo /absolute/path/to/repo
+npx @mortenbroesby/astrograph install --yes --ide codex,copilot --repo /absolute/path/to/repo
+```
 
 ## Documentation
 

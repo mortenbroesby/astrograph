@@ -27,7 +27,7 @@ import {
   parseAstrographVersion,
   resolveEnginePaths,
 } from "../src/index.ts";
-import { installForCodex, installForIde } from "../scripts/install.mjs";
+import { installForAllIdes, installForCodex, installForIde } from "../scripts/install.mjs";
 
 const tempDirs: string[] = [];
 
@@ -490,6 +490,81 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"type": "stdio"');
   });
 
+  it("writes a filtered Codex toolset for barebones install", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-barebones-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await installForCodex(repoRoot, {
+      mode: "barebones",
+      dryRun: true,
+    });
+
+    expect(result.configPreview).toContain('enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]');
+    expect(result.configPreview).not.toContain("index_folder");
+  });
+
+  it("writes a scoped Copilot CLI toolset for some install", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-some-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await installForIde(repoRoot, {
+      ide: "copilot-cli",
+      mode: "some",
+      dryRun: true,
+    });
+
+    expect(result.configPreview).toContain('"tools": [');
+    expect(result.configPreview).toContain('"query_code"');
+    expect(result.configPreview).toContain('"suggest_initial_queries"');
+    expect(result.configPreview).not.toContain('"diagnostics"');
+  });
+
+  it("supports installing all requested IDEs in one run", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-all-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await installForAllIdes(repoRoot, {
+      ides: ["all"],
+      mode: "full",
+      dryRun: true,
+    });
+    if (!Array.isArray(result)) {
+      throw new Error("Expected multiple install results for all requested IDEs");
+    }
+
+    expect(result).toHaveLength(3);
+    expect(result.map((item) => item.ide).sort()).toEqual([
+      "codex",
+      "copilot",
+      "copilot-cli",
+    ].sort());
+    const outputs = result.map((item) => item.configPath).join("\n");
+    expect(outputs).toContain(path.join(".codex", "config.toml"));
+    expect(outputs).toContain(path.join(".vscode", "mcp.json"));
+    expect(outputs).toContain(".mcp.json");
+  });
+
   it("renders a managed Copilot CLI MCP block for workspace installs", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-"));
     tempDirs.push(repoRoot);
@@ -511,6 +586,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"astrograph"');
     expect(result.configPreview).toContain('"command": "npx"');
     expect(result.configPreview).toContain('"type": "local"');
-    expect(result.configPreview).toContain('"tools": ["*"]');
+    expect(result.configPreview).toContain('"tools": [');
+    expect(result.configPreview).toContain('"diagnostics"');
   });
 });
