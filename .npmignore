@@ -1,0 +1,27 @@
+# Source and development-only files. Runtime package contents are allowlisted in
+# package.json `files`; this ignore file is a defensive publish boundary.
+
+src/
+tests/
+bench/
+docs/
+.github/
+
+# Local runtime and generated state.
+node_modules/
+coverage/
+.astrograph/
+.stryker-tmp/
+.vite/
+.profiles/
+*.tsbuildinfo
+*.log
+
+# Tooling and local config.
+tsconfig*.json
+vitest.config.ts
+stryker*.config.*
+eslint.config.*
+.gitignore
+.npmignore
+.DS_Store

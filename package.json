@@ -17,6 +17,10 @@
     "type": "git",
     "url": "https://github.com/mortenbroesby/astrograph.git"
   },
+  "publishConfig": {
+    "access": "public",
+    "tag": "latest"
+  },
   "bugs": {
     "url": "https://github.com/mortenbroesby/astrograph/issues"
   },

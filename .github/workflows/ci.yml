@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -48,4 +50,6 @@ jobs:
 
       - name: Version policy
         if: github.event_name == 'pull_request'
-        run: pnpm check:version-bump
+        run: |
+          git reset --soft "origin/${{ github.base_ref }}"
+          pnpm check:version-bump
