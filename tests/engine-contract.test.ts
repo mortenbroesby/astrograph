@@ -27,7 +27,7 @@ import {
   parseAstrographVersion,
   resolveEnginePaths,
 } from "../src/index.ts";
-import { setupForAllIdes, setupForCodex, setupForIde } from "../scripts/install.mjs";
+import { setupForAllIdes, setupForCodex, setupForIde } from "../src/scripts/install.ts";
 
 const tempDirs: string[] = [];
 

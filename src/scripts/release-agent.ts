@@ -2,7 +2,14 @@ import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
+
+import {
+  decideAstrographRelease,
+  isReleasePublishKind,
+  nextAstrographReleaseVersion,
+} from "../release-policy.ts";
+import { assessAstrographVersionBump, parseAstrographVersion } from "../version.ts";
 
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -10,21 +17,6 @@ const packageRoot = path.resolve(
 );
 const packageJsonPath = path.join(packageRoot, "package.json");
 const engineContractPath = path.join(packageRoot, "tests", "engine-contract.test.ts");
-
-const releasePolicyUrl = pathToFileURL(
-  path.join(packageRoot, "src", "release-policy.ts"),
-).href;
-const versionUrl = pathToFileURL(path.join(packageRoot, "src", "version.ts")).href;
-
-const {
-  decideAstrographRelease,
-  isReleasePublishKind,
-  nextAstrographReleaseVersion,
-} = await import(releasePolicyUrl);
-const {
-  assessAstrographVersionBump,
-  parseAstrographVersion,
-} = await import(versionUrl);
 
 function parseArgs(argv) {
   const options = {

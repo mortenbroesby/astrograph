@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn, spawnSync } from "node:child_process";
-import { closeSync, openSync } from "node:fs";
+import { closeSync, existsSync, openSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -24,7 +24,11 @@ const MAX_INCREMENTAL_FILES = 12;
 
 const scriptPath = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(scriptPath), "..");
-const wrapperPath = path.join(packageRoot, "scripts", "ai-context-engine.mjs");
+const wrapperPath = path.join(packageRoot, "dist", "ai-context-engine.js");
+const sourceWrapperPath = path.join(packageRoot, "src", "ai-context-engine.ts");
+const wrapperArgs = existsSync(wrapperPath)
+  ? [wrapperPath]
+  : ["--experimental-strip-types", sourceWrapperPath];
 
 function runGit(args, cwd) {
   const result = spawnSync("git", args, {
@@ -249,7 +253,7 @@ async function runChild(child) {
 function spawnAstrographCli(repoRoot, args) {
   return spawn(
     process.execPath,
-    [wrapperPath, "cli", ...args],
+    [...wrapperArgs, "cli", ...args],
     {
       cwd: repoRoot,
       stdio: "inherit",

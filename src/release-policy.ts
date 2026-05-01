@@ -27,7 +27,7 @@ export interface AstrographReleaseDecision {
 }
 
 const RUNTIME_RELEASE_PATH_PATTERN =
-  /^(src\/.*|scripts\/(?:ai-context-engine|git-smart-refresh|install|release-agent)\.mjs|package\.json|pnpm-lock\.yaml|tsconfig(?:\..*)?\.json)$/;
+  /^(src\/.*|package\.json|pnpm-lock\.yaml|tsconfig(?:\..*)?\.json)$/;
 
 const INTERNAL_VERSIONED_PATH_PATTERN =
   /^(scripts\/.*|tests\/.*|bench\/.*|vitest\.config\.ts)$/;

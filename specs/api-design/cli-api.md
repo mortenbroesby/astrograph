@@ -23,4 +23,4 @@ Primary tests:
 - `tests/interface.test.ts`
 - `tests/cli-boundary.test.ts`
 - `tests/engine-contract.test.ts`
-- `scripts/smoke-package-bin.mjs`
+- `src/scripts/smoke-package-bin.ts`

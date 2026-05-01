@@ -9,7 +9,7 @@ using the existing policy, and pushes the matching release tag.
 ## Architecture
 
 - `src/release-policy.ts` owns pure release classification.
-- `scripts/release-agent.mjs` gathers Git history, applies the policy, and
+- `src/scripts/release-agent.ts` gathers Git history, applies the policy, and
   optionally edits version-bearing files.
 - `CI` workflow manual dispatch runs fast and expensive gates before invoking
   the release agent.

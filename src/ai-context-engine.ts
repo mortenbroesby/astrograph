@@ -26,23 +26,23 @@ const [mode, ...args] = process.argv.slice(2);
 
 const sourceTarget =
   mode === "cli"
-        ? path.join(packageRoot, "src", "cli.ts")
-        : mode === "mcp"
-          ? path.join(packageRoot, "src", "mcp.ts")
-          : mode === "git-refresh"
-            ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
-            : mode === "init"
-              ? path.join(packageRoot, "scripts", "install.mjs")
-              : null;
+    ? path.join(packageRoot, "src", "cli.ts")
+    : mode === "mcp"
+      ? path.join(packageRoot, "src", "mcp.ts")
+      : mode === "git-refresh"
+        ? path.join(packageRoot, "src", "scripts", "git-smart-refresh.ts")
+        : mode === "init"
+          ? path.join(packageRoot, "src", "scripts", "install.ts")
+          : null;
 const distTarget =
   mode === "cli"
     ? path.join(packageRoot, "dist", "cli.js")
     : mode === "mcp"
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
-        ? path.join(packageRoot, "scripts", "git-smart-refresh.mjs")
+        ? path.join(packageRoot, "dist", "git-smart-refresh.js")
         : mode === "init"
-          ? path.join(packageRoot, "scripts", "install.mjs")
+          ? path.join(packageRoot, "dist", "install.js")
           : null;
 
 if (!sourceTarget || !distTarget) {

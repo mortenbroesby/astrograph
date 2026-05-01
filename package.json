@@ -30,17 +30,21 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "bin": {
-    "astrograph": "scripts/ai-context-engine.mjs",
-    "ai-context-engine": "scripts/ai-context-engine.mjs"
+    "astrograph": "dist/ai-context-engine.js",
+    "ai-context-engine": "dist/ai-context-engine.js"
   },
   "files": [
     "README.md",
     "LICENSE",
     "assets/astrograph-logo.svg",
     "dist",
-    "scripts/ai-context-engine.mjs",
-    "scripts/git-smart-refresh.mjs",
-    "scripts/install.mjs"
+    "src/ai-context-engine.ts",
+    "src/scripts/check-version-bump.ts",
+    "src/scripts/git-smart-refresh.ts",
+    "src/scripts/install.ts",
+    "src/scripts/release-agent.ts",
+    "src/scripts/run-vitest.ts",
+    "src/scripts/smoke-package-bin.ts"
   ],
   "exports": {
     ".": {
@@ -50,12 +54,12 @@
   },
   "scripts": {
     "build": "pnpm run build:js && pnpm run build:workers && pnpm run build:types",
-    "build:js": "tsup src/index.ts src/cli.ts src/mcp.ts --format esm --target node24 --out-dir dist --clean --tsconfig tsconfig.build.json",
+    "build:js": "tsup src/index.ts src/cli.ts src/mcp.ts src/ai-context-engine.ts --format esm --target node24 --out-dir dist --clean --tsconfig tsconfig.build.json",
     "build:workers": "tsup src/workers/analyze-file-worker.ts --format esm --target node24 --out-dir dist/workers --tsconfig tsconfig.build.json",
     "build:types": "tsc -p tsconfig.build.json",
     "cli": "node ./dist/cli.js",
     "mcp": "node --no-warnings ./dist/mcp.js",
-    "git-refresh": "node ./scripts/git-smart-refresh.mjs",
+    "git-refresh": "node --experimental-strip-types ./src/scripts/git-smart-refresh.ts",
     "dev:cli": "node --experimental-strip-types ./src/cli.ts",
     "dev:mcp": "node --no-warnings --experimental-strip-types ./src/mcp.ts",
     "bench:small": "node --experimental-strip-types ./scripts/benchmark-small.mjs",
@@ -69,14 +73,14 @@
     "profile:query:clinic": "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./scripts/perf-query.mjs",
     "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./scripts/perf-index.mjs",
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./scripts/perf-query.mjs",
-    "test:package-bin": "node ./scripts/smoke-package-bin.mjs",
-    "check:version-bump": "node --experimental-strip-types ./scripts/check-version-bump.mjs",
-    "release:plan": "node --experimental-strip-types ./scripts/release-agent.mjs",
-    "release:apply": "node --experimental-strip-types ./scripts/release-agent.mjs --apply",
+    "test:package-bin": "node --experimental-strip-types ./src/scripts/smoke-package-bin.ts",
+    "check:version-bump": "node --experimental-strip-types ./src/scripts/check-version-bump.ts",
+    "release:plan": "node --experimental-strip-types ./src/scripts/release-agent.ts",
+    "release:apply": "node --experimental-strip-types ./src/scripts/release-agent.ts --apply",
     "type-lint": "pnpm run type-check && tsc -p ./bench/tsconfig.json --noEmit && tsc -p ./tsconfig.build.json --noEmit",
     "type-check": "tsc --noEmit",
-    "test": "node ./scripts/run-vitest.mjs",
-    "test:slow": "ASTROGRAPH_ENABLE_SLOW_TESTS=1 node ./scripts/run-vitest.mjs",
+    "test": "node --experimental-strip-types ./src/scripts/run-vitest.ts",
+    "test:slow": "ASTROGRAPH_ENABLE_SLOW_TESTS=1 node --experimental-strip-types ./src/scripts/run-vitest.ts",
     "prepack": "pnpm run build"
   },
   "devDependencies": {
