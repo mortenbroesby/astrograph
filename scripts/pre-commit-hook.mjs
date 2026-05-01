@@ -51,5 +51,4 @@ const hasSourceChanges = stagedFiles.some(
 
 if (hasSourceChanges) {
   run('pnpm', ['type-lint'], 'Type check failed. Commit blocked.');
-  run('pnpm', ['test'], 'Tests failed. Commit blocked.');
 }

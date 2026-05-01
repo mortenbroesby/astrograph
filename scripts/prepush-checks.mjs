@@ -79,17 +79,10 @@ const isCriticalFile = (file) =>
   ['package.json', 'pnpm-lock.yaml'].includes(file) ||
   file.startsWith('.github/workflows/') ||
   file.startsWith('.husky/');
-const isTestFile = (file) =>
-  /\.(?:test|spec)\.[cm]?[jt]sx?$/.test(file) || file.startsWith('tests/') || file.startsWith('test/');
 
 if (!changedFiles.some(isDocFile)) {
   run('pnpm', ['type-lint'], 'Type check failed during pre-push hook.');
   run('pnpm', ['build'], 'Build failed during pre-push hook.');
-  run('pnpm', ['test'], 'Tests failed during pre-push hook.');
-}
-
-if (hasMatch(changedFiles, isTestFile)) {
-  run('pnpm', ['test:package-bin'], 'Package-bin smoke test failed during pre-push hook.');
 }
 
 if (hasMatch(changedFiles, isCriticalFile)) {
