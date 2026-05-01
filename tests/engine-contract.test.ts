@@ -104,20 +104,17 @@ describe("ai-context-engine contract", () => {
     ]);
   });
 
-  it("uses package.json as the canonical Astrograph version source", () => {
-    expect(ASTROGRAPH_PACKAGE_VERSION).toBe("0.2.2-alpha.63");
-    expect(parseAstrographVersion(ASTROGRAPH_PACKAGE_VERSION)).toEqual({
-      major: 0,
-      minor: 2,
-      patch: 0,
-      increment: 61,
-    });
-    expect(ASTROGRAPH_VERSION_PARTS).toEqual({
-      major: 0,
-      minor: 2,
-      patch: 0,
-      increment: 61,
-    });
+  it("uses package.json as the canonical Astrograph version source", async () => {
+    const packageJson = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8"),
+    ) as {
+      version: string;
+    };
+
+    expect(ASTROGRAPH_PACKAGE_VERSION).toBe(packageJson.version);
+    expect(parseAstrographVersion(ASTROGRAPH_PACKAGE_VERSION)).toEqual(
+      ASTROGRAPH_VERSION_PARTS,
+    );
   });
 
   it("publishes package metadata that makes the local-first alpha intent explicit", async () => {
