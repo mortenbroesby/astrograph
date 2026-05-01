@@ -120,9 +120,7 @@ function writeEngineContractVersion(previousVersion, nextVersion) {
   const contents = readFileSync(engineContractPath, "utf8");
   const nextContents = contents.replaceAll(previousVersion, nextVersion);
   if (contents === nextContents) {
-    throw new Error(
-      `Could not update ${path.relative(packageRoot, engineContractPath)} from ${previousVersion} to ${nextVersion}.`,
-    );
+    return;
   }
   writeFileSync(engineContractPath, nextContents);
 }
