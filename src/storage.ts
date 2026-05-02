@@ -50,6 +50,7 @@ import {
   removeFileIndex,
 } from "./indexing.ts";
 import type { AnalyzedFileIndexResult } from "./indexing.ts";
+import { refreshFileSetWithDependents } from "./index-refresh.ts";
 import type {
   IndexBackendConnection,
   IndexBackendValue,
@@ -1015,28 +1016,6 @@ function getIndexTestDelayMs(): number {
   }
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
-}
-
-async function resolveRepoFileRefreshState(
-  repoRoot: string,
-  filePath: string,
-): Promise<{
-  relativePath: string;
-  exists: boolean;
-  supported: boolean;
-  ignored: boolean;
-}> {
-  const { absolutePath, relativePath } = normalizeRepoRelativePath(repoRoot, filePath);
-  const exists = await stat(absolutePath)
-    .then((entry) => entry.isFile())
-    .catch(() => false);
-
-  return {
-    relativePath,
-    exists,
-    supported: Boolean(supportedLanguageForFile(relativePath)),
-    ignored: isGitIgnored(repoRoot, relativePath),
-  };
 }
 
 function normalizeQuery(value: string): string {
@@ -2421,16 +2400,11 @@ async function indexFileDirect(input: {
 
   try {
     const meta = await readRepoMeta(config.paths.repoMetaPath);
-    const fileState = await resolveRepoFileRefreshState(repoRoot, input.filePath);
-    const dependentPaths = loadDirectImporterPaths(db, fileState.relativePath)
-      .filter((candidate) => candidate !== fileState.relativePath);
-
-    let indexedFiles = 0;
-    let indexedSymbols = 0;
-
-    const primaryResult = await refreshIndexedFilePath(db, {
+    const { relativePath } = normalizeRepoRelativePath(repoRoot, input.filePath);
+    return refreshFileSetWithDependents({
+      db,
       repoRoot,
-      filePath: fileState.relativePath,
+      filePaths: [relativePath],
       summaryStrategy: config.summaryStrategy,
       forceRefresh: meta?.summaryStrategy !== config.summaryStrategy,
       maxFileBytes: config.maxFileBytes,
@@ -2439,43 +2413,15 @@ async function indexFileDirect(input: {
         enabled: config.workerPoolEnabled,
         maxWorkers: config.workerPoolMaxWorkers,
       },
+      loadDirectImporterPaths,
+      refreshFilePath: refreshIndexedFilePath,
+      finalizeIndex: (refreshInput) => finalizeIndex({
+        ...refreshInput,
+        rebuildFileDependencies,
+        loadDependencyGraphHealth,
+        writeSidecars,
+      }),
     });
-    indexedFiles += primaryResult.indexedFiles;
-    indexedSymbols += primaryResult.indexedSymbols;
-
-    for (const dependentPath of dependentPaths) {
-      const dependentResult = await refreshIndexedFilePath(db, {
-        repoRoot,
-        filePath: dependentPath,
-        summaryStrategy: config.summaryStrategy,
-        forceRefresh: true,
-        maxFileBytes: config.maxFileBytes,
-        maxSymbolsPerFile: config.maxSymbolsPerFile,
-        workerPool: {
-          enabled: config.workerPoolEnabled,
-          maxWorkers: config.workerPoolMaxWorkers,
-        },
-      });
-      indexedFiles += dependentResult.indexedFiles;
-      indexedSymbols += dependentResult.indexedSymbols;
-    }
-
-    const indexedAt = new Date().toISOString();
-    const staleStatus = await finalizeIndex({
-      db,
-      repoRoot,
-      indexedAt,
-      summaryStrategy: config.summaryStrategy,
-      rebuildFileDependencies,
-      loadDependencyGraphHealth,
-      writeSidecars,
-    });
-
-    return {
-      indexedFiles,
-      indexedSymbols,
-      staleStatus,
-    };
   } finally {
     db.close();
   }
@@ -2648,71 +2594,34 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
       const db = openDatabase(config.paths.databasePath);
       const meta = await readRepoMeta(config.paths.repoMetaPath);
       const forceRefresh = meta?.summaryStrategy !== config.summaryStrategy;
-      const dependentPaths = new Set<string>();
-
-      let indexedFiles = 0;
-      let indexedSymbols = 0;
 
       try {
-        for (const filePath of changedPaths) {
-          for (const importerPath of loadDirectImporterPaths(db, filePath)) {
-            if (!changedPaths.includes(importerPath) && importerPath !== filePath) {
-              dependentPaths.add(importerPath);
-            }
-          }
-
-          const result = await refreshIndexedFilePath(db, {
-            repoRoot,
-            filePath,
-            summaryStrategy: config.summaryStrategy,
-            forceRefresh,
-            maxFileBytes: config.maxFileBytes,
-            maxSymbolsPerFile: config.maxSymbolsPerFile,
-            workerPool: {
-              enabled: config.workerPoolEnabled,
-              maxWorkers: config.workerPoolMaxWorkers,
-            },
-          });
-          indexedFiles += result.indexedFiles;
-          indexedSymbols += result.indexedSymbols;
-        }
-
-        for (const dependentPath of [...dependentPaths].sort()) {
-          const result = await refreshIndexedFilePath(db, {
-            repoRoot,
-            filePath: dependentPath,
-            summaryStrategy: config.summaryStrategy,
-            forceRefresh: true,
-            maxFileBytes: config.maxFileBytes,
-            maxSymbolsPerFile: config.maxSymbolsPerFile,
-            workerPool: {
-              enabled: config.workerPoolEnabled,
-              maxWorkers: config.workerPoolMaxWorkers,
-            },
-          });
-          indexedFiles += result.indexedFiles;
-          indexedSymbols += result.indexedSymbols;
-        }
-
-        const indexedAt = new Date().toISOString();
-        const staleStatus = await finalizeIndex({
+        const summary = await refreshFileSetWithDependents({
           db,
           repoRoot,
-          indexedAt,
+          filePaths: changedPaths,
           summaryStrategy: config.summaryStrategy,
-          rebuildFileDependencies,
-          loadDependencyGraphHealth,
-          writeSidecars,
+          forceRefresh,
+          maxFileBytes: config.maxFileBytes,
+          maxSymbolsPerFile: config.maxSymbolsPerFile,
+          workerPool: {
+            enabled: config.workerPoolEnabled,
+            maxWorkers: config.workerPoolMaxWorkers,
+          },
+          loadDirectImporterPaths,
+          refreshFilePath: refreshIndexedFilePath,
+          finalizeIndex: (refreshInput) => finalizeIndex({
+            ...refreshInput,
+            rebuildFileDependencies,
+            loadDependencyGraphHealth,
+            writeSidecars,
+          }),
         });
 
         return {
           type: "reindex",
           changedPaths,
-          summary: {
-            indexedFiles,
-            indexedSymbols,
-            staleStatus,
-          },
+          summary,
         } satisfies WatchEvent;
       } finally {
         db.close();
