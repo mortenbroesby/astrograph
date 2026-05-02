@@ -524,7 +524,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"type": "stdio"');
   });
 
-  it("defaults standalone setup to Codex full mode with an Astrograph config", async () => {
+  it("defaults standalone setup to Codex with an Astrograph config", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-defaults-"));
     tempDirs.push(repoRoot);
 
@@ -635,7 +635,7 @@ describe("ai-context-engine contract", () => {
     expect(result.packageDependencyPreview).toBeUndefined();
   });
 
-  it("writes all tools in Codex config for full install", async () => {
+  it("writes all tools in Codex config", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-codex-full-"));
     tempDirs.push(repoRoot);
 
@@ -655,7 +655,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain("diagnostics");
   });
 
-  it("writes all tools in Copilot CLI config for full install", async () => {
+  it("writes all tools in Copilot CLI config", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-full-"));
     tempDirs.push(repoRoot);
 

@@ -118,16 +118,16 @@ async function main(): Promise<void> {
     if (!String(installed.configPreview).includes("[mcp_servers.astrograph]")) {
       throw new Error(`Expected astrograph init to write a Codex MCP block: ${installResult.stdout}`);
     }
-    if (!String(installed.engineConfigPath).endsWith("astrograph.config.json")) {
-      throw new Error(`Expected astrograph init to report astrograph.config.json: ${installResult.stdout}`);
+    if (!String(installed.engineConfigPath).endsWith("astrograph.config.ts")) {
+      throw new Error(`Expected astrograph init to report astrograph.config.ts: ${installResult.stdout}`);
     }
-    if (installed.mode !== "barebones" || installed.ide !== "codex") {
-      throw new Error(`Expected astrograph init defaults to use codex barebones: ${installResult.stdout}`);
+    if (installed.mode !== undefined || installed.ide !== "codex") {
+      throw new Error(`Expected astrograph init defaults to use codex without a profile mode: ${installResult.stdout}`);
     }
     if (!String(installed.agentsPolicyPath).endsWith("AGENTS.md")) {
       throw new Error(`Expected astrograph init to report AGENTS.md policy path: ${installResult.stdout}`);
     }
-    if (!String(installed.agentsPolicyPreview).includes("## Code Exploration Policy")) {
+    if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
       throw new Error(`Expected astrograph init --agents to write code exploration policy: ${installResult.stdout}`);
     }
   } finally {

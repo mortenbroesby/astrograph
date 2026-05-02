@@ -24,6 +24,7 @@ export const ENGINE_STORAGE_DIRNAME = ".astrograph";
 export const ENGINE_STORAGE_VERSION = 1;
 export const ENGINE_SCHEMA_VERSION = 4;
 export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
+export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";
 export const ENGINE_DISPLAY_NAME = "@astrograph";
 export const DEFAULT_SUMMARY_STRATEGY: SummaryStrategy = "doc-comments-first";
 export const DEFAULT_OBSERVABILITY_HOST = "127.0.0.1";
@@ -333,33 +334,56 @@ export async function loadRepoEngineConfig(
     : await resolveEngineRepoRoot(repoRoot);
   const defaults = createDefaultResolvedRepoEngineConfig(resolvedRepoRoot);
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
+  const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
 
-  const exists = await readFile(configPath, "utf8")
-    .then(() => true)
+  const contents = await readFile(configPath, "utf8")
     .catch((error: unknown) => {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        return false;
+        return null;
       }
       throw error;
     });
 
-  if (!exists) {
+  if (contents !== null) {
+    const parsedJson = await loadTsConfig(configPath);
+    const parsed = repoEngineConfigSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      );
+    }
+    return resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults);
+  }
+
+  const legacyContents = await readFile(legacyConfigPath, "utf8")
+    .catch((error: unknown) => {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    });
+
+  if (legacyContents === null) {
     return defaults;
   }
 
-  const parsedJson = await loadTsConfig(configPath);
-  if (parsedJson === null) {
-    return defaults;
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(legacyContents);
+  } catch (error) {
+    throw new Error(
+      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 
   const parsed = repoEngineConfigSchema.safeParse(parsedJson);
   if (!parsed.success) {
     throw new Error(
-      `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
     );
   }
 
-  return resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults);
+  return resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults);
 }
 
 export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
@@ -373,21 +397,35 @@ async function loadTsConfig(configPath: string): Promise<unknown> {
     "process.stdout.write(JSON.stringify(mod.default ?? mod));",
   ].join("\n");
 
+  let output: string;
   try {
-    const output = execFileSync(
+    output = execFileSync(
       process.execPath,
       ["--experimental-strip-types", "--input-type=module"],
       {
         input: loaderCode,
         encoding: "utf8",
-        stdio: ["pipe", "pipe", "ignore"],
+        stdio: ["pipe", "pipe", "pipe"],
         timeout: 5_000,
       },
     ) as string;
+  } catch (error) {
+    const maybeProcessError = error as { stderr?: Buffer | string; message?: string };
+    const stderr = typeof maybeProcessError.stderr === "string"
+      ? maybeProcessError.stderr.trim()
+      : maybeProcessError.stderr instanceof Buffer
+        ? maybeProcessError.stderr.toString("utf8").trim()
+        : "";
+    const message = stderr || maybeProcessError.message || String(error);
+    throw new Error(`Invalid ${ENGINE_CONFIG_FILENAME}: ${message}`);
+  }
 
+  try {
     return JSON.parse(output);
-  } catch {
-    return null;
+  } catch (error) {
+    throw new Error(
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
 }
 
