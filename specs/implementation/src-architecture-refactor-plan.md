@@ -1,6 +1,6 @@
 # Source Architecture Refactor Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Turn the source architecture and storage reviews into one behavior-preserving refactor sequence that reduces `src/storage.ts`, clarifies parser internals, unifies CLI/MCP command contracts, narrows shared type ownership, and keeps public contracts stable.
 
@@ -46,7 +46,7 @@ This is the canonical implementation plan for the former storage-only and broade
 - Test: `tests/engine-behavior.test.ts`
 - Test: `tests/interface.test.ts`
 
-- [ ] **Step 1: Verify the current readiness extraction baseline**
+- [x] **Step 1: Verify the current readiness extraction baseline**
 
 Run:
 
@@ -58,7 +58,7 @@ pnpm exec vitest run tests/interface.test.ts tests/engine-behavior.test.ts -t "r
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Move repo metadata normalization into `src/repo-meta.ts`**
+- [x] **Step 2: Move repo metadata normalization into `src/repo-meta.ts`**
 
 Move only these responsibilities out of `src/storage.ts`:
 
@@ -68,7 +68,7 @@ Move only these responsibilities out of `src/storage.ts`:
 
 Keep `normalizeRepoReadiness` usage imported from `src/readiness.ts`. Do not move database access, diagnostics assembly, doctor warnings, or watch runtime code in this task.
 
-- [ ] **Step 3: Re-run focused tests**
+- [x] **Step 3: Re-run focused tests**
 
 Run:
 
@@ -80,7 +80,7 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "diagnostics|doctor|readin
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -103,7 +103,7 @@ Expected: version policy passes before commit.
 - Test: `tests/engine-contract.test.ts`
 - Test: `tests/filesystem-scan.test.ts`
 
-- [ ] **Step 1: Establish schema and query baseline**
+- [x] **Step 1: Establish schema and query baseline**
 
 Run:
 
@@ -116,7 +116,7 @@ pnpm exec vitest run tests/filesystem-scan.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Extract schema lifecycle**
+- [x] **Step 2: Extract schema lifecycle**
 
 Move only these responsibilities from `src/storage.ts` into `src/storage-schema.ts`:
 
@@ -128,7 +128,7 @@ Move only these responsibilities from `src/storage.ts` into `src/storage-schema.
 
 Keep database connection caching in `src/storage.ts` until connection ownership is explicit.
 
-- [ ] **Step 3: Extract typed query helpers**
+- [x] **Step 3: Extract typed query helpers**
 
 Create `src/storage-queries.ts` for row mapping and typed SQL helpers that are used by more than one storage lane:
 
@@ -139,7 +139,7 @@ Create `src/storage-queries.ts` for row mapping and typed SQL helpers that are u
 
 Do not move feature-specific retrieval ranking, diagnostics assembly, or doctor warning assembly in this task.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -153,7 +153,7 @@ pnpm test:package-bin
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -175,7 +175,7 @@ Expected: version policy passes before commit.
 - Test: `tests/watch-boundary.test.ts`
 - Test: `tests/cli-boundary.test.ts`
 
-- [ ] **Step 1: Establish indexing baseline**
+- [x] **Step 1: Establish indexing baseline**
 
 Run:
 
@@ -187,13 +187,13 @@ pnpm exec vitest run tests/watch-boundary.test.ts tests/cli-boundary.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Extract file analysis persistence helpers**
+- [x] **Step 2: Extract file analysis persistence helpers**
 
 Move only file-index persistence helpers and index-finalization helpers into `src/indexing.ts`.
 
 Do not move exported `indexFolder`, `indexFile`, `indexFileDirect`, or `watchFolder` in this task. They stay in `src/storage.ts` as the orchestration boundary.
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 
@@ -205,7 +205,7 @@ pnpm exec vitest run tests/watch-boundary.test.ts tests/cli-boundary.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -226,7 +226,7 @@ Expected: version policy passes before commit.
 - Test: `tests/watch-boundary.test.ts`
 - Test: `tests/cli-boundary.test.ts`
 
-- [ ] **Step 1: Establish refresh baseline**
+- [x] **Step 1: Establish refresh baseline**
 
 Run:
 
@@ -238,7 +238,7 @@ pnpm exec vitest run tests/watch-boundary.test.ts tests/cli-boundary.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Extract shared refresh orchestration**
+- [x] **Step 2: Extract shared refresh orchestration**
 
 Create `refreshFileSetWithDependents()` in `src/index-refresh.ts`. It must be used by both:
 
@@ -247,7 +247,7 @@ Create `refreshFileSetWithDependents()` in `src/index-refresh.ts`. It must be us
 
 The helper owns direct importer expansion, `forceRefresh` propagation, indexed file and symbol counting, and final stale-status result assembly. It must not own watcher subscription lifecycle or public `indexFile`/`watchFolder` exports.
 
-- [ ] **Step 3: Verify drift-sensitive behavior**
+- [x] **Step 3: Verify drift-sensitive behavior**
 
 Run:
 
@@ -259,7 +259,7 @@ pnpm exec vitest run tests/watch-boundary.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -280,7 +280,7 @@ Expected: version policy passes before commit.
 - Test: `tests/engine-behavior.test.ts`
 - Test: `tests/serialization.test.ts`
 
-- [ ] **Step 1: Establish retrieval baseline**
+- [x] **Step 1: Establish retrieval baseline**
 
 Run:
 
@@ -292,7 +292,7 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "search|query|context|sour
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Extract retrieval internals**
+- [x] **Step 2: Extract retrieval internals**
 
 Move these internals from `src/storage.ts` into `src/retrieval.ts`:
 
@@ -305,7 +305,7 @@ Move these internals from `src/storage.ts` into `src/retrieval.ts`:
 
 Keep exported functions in `src/storage.ts` as compatibility wrappers until the retrieval module has stable parameter types.
 
-- [ ] **Step 3: Verify public retrieval contracts**
+- [x] **Step 3: Verify public retrieval contracts**
 
 Run:
 
@@ -318,7 +318,7 @@ pnpm test:package-bin
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -340,7 +340,7 @@ Expected: version policy passes before commit.
 - Test: `tests/engine-contract.test.ts`
 - Test: `tests/engine-behavior.test.ts`
 
-- [ ] **Step 1: Establish diagnostics baseline**
+- [x] **Step 1: Establish diagnostics baseline**
 
 Run:
 
@@ -352,13 +352,13 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "diagnostics|doctor|freshn
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Extract reporting helpers**
+- [x] **Step 2: Extract reporting helpers**
 
 Move diagnostics result assembly helpers into `src/diagnostics.ts` and doctor warning/action builders into `src/doctor.ts`.
 
 Keep public `diagnostics()` and `doctor()` exports in `src/storage.ts` unless a follow-up plan explicitly changes the public export layout.
 
-- [ ] **Step 3: Verify diagnostics extraction**
+- [x] **Step 3: Verify diagnostics extraction**
 
 Run:
 
@@ -370,7 +370,7 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "diagnostics|doctor|freshn
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -394,7 +394,7 @@ Expected: version policy passes before commit.
 - Test: `tests/parser.golden.test.ts`
 - Test: `tests/engine-behavior.test.ts`
 
-- [ ] **Step 1: Establish parser baseline**
+- [x] **Step 1: Establish parser baseline**
 
 Run:
 
@@ -406,17 +406,17 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "mjs|cjs|large file|chunk 
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Split parser backends**
+- [x] **Step 2: Split parser backends**
 
 Move tree-sitter-specific code into `src/parser/tree-sitter.ts` and OXC-specific code into `src/parser/oxc.ts`. Shared symbol, import, line-offset, and summary helpers belong in `src/parser/shared.ts`.
 
 `src/parser.ts` remains the public parser facade and exports `parseSourceFile`, `ParsedFile`, and `supportedLanguageForFile`.
 
-- [ ] **Step 3: Narrow OXC node typing**
+- [x] **Step 3: Narrow OXC node typing**
 
 Replace broad `any` usage in OXC helper inputs with local structural node types for the fields Astrograph reads. Do not attempt a full OXC AST type model in this task.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -428,7 +428,7 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "mjs|cjs|large file|chunk 
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -453,7 +453,7 @@ Expected: version policy passes before commit.
 - Test: `tests/cli-boundary.test.ts`
 - Test: `tests/engine-contract.test.ts`
 
-- [ ] **Step 1: Establish surface baseline**
+- [x] **Step 1: Establish surface baseline**
 
 Run:
 
@@ -465,7 +465,7 @@ pnpm test:package-bin
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Create shared command registry**
+- [x] **Step 2: Create shared command registry**
 
 Create `src/command-registry.ts` as the source of truth for command/tool metadata and engine dispatch. It should define:
 
@@ -476,11 +476,11 @@ Create `src/command-registry.ts` as the source of truth for command/tool metadat
 
 CLI and MCP adapters may still format their own transport schemas, but they should consume the registry instead of duplicating command-to-engine mapping.
 
-- [ ] **Step 3: Preserve transport-specific validation**
+- [x] **Step 3: Preserve transport-specific validation**
 
 Keep CLI flag parsing and MCP Zod schema conversion transport-specific. Do not force CLI and MCP to share the same raw argument parser; share normalized command inputs instead.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -492,7 +492,7 @@ pnpm test:package-bin
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
@@ -512,7 +512,7 @@ Expected: version policy passes before commit.
 - Test: `tests/interface.test.ts`
 - Test: `tests/serialization.test.ts`
 
-- [ ] **Step 1: Establish MCP baseline**
+- [x] **Step 1: Establish MCP baseline**
 
 Run:
 
@@ -523,7 +523,7 @@ pnpm exec vitest run tests/interface.test.ts tests/serialization.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Extract tool completion and token estimates**
+- [x] **Step 2: Extract tool completion and token estimates**
 
 Move MCP tool completion summaries, heuristic savings, exact sampling cadence, and token estimate construction into `src/tool-observability.ts`.
 
@@ -534,7 +534,7 @@ Move MCP tool completion summaries, heuristic savings, exact sampling cadence, a
 - tool registration
 - dispatch call timing and event emission hooks
 
-- [ ] **Step 3: Verify**
+- [x] **Step 3: Verify**
 
 Run:
 
@@ -545,7 +545,7 @@ pnpm exec vitest run tests/interface.test.ts tests/serialization.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 Run:
 
@@ -571,7 +571,7 @@ Expected: version policy passes before commit.
 - Test: `tests/interface.test.ts`
 - Test: `tests/engine-contract.test.ts`
 
-- [ ] **Step 1: Establish public type baseline**
+- [x] **Step 1: Establish public type baseline**
 
 Run:
 
@@ -582,7 +582,7 @@ pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 2: Split internal type modules**
+- [x] **Step 2: Split internal type modules**
 
 Move internal type definitions into domain files:
 
@@ -593,11 +593,11 @@ Move internal type definitions into domain files:
 
 Keep `src/types.ts` as a compatibility barrel during this task.
 
-- [ ] **Step 3: Preserve public exports**
+- [x] **Step 3: Preserve public exports**
 
 Keep `src/index.ts` public type exports stable. If any export name changes are necessary, stop and write an ADR before continuing.
 
-- [ ] **Step 4: Verify**
+- [x] **Step 4: Verify**
 
 Run:
 
@@ -609,7 +609,7 @@ pnpm test:package-bin
 
 Expected: all commands exit `0`.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 Run:
 
