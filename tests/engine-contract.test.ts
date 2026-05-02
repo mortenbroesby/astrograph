@@ -27,6 +27,12 @@ import {
   parseAstrographVersion,
   resolveEnginePaths,
 } from "../src/index.ts";
+import {
+  COMMAND_REGISTRY,
+  MCP_COMMAND_REGISTRY,
+  getCommandByCliCommand,
+  getCommandByMcpToolName,
+} from "../src/command-registry.ts";
 import { setupForAllIdes, setupForCodex, setupForIde } from "../src/scripts/install.ts";
 
 const tempDirs: string[] = [];
@@ -102,6 +108,16 @@ describe("ai-context-engine contract", () => {
       "query_code",
       "diagnostics",
     ]);
+    expect(MCP_COMMAND_REGISTRY.map((command) => command.mcpToolName)).toEqual(
+      ENGINE_TOOLS.filter((toolName) => toolName !== "init"),
+    );
+    expect(COMMAND_REGISTRY.indexFolder.normalizedOptions).toEqual([
+      "repoRoot",
+      "summaryStrategy",
+    ]);
+    expect(COMMAND_REGISTRY.queryCode.normalizedOptions).toContain("tokenBudget");
+    expect(getCommandByCliCommand("query-code")).toBe(COMMAND_REGISTRY.queryCode);
+    expect(getCommandByMcpToolName("query_code")).toBe(COMMAND_REGISTRY.queryCode);
   });
 
   it("uses package.json as the canonical Astrograph version source", async () => {

@@ -3,6 +3,11 @@ import * as zod from "zod";
 
 import { parseSummaryStrategy } from "./config.ts";
 import {
+  COMMAND_REGISTRY,
+  MCP_COMMAND_REGISTRY,
+  type McpRegistryToolName,
+} from "./command-registry.ts";
+import {
   parseQueryCodeMcpInput,
   validateFindFilesOptions,
   validateFileSummaryOptions,
@@ -52,14 +57,14 @@ function requireString(args: Record<string, unknown>, key: string): string {
 
 export const MCP_TOOL_DEFINITIONS = [
   {
-    name: "index_folder",
-    description: "Index all supported files under a repository root.",
+    name: COMMAND_REGISTRY.indexFolder.mcpToolName,
+    description: COMMAND_REGISTRY.indexFolder.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       summaryStrategy: stringSchema("Optional summary strategy override").optional(),
     },
     execute: async (engine, args) =>
-      engine.indexFolder({
+      COMMAND_REGISTRY.indexFolder.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
         summaryStrategy:
           typeof args.summaryStrategy === "string"
@@ -68,15 +73,15 @@ export const MCP_TOOL_DEFINITIONS = [
       }),
   },
   {
-    name: "index_file",
-    description: "Refresh a single supported file within a repository.",
+    name: COMMAND_REGISTRY.indexFile.mcpToolName,
+    description: COMMAND_REGISTRY.indexFile.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       filePath: stringSchema("Path relative to the repository root"),
       summaryStrategy: stringSchema("Optional summary strategy override").optional(),
     },
     execute: async (engine, args) =>
-      engine.indexFile({
+      COMMAND_REGISTRY.indexFile.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
         filePath: requireString(args, "filePath"),
         summaryStrategy:
@@ -86,8 +91,8 @@ export const MCP_TOOL_DEFINITIONS = [
       }),
   },
   {
-    name: "find_files",
-    description: "Find repo files by path/name query and optional glob filter.",
+    name: COMMAND_REGISTRY.findFiles.mcpToolName,
+    description: COMMAND_REGISTRY.findFiles.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       query: stringSchema("Optional path or file-name query").optional(),
@@ -102,15 +107,15 @@ export const MCP_TOOL_DEFINITIONS = [
         limit: typeof args.limit === "number" ? args.limit : undefined,
       };
       const normalized = validateFindFilesOptions(input);
-      return engine.findFiles({
+      return COMMAND_REGISTRY.findFiles.execute(engine, {
         ...input,
         ...normalized,
       });
     },
   },
   {
-    name: "search_text",
-    description: "Search text across indexed or live repo content with bounded results.",
+    name: COMMAND_REGISTRY.searchText.mcpToolName,
+    description: COMMAND_REGISTRY.searchText.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       query: stringSchema("Case-insensitive search query"),
@@ -125,12 +130,12 @@ export const MCP_TOOL_DEFINITIONS = [
         limit: typeof args.limit === "number" ? args.limit : undefined,
       };
       validateSearchTextOptions(input);
-      return engine.searchText(input);
+      return COMMAND_REGISTRY.searchText.execute(engine, input);
     },
   },
   {
-    name: "get_file_summary",
-    description: "Return a deterministic summary for an indexed or discovery-only file.",
+    name: COMMAND_REGISTRY.getFileSummary.mcpToolName,
+    description: COMMAND_REGISTRY.getFileSummary.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       filePath: stringSchema("Path relative to the repository root"),
@@ -141,12 +146,12 @@ export const MCP_TOOL_DEFINITIONS = [
         filePath: requireString(args, "filePath"),
       };
       validateFileSummaryOptions(input);
-      return engine.getFileSummary(input);
+      return COMMAND_REGISTRY.getFileSummary.execute(engine, input);
     },
   },
   {
-    name: "get_project_status",
-    description: "Report readiness, freshness, support tiers, and watcher health.",
+    name: COMMAND_REGISTRY.getProjectStatus.mcpToolName,
+    description: COMMAND_REGISTRY.getProjectStatus.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       scanFreshness: booleanSchema("When true, walk and hash the live repository to detect drift").optional(),
@@ -157,58 +162,58 @@ export const MCP_TOOL_DEFINITIONS = [
         scanFreshness: args.scanFreshness === true,
       };
       validateProjectStatusOptions(input);
-      return engine.getProjectStatus(input);
+      return COMMAND_REGISTRY.getProjectStatus.execute(engine, input);
     },
   },
   {
-    name: "get_repo_outline",
-    description: "Return file and symbol counts grouped by language.",
+    name: COMMAND_REGISTRY.getRepoOutline.mcpToolName,
+    description: COMMAND_REGISTRY.getRepoOutline.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
     },
     execute: async (engine, args) =>
-      engine.getRepoOutline({
+      COMMAND_REGISTRY.getRepoOutline.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
       }),
   },
   {
-    name: "get_file_tree",
-    description: "Return indexed files with language and symbol counts.",
+    name: COMMAND_REGISTRY.getFileTree.mcpToolName,
+    description: COMMAND_REGISTRY.getFileTree.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
     },
     execute: async (engine, args) =>
-      engine.getFileTree({
+      COMMAND_REGISTRY.getFileTree.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
       }),
   },
   {
-    name: "get_file_outline",
-    description: "Return symbols for one indexed file.",
+    name: COMMAND_REGISTRY.getFileOutline.mcpToolName,
+    description: COMMAND_REGISTRY.getFileOutline.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       filePath: stringSchema("Path relative to the repository root"),
     },
     execute: async (engine, args) =>
-      engine.getFileOutline({
+      COMMAND_REGISTRY.getFileOutline.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
         filePath: requireString(args, "filePath"),
       }),
   },
   {
-    name: "suggest_initial_queries",
-    description: "Suggest likely entry points before code retrieval.",
+    name: COMMAND_REGISTRY.suggestInitialQueries.mcpToolName,
+    description: COMMAND_REGISTRY.suggestInitialQueries.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
     },
     execute: async (engine, args) =>
-      engine.suggestInitialQueries({
+      COMMAND_REGISTRY.suggestInitialQueries.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
       }),
   },
   {
-    name: "query_code",
-    description: "Unified code query surface for discovery, exact retrieval, and bounded assembly.",
+    name: COMMAND_REGISTRY.queryCode.mcpToolName,
+    description: COMMAND_REGISTRY.queryCode.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       intent: stringSchema("Optional intent override: auto, discover, source, or assemble").optional(),
@@ -230,17 +235,18 @@ export const MCP_TOOL_DEFINITIONS = [
       includeReferences: booleanSchema("When true, expand query_code results through importer files that explicitly reference the matched symbol").optional(),
       relationDepth: numberSchema("Optional bounded graph expansion depth for dependency/importer traversal").optional(),
     },
-    execute: async (engine, args) => engine.queryCode(parseQueryCodeMcpInput(args)),
+    execute: async (engine, args) =>
+      COMMAND_REGISTRY.queryCode.execute(engine, parseQueryCodeMcpInput(args)),
   },
   {
-    name: "diagnostics",
-    description: "Report storage and freshness metadata.",
+    name: COMMAND_REGISTRY.diagnostics.mcpToolName,
+    description: COMMAND_REGISTRY.diagnostics.description,
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       scanFreshness: booleanSchema("When true, walk and hash the live repository to detect drift").optional(),
     },
     execute: async (engine, args) =>
-      engine.diagnostics({
+      COMMAND_REGISTRY.diagnostics.execute(engine, {
         repoRoot: requireString(args, "repoRoot"),
         scanFreshness: args.scanFreshness === true,
       }),
@@ -251,7 +257,13 @@ const MCP_TOOL_MAP = new Map<string, McpToolDefinition>(
   MCP_TOOL_DEFINITIONS.map((tool) => [tool.name, tool]),
 );
 
-export type McpToolName = (typeof MCP_TOOL_DEFINITIONS)[number]["name"];
+export type McpToolName = McpRegistryToolName;
+
+const registeredMcpToolNames = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
+const registryMcpToolNames = MCP_COMMAND_REGISTRY.map((tool) => tool.mcpToolName);
+if (registeredMcpToolNames.join("\0") !== registryMcpToolNames.join("\0")) {
+  throw new Error("MCP tool definitions must stay aligned with the command registry");
+}
 
 export function getMcpToolDefinition(name: string): McpToolDefinition | undefined {
   return MCP_TOOL_MAP.get(name);

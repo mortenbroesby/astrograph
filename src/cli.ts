@@ -10,24 +10,8 @@ import {
   parseCliSymbolKind,
   parseQueryCodeCliInput,
 } from "./validation.ts";
-import {
-  diagnostics,
-  doctor,
-  getFileContent,
-  getFileOutline,
-  getFileTree,
-  getRepoOutline,
-  getContextBundle,
-  getRankedContext,
-  getSymbolSource,
-  indexFile,
-  indexFolder,
-  queryCode,
-  searchSymbols,
-  searchText,
-  suggestInitialQueries,
-  watchFolder,
-} from "./index.ts";
+import { COMMAND_REGISTRY } from "./command-registry.ts";
+import * as engine from "./index.ts";
 import { getLogger } from "./logger.ts";
 
 type StopReason = "timeout" | "signal" | "closed";
@@ -45,32 +29,33 @@ const BOOLEAN_FLAGS = new Set([
 ]);
 
 const commands: Record<string, CliHandler> = {
-  init: async (args) => diagnostics({ repoRoot: required(args, "repo") }),
+  init: async (args) =>
+    COMMAND_REGISTRY.init.execute(engine, { repoRoot: required(args, "repo") }),
   "index-folder": async (args) =>
-    indexFolder({
+    COMMAND_REGISTRY.indexFolder.execute(engine, {
       repoRoot: required(args, "repo"),
       summaryStrategy: optionalSummaryStrategy(args, "summary-strategy"),
     }),
   "index-file": async (args) =>
-    indexFile({
+    COMMAND_REGISTRY.indexFile.execute(engine, {
       repoRoot: required(args, "repo"),
       filePath: required(args, "file"),
       summaryStrategy: optionalSummaryStrategy(args, "summary-strategy"),
     }),
   watch: async (args) => runWatchCommand(args),
   "get-repo-outline": async (args) =>
-    getRepoOutline({ repoRoot: required(args, "repo") }),
+    COMMAND_REGISTRY.getRepoOutline.execute(engine, { repoRoot: required(args, "repo") }),
   "get-file-tree": async (args) =>
-    getFileTree({ repoRoot: required(args, "repo") }),
+    COMMAND_REGISTRY.getFileTree.execute(engine, { repoRoot: required(args, "repo") }),
   "get-file-outline": async (args) =>
-    getFileOutline({
+    COMMAND_REGISTRY.getFileOutline.execute(engine, {
       repoRoot: required(args, "repo"),
       filePath: required(args, "file"),
     }),
   "suggest-initial-queries": async (args) =>
-    suggestInitialQueries({ repoRoot: required(args, "repo") }),
+    COMMAND_REGISTRY.suggestInitialQueries.execute(engine, { repoRoot: required(args, "repo") }),
   "search-symbols": async (args) =>
-    searchSymbols({
+    COMMAND_REGISTRY.searchSymbols.execute(engine, {
       repoRoot: required(args, "repo"),
       query: required(args, "query"),
       kind: optionalKind(args, "kind"),
@@ -79,15 +64,16 @@ const commands: Record<string, CliHandler> = {
       limit: optionalNumber(args, "limit"),
     }),
   "search-text": async (args) =>
-    searchText({
+    COMMAND_REGISTRY.searchText.execute(engine, {
       repoRoot: required(args, "repo"),
       query: required(args, "query"),
       filePattern: optional(args, "file-pattern"),
+      limit: optionalNumber(args, "limit"),
     }),
   "query-code": async (args) =>
-    queryCode(parseQueryCodeCliInput(args)),
+    COMMAND_REGISTRY.queryCode.execute(engine, parseQueryCodeCliInput(args)),
   "get-context-bundle": async (args) =>
-    getContextBundle({
+    COMMAND_REGISTRY.getContextBundle.execute(engine, {
       repoRoot: required(args, "repo"),
       query: optional(args, "query"),
       symbolIds: optionalList(args, "symbols"),
@@ -98,7 +84,7 @@ const commands: Record<string, CliHandler> = {
       relationDepth: optionalNumber(args, "relation-depth"),
     }),
   "get-ranked-context": async (args) =>
-    getRankedContext({
+    COMMAND_REGISTRY.getRankedContext.execute(engine, {
       repoRoot: required(args, "repo"),
       query: required(args, "query"),
       tokenBudget: optionalNumber(args, "budget"),
@@ -108,12 +94,12 @@ const commands: Record<string, CliHandler> = {
       relationDepth: optionalNumber(args, "relation-depth"),
     }),
   "get-file-content": async (args) =>
-    getFileContent({
+    COMMAND_REGISTRY.getFileContent.execute(engine, {
       repoRoot: required(args, "repo"),
       filePath: required(args, "file"),
     }),
   "get-symbol-source": async (args) =>
-    getSymbolSource({
+    COMMAND_REGISTRY.getSymbolSource.execute(engine, {
       repoRoot: required(args, "repo"),
       symbolId: optional(args, "symbol"),
       symbolIds: optionalList(args, "symbols"),
@@ -121,15 +107,15 @@ const commands: Record<string, CliHandler> = {
       verify: args.verify === "true",
     }),
   diagnostics: async (args) =>
-    diagnostics({
+    COMMAND_REGISTRY.diagnostics.execute(engine, {
       repoRoot: required(args, "repo"),
       scanFreshness: args["scan-freshness"] === "true",
     }),
   doctor: async (args) => {
-    const result = await doctor({
+    const result = await COMMAND_REGISTRY.doctor.execute(engine, {
       repoRoot: required(args, "repo"),
       scanFreshness: args["scan-freshness"] === "true",
-    });
+    }) as Awaited<ReturnType<typeof engine.doctor>>;
     return args.json === "true" ? result : formatDoctorReport(result);
   },
 };
@@ -165,21 +151,21 @@ function optionalNumber(
 function optionalSummaryStrategy(
   args: Record<string, string>,
   key: string,
-): Parameters<typeof indexFolder>[0]["summaryStrategy"] | undefined {
+): Parameters<typeof engine.indexFolder>[0]["summaryStrategy"] | undefined {
   return parseCliSummaryStrategy(args, key);
 }
 
 function optionalKind(
   args: Record<string, string>,
   key: string,
-): Parameters<typeof searchSymbols>[0]["kind"] | undefined {
+): Parameters<typeof engine.searchSymbols>[0]["kind"] | undefined {
   return parseCliSymbolKind(args, key);
 }
 
 function optionalLanguage(
   args: Record<string, string>,
   key: string,
-): Parameters<typeof searchSymbols>[0]["language"] | undefined {
+): Parameters<typeof engine.searchSymbols>[0]["language"] | undefined {
   return parseCliSupportedLanguage(args, key);
 }
 
@@ -225,8 +211,8 @@ async function runWatchCommand(args: Record<string, string>) {
     repoRoot,
   });
   let stopReason: StopReason = "closed";
-  let initialSummary: Awaited<ReturnType<typeof indexFolder>> | null = null;
-  let lastSummary: Awaited<ReturnType<typeof indexFolder>> | null = null;
+  let initialSummary: Awaited<ReturnType<typeof engine.indexFolder>> | null = null;
+  let lastSummary: Awaited<ReturnType<typeof engine.indexFolder>> | null = null;
   let reindexCount = 0;
   let lastError: string | null = null;
 
@@ -247,7 +233,7 @@ async function runWatchCommand(args: Record<string, string>) {
     hasPidFile: pidFile !== undefined,
   });
 
-  const watcher = await watchFolder({
+  const watcher = await COMMAND_REGISTRY.watch.execute(engine, {
     repoRoot,
     debounceMs,
     summaryStrategy: optionalSummaryStrategy(args, "summary-strategy"),
@@ -264,7 +250,7 @@ async function runWatchCommand(args: Record<string, string>) {
         lastError = event.message ?? "Unknown watch error";
       }
     },
-  });
+  }) as Awaited<ReturnType<typeof engine.watchFolder>>;
 
   process.once("SIGINT", stopFromSignal);
   process.once("SIGTERM", stopFromSignal);
@@ -353,7 +339,7 @@ function formatPercent(rate: number | null): string {
   return rate === null ? "unknown" : `${(rate * 100).toFixed(1)}%`;
 }
 
-function formatDoctorReport(result: Awaited<ReturnType<typeof doctor>>): string {
+function formatDoctorReport(result: Awaited<ReturnType<typeof engine.doctor>>): string {
   const lines = [
     "Astrograph Doctor",
     `Repo: ${result.repoRoot}`,
