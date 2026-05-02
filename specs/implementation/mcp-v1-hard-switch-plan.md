@@ -14,7 +14,8 @@
 - Read: `package.json`
 - Create: `scripts/bench/parser-parity-check.mjs`
 - Modify: `package.json` (temporary test scripts only)
-- Modify (if needed): `src/parser.ts` (only if hard-switch needs parser behavior alignment)
+- Modify: `src/parser.ts` (to complete tree-sitter-only execution path)
+- Update: `specs/raw/astrograph_jcodemunch_agent_spec.md` (parser mode decision log)
 
 - [ ] **Step 1: Baseline dependency posture**
 
@@ -57,13 +58,21 @@ Record one of these options as explicit implementation decision:
   - Requires schema/behavior checks for `symbol.kind`, positions, and confidence deltas.
 - **Option 3: Hybrid removal + single parser**
   - Requires full symbol-fidelity and cache-impact assessment plus migration note.
+- **Decision (Adopted): Option 4: Tree-sitter-only execution**
+  - Remove OXC execution from MCP hard-switch path.
+  - Keep OXC as a re-introduction target after hard-switch stability pass.
+- **Decision lock:** this decision is accepted even if symbol-count/perf shifts occur, unless a regression blocks release.
 
 Decision acceptance gate:
-- If `Option 2` or `Option 3` chosen, require explicit ADR and migration constraints in `specs/architecture/adrs.md` before touching MCP tool contracts.
-- If `Option 1` chosen, continue with existing parser imports and skip parser refactor.
+- If parser decision is not `Option 4`, require explicit ADR and migration constraints in `specs/architecture/adrs.md` before touching MCP tool contracts.
+- If `Option 4` is chosen, still require one ADR entry in `specs/architecture/adrs.md`:
+  - tree-sitter-only switch rationale,
+  - temporary rollback path to OXC,
+  - symbol-level acceptance criteria.
 
 Expected:
-- The hard-switch implementation path is locked with parser impact called out as blocking/non-blocking.
+- The hard-switch implementation path is locked to tree-sitter-only for parser execution.
+- OXC may only be reintroduced in a follow-up ADR milestone after `v1` stabilization.
 
 ## Task 1: Lock v1 contract and baseline behavior (docs first)
 
