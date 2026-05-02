@@ -112,8 +112,6 @@
     "commander": "^14.0.3",
     "fast-json-stringify": "^6.3.0",
     "fdir": "^6.5.0",
-    "oxc-parser": "^0.127.0",
-    "oxc-resolver": "^11.19.1",
     "p-map": "^7.0.4",
     "picomatch": "^4.0.4",
     "pino": "^10.3.1",

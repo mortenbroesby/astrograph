@@ -216,7 +216,9 @@ function resolveAnalyzeFileWorkerOptions(): {
   const preferSource =
     process.env.ASTROGRAPH_USE_SOURCE === "1"
     || process.env.ASTROGRAPH_USE_SOURCE === "true";
+  const runningFromSource = storageModulePath.endsWith(".ts");
   const useBuiltTarget = existsSync(builtAnalyzeFileWorkerEntrypoint)
+    && !runningFromSource
     && (!preferSource || !existsSync(sourceAnalyzeFileWorkerEntrypoint));
 
   return useBuiltTarget

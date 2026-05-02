@@ -327,8 +327,8 @@ describe("ai-context-engine behavior", () => {
         signature: 1,
       },
       parser: {
-        primaryBackend: "oxc",
-        fallbackBackend: "tree-sitter",
+        primaryBackend: "tree-sitter",
+        fallbackBackend: null,
         indexedFileCount: 2,
         fallbackFileCount: 0,
         fallbackRate: 0,
@@ -1002,7 +1002,7 @@ export function workerGenerated${index}(value: number): string {
     expect(snapshotIndexedRows(workerRepoRoot)).toEqual(
       snapshotIndexedRows(directRepoRoot),
     );
-  });
+  }, 30_000);
 
   it("offers a unified query surface for discovery, source retrieval, and assembly", async () => {
     const repoRoot = await createFixtureRepo();

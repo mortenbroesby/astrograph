@@ -37,8 +37,8 @@ export interface ReadinessStatus {
 }
 
 export interface ParserHealthDiagnostics {
-  primaryBackend: "oxc";
-  fallbackBackend: "tree-sitter";
+  primaryBackend: "tree-sitter";
+  fallbackBackend: null;
   indexedFileCount: number;
   fallbackFileCount: number;
   fallbackRate: number | null;

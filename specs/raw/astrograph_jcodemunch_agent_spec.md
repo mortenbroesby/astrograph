@@ -44,8 +44,7 @@ Astrograph already has a strong foundation:
 - standalone npm package identity,
 - local-first repo indexing,
 - SQLite-backed storage,
-- OXC parser for JavaScript and TypeScript,
-- tree-sitter fallback,
+- tree-sitter parser execution for JavaScript and TypeScript during the MCP v1 hard-switch,
 - `astrograph init` setup flow,
 - install profiles such as `full`, `some`, and `barebones`,
 - MCP server,
@@ -101,7 +100,7 @@ Observed current-state assumptions:
 
 - Package name: `@mortenbroesby/astrograph`.
 - Runtime target: Node 24+.
-- Core stack includes TypeScript, SQLite via `better-sqlite3`, OXC parser/resolver, tree-sitter JS/TS fallback, ripgrep fallback, `@modelcontextprotocol/sdk`, `piscina`, `@parcel/watcher`, tokenizers, and benchmarking/profiling scripts.
+- Core stack includes TypeScript, SQLite via `better-sqlite3`, tree-sitter JS/TS parsing for the MCP v1 hard-switch, ripgrep fallback, `@modelcontextprotocol/sdk`, `piscina`, `@parcel/watcher`, tokenizers, and benchmarking/profiling scripts. OXC parser execution is removed from the active v1 hard-switch path; OXC may only return through a later ADR after the MCP v1 contract stabilizes.
 - README positions Astrograph as a local MCP server for AI agents.
 - `astrograph init` can configure MCP settings for Codex, GitHub Copilot, and GitHub Copilot CLI.
 - Setup modes exist: `full`, `some`, and `barebones`.
@@ -1066,7 +1065,7 @@ export interface LanguageAdapter {
   language: string;
   extensions: string[];
   supportTier: "outline" | "retrieval" | "graph";
-  parserBackend: "oxc" | "tree-sitter" | "regex" | "external";
+  parserBackend: "tree-sitter" | "regex" | "external";
 
   parse(input: {
     filePath: string;
@@ -1530,8 +1529,10 @@ Astrograph already uses many good packages. Keep using them:
 |---|---|
 | `@modelcontextprotocol/sdk` | MCP server. |
 | `better-sqlite3` | Local SQLite index. |
-| `oxc-parser` | JS/TS parser. |
-| `oxc-resolver` | JS/TS import resolution. |
+| `tree-sitter` | Active parser execution model for the MCP v1 hard-switch. |
+| `tree-sitter-javascript` | JavaScript and JSX grammar. |
+| `tree-sitter-typescript` | TypeScript and TSX grammar. |
+| `oxc-resolver` | JS/TS import resolution if source search confirms it is still used outside parser execution. |
 | `@vscode/ripgrep` | Live text fallback. |
 | `@parcel/watcher` | Watch mode. |
 | `piscina` | Worker-thread indexing. |

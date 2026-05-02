@@ -161,7 +161,7 @@ const diagnosticsSchema = {
       type: "object",
       properties: {
         primaryBackend: { type: "string" },
-        fallbackBackend: { type: "string" },
+        fallbackBackend: nullableStringSchema,
         indexedFileCount: { type: "integer" },
         fallbackFileCount: { type: "integer" },
         fallbackRate: nullableNumberSchema,
