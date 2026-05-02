@@ -4,6 +4,9 @@ These skills guide agentic spec work in this repo. They are intentionally
 repo-local because Astrograph's spec taxonomy, version policy, and verification
 commands are project-specific.
 
+For general agent task prompts, use the repo-local commands in `.agents/commands/`
+and shared guidance in `.agents/references/`.
+
 ## Skills
 
 - [spec-authoring](./spec-authoring/SKILL.md) - Create or reorganize specs under `specs/`.
