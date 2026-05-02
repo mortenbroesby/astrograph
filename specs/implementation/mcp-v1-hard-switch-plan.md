@@ -18,7 +18,7 @@
 - Modify: `specs/raw/astrograph_jcodemunch_agent_spec.md`
 - Modify: `specs/architecture/adrs.md`
 
-- [ ] **Step 1: Record the tree-sitter-only decision**
+- [x] **Step 1: Record the tree-sitter-only decision**
 
 Update `specs/raw/astrograph_jcodemunch_agent_spec.md` and
 `specs/architecture/adrs.md` with:
@@ -31,7 +31,7 @@ Expected:
 - There is one documented parser decision.
 - No spec text presents hybrid parsing as an available implementation path for this plan.
 
-- [ ] **Step 2: Establish current parser baseline before removal**
+- [x] **Step 2: Establish current parser baseline before removal**
 
 Run:
 
@@ -44,7 +44,7 @@ Expected:
 - Current dependencies are visible before removal.
 - Baseline command exits `0`.
 
-- [ ] **Step 3: Remove OXC parser execution**
+- [x] **Step 3: Remove OXC parser execution**
 
 In `src/parser.ts`:
 - remove OXC imports and OXC parsing code;
@@ -57,6 +57,9 @@ Expected:
 - There is no active OXC parser execution path.
 - Tree-sitter remains the only parser backend used by indexing.
 
+> Done in PR #1 refactor. `src/parser.ts` is now 8 lines — a direct delegate to
+> `parseWithTreeSitter`. No OXC imports remain anywhere in `src/`.
+
 - [ ] **Step 4: Remove OXC parser dependency**
 
 Update dependency metadata:
@@ -67,6 +70,10 @@ Update dependency metadata:
 Expected:
 - No unused parser package remains.
 - Import resolution dependencies are not removed unless source search confirms they are unused.
+
+> `oxc-parser` is already gone. `oxc-resolver` is still listed in `package.json`
+> but zero source files import it — it is an unused dangling dependency and should
+> be removed as the remaining work for this step.
 
 - [ ] **Step 5: Add tree-sitter regression coverage**
 
@@ -119,7 +126,7 @@ Make and record all decisions:
 - MCP cache behavior is removed from MCP v1; any future cache design requires a separate plan.
 
 Expected:
-- `specs/architecture/adrs.md` includes ADR-003 with the tree-sitter-only parser decision linked to Task A.
+- `specs/architecture/adrs.md` includes ADR-004 with the tree-sitter-only parser decision linked to Phase A.
 - `specs/api-design/mcp-tools.md` has exact request/response envelopes for each new tool.
 - `specs/raw/astrograph_jcodemunch_agent_spec.md` states that OXC is removed from active parser execution for the v1 hard-switch.
 
