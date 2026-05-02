@@ -4,8 +4,7 @@ This directory contains internal implementation plans and subsystem specs.
 
 ## Current Plans
 
-- [Storage Refactor Plan](./storage-refactor-plan.md) - Split `src/storage.ts` into focused modules.
-- [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md) - Turn the source architecture review into task-sized refactor lanes.
+- [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.
 - [Release Agent Workflow](./release-agent.md) - Decide publish-worthy changes and push release tags.

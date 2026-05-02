@@ -25,8 +25,7 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 
 Implementation specs, refactor plans, and internal subsystem ownership.
 
-- [Storage Refactor Plan](./implementation/storage-refactor-plan.md) - Current plan to split `src/storage.ts`.
-- [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Architecture-review backlog for storage, parser, CLI/MCP, observability, and type ownership.
+- [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
 

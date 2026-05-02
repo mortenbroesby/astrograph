@@ -2,19 +2,24 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Turn the source architecture review into a sequence of behavior-preserving refactor slices that reduce `src/storage.ts`, split parser internals, unify CLI/MCP command contracts, and narrow shared type ownership.
+**Goal:** Turn the source architecture and storage reviews into one behavior-preserving refactor sequence that reduces `src/storage.ts`, clarifies parser internals, unifies CLI/MCP command contracts, narrows shared type ownership, and keeps public contracts stable.
 
-**Architecture:** Keep `src/index.ts` as the package-facing public barrel while moving implementation concerns into focused internal modules. Extract query/schema/indexing/parser/transport boundaries only after baseline characterization tests are green, and keep every public CLI, MCP, package bin, and TypeScript API contract stable.
+**Architecture:** Keep `src/index.ts` as the package-facing public barrel and keep `src/storage.ts` as the public storage orchestration layer until each extracted module has stable imports and focused characterization tests. Extract storage readiness, metadata, schema, query, indexing, refresh, retrieval, diagnostics, parser, command, MCP observability, and type boundaries in separate reviewable commits. Move cohesive implementation concerns first; do not redesign public behavior unless an ADR explicitly accepts a breaking change.
 
 **Tech Stack:** TypeScript, Node 24, Vitest, SQLite through `better-sqlite3`, `cac` for installer CLI parsing, MCP SDK, and Superpowers workflow skills.
 
 ---
+
+## Consolidation Notes
+
+This is the canonical implementation plan for the former storage-only and broader source-architecture refactor plans. The storage work is now Phase 1 because it has the highest coupling and blocks clean retrieval, diagnostics, indexing, and readiness ownership. Parser, CLI/MCP, MCP observability, and internal type ownership remain in later phases so each lane can land independently.
 
 ## Review Findings
 
 - `src/storage.ts` is the primary architecture choke point. It currently owns process caches, schema migration, database connection lifecycle, repo metadata sidecars, indexing, watch orchestration, retrieval, diagnostics, and doctor output.
 - `src/storage.ts` duplicates refresh/index dependency behavior between `indexFileDirect` and `watchFolder` refresh handling. The two paths can drift around `forceRefresh`, importer expansion, summary strategy changes, and result accounting.
 - SQL access is scattered and weakly typed. Generic row casts hide row-shape mismatches while schema setup, row mapping, FTS queries, dependency graph reads, and content reads live in the same module.
+- Repo readiness and repo metadata normalization are storage-adjacent but not SQL ownership. They need a small boundary before deeper database refactors.
 - `src/parser.ts` mixes tree-sitter parsing, OXC parsing, import extraction, symbol extraction, summary creation, and fallback behavior. OXC helpers still depend on broad `any` nodes.
 - CLI and MCP have separate command surfaces with overlapping argument mapping and validation. `src/cli.ts`, `src/mcp-contract.ts`, and `src/validation.ts` share some parsing but still duplicate option names and engine dispatch mapping.
 - `src/mcp.ts` mixes MCP transport with tool dispatch telemetry, completion summaries, token heuristics, and event emission.
@@ -29,7 +34,65 @@
 - If a task exposes a behavior bug, stop the refactor and use `superpowers:systematic-debugging` before changing behavior.
 - Prefer moving code before redesigning behavior. New abstractions must make an existing ownership boundary explicit.
 
-## Task 1: Storage Schema And Query Boundary
+## Phase 1: Storage Boundary Reduction
+
+### Task 1: Readiness And Repo Metadata Boundary
+
+**Files:**
+- Modify: `src/storage.ts`
+- Create or extend: `src/readiness.ts`
+- Create: `src/repo-meta.ts`
+- Test: `tests/engine-contract.test.ts`
+- Test: `tests/engine-behavior.test.ts`
+- Test: `tests/interface.test.ts`
+
+- [ ] **Step 1: Verify the current readiness extraction baseline**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
+pnpm exec vitest run tests/interface.test.ts tests/engine-behavior.test.ts -t "readiness|diagnostics|project status|deepening"
+```
+
+Expected: all commands exit `0`.
+
+- [ ] **Step 2: Move repo metadata normalization into `src/repo-meta.ts`**
+
+Move only these responsibilities out of `src/storage.ts`:
+
+- repo metadata record types that are not tied to SQL rows
+- repo metadata JSON normalization and integrity health helpers
+- default watch diagnostics only if required by repo metadata normalization
+
+Keep `normalizeRepoReadiness` usage imported from `src/readiness.ts`. Do not move database access, diagnostics assembly, doctor warnings, or watch runtime code in this task.
+
+- [ ] **Step 3: Re-run focused tests**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
+pnpm exec vitest run tests/engine-behavior.test.ts -t "diagnostics|doctor|readiness|deepening"
+```
+
+Expected: all commands exit `0`.
+
+- [ ] **Step 4: Commit**
+
+Run:
+
+```bash
+git add src/storage.ts src/readiness.ts src/repo-meta.ts tests/engine-contract.test.ts package.json
+pnpm check:version-bump
+git commit -m "Refactor storage metadata helpers"
+```
+
+Expected: version policy passes before commit.
+
+### Task 2: Storage Schema And Query Boundary
 
 **Files:**
 - Modify: `src/storage.ts`
@@ -38,6 +101,7 @@
 - Test: `tests/engine-behavior.test.ts`
 - Test: `tests/interface.test.ts`
 - Test: `tests/engine-contract.test.ts`
+- Test: `tests/filesystem-scan.test.ts`
 
 - [ ] **Step 1: Establish schema and query baseline**
 
@@ -47,6 +111,7 @@ Run:
 pnpm type-lint
 pnpm exec vitest run tests/engine-behavior.test.ts -t "schema|storage mode|corrupted index metadata|indexed rows|diagnostics|doctor"
 pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
+pnpm exec vitest run tests/filesystem-scan.test.ts
 ```
 
 Expected: all commands exit `0`.
@@ -72,7 +137,7 @@ Create `src/storage-queries.ts` for row mapping and typed SQL helpers that are u
 - symbol row mapping
 - common row interfaces that mirror persisted schema
 
-Do not move feature-specific retrieval ranking or doctor warning assembly in this task.
+Do not move feature-specific retrieval ranking, diagnostics assembly, or doctor warning assembly in this task.
 
 - [ ] **Step 4: Verify**
 
@@ -82,6 +147,7 @@ Run:
 pnpm type-lint
 pnpm exec vitest run tests/engine-behavior.test.ts -t "schema|storage mode|corrupted index metadata|indexed rows|diagnostics|doctor"
 pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
+pnpm exec vitest run tests/filesystem-scan.test.ts
 pnpm test:package-bin
 ```
 
@@ -92,14 +158,66 @@ Expected: all commands exit `0`.
 Run:
 
 ```bash
-git add src/storage.ts src/storage-schema.ts src/storage-queries.ts tests/engine-behavior.test.ts tests/interface.test.ts tests/engine-contract.test.ts package.json
+git add src/storage.ts src/storage-schema.ts src/storage-queries.ts tests/engine-behavior.test.ts tests/interface.test.ts tests/engine-contract.test.ts tests/filesystem-scan.test.ts package.json
 pnpm check:version-bump
 git commit -m "Extract storage schema and query helpers"
 ```
 
 Expected: version policy passes before commit.
 
-## Task 2: Shared Index Refresh Service
+### Task 3: Indexing Persistence Boundary
+
+**Files:**
+- Modify: `src/storage.ts`
+- Create: `src/indexing.ts`
+- Test: `tests/engine-behavior.test.ts`
+- Test: `tests/engine-contract.test.ts`
+- Test: `tests/watch-boundary.test.ts`
+- Test: `tests/cli-boundary.test.ts`
+
+- [ ] **Step 1: Establish indexing baseline**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/engine-behavior.test.ts -t "index|refresh|worker|watch"
+pnpm exec vitest run tests/watch-boundary.test.ts tests/cli-boundary.test.ts
+```
+
+Expected: all commands exit `0`.
+
+- [ ] **Step 2: Extract file analysis persistence helpers**
+
+Move only file-index persistence helpers and index-finalization helpers into `src/indexing.ts`.
+
+Do not move exported `indexFolder`, `indexFile`, `indexFileDirect`, or `watchFolder` in this task. They stay in `src/storage.ts` as the orchestration boundary.
+
+- [ ] **Step 3: Verify**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/engine-behavior.test.ts -t "index|refresh|worker|watch"
+pnpm exec vitest run tests/watch-boundary.test.ts tests/cli-boundary.test.ts
+```
+
+Expected: all commands exit `0`.
+
+- [ ] **Step 4: Commit**
+
+Run:
+
+```bash
+git add src/storage.ts src/indexing.ts tests/engine-contract.test.ts package.json
+pnpm check:version-bump
+git commit -m "Extract indexing persistence helpers"
+```
+
+Expected: version policy passes before commit.
+
+### Task 4: Shared Index Refresh Service
 
 **Files:**
 - Modify: `src/storage.ts`
@@ -153,7 +271,7 @@ git commit -m "Share indexed file refresh orchestration"
 
 Expected: version policy passes before commit.
 
-## Task 3: Retrieval And Context Assembly Boundary
+### Task 5: Retrieval And Context Assembly Boundary
 
 **Files:**
 - Modify: `src/storage.ts`
@@ -180,6 +298,7 @@ Move these internals from `src/storage.ts` into `src/retrieval.ts`:
 
 - symbol and text search scoring
 - dependency/importer/reference row picking
+- text-match assembly
 - ranked seed resolution
 - context bundle item construction
 - `queryCode` discover/source/assemble helpers that do not own storage initialization
@@ -211,7 +330,61 @@ git commit -m "Extract retrieval assembly helpers"
 
 Expected: version policy passes before commit.
 
-## Task 4: Parser Backend Adapters
+### Task 6: Diagnostics And Doctor Reporting Boundary
+
+**Files:**
+- Modify: `src/storage.ts`
+- Create: `src/diagnostics.ts`
+- Create: `src/doctor.ts`
+- Test: `tests/interface.test.ts`
+- Test: `tests/engine-contract.test.ts`
+- Test: `tests/engine-behavior.test.ts`
+
+- [ ] **Step 1: Establish diagnostics baseline**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/interface.test.ts
+pnpm exec vitest run tests/engine-behavior.test.ts -t "diagnostics|doctor|freshness|secret|corrupted|unresolved"
+```
+
+Expected: all commands exit `0`.
+
+- [ ] **Step 2: Extract reporting helpers**
+
+Move diagnostics result assembly helpers into `src/diagnostics.ts` and doctor warning/action builders into `src/doctor.ts`.
+
+Keep public `diagnostics()` and `doctor()` exports in `src/storage.ts` unless a follow-up plan explicitly changes the public export layout.
+
+- [ ] **Step 3: Verify diagnostics extraction**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/interface.test.ts
+pnpm exec vitest run tests/engine-behavior.test.ts -t "diagnostics|doctor|freshness|secret|corrupted|unresolved"
+```
+
+Expected: all commands exit `0`.
+
+- [ ] **Step 4: Commit**
+
+Run:
+
+```bash
+git add src/storage.ts src/diagnostics.ts src/doctor.ts tests/engine-contract.test.ts package.json
+pnpm check:version-bump
+git commit -m "Extract diagnostics reporting helpers"
+```
+
+Expected: version policy passes before commit.
+
+## Phase 2: Parser Boundary
+
+### Task 7: Parser Backend Adapters
 
 **Files:**
 - Modify: `src/parser.ts`
@@ -267,7 +440,9 @@ git commit -m "Split parser backend adapters"
 
 Expected: version policy passes before commit.
 
-## Task 5: Shared Command Registry For CLI And MCP
+## Phase 3: Command And Transport Boundaries
+
+### Task 8: Shared Command Registry For CLI And MCP
 
 **Files:**
 - Modify: `src/cli.ts`
@@ -329,7 +504,7 @@ git commit -m "Share CLI and MCP command registry"
 
 Expected: version policy passes before commit.
 
-## Task 6: MCP Tool Observability Boundary
+### Task 9: MCP Tool Observability Boundary
 
 **Files:**
 - Modify: `src/mcp.ts`
@@ -382,7 +557,9 @@ git commit -m "Extract MCP tool observability"
 
 Expected: version policy passes before commit.
 
-## Task 7: Internal Type Ownership Split
+## Phase 4: Internal Type Ownership
+
+### Task 10: Internal Type Ownership Split
 
 **Files:**
 - Modify: `src/types.ts`
@@ -446,7 +623,7 @@ Expected: version policy passes before commit.
 
 ## Exit Criteria
 
-- `src/storage.ts` no longer owns schema migration, common SQL row helpers, retrieval assembly, parser logic, or duplicated watch/index refresh orchestration.
+- `src/storage.ts` no longer owns repo metadata normalization, schema migration, common SQL row helpers, indexing persistence, retrieval assembly, diagnostics reporting, doctor output, parser logic, or duplicated watch/index refresh orchestration.
 - `indexFileDirect` and `watchFolder` use the same refresh service for changed file sets and direct importer expansion.
 - OXC parser code no longer relies on broad `any` for helper boundaries.
 - CLI and MCP command dispatch share one command registry while preserving transport-specific schemas.
