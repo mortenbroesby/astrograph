@@ -35,7 +35,6 @@ import {
   compareDirectoryStates,
   isGitIgnored,
   listSupportedFiles,
-  loadFilesystemSnapshot,
   loadFilesystemStateSnapshot,
   loadKnownDirectoryStateSnapshot,
   loadSupportedFileStatesForSubtree,
@@ -65,9 +64,7 @@ import {
   supportTierForFile,
 } from "./language-registry.ts";
 import { createPathMatcher } from "./path-matcher.ts";
-import { containsSecretLikeText } from "./privacy.ts";
 import {
-  buildReadinessStatus,
   normalizeRepoReadiness,
   summarizeReadiness,
 } from "./readiness.ts";
@@ -78,12 +75,14 @@ import {
   readRepoMetaHealth,
   writeRepoMetaFiles,
 } from "./repo-meta.ts";
-import type { RepoMetaHealthStatus } from "./repo-meta.ts";
 import { getLogger } from "./logger.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import {
+  buildDoctorResult,
+  loadDependencyGraphHealth,
+} from "./doctor.ts";
+import {
   initializeDatabase,
-  readSchemaVersion,
 } from "./storage-schema.ts";
 import {
   countRows,
@@ -107,10 +106,7 @@ import {
   searchTextInContext,
 } from "./retrieval.ts";
 import { subscribeRepo } from "./watch-backend.ts";
-import {
-  ASTROGRAPH_PACKAGE_VERSION,
-  ASTROGRAPH_VERSION_PARTS,
-} from "./version.ts";
+import { buildDiagnosticsResult } from "./diagnostics.ts";
 import {
   validateFindFilesOptions,
   validateFileSummaryOptions,
@@ -133,7 +129,6 @@ import type {
   FileSummarySource,
   FileSummarySymbol,
   FileTreeEntry,
-  ImportSpecifier,
   IndexSummary,
   ProjectStatusOptions,
   ProjectStatusResult,
@@ -146,7 +141,6 @@ import type {
   SearchTextMatch,
   SymbolSourceResult,
   SymbolSummary,
-  SummarySource,
   SummaryStrategy,
   SupportedLanguage,
   WatchBackendKind,
@@ -158,7 +152,6 @@ import type {
 import type {
   DirectoryStateEntry,
   FilesystemStateEntry,
-  SnapshotEntry,
 } from "./filesystem-scan.ts";
 
 const DISCOVERY_SKIP_SEGMENTS = new Set([
@@ -172,55 +165,6 @@ const DISCOVERY_SKIP_SEGMENTS = new Set([
   "dist",
   "node_modules",
 ]);
-
-function loadParserHealth(db: IndexBackendConnection): DiagnosticsResult["parser"] {
-  const parserStats = typedGet<{
-    indexed_file_count: number;
-    known_file_count: number;
-    fallback_file_count: number;
-    unknown_file_count: number;
-  }>(
-    db.prepare(`
-      SELECT
-        COUNT(*) AS indexed_file_count,
-        SUM(CASE WHEN parser_backend IS NOT NULL THEN 1 ELSE 0 END) AS known_file_count,
-        SUM(CASE WHEN parser_fallback_used = 1 THEN 1 ELSE 0 END) AS fallback_file_count,
-        SUM(CASE WHEN parser_backend IS NULL THEN 1 ELSE 0 END) AS unknown_file_count
-      FROM files
-    `),
-  ) ?? {
-    indexed_file_count: 0,
-    known_file_count: 0,
-    fallback_file_count: 0,
-    unknown_file_count: 0,
-  };
-
-  const fallbackReasons = Object.fromEntries(
-    typedAll<{ reason: string; count: number }>(
-      db.prepare(`
-        SELECT parser_fallback_reason AS reason, COUNT(*) AS count
-        FROM files
-        WHERE parser_fallback_used = 1
-          AND parser_fallback_reason IS NOT NULL
-          AND parser_fallback_reason != ''
-        GROUP BY parser_fallback_reason
-      `),
-    ).map((row) => [row.reason, row.count]),
-  ) as Record<string, number>;
-
-  const knownFileCount = parserStats.known_file_count ?? 0;
-  const fallbackFileCount = parserStats.fallback_file_count ?? 0;
-
-  return {
-    primaryBackend: "oxc",
-    fallbackBackend: "tree-sitter",
-    indexedFileCount: parserStats.indexed_file_count ?? 0,
-    fallbackFileCount,
-    fallbackRate: knownFileCount > 0 ? fallbackFileCount / knownFileCount : null,
-    unknownFileCount: parserStats.unknown_file_count ?? 0,
-    fallbackReasons,
-  };
-}
 
 interface EngineContext {
   config: Awaited<ReturnType<typeof ensureStorage>>;
@@ -902,43 +846,6 @@ async function writeReadinessCheckpoint(input: {
   });
 }
 
-function loadIndexedSnapshot(
-  db: IndexBackendConnection,
-): SnapshotEntry[] {
-  return typedAll<SnapshotEntry>(
-    db.prepare(
-      "SELECT path, content_hash AS contentHash FROM files ORDER BY path ASC",
-    ),
-  );
-}
-
-function compareSnapshots(
-  indexedEntries: SnapshotEntry[],
-  currentEntries: SnapshotEntry[],
-) {
-  const indexedMap = new Map(indexedEntries.map((entry) => [entry.path, entry]));
-  const currentMap = new Map(currentEntries.map((entry) => [entry.path, entry]));
-  const missingFiles = indexedEntries.filter((entry) => !currentMap.has(entry.path));
-  const extraFiles = currentEntries.filter((entry) => !indexedMap.has(entry.path));
-  const changedFiles = indexedEntries.filter((entry) => {
-    const currentEntry = currentMap.get(entry.path);
-    return Boolean(currentEntry && currentEntry.contentHash !== entry.contentHash);
-  });
-
-  return {
-    missingPaths: missingFiles.map((entry) => entry.path),
-    extraPaths: extraFiles.map((entry) => entry.path),
-    changedPaths: changedFiles.map((entry) => entry.path),
-    indexedFiles: indexedEntries.length,
-    currentFiles: currentEntries.length,
-    missingFiles: missingFiles.length,
-    changedFiles: changedFiles.length,
-    extraFiles: extraFiles.length,
-    indexedSnapshotHash: snapshotHash(indexedEntries),
-    currentSnapshotHash: snapshotHash(currentEntries),
-  };
-}
-
 async function emitWatchEvent(
   onEvent: WatchOptions["onEvent"],
   event: WatchEvent,
@@ -1302,60 +1209,6 @@ function resolveImportedFilePaths(
   }
 
   return [];
-}
-
-function normalizeImportSpecifier(
-  value: unknown,
-): ImportSpecifier | null {
-  if (typeof value === "string") {
-    const importedName = value.trim();
-    return importedName
-      ? {
-          kind: "unknown",
-          importedName,
-          localName: null,
-        }
-      : null;
-  }
-
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const kind = "kind" in value ? value.kind : null;
-  const importedName = "importedName" in value ? value.importedName : null;
-  const localName = "localName" in value ? value.localName : null;
-
-  if (
-    (kind !== "named" && kind !== "default" && kind !== "namespace" && kind !== "unknown")
-    || typeof importedName !== "string"
-    || importedName.trim().length === 0
-  ) {
-    return null;
-  }
-
-  return {
-    kind,
-    importedName: importedName.trim(),
-    localName: typeof localName === "string" && localName.trim().length > 0
-      ? localName.trim()
-      : null,
-  };
-}
-
-function parseStoredImportSpecifiers(serialized: string): ImportSpecifier[] {
-  try {
-    const parsed = JSON.parse(serialized) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .map((entry) => normalizeImportSpecifier(entry))
-      .filter((entry): entry is ImportSpecifier => entry !== null);
-  } catch {
-    return [];
-  }
 }
 
 function rebuildFileDependencies(db: IndexBackendConnection) {
@@ -2564,393 +2417,25 @@ export async function diagnostics(input: DiagnosticsOptions): Promise<Diagnostic
       config.paths.repoMetaPath,
       config.paths.integrityPath,
     );
-    const meta = metaHealth.meta;
-    const indexedEntries = loadIndexedSnapshot(db);
     const dependencyGraph = loadDependencyGraphHealth(db);
-    const indexedSnapshotHash =
-      meta?.indexedSnapshotHash ?? (indexedEntries.length > 0 ? snapshotHash(indexedEntries) : null);
-    const scanFreshness = input.scanFreshness === true;
-  const drift = scanFreshness
-      ? compareSnapshots(
-          indexedEntries,
-          await loadFilesystemSnapshot(repoRoot, {
-            include: config.indexInclude,
-            exclude: config.indexExclude,
-            maxFilesDiscovered: config.maxFilesDiscovered,
-            maxFileBytes: config.maxFileBytes,
-          }),
-        )
-      : {
-          missingPaths: [] as string[],
-          extraPaths: [] as string[],
-          changedPaths: [] as string[],
-          indexedFiles: indexedEntries.length,
-          currentFiles: meta?.indexedFiles ?? indexedEntries.length,
-          missingFiles: 0,
-          changedFiles: 0,
-          extraFiles: 0,
-          indexedSnapshotHash: indexedSnapshotHash ?? null,
-          currentSnapshotHash: indexedSnapshotHash ?? null,
-        };
-    const indexedAt = meta?.indexedAt ?? null;
-    const indexAgeMs =
-      indexedAt !== null ? Math.max(0, Date.now() - Date.parse(indexedAt)) : null;
-    const staleReasons: string[] = [];
-
-    if (metaHealth.status === "missing") {
-      staleReasons.push("index metadata missing");
-    }
-    if (metaHealth.status === "unreadable") {
-      staleReasons.push("index metadata unreadable");
-    }
-    if (metaHealth.status === "missing-integrity") {
-      staleReasons.push("index metadata integrity missing");
-    }
-    if (metaHealth.status === "integrity-mismatch") {
-      staleReasons.push("index metadata integrity mismatch");
-    }
-    if (dependencyGraph.brokenRelativeImportCount > 0) {
-      staleReasons.push("unresolved relative imports");
-    }
-    if (dependencyGraph.brokenRelativeSymbolImportCount > 0) {
-      staleReasons.push("unresolved relative symbol imports");
-    }
-    if (scanFreshness) {
-      if (drift.missingFiles > 0) {
-        staleReasons.push("missing files");
-      }
-      if (drift.changedFiles > 0) {
-        staleReasons.push("content drift");
-      }
-      if (drift.extraFiles > 0) {
-        staleReasons.push("new files");
-      }
-    }
-
-    const staleStatus: DiagnosticsResult["staleStatus"] =
-      scanFreshness
-        ? meta && staleReasons.length === 0
-          ? "fresh"
-          : meta
-            ? "stale"
-            : "unknown"
-        : staleReasons.length > 0
-          ? meta
-            ? "stale"
-            : "unknown"
-          : meta?.staleStatus ?? "unknown";
-    const summarySources = Object.fromEntries(
-      typedAll<{ summary_source: SummarySource; count: number }>(
-        db.prepare(
-          `
-            SELECT summary_source, COUNT(*) AS count
-            FROM symbols
-            GROUP BY summary_source
-          `,
-        ),
-      ).map((row) => [row.summary_source, row.count]),
-    ) as DiagnosticsResult["summarySources"];
-    const indexedFiles = meta?.indexedFiles ?? drift.indexedFiles;
-    const readiness = buildReadinessStatus({
-      readiness: meta?.readiness,
-      indexedFiles,
-    });
-    const languageRegistry = getLanguageRegistrySnapshot();
-
-    return {
-      engineVersion: ASTROGRAPH_PACKAGE_VERSION,
-      engineVersionParts: ASTROGRAPH_VERSION_PARTS,
+    return buildDiagnosticsResult({
+      db,
+      repoRoot,
       storageDir: config.paths.storageDir,
       databasePath: config.paths.databasePath,
-      storageVersion: meta?.storageVersion ?? ENGINE_STORAGE_VERSION,
-      schemaVersion: readSchemaVersion(db),
       storageMode: config.storageMode,
+      summaryStrategy: config.summaryStrategy,
       storageBackend: SQLITE_INDEX_BACKEND.backendName,
-      staleStatus,
-      freshnessMode: scanFreshness ? "scan" : "metadata",
-      freshnessScanned: scanFreshness,
-      summaryStrategy: meta?.summaryStrategy ?? config.summaryStrategy,
-      summarySources,
-      indexedAt,
-      indexAgeMs,
-      indexedFiles,
-      indexedSymbols:
-        meta?.indexedSymbols ??
-        countRows(db, "SELECT COUNT(*) AS count FROM symbols"),
-      currentFiles: drift.currentFiles,
-      missingFiles: drift.missingFiles,
-      changedFiles: drift.changedFiles,
-      extraFiles: drift.extraFiles,
-      indexedSnapshotHash,
-      currentSnapshotHash: drift.currentSnapshotHash,
-      staleReasons,
-      readiness,
-      parser: loadParserHealth(db),
+      metaHealth,
       dependencyGraph,
-      languageRegistry,
-      watch: meta?.watch ?? createDefaultWatchDiagnostics(),
-    };
+      scanFreshness: input.scanFreshness === true,
+      indexInclude: config.indexInclude,
+      indexExclude: config.indexExclude,
+      maxFilesDiscovered: config.maxFilesDiscovered,
+      maxFileBytes: config.maxFileBytes,
+    });
   } finally {
     db.close();
-  }
-}
-
-async function resolveDoctorObservability(
-  repoRoot: string,
-): Promise<DoctorResult["observability"]> {
-  const repoConfig = await loadRepoEngineConfig(repoRoot, { repoRootResolved: true });
-
-  if (!repoConfig.observability.enabled) {
-    return {
-      enabled: false,
-      configuredHost: repoConfig.observability.host,
-      configuredPort: repoConfig.observability.port,
-      status: "disabled",
-      url: null,
-    };
-  }
-
-  return {
-    enabled: true,
-    configuredHost: repoConfig.observability.host,
-    configuredPort: repoConfig.observability.port,
-    status: "recording",
-    url: null,
-  };
-}
-
-function loadDependencyGraphHealth(
-  db: IndexBackendConnection,
-): DoctorResult["dependencyGraph"] {
-  const brokenDependencyRows = typedAll<{
-    importer_path: string;
-    source: string;
-  }>(
-    db.prepare(`
-      SELECT files.path AS importer_path, imports.source AS source
-      FROM imports
-      INNER JOIN files ON files.id = imports.file_id
-      LEFT JOIN file_dependencies
-        ON file_dependencies.importer_file_id = imports.file_id
-        AND file_dependencies.source = imports.source
-      WHERE (imports.source LIKE './%' OR imports.source LIKE '../%' OR imports.source LIKE '/%')
-        AND file_dependencies.target_path IS NULL
-      ORDER BY files.path ASC, imports.source ASC
-    `),
-  );
-  const affectedImporters = [...new Set(
-    brokenDependencyRows.map((row) => row.importer_path),
-  )];
-  const brokenRelativeSymbolRows = typedAll<{
-    importer_path: string;
-    target_path: string;
-    specifiers: string;
-  }>(
-    db.prepare(`
-      SELECT
-        file_dependencies.importer_path AS importer_path,
-        file_dependencies.target_path AS target_path,
-        imports.specifiers AS specifiers
-      FROM file_dependencies
-      INNER JOIN files ON files.id = file_dependencies.importer_file_id
-      INNER JOIN imports
-        ON imports.file_id = files.id
-        AND imports.source = file_dependencies.source
-      WHERE file_dependencies.source LIKE './%'
-        OR file_dependencies.source LIKE '../%'
-        OR file_dependencies.source LIKE '/%'
-      ORDER BY file_dependencies.importer_path ASC, file_dependencies.target_path ASC
-    `),
-  );
-
-  const brokenRelativeSymbolImporters = new Set<string>();
-  let brokenRelativeSymbolImportCount = 0;
-
-  for (const row of brokenRelativeSymbolRows) {
-    const missingNamedSpecifiers = parseStoredImportSpecifiers(row.specifiers)
-      .filter((specifier) => specifier.kind === "named")
-      .filter((specifier) => {
-        const exportedSymbol = typedGet<{ id: string }>(
-          db.prepare(
-            `
-              SELECT id
-              FROM symbols
-              WHERE file_path = ?
-                AND exported = 1
-                AND (name = ? OR qualified_name = ?)
-              LIMIT 1
-            `,
-          ),
-          row.target_path,
-          specifier.importedName,
-          specifier.importedName,
-        );
-        return !exportedSymbol;
-      });
-
-    if (missingNamedSpecifiers.length === 0) {
-      continue;
-    }
-
-    brokenRelativeSymbolImportCount += missingNamedSpecifiers.length;
-    brokenRelativeSymbolImporters.add(row.importer_path);
-  }
-
-  const allAffectedImporters = [...new Set([
-    ...affectedImporters,
-    ...brokenRelativeSymbolImporters,
-  ])];
-  const sampleImporterPaths = allAffectedImporters.slice(0, 5);
-
-  return {
-    brokenRelativeImportCount: brokenDependencyRows.length,
-    brokenRelativeSymbolImportCount,
-    affectedImporterCount: allAffectedImporters.length,
-    sampleImporterPaths,
-  };
-}
-
-function loadPrivacyHealth(
-  db: IndexBackendConnection,
-): DoctorResult["privacy"] {
-  const rows = typedAll<{ file_path: string; content: string }>(
-    db.prepare(`
-      SELECT files.path AS file_path, content_blobs.content AS content
-      FROM content_blobs
-      INNER JOIN files ON files.id = content_blobs.file_id
-      ORDER BY files.path ASC
-    `),
-  );
-  const sampleFilePaths: string[] = [];
-  let secretLikeFileCount = 0;
-
-  for (const row of rows) {
-    if (!containsSecretLikeText(row.content)) {
-      continue;
-    }
-
-    secretLikeFileCount += 1;
-    if (sampleFilePaths.length < 5) {
-      sampleFilePaths.push(row.file_path);
-    }
-  }
-
-  return {
-    secretLikeFileCount,
-    sampleFilePaths,
-  };
-}
-
-function buildDoctorWarnings(result: DoctorResult): string[] {
-  const warnings: string[] = [];
-
-  if (result.indexStatus === "not-indexed") {
-    warnings.push("No Astrograph index was found for this repository yet.");
-  }
-  if (result.indexStatus === "stale") {
-    warnings.push("Indexed repository data is stale.");
-  }
-  if (result.parser.unknownFileCount > 0) {
-    warnings.push(
-      `Parser health is unavailable for ${result.parser.unknownFileCount} indexed file(s) created before parser metrics were recorded.`,
-    );
-  }
-  if ((result.parser.fallbackRate ?? 0) > 0) {
-    warnings.push(
-      `Parser fallback was used for ${result.parser.fallbackFileCount} of ${result.parser.indexedFileCount} indexed file(s).`,
-    );
-  }
-  if (result.dependencyGraph.brokenRelativeImportCount > 0) {
-    warnings.push(
-      `Dependency graph contains ${result.dependencyGraph.brokenRelativeImportCount} unresolved relative import(s) across ${result.dependencyGraph.affectedImporterCount} importer file(s).`,
-    );
-  }
-  if (result.dependencyGraph.brokenRelativeSymbolImportCount > 0) {
-    warnings.push(
-      `Dependency graph contains ${result.dependencyGraph.brokenRelativeSymbolImportCount} unresolved relative symbol import(s).`,
-    );
-  }
-  if (result.privacy.secretLikeFileCount > 0) {
-    warnings.push(
-      `Indexed source contains ${result.privacy.secretLikeFileCount} file(s) with obvious secret-like content.`,
-    );
-  }
-  if (result.watch.status !== "watching") {
-    warnings.push("Watch mode is not currently running.");
-  }
-
-  return warnings;
-}
-
-function buildMetaHealthWarnings(status: RepoMetaHealthStatus): string[] {
-  switch (status) {
-    case "unreadable":
-      return ["Index metadata is unreadable."];
-    case "missing-integrity":
-      return ["Index metadata integrity file is missing."];
-    case "integrity-mismatch":
-      return ["Index metadata integrity check failed."];
-    default:
-      return [];
-  }
-}
-
-function buildDoctorSuggestedActions(result: DoctorResult): string[] {
-  const actions: string[] = [];
-
-  if (result.indexStatus === "not-indexed") {
-    actions.push(`Run \`pnpm exec astrograph cli index-folder --repo ${result.repoRoot}\` to create the initial index.`);
-  }
-  if (result.indexStatus === "stale") {
-    actions.push(`Run \`pnpm exec astrograph cli index-folder --repo ${result.repoRoot}\` to refresh the stale index.`);
-  }
-  if (result.parser.unknownFileCount > 0) {
-    actions.push("Reindex the repository to backfill parser health metrics on older indexed files.");
-  }
-  if (result.dependencyGraph.brokenRelativeImportCount > 0) {
-    const sample = result.dependencyGraph.sampleImporterPaths[0];
-    actions.push(
-      sample
-        ? `Fix or reindex importer paths such as \`${sample}\` so Astrograph can resolve their relative dependencies again.`
-        : "Fix or reindex importer paths with unresolved relative dependencies.",
-    );
-  }
-  if (result.dependencyGraph.brokenRelativeSymbolImportCount > 0) {
-    const sample = result.dependencyGraph.sampleImporterPaths[0];
-    actions.push(
-      sample
-        ? `Update importer paths such as \`${sample}\` or restore the expected exported symbols in their relative dependencies.`
-        : "Update importer paths or restore the expected exported symbols in their relative dependencies.",
-    );
-  }
-  if (result.privacy.secretLikeFileCount > 0) {
-    const sample = result.privacy.sampleFilePaths[0];
-    actions.push(
-      sample
-        ? `Review indexed file(s) such as \`${sample}\` and remove or rotate any real secrets that should not live in source.`
-        : "Review indexed files with secret-like content and remove or rotate any real secrets that should not live in source.",
-    );
-  }
-  if (result.watch.status !== "watching") {
-    actions.push(`Run \`pnpm exec astrograph cli watch --repo ${result.repoRoot}\` if you want automatic local refresh while editing.`);
-  }
-
-  return actions;
-}
-
-function buildMetaHealthSuggestedActions(
-  repoRoot: string,
-  status: RepoMetaHealthStatus,
-): string[] {
-  switch (status) {
-    case "unreadable":
-    case "missing-integrity":
-    case "integrity-mismatch":
-      return [
-        `Rebuild Astrograph metadata with \`pnpm exec astrograph cli index-folder --repo ${repoRoot}\` because the repo-local metadata sidecars are corrupted or incomplete.`,
-      ];
-    default:
-      return [];
   }
 }
 
@@ -2967,58 +2452,12 @@ export async function doctor(input: DiagnosticsOptions): Promise<DoctorResult> {
   const db = openDatabase(health.databasePath);
 
   try {
-    const importCount = countRows(db, "SELECT COUNT(*) AS count FROM imports");
-    const dependencyGraph = loadDependencyGraphHealth(db);
-    const privacy = loadPrivacyHealth(db);
-    const observability = await resolveDoctorObservability(resolvedRepoRoot);
-    const result: DoctorResult = {
-      repoRoot: resolvedRepoRoot,
-      storageDir: health.storageDir,
-      databasePath: health.databasePath,
-      storageVersion: health.storageVersion,
-      schemaVersion: health.schemaVersion,
-      storageBackend: health.storageBackend,
-      storageMode: health.storageMode,
-      indexStatus:
-        health.indexedAt === null && health.indexedFiles === 0
-          ? "not-indexed"
-          : health.staleStatus === "stale"
-            ? "stale"
-            : "indexed",
-      freshness: {
-        status: health.staleStatus,
-        mode: health.freshnessMode,
-        scanned: health.freshnessScanned,
-        indexedAt: health.indexedAt,
-        indexAgeMs: health.indexAgeMs,
-        indexedFiles: health.indexedFiles,
-        currentFiles: health.currentFiles,
-        indexedSymbols: health.indexedSymbols,
-        indexedImports: importCount,
-        missingFiles: health.missingFiles,
-        changedFiles: health.changedFiles,
-        extraFiles: health.extraFiles,
-      },
-      parser: {
-        ...health.parser,
-      },
-      dependencyGraph,
-      observability,
-      privacy,
-      watch: health.watch,
-      warnings: [],
-      suggestedActions: [],
-    };
-
-    result.warnings = [
-      ...buildDoctorWarnings(result),
-      ...buildMetaHealthWarnings(metaHealth.status),
-    ];
-    result.suggestedActions = [
-      ...buildDoctorSuggestedActions(result),
-      ...buildMetaHealthSuggestedActions(result.repoRoot, metaHealth.status),
-    ];
-    return result;
+    return buildDoctorResult({
+      resolvedRepoRoot,
+      diagnostics: health,
+      db,
+      metaHealth,
+    });
   } finally {
     db.close();
   }
