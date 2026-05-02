@@ -51,6 +51,14 @@ After running `init`, the installer checks npm metadata and prints an update
 hint when a newer version is available:
 `npm install @mortenbroesby/astrograph@latest`.
 
+For major upgrades or after MCP contract changes, clear local state and rebuild
+indexing on next run:
+
+```bash
+rm -rf .astrograph
+astrograph init --yes --repo /absolute/path/to/repo
+```
+
 Query indexed metadata:
 
 ```bash

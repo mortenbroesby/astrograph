@@ -51,3 +51,41 @@ functions and contract-tested across all three surfaces.
 
 - New public capabilities require API-design docs and interface tests.
 - Result-shape changes must be treated as compatibility-sensitive.
+
+---
+
+## ADR-003: Hard-Switch MCP V1 Contract and Cache Deletion Policy
+
+**Date:** 2026-05-02
+**Status:** Accepted
+
+**Context:** Astrograph needs explicit, workflow-oriented MCP tools for retrieval
+while moving to a cleaner versioned contract. Maintaining the existing
+`query_code` umbrella during this transition adds ambiguity and slows migration.
+
+**Decision:**
+
+- Remove `query_code` from the MCP surface in this hard-switch.
+- Add strict v1 tools: `search_symbols`, `get_symbol_source`,
+  `get_context_bundle`, and `get_ranked_context`.
+- Use a single strict v1 response envelope for success and failure.
+- Carry versioning in both registration metadata (`version: "1"`) and response
+  metadata (`meta.toolVersion`).
+- Keep plain tool names (no `_v1` suffix).
+- Remove query/result/session caching from MCP v1 until 1.0; no cache tables,
+  cache-hit metadata, or cache invalidation behaviors are introduced in this slice.
+
+**Rationale:**
+
+- A hard switch reduces long-term complexity from dual paradigms.
+- Unified schemas simplify validation and future test gates.
+- Dual version signaling improves traceability without polluting call sites.
+- Cache deletion avoids locking migration to unstable invalidation and identity
+  assumptions and matches the v1 hard-switch migration profile.
+
+**Consequences:**
+
+- Breaking MCP change requires client migration in this release path.
+- Library `queryCode` remains available internally and for direct consumers.
+- Stable symbol identity changes must align with these tool transitions.
+- Cache strategy will be reintroduced in a post-1.0 ADR with migration guidance.

@@ -301,7 +301,9 @@ function emitUpdateSuggestion(currentVersion: string): void {
   const suggestion = `npm install ${PACKAGE_NAME}@latest`;
   process.stderr.write(
     `A newer Astrograph version is available: ${latest.raw} (current: ${currentVersion}).\n` +
-    `To update, run: ${suggestion}\n`,
+    `To update, run: ${suggestion}\n` +
+    `If you see stale behavior after update, clear local state and rebuild index:\n` +
+    `  rm -rf .astrograph\n  astrograph init --yes\n`,
   );
 }
 

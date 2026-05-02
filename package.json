@@ -86,6 +86,8 @@
     "hooks:pre-commit": "node ./scripts/pre-commit-hook.mjs",
     "hooks:pre-push": "node ./scripts/prepush-checks.mjs",
     "hooks:post-merge": "node ./scripts/post-merge-hook.mjs",
+    "ralph:init": "node scripts/ralph/init.mjs",
+    "ralph:loop": "node scripts/ralph/loop.mjs",
     "prepack": "pnpm run build"
   },
   "devDependencies": {
