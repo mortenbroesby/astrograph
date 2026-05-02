@@ -565,10 +565,39 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPath).toContain("AGENTS.md");
     expect(result.agentsPolicyUpdated).toBe(false);
     expect(result.agentsPolicyReason).toBe("would add Astrograph code exploration policy");
-    expect(result.agentsPolicyPreview).toContain("## Code Exploration Policy");
+    expect(result.agentsPolicyPreview).toContain("## Code Exploration with Astrograph");
+    expect(result.agentsPolicyPreview).toContain("### Working agreements");
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
     expect(result.agentsPolicyPreview).toContain("query_code");
+  });
+
+  it("writes copilot-instructions.md when --agents is used with copilot IDE", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-agents-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await setupForAllIdes(repoRoot, {
+      ides: ["copilot"],
+      dryRun: true,
+      agentsPolicy: true,
+    });
+    if (Array.isArray(result)) {
+      throw new Error("Expected single IDE result");
+    }
+
+    expect(result.agentsPolicyPath).toContain(path.join(".github", "copilot-instructions.md"));
+    expect(result.agentsPolicyUpdated).toBe(false);
+    expect(result.agentsPolicyReason).toBe("would add Astrograph code exploration policy");
+    expect(result.agentsPolicyPreview).toContain("## Code Exploration with Astrograph");
+    expect(result.agentsPolicyPreview).toContain("get_project_status");
+    expect(result.agentsPolicyPreview).toContain("index_folder");
   });
 
   it("does not add Astrograph as a dependency of itself", async () => {

@@ -271,7 +271,10 @@ function usage(): void {
       "  - repo: current git worktree, or current directory",
       "  - IDE: Codex",
       "  - writes: astrograph.config.ts and managed MCP config",
-      "  - optional: --agents adds an Astrograph code exploration policy to AGENTS.md",
+      "  - optional: --agents adds a tailored agent instruction file for each IDE:",
+      "      codex       → AGENTS.md",
+      "      copilot     → .github/copilot-instructions.md",
+      "      copilot-cli → AGENTS.md",
       "  - ensures: @mortenbroesby/astrograph is set to latest in package.json when package.json exists",
       "",
       "Examples:",
@@ -335,7 +338,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     .exitOverride()
     .helpOption("-h, --help", "Show setup help.")
     .addOption(new Option("--yes", "Run setup with defaults and without prompts."))
-    .addOption(new Option("--agents", "Add Astrograph code exploration policy to AGENTS.md."))
+    .addOption(new Option("--agents", "Add a tailored agent instruction file for the selected IDE."))
     .addOption(new Option("--dry-run", "Preview changes only."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined));
@@ -463,8 +466,12 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
+  const policyFileHint = ide === "copilot"
+    ? ".github/copilot-instructions.md"
+    : "AGENTS.md";
+
   const agentsPolicy = await confirm({
-    message: "Add Astrograph code exploration policy to AGENTS.md?",
+    message: `Add Astrograph code exploration policy to ${policyFileHint}?`,
     initialValue: false,
   });
 
@@ -721,20 +728,57 @@ function replaceManagedBlock(contents: string, block: string): string {
   return normalized.length === 0 ? `${block}\n` : `${normalized}\n\n${block}\n`;
 }
 
-function agentsPolicyBlock(): string {
+// AGENTS.md block — used by Codex and Copilot CLI, which both read AGENTS.md natively.
+// Follows Codex "Working agreements" convention so it fits alongside other AGENTS.md sections.
+function agentsPolicyBlockForAgentsMd(): string {
   return [
     AGENTS_POLICY_BEGIN,
-    "## Code Exploration Policy",
+    "## Code Exploration with Astrograph",
     "",
-    "Prefer Astrograph MCP tools for code exploration before falling back to raw file reads or shell search.",
+    "Astrograph provides local MCP tools for code intelligence. Use them before falling back to raw file reads or shell search.",
+    "",
+    "### Working agreements",
     "",
     "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
     "- Before reading a file, use `get_file_outline`, `get_file_summary`, or `query_code` with source intent.",
     "- Before searching broadly, use `query_code`, `find_files`, or `search_text`.",
     "- Before exploring structure, use `get_file_tree` or `get_repo_outline`.",
-    "- Use raw file reads or shell search only when Astrograph cannot answer the question or when debugging Astrograph itself.",
+    "- Use raw file reads or shell search only when Astrograph cannot answer the question.",
     AGENTS_POLICY_END,
   ].join("\n");
+}
+
+// copilot-instructions.md block — used by GitHub Copilot (VS Code), which reads
+// .github/copilot-instructions.md as persistent repository-wide instructions.
+function agentsPolicyBlockForCopilotInstructions(): string {
+  return [
+    AGENTS_POLICY_BEGIN,
+    "## Code Exploration with Astrograph",
+    "",
+    "Astrograph MCP tools are configured for this repository. Use them for code intelligence before falling back to raw file reads.",
+    "",
+    "- Use `get_project_status` to check the index; run `index_folder` if stale.",
+    "- Use `get_file_outline` or `query_code` before opening a file.",
+    "- Use `query_code`, `find_files`, or `search_text` for discovery.",
+    "- Use `get_file_tree` or `get_repo_outline` to understand structure.",
+    "- Fall back to raw file access only when Astrograph tools cannot answer the question.",
+    AGENTS_POLICY_END,
+  ].join("\n");
+}
+
+function resolvePolicyFilePath(ide: InstallIde, repoRoot: string): string {
+  if (ide === "copilot") {
+    return path.join(repoRoot, ".github", "copilot-instructions.md");
+  }
+  // codex and copilot-cli both read AGENTS.md at the repo root
+  return path.join(repoRoot, "AGENTS.md");
+}
+
+function agentsPolicyBlockForIde(ide: InstallIde): string {
+  if (ide === "copilot") {
+    return agentsPolicyBlockForCopilotInstructions();
+  }
+  return agentsPolicyBlockForAgentsMd();
 }
 
 function replaceManagedAgentsPolicy(contents: string, block: string): string {
@@ -753,8 +797,9 @@ async function writeAgentsPolicy(
   repoRoot: string,
   dryRun: boolean,
   enabled: boolean,
+  ide: InstallIde = "codex",
 ): Promise<AgentsPolicyResult> {
-  const agentsPolicyPath = path.join(repoRoot, "AGENTS.md");
+  const agentsPolicyPath = resolvePolicyFilePath(ide, repoRoot);
   if (!enabled) {
     return {
       agentsPolicyPath,
@@ -763,7 +808,7 @@ async function writeAgentsPolicy(
     };
   }
 
-  const block = agentsPolicyBlock();
+  const block = agentsPolicyBlockForIde(ide);
   const currentContents = await readFile(agentsPolicyPath, "utf8").catch(() => "");
   const nextContents = replaceManagedAgentsPolicy(currentContents, block);
   if (nextContents === currentContents) {
@@ -784,6 +829,7 @@ async function writeAgentsPolicy(
     };
   }
 
+  await mkdir(path.dirname(agentsPolicyPath), { recursive: true });
   await writeFile(agentsPolicyPath, nextContents, "utf8");
   return {
     agentsPolicyPath,
@@ -948,15 +994,16 @@ export async function setupForAllIdes(
     resolvedRepoRoot,
     dryRun,
   );
-  const agentsPolicyResult = await writeAgentsPolicy(
-    resolvedRepoRoot,
-    dryRun,
-    agentsPolicy,
-  );
 
   const results: SetupResult[] = [];
   for (const ide of normalizedIdes) {
     const result = await setupForIde(resolvedRepoRoot, { ide, dryRun });
+    const agentsPolicyResult = await writeAgentsPolicy(
+      resolvedRepoRoot,
+      dryRun,
+      agentsPolicy,
+      ide,
+    );
 
     results.push({
       ...result,
