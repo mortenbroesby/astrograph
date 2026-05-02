@@ -44,6 +44,12 @@ import {
   snapshotHash,
 } from "./filesystem-scan.ts";
 import { hashString } from "./hash.ts";
+import {
+  finalizeIndex,
+  persistFileIndexResult,
+  removeFileIndex,
+} from "./indexing.ts";
+import type { AnalyzedFileIndexResult } from "./indexing.ts";
 import type {
   IndexBackendConnection,
   IndexBackendValue,
@@ -81,6 +87,7 @@ import {
   readSchemaVersion,
 } from "./storage-schema.ts";
 import {
+  countRows,
   mapSymbolRow,
   typedAll,
   typedGet,
@@ -171,33 +178,6 @@ const DISCOVERY_SKIP_SEGMENTS = new Set([
   "dist",
   "node_modules",
 ]);
-
-type AnalyzedFileIndexResult =
-  | {
-    kind: "unchanged";
-    existing: TrackedFileRow;
-  }
-  | {
-    kind: "symbol-limit-exceeded";
-    existing: TrackedFileRow | undefined;
-    symbolCount: number;
-  }
-  | {
-    kind: "content-unchanged";
-    existing: TrackedFileRow;
-    file: Awaited<ReturnType<typeof readRepoFile>>;
-    reparsed: FileAnalysisTaskOutput["parsed"];
-    symbolSignatureHash: string;
-    importHash: string;
-  }
-  | {
-    kind: "reindexed";
-    existing: TrackedFileRow | undefined;
-    file: Awaited<ReturnType<typeof readRepoFile>>;
-    reparsed: FileAnalysisTaskOutput["parsed"];
-    symbolSignatureHash: string;
-    importHash: string;
-  };
 
 function loadParserHealth(db: IndexBackendConnection): DiagnosticsResult["parser"] {
   const parserStats = typedGet<{
@@ -1059,11 +1039,6 @@ async function resolveRepoFileRefreshState(
   };
 }
 
-function countRows(db: IndexBackendConnection, sql: string): number {
-  const row = db.prepare(sql).get() as { count: number };
-  return row.count;
-}
-
 function normalizeQuery(value: string): string {
   return value.trim().toLowerCase();
 }
@@ -1079,14 +1054,6 @@ function uniqueQueryTerms(value: string): string[] {
     normalizeQuery(value),
     ...queryTokens(value),
   ].filter(Boolean))];
-}
-
-function persistedSymbolCount(db: IndexBackendConnection, fileId: number): number {
-  const countRow = typedGet<{ count: number }>(
-    db.prepare("SELECT COUNT(*) AS count FROM symbols WHERE file_id = ?"),
-    fileId,
-  );
-  return countRow?.count ?? 0;
 }
 
 async function analyzeFileIndexResult(input: {
@@ -1158,183 +1125,6 @@ async function analyzeFileIndexResult(input: {
     reparsed,
     symbolSignatureHash,
     importHash,
-  };
-}
-
-function persistFileIndexResult(
-  db: IndexBackendConnection,
-  analyzed: AnalyzedFileIndexResult,
-): { indexed: boolean; symbolCount: number } {
-  if (analyzed.kind === "unchanged") {
-    return {
-      indexed: false,
-      symbolCount: persistedSymbolCount(db, analyzed.existing.id),
-    };
-  }
-
-  if (analyzed.kind === "symbol-limit-exceeded") {
-    if (analyzed.existing) {
-      clearFileSearchRows(db, analyzed.existing.id);
-      db.prepare("DELETE FROM files WHERE id = ?").run(analyzed.existing.id);
-    }
-
-    return {
-      indexed: false,
-      symbolCount: 0,
-    };
-  }
-
-  if (analyzed.kind === "content-unchanged") {
-    db.prepare(
-      `
-        UPDATE files
-        SET size_bytes = ?, mtime_ms = ?, integrity_hash = ?, symbol_signature_hash = ?, import_hash = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    ).run(
-      analyzed.file.size,
-      Math.trunc(analyzed.file.mtimeMs),
-      analyzed.reparsed.integrityHash,
-      analyzed.symbolSignatureHash,
-      analyzed.importHash,
-      new Date().toISOString(),
-      analyzed.existing.id,
-    );
-    return {
-      indexed: false,
-      symbolCount: persistedSymbolCount(db, analyzed.existing.id),
-    };
-  }
-
-  const { existing, file, reparsed, symbolSignatureHash, importHash } = analyzed;
-
-  if (existing) {
-    clearFileSearchRows(db, existing.id);
-    db.prepare("DELETE FROM imports WHERE file_id = ?").run(existing.id);
-    db.prepare("DELETE FROM symbols WHERE file_id = ?").run(existing.id);
-    db.prepare("DELETE FROM content_blobs WHERE file_id = ?").run(existing.id);
-    db.prepare(
-      `
-        UPDATE files
-        SET language = ?, content_hash = ?, integrity_hash = ?, parser_backend = ?, parser_fallback_used = ?, parser_fallback_reason = ?, symbol_count = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    ).run(
-      reparsed.language,
-      reparsed.contentHash,
-      reparsed.integrityHash,
-      reparsed.backend,
-      reparsed.fallbackUsed ? 1 : 0,
-      reparsed.fallbackReason,
-      reparsed.symbols.length,
-      new Date().toISOString(),
-      existing.id,
-    );
-    db.prepare(
-      `
-        UPDATE files
-        SET size_bytes = ?, mtime_ms = ?, symbol_signature_hash = ?, import_hash = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    ).run(
-      file.size,
-      Math.trunc(file.mtimeMs),
-      symbolSignatureHash,
-      importHash,
-      new Date().toISOString(),
-      existing.id,
-    );
-  } else {
-    db.prepare(
-      `
-        INSERT INTO files (
-          path, language, content_hash, integrity_hash, size_bytes, mtime_ms,
-          symbol_signature_hash, import_hash, parser_backend, parser_fallback_used,
-          parser_fallback_reason, symbol_count, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-    ).run(
-      file.relativePath,
-      reparsed.language,
-      reparsed.contentHash,
-      reparsed.integrityHash,
-      file.size,
-      Math.trunc(file.mtimeMs),
-      symbolSignatureHash,
-      importHash,
-      reparsed.backend,
-      reparsed.fallbackUsed ? 1 : 0,
-      reparsed.fallbackReason,
-      reparsed.symbols.length,
-      new Date().toISOString(),
-    );
-  }
-
-  const fileRow = db
-    .prepare("SELECT id FROM files WHERE path = ?")
-    .get(file.relativePath) as { id: number };
-  db.prepare(
-    "INSERT INTO content_blobs (file_id, content) VALUES (?, ?)",
-  ).run(fileRow.id, file.content);
-  db.prepare(
-    "INSERT INTO content_search (file_id, file_path, content) VALUES (?, ?, ?)",
-  ).run(fileRow.id, file.relativePath, file.content);
-  const insertSymbol = db.prepare(`
-    INSERT INTO symbols (
-      id, file_id, file_path, name, qualified_name, kind, signature,
-      summary, summary_source, start_line, end_line, start_byte, end_byte, exported
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const insertSymbolSearch = db.prepare(`
-    INSERT INTO symbol_search (
-      symbol_id, file_id, name, qualified_name, signature, summary, file_path, kind
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  for (const symbol of reparsed.symbols) {
-    insertSymbol.run(
-      symbol.id,
-      fileRow.id,
-      file.relativePath,
-      symbol.name,
-      symbol.qualifiedName,
-      symbol.kind,
-      symbol.signature,
-      symbol.summary,
-      symbol.summarySource,
-      symbol.startLine,
-      symbol.endLine,
-      symbol.startByte,
-      symbol.endByte,
-      symbol.exported ? 1 : 0,
-    );
-    insertSymbolSearch.run(
-      symbol.id,
-      fileRow.id,
-      symbol.name,
-      symbol.qualifiedName ?? "",
-      symbol.signature,
-      symbol.summary,
-      file.relativePath,
-      symbol.kind,
-    );
-  }
-  const insertImport = db.prepare(
-    "INSERT INTO imports (file_id, source, specifiers) VALUES (?, ?, ?)",
-  );
-  for (const dependency of reparsed.imports) {
-    insertImport.run(
-      fileRow.id,
-      dependency.source,
-      JSON.stringify(dependency.specifiers),
-    );
-  }
-
-  return {
-    indexed: true,
-    symbolCount: reparsed.symbols.length,
   };
 }
 
@@ -1626,14 +1416,6 @@ function scoreSymbolRow(
   }
 
   return score;
-}
-
-function clearFileSearchRows(
-  db: IndexBackendConnection,
-  fileId: number,
-) {
-  db.prepare("DELETE FROM symbol_search WHERE file_id = ?").run(fileId);
-  db.prepare("DELETE FROM content_search WHERE file_id = ?").run(fileId);
 }
 
 function loadSymbolRows(
@@ -2430,60 +2212,6 @@ function buildRankedContextResult(
   };
 }
 
-function removeFileIndex(
-  db: IndexBackendConnection,
-  filePath: string,
-): boolean {
-  const fileRow = typedGet<{ id: number }>(
-    db.prepare("SELECT id FROM files WHERE path = ?"),
-    filePath,
-  );
-  if (!fileRow) {
-    return false;
-  }
-  clearFileSearchRows(db, fileRow.id);
-  const result = db.prepare("DELETE FROM files WHERE path = ?").run(filePath);
-  return Number(result.changes ?? 0) > 0;
-}
-
-async function finalizeIndex(
-  db: IndexBackendConnection,
-  repoRoot: string,
-  indexedAt: string,
-  summaryStrategy: SummaryStrategy,
-  discoveredFiles?: number,
-): Promise<"fresh" | "stale"> {
-  rebuildFileDependencies(db);
-  const dependencyGraph = loadDependencyGraphHealth(db);
-  const totalFiles = countRows(db, "SELECT COUNT(*) AS count FROM files");
-  const totalSymbols = countRows(db, "SELECT COUNT(*) AS count FROM symbols");
-  const indexedSnapshotHash = snapshotHash(loadIndexedSnapshot(db));
-  const staleStatus =
-    dependencyGraph.brokenRelativeImportCount > 0
-    || dependencyGraph.brokenRelativeSymbolImportCount > 0
-      ? "stale"
-      : "fresh";
-  db.prepare(
-    "INSERT INTO meta (key, value) VALUES ('staleStatus', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-  ).run(staleStatus);
-  await writeSidecars({
-    repoRoot,
-    indexedAt,
-    indexedFiles: totalFiles,
-    totalSymbols,
-    indexedSnapshotHash,
-    staleStatus,
-    summaryStrategy,
-    readiness: {
-      discoveryIndexedAt: indexedAt,
-      discoveredFiles: discoveredFiles ?? totalFiles,
-      deepIndexedAt: indexedAt,
-      deepening: null,
-    },
-  });
-  return staleStatus;
-}
-
 async function indexFolderDirect(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
@@ -2559,13 +2287,16 @@ async function indexFolderDirect(input: {
     }
 
     const indexedAt = new Date().toISOString();
-    const staleStatus = await finalizeIndex(
+    const staleStatus = await finalizeIndex({
       db,
       repoRoot,
       indexedAt,
-      config.summaryStrategy,
-      supportedFiles.length,
-    );
+      summaryStrategy: config.summaryStrategy,
+      discoveredFiles: supportedFiles.length,
+      rebuildFileDependencies,
+      loadDependencyGraphHealth,
+      writeSidecars,
+    });
 
     return {
       indexedFiles,
@@ -2730,7 +2461,15 @@ async function indexFileDirect(input: {
     }
 
     const indexedAt = new Date().toISOString();
-    const staleStatus = await finalizeIndex(db, repoRoot, indexedAt, config.summaryStrategy);
+    const staleStatus = await finalizeIndex({
+      db,
+      repoRoot,
+      indexedAt,
+      summaryStrategy: config.summaryStrategy,
+      rebuildFileDependencies,
+      loadDependencyGraphHealth,
+      writeSidecars,
+    });
 
     return {
       indexedFiles,
@@ -2956,7 +2695,15 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
         }
 
         const indexedAt = new Date().toISOString();
-        const staleStatus = await finalizeIndex(db, repoRoot, indexedAt, config.summaryStrategy);
+        const staleStatus = await finalizeIndex({
+          db,
+          repoRoot,
+          indexedAt,
+          summaryStrategy: config.summaryStrategy,
+          rebuildFileDependencies,
+          loadDependencyGraphHealth,
+          writeSidecars,
+        });
 
         return {
           type: "reindex",

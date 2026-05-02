@@ -1,4 +1,5 @@
 import type {
+  IndexBackendConnection,
   IndexBackendValue,
   IndexStatement,
 } from "./index-backend.ts";
@@ -66,4 +67,9 @@ export function typedGet<TRow>(
   ...params: IndexBackendValue[]
 ): TRow | undefined {
   return statement.get(...params) as unknown as TRow | undefined;
+}
+
+export function countRows(db: IndexBackendConnection, sql: string): number {
+  const row = db.prepare(sql).get() as { count: number };
+  return row.count;
 }
