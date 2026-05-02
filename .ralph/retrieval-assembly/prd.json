@@ -1,0 +1,22 @@
+{
+  "title": "Task 5 retrieval assembly boundary",
+  "branchName": "ralph/retrieval-assembly",
+  "checks": [
+    "pnpm type-lint",
+    "pnpm exec vitest run tests/interface.test.ts tests/serialization.test.ts",
+    "pnpm exec vitest run tests/engine-behavior.test.ts -t \"search|query|context|source|ranked|bundle|references|graph-aware\"",
+    "pnpm exec vitest run tests/engine-behavior.test.ts -t \"query surface|auto query|symbol source|context bundles|ranked query|references\"",
+    "pnpm test:package-bin",
+    "pnpm check:version-bump"
+  ],
+  "stories": [
+    {
+      "id": "TASK-5",
+      "title": "Extract retrieval internals",
+      "priority": "high",
+      "status": "completed",
+      "passes": true,
+      "notes": "Implement Task 5 from specs/implementation/src-architecture-refactor-plan.md. Create src/retrieval.ts and move retrieval internals out of src/storage.ts: symbol and text search scoring, dependency/importer/reference row picking, text-match assembly, ranked seed resolution, context bundle item construction, and queryCode discover/source/assemble helpers that do not own storage initialization. Keep exported functions in src/storage.ts as compatibility wrappers until retrieval module has stable parameter types. Preserve public contracts, CLI JSON output, MCP tool behavior, and src/index.ts exports. If a behavior bug appears, stop and use systematic debugging. Before committing, bump package.json if pnpm check:version-bump requires it. Commit message: Extract retrieval assembly helpers."
+    }
+  ]
+}
