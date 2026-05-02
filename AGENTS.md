@@ -10,6 +10,8 @@ referenced `zyncbase/specs` setup:
 - `specs/implementation/` for internal implementation specs and plans
 - `specs/templates/` for reusable authoring templates
 
+For general agent tasks, use the repo-local commands in `.agents/commands/` and shared guidance in `.agents/references/`.
+
 Before creating or changing specs, use the repo-local skills in `.agents/skills/`:
 
 - `spec-authoring`
@@ -17,6 +19,8 @@ Before creating or changing specs, use the repo-local skills in `.agents/skills/
 - `implementation-plan-authoring`
 - `spec-maintenance`
 - `release-decision`
+
+Keep durable policy in `.agents/rules/`.
 
 Keep user-facing setup docs in `README.md`, release workflow in `docs/release.md`,
 and performance workflow in `docs/performance.md`.

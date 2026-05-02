@@ -2,20 +2,91 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the MCP query surface with explicit retrieval tools, remove
-`query_code`, ship a strict response envelope for all public MCP calls, and remove
-cache behavior from MCP v1.
+**Goal:** Replace MCP v1 from `query_code`-first workflows to explicit retrieval tools, enforce a strict response envelope across all MCP calls, and remove MCP cache behavior. The resulting tool surface must preserve function without implicit orchestration.
 
-**Architecture:** Keep MCP as a thin executor layer over existing `src/storage.ts`
-library functions, but change `src/mcp-contract.ts` and `src/mcp.ts` so all tool
-registration, dispatch, and responses follow a v1 contract. MCP-facing cache
-paths are removed in this slice and cache reintroduction is deferred to post-1.0.
+**Architecture:** Keep MCP as a thin dispatcher around the existing engine in `src/index.ts` and schema/validator layers in `src/mcp-contract.ts` + `src/validation.ts`. MCP remains a transport boundary only: tool registrations, strict argument schemas, and standardized dispatch responses are enforced here while engine internals retain business logic.
 
 **Tech Stack:** TypeScript, Node 24, `@modelcontextprotocol/sdk`, Zod, Vitest.
 
----
+## Phase A: Tree-sitter-only parser cutover
 
-## Task 1: Freeze contract shape and baseline current behavior
+**Files:**
+- Modify: `src/parser.ts`
+- Modify: `src/types.ts` (if parser backend literal types are exposed)
+- Modify: `package.json`
+- Modify: `pnpm-lock.yaml`
+- Modify: `specs/raw/astrograph_jcodemunch_agent_spec.md`
+- Modify: `specs/architecture/adrs.md`
+
+- [ ] **Step 1: Record the tree-sitter-only decision**
+
+Update `specs/raw/astrograph_jcodemunch_agent_spec.md` and
+`specs/architecture/adrs.md` with:
+- parser execution is tree-sitter-only for this hard-switch;
+- OXC is removed from active execution and dependencies in this slice;
+- language coverage is prioritized over parser speed until v1 stabilizes;
+- OXC can be reconsidered only in a later ADR after the MCP v1 contract is stable.
+
+Expected:
+- There is one documented parser decision.
+- No spec text presents hybrid parsing as an available implementation path for this plan.
+
+- [ ] **Step 2: Establish current parser baseline before removal**
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec node -e "const p=require('./package.json'); console.log({parserDeps:Object.fromEntries(Object.entries(p.dependencies ?? {}).filter(([k])=>['oxc-parser','oxc-resolver','tree-sitter','tree-sitter-javascript','tree-sitter-typescript'].includes(k)))})"
+```
+
+Expected:
+- Current dependencies are visible before removal.
+- Baseline command exits `0`.
+
+- [ ] **Step 3: Remove OXC parser execution**
+
+In `src/parser.ts`:
+- remove OXC imports and OXC parsing code;
+- make `parseSourceFile` call the tree-sitter parser path directly;
+- remove recovery fields that only describe OXC fallback, or normalize them to
+  tree-sitter-only values if public types/tests still require them;
+- keep chunked tree-sitter recovery for large or recoverable parse failures.
+
+Expected:
+- There is no active OXC parser execution path.
+- Tree-sitter remains the only parser backend used by indexing.
+
+- [ ] **Step 4: Remove OXC parser dependency**
+
+Update dependency metadata:
+- remove `oxc-parser` from `package.json` if unused after parser cutover;
+- keep `oxc-resolver` only if import resolution still uses it outside parser code;
+- update `pnpm-lock.yaml`.
+
+Expected:
+- No unused parser package remains.
+- Import resolution dependencies are not removed unless source search confirms they are unused.
+
+- [ ] **Step 5: Add tree-sitter regression coverage**
+
+Add or update tests to assert:
+- parser backend metadata reports tree-sitter-only behavior;
+- representative TS/JS/TSX/JSX fixtures still produce deterministic symbols;
+- symbol drift caused by the parser cutover is reviewed and accepted in test snapshots or fixture assertions.
+
+Run:
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/engine-contract.test.ts tests/engine-behavior.test.ts
+```
+
+Expected:
+- Tests pass with tree-sitter as the only parser backend.
+- Any accepted fixture changes are explicit in the test diff.
+
+## Task 1: Lock v1 contract and baseline behavior (docs first)
 
 **Files:**
 - Modify: `specs/raw/astrograph_jcodemunch_agent_spec.md`
@@ -24,7 +95,7 @@ paths are removed in this slice and cache reintroduction is deferred to post-1.0
 - Modify: `specs/implementation/README.md`
 - Modify: `specs/README.md`
 
-- [ ] **Step 1: Confirm current baseline in docs and source**
+- [ ] **Step 1: Baseline current behavior in tests and docs**
 
 Run:
 
@@ -35,143 +106,198 @@ pnpm exec vitest run tests/engine-contract.test.ts
 ```
 
 Expected:
-- All checks pass.
-- Record baseline for `query_code` behavior, then remove it in the v1 cut.
+- All commands pass.
+- Baseline includes current behavior of `query_code`, readiness output, and current tool registry shape.
 
-- [ ] **Step 2: Lock decisions in docs**
+- [ ] **Step 2: Lock explicit v1 contract in docs**
 
-Apply these decisions in spec/docs:
-- `query_code` removed from MCP surface.
-- v1 tools: `search_symbols`, `get_symbol_source`, `get_context_bundle`,
-  `get_ranked_context`.
-- Shared envelope: `ok/data/meta` with `error` on failure.
-- Response/tool metadata versioning: `toolVersion: "1"` and registration `version: "1"`.
-- No cache introduction or cache-related tools/behavior in v1.
+Make and record all decisions:
+- MCP v1 removes `query_code` from tool surface.
+- New MCP v1 tools: `search_symbols`, `get_symbol_source`, `get_context_bundle`, `get_ranked_context`.
+- Envelope is mandatory for all MCP tool calls: `ok`, `data`, `meta`, and optional `error` on failure.
+- Registration metadata must include tool contract metadata (`toolVersion: "1"`).
+- MCP cache behavior is removed from MCP v1; any future cache design requires a separate plan.
 
 Expected:
-- `specs/architecture/adrs.md` includes ADR-003.
-- `specs/api-design/mcp-tools.md` contains exact envelope schema.
-- `specs/raw/astrograph_jcodemunch_agent_spec.md` has explicit hard-switch constraints.
+- `specs/architecture/adrs.md` includes ADR-003 with the tree-sitter-only parser decision linked to Task A.
+- `specs/api-design/mcp-tools.md` has exact request/response envelopes for each new tool.
+- `specs/raw/astrograph_jcodemunch_agent_spec.md` states that OXC is removed from active parser execution for the v1 hard-switch.
 
-## Task 2: Remove `query_code` tool and add v1 tool registry entries
+## Task 2: Remove `query_code` and add explicit MCP tool registrations
 
 **Files:**
 - Modify: `src/mcp-contract.ts`
-- Modify: `src/validation.ts` (cleanup MCP-facing `query_code` validation if no longer used by MCP tests/dispatch)
-- Modify: `src/types.ts` (if new tool-level response metadata types are needed)
+- Modify: `src/validation.ts` (remove/retire MCP-only `query_code` branches)
+- Modify: `src/language-registry.ts` (if tool-list snapshots used)
+- Modify: `src/config.ts` (tool-list defaults/profile mapping)
+- Modify: `src/types.ts` (MCP tool union/types)
 
-- [ ] **Step 1: Replace MCP tool list**
+- [ ] **Step 1: Update MCP tool definitions**
 
 In `MCP_TOOL_DEFINITIONS`:
-- remove `query_code`.
-- add `search_symbols`, `get_symbol_source`, `get_context_bundle`,
-  `get_ranked_context` with strict zod schemas.
-- set each definition registration metadata `version: "1"` (or equivalent contract field
-  on each tool definition).
-- route `search_symbols` to `engine.searchSymbols`, `get_symbol_source` to
-  `engine.getSymbolSource`, and bundle/retrieve tools to `getContextBundle` and
-  `getRankedContext`.
+- Remove `query_code` tool definition.
+- Add strict definitions with explicit per-tool schemas for:
+  - `search_symbols`
+  - `get_symbol_source`
+  - `get_context_bundle`
+  - `get_ranked_context`
+- Each tool must map to direct engine methods already present in `src/index.ts`.
+- Each definition is tagged with version metadata consumed by contract tests.
 
 Expected:
-- Tool name list no longer includes `query_code`.
-- New tools are discoverable via `MCP_TOOL_NAMES`.
-- Update path includes full local state refresh (`.astrograph` delete/recreate) on hard-switch migration.
+- `MCP_TOOL_NAMES` no longer includes `query_code`.
+- New tool names are discoverable and typed.
 
-- [ ] **Step 2: Preserve query-code behavior outside MCP (optional)**
+- [ ] **Step 2: Preserve non-MCP `queryCode` API where required**
 
-Keep `queryCode` exported from `src/index.ts` and underlying library for internal or
-CLI usage; do not expose query/session cache pathways through MCP in this slice.
+If CLI or SDK still depends on non-MCP `queryCode`, keep it exported from `src/index.ts` but do not expose MCP path.
 
 Expected:
-- No break in non-MCP public API for this task.
+- Non-MCP callers keep behavior.
+- MCP no longer routes through `query_code`.
 
-## Task 3: Enforce strict v1 envelope and error model
+- [ ] **Step 3: Align tool profile and install UX**
+
+Update install/tool selection docs and defaults:
+- `src/scripts/install.ts` profile modes and help text no longer treat `query_code` as default required path for MCP.
+- If needed, document recommended tool profiles: full/bare/explicit.
+
+Expected:
+- User-facing installation docs and defaults mirror tool cutover.
+- No MCP-facing guidance uses `query_code` as mandatory first step.
+
+## Task 3: Enforce strict v1 envelopes and normalized errors
 
 **Files:**
 - Modify: `src/mcp.ts`
-- Modify: `src/index.ts` (if exporting envelope types)
-- Add: tests in `tests/interface.test.ts`, `tests/engine-contract.test.ts`
+- Modify: `src/mcp-contract.ts`
+- Add/Modify: tests in `tests/interface.test.ts`, `tests/engine-contract.test.ts`
 
-- [ ] **Step 1: Add common envelope types and helpers**
+- [ ] **Step 1: Introduce strict response envelopes**
 
-Introduce strict v1 wrappers in MCP dispatch path:
+Define and use:
 
-- `type McpResponseEnvelope<T> = { ok: true; data: T; meta: { toolVersion: "1"; tokenBudgetUsed: number | null; dataFreshness: "fresh"|"stale"|"unknown"; warnings?: string[] } }`
-- `type McpErrorEnvelope = { ok: false; data: null; error: { code: string; message: string; details?: Record<string, unknown> }; meta: { toolVersion: "1"; tokenBudgetUsed: null; dataFreshness: "unknown" } }`
+- `McpResponseEnvelope<T> = { ok: true; data: T; meta: { toolVersion: "1"; tokenBudgetUsed: number | null; dataFreshness: "fresh" | "stale" | "unknown"; warnings?: string[] } }`
+- `McpErrorEnvelope = { ok: false; data: null; error: { code: string; message: string; details?: Record<string, unknown> }; meta: { toolVersion: "1"; tokenBudgetUsed: null; dataFreshness: "unknown" } }`
 
-Update `dispatchTool` and `createMcpServer` registration to always return envelopes.
-
-Expected:
-- Every MCP tool call returns one envelope shape.
-- thrown exceptions are normalized into `ok: false` responses.
-
-- [ ] **Step 2: Add tool token budget and freshness metadata into responses**
-
-- `tokenBudgetUsed` should be computed from existing token estimate logic.
-- `dataFreshness` follows existing freshness/staleness signals from diagnostics-like
-  result metadata.
+Update `dispatchTool` and MCP tool registration to always return one of the two envelopes.
 
 Expected:
-- Clients can read one common response shape for routing/scheduling logic.
+- On success, every call returns `ok: true` and metadata.
+- On throw, callers receive `ok: false` with normalized error code/message.
 
-- [ ] **Step 3: Update interface tests**
+- [ ] **Step 2: Add `dataFreshness` and token budget semantics**
 
-Replace MCP interface expectations:
-- assert new tool registration list includes `search_symbols`, `get_symbol_source`,
-  `get_context_bundle`, `get_ranked_context`.
-- assert `query_code` is not listed.
-- assert new envelope shape (`ok`, `meta`, `error`) and metadata presence.
+Set freshness from existing metadata or explicit defaults.
+Preserve current estimate values but move them into envelope metadata so callers can budget token use.
 
 Expected:
-- Tests enforce schema conformance and hard-switch behavior.
+- All successful responses include non-null `dataFreshness` and `tokenBudgetUsed` when available.
+- Failures set `dataFreshness: "unknown"`, `tokenBudgetUsed: null`.
 
-## Task 4: Final verification and cutover proof
+- [ ] **Step 3: Add strict schema guards and parser metadata**
+
+For `search_symbols`/`get_context_bundle`/`get_ranked_context`, assert:
+- required arguments are present and typed
+- engine outputs are runtime-validated for version contract
+- parser metadata, when exposed, reports tree-sitter-only execution
+- response metadata includes `toolVersion: "1"`
+
+Expected:
+- No untyped `any` escape path remains in MCP dispatch.
+
+## Task 4: Tests and interface lock-in
 
 **Files:**
-- `tests/interface.test.ts`
-- `tests/engine-contract.test.ts`
+- Modify: `tests/interface.test.ts`
+- Modify: `tests/engine-contract.test.ts`
+- Modify: `tests/engine-behavior.test.ts`
 
-- [ ] **Step 1: Run focused verification**
+- [ ] **Step 1: Replace MCP interface assertions**
+
+Update interface tests to assert:
+- registry does not include `query_code`
+- new tools are present
+- new envelope shape for both success and error paths
+- token budget + freshness metadata exists
+- `query_code` references are removed from MCP contract assertions
+
+Expected:
+- Explicit coverage for the four v1 tools in happy-path and argument-validation paths.
+
+- [ ] **Step 2: Add tree-sitter parser regression tests**
+
+- Add/extend tests to confirm tree-sitter-only parsing produces deterministic symbol IDs for selected fixtures.
+- Review and accept any symbol snapshot changes caused by removing OXC execution.
+
+Expected:
+- Parser behavior remains deterministic with tree-sitter-only execution.
+
+- [ ] **Step 3: Run targeted behavioral verification**
 
 ```bash
 pnpm type-lint
 pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
-pnpm exec vitest run tests/engine-behavior.test.ts -t "readiness|project status|diagnostics"
+pnpm exec vitest run tests/engine-behavior.test.ts -t "readiness|diagnostics|project status|deepening"
 ```
 
 Expected:
 - All target tests pass.
-- No MCP calls to `query_code` remain in interface flows.
+- No MCP path invokes `query_code`.
+- Parser metadata assertions reflect tree-sitter-only execution.
 
-- [ ] **Step 2: Release-gate and commit**
+## Task 5: Release hardening and final rollout checks
+
+**Files:**
+- `specs/implementation/mcp-v1-hard-switch-plan.md`
+- `specs/raw/astrograph_jcodemunch_agent_spec.md`
+- `specs/architecture/adrs.md`
+- `src/mcp.ts`, `src/mcp-contract.ts`, `src/validation.ts`, `src/index.ts`, `src/types.ts`, `src/config.ts`, `src/language-registry.ts`
+- `tests/interface.test.ts`, `tests/engine-contract.test.ts`, `tests/engine-behavior.test.ts`
+
+- [ ] **Step 1: Run required final checks**
+
+```bash
+pnpm type-lint
+pnpm exec vitest run tests/interface.test.ts tests/engine-contract.test.ts
+pnpm exec vitest run tests/engine-behavior.test.ts -t "readiness|project status|diagnostics|deepening"
+```
+
+Expected:
+- All checks pass.
+- Tree-sitter-only parser cutover and MCP contract decisions are implemented exactly.
+
+- [ ] **Step 2: Version policy + commit checkpoint**
 
 Run:
 
 ```bash
-git add \
-  src/mcp.ts \
-  src/mcp-contract.ts \
-  src/validation.ts \
-  src/index.ts \
-  src/types.ts \
-  tests/interface.test.ts \
-  tests/engine-contract.test.ts \
-  specs/raw/astrograph_jcodemunch_agent_spec.md \
-  specs/architecture/adrs.md \
-  specs/api-design/mcp-tools.md \
-  specs/implementation/README.md \
-  specs/README.md
+git add src/parser.ts src/mcp.ts src/mcp-contract.ts src/validation.ts src/index.ts src/types.ts src/config.ts src/language-registry.ts src/scripts/install.ts package.json pnpm-lock.yaml tests/interface.test.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/mcp-v1-hard-switch-plan.md specs/raw/astrograph_jcodemunch_agent_spec.md specs/architecture/adrs.md specs/api-design/mcp-tools.md specs/implementation/README.md specs/README.md
 pnpm check:version-bump
-git commit -m "feat: hard-switch MCP to v1 strict retrieval tools"
+git commit -m "feat: hard-switch mcp to strict v1 retrieval tools"
 ```
 
 Expected:
 - `pnpm check:version-bump` passes.
-- Commit includes both implementation and contract updates.
+- Commit message reflects hard-switch milestone.
 
-## Rollout Checks
+## Rollout Checks (post-merge verification)
 
-- No query/session/result cache behavior remains in MCP v1.
-- `query_code` absent from MCP tool surface.
-- All v1 MCP tools return strict envelope with `meta.toolVersion = "1"` and registration
-  metadata versioning.
+- `query_code` absent from MCP tool registration and runtime call-path assertions.
+- All MCP calls return envelope response shape (`ok`, `meta`, optional `error`).
+- Parser decision is documented and implemented as tree-sitter-only.
+- OXC is not present in active parser execution and may only return through a later ADR.
+- MCP v1 does not include cache behavior.
+- No broadening of MCP intent surface beyond explicit tools.
+- No silent behavior drift in install guidance and docs.
+
+## Reviewer Checklist
+
+- [ ] `query_code` removed from all MCP-facing docs and `MCP_TOOL_DEFINITIONS`.
+- [ ] New tool schemas use strict input validation and include version metadata.
+- [ ] Dispatch always returns a strict envelope.
+- [ ] Error responses are normalized and never raw thrown strings.
+- [ ] Token metadata and freshness metadata are present in all successful responses.
+- [ ] Tree-sitter-only parser decision is explicitly recorded and tested.
+- [ ] Targeted and contract tests pass before merge.
+- [ ] Version policy check passed before commit.
