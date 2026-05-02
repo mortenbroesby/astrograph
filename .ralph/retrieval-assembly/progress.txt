@@ -1,0 +1,9 @@
+## Codebase Patterns
+- Add only reusable patterns here.
+
+## Run Log
+- 2026-05-02 TASK-5 completed: extracted retrieval/search/query/context assembly internals into `src/retrieval.ts` while keeping public `src/storage.ts` wrappers.
+  Files changed: `src/retrieval.ts`, `src/storage.ts`, `.ralph/retrieval-assembly/prd.json`, `.ralph/retrieval-assembly/progress.txt`.
+  Checks run: `pnpm type-lint`; `pnpm exec vitest run tests/interface.test.ts tests/serialization.test.ts`; `pnpm exec vitest run tests/engine-behavior.test.ts -t "search|query|context|source|ranked|bundle|references|graph-aware"`; `pnpm exec vitest run tests/engine-behavior.test.ts -t "query surface|auto query|symbol source|context bundles|ranked query|references"`; `pnpm run build`; `pnpm test:package-bin`; `pnpm check:version-bump`.
+  Gotchas: interface/package-bin checks require a fresh `dist/` build even though `dist/` remains ignored; no package version bump was required by `pnpm check:version-bump`.
+  Next step: continue with TASK-6 diagnostics/doctor extraction from the architecture plan.
