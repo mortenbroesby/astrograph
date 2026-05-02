@@ -40,7 +40,6 @@ triggers, dependency caching, PR concurrency cancellation, and the split between
 fast required checks and expensive optional checks unless the task explicitly
 sets `ALLOW_GITHUB_ACTIONS_COST_INCREASE=true`.
 
-<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->
 ## Code Exploration Policy
 
 Prefer Astrograph MCP tools for code exploration before falling back to raw file reads or shell search.
@@ -50,4 +49,3 @@ Prefer Astrograph MCP tools for code exploration before falling back to raw file
 - Before searching broadly, use `query_code`, `find_files`, or `search_text`.
 - Before exploring structure, use `get_file_tree` or `get_repo_outline`.
 - Use raw file reads or shell search only when Astrograph cannot answer the question or when debugging Astrograph itself.
-<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->
