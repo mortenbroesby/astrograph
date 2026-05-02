@@ -517,7 +517,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"type": "stdio"');
   });
 
-  it("defaults standalone setup to Codex barebones with an Astrograph config", async () => {
+  it("defaults standalone setup to Codex full mode with an Astrograph config", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-defaults-"));
     tempDirs.push(repoRoot);
 
@@ -534,12 +534,10 @@ describe("ai-context-engine contract", () => {
     }
 
     expect(result.ide).toBe("codex");
-    expect(result.mode).toBe("barebones");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
-    expect(result.engineConfigPath).toContain("astrograph.config.json");
-    expect(result.engineConfigPreview.performance.exclude).toContain("node_modules/**");
-    expect(result.configPreview).toContain('enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]');
-    expect(result.configPreview).not.toContain("index_folder");
+    expect(result.engineConfigPath).toContain("astrograph.config.ts");
+    expect(result.engineConfigPreview).toContain("node_modules/**");
+    expect(result.configPreview).toContain("index_folder");
     expect(result.agentsPolicyPath).toContain("AGENTS.md");
     expect(result.agentsPolicyUpdated).toBe(false);
     expect(result.agentsPolicyReason).toBe("not requested");
@@ -601,8 +599,8 @@ describe("ai-context-engine contract", () => {
     expect(result.packageDependencyPreview).toBeUndefined();
   });
 
-  it("writes a filtered Codex toolset for barebones install", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-barebones-"));
+  it("writes all tools in Codex config for full install", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-codex-full-"));
     tempDirs.push(repoRoot);
 
     await import("node:child_process").then(({ execFileSync }) => {
@@ -613,16 +611,16 @@ describe("ai-context-engine contract", () => {
     });
 
     const result = await setupForCodex(repoRoot, {
-      mode: "barebones",
       dryRun: true,
     });
 
-    expect(result.configPreview).toContain('enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]');
-    expect(result.configPreview).not.toContain("index_folder");
+    expect(result.configPreview).toContain("index_folder");
+    expect(result.configPreview).toContain("query_code");
+    expect(result.configPreview).toContain("diagnostics");
   });
 
-  it("writes a scoped Copilot CLI toolset for some install", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-some-"));
+  it("writes all tools in Copilot CLI config for full install", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-full-"));
     tempDirs.push(repoRoot);
 
     await import("node:child_process").then(({ execFileSync }) => {
@@ -634,14 +632,13 @@ describe("ai-context-engine contract", () => {
 
     const result = await setupForIde(repoRoot, {
       ide: "copilot-cli",
-      mode: "some",
       dryRun: true,
     });
 
     expect(result.configPreview).toContain('"tools": [');
     expect(result.configPreview).toContain('"query_code"');
     expect(result.configPreview).toContain('"suggest_initial_queries"');
-    expect(result.configPreview).not.toContain('"diagnostics"');
+    expect(result.configPreview).toContain('"diagnostics"');
   });
 
   it("supports installing all requested IDEs in one run", async () => {
@@ -657,7 +654,6 @@ describe("ai-context-engine contract", () => {
 
     const result = await setupForAllIdes(repoRoot, {
       ides: ["all"],
-      mode: "full",
       dryRun: true,
     });
     if (!Array.isArray(result)) {

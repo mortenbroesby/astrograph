@@ -21,6 +21,7 @@ export {
   ENGINE_CONFIG_FILENAME,
   ENGINE_TOOLS,
   ENGINE_STORAGE_DIRNAME,
+  defineConfig,
   isSymbolKind,
   isSummaryStrategy,
   loadRepoEngineConfig,

@@ -40,11 +40,8 @@ const MCP_TOOLS = [
   "query_code",
   "diagnostics",
 ] as const;
-const INSTALL_MODES = ["barebones", "some", "full"] as const;
-const DEFAULT_INSTALL_MODE: InstallMode = "barebones";
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 
-type InstallMode = (typeof INSTALL_MODES)[number];
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
 type InstalledObject = Record<string, unknown>;
@@ -63,7 +60,6 @@ interface ParsedArgs {
   repo: string;
   dryRun: boolean;
   nonInteractive: boolean;
-  mode: InstallMode | string;
   agentsPolicy: boolean;
   hasExplicitArgs: boolean;
   showHelp: boolean;
@@ -76,28 +72,6 @@ interface PackageJsonFile {
   [key: string]: unknown;
 }
 
-interface EngineConfigFile {
-  summaryStrategy: "doc-comments-first";
-  observability: {
-    enabled: false;
-  };
-  performance: {
-    exclude: string[];
-    workerPool: {
-      enabled: false;
-    };
-  };
-  watch: {
-    backend: "auto";
-    debounceMs: number;
-  };
-  limits: {
-    maxFilesDiscovered: number;
-    maxFileBytes: number;
-    maxSymbolsPerFile: number;
-  };
-}
-
 interface PackageDependencyResult {
   packageDependencyUpdated: boolean;
   packageDependencyReason: string;
@@ -106,14 +80,13 @@ interface PackageDependencyResult {
 
 interface SetupResult {
   ide: InstallIde;
-  mode: InstallMode;
   repoRoot: string;
   configPath: string;
   engineConfigPath: string;
   packageName: string;
   packageVersion: string;
   configPreview: string;
-  engineConfigPreview: EngineConfigFile;
+  engineConfigPreview: string;
   localDependencyDetected: boolean;
   packageDependencyUpdated: boolean;
   packageDependencyReason: string;
@@ -126,7 +99,6 @@ interface SetupResult {
 
 interface CliOptions {
   ide?: string;
-  mode?: string;
   dryRun?: boolean;
   repo?: string;
   yes?: boolean;
@@ -146,13 +118,11 @@ interface ManagedConfig {
 
 interface SetupForIdeOptions {
   ide?: InstallIde;
-  mode?: InstallMode;
   dryRun?: boolean;
 }
 
 interface SetupForAllOptions {
   ides?: RequestedIde[];
-  mode?: InstallMode | string;
   dryRun?: boolean;
   agentsPolicy?: boolean;
 }
@@ -163,22 +133,6 @@ interface AgentsPolicyResult {
   agentsPolicyReason: string;
   agentsPolicyPreview?: string;
 }
-
-const MCP_TOOL_PROFILE: Record<InstallMode, readonly string[]> = {
-  barebones: [
-    "query_code",
-    "get_file_tree",
-    "get_file_outline",
-  ],
-  some: [
-    "query_code",
-    "get_file_tree",
-    "get_file_outline",
-    "get_repo_outline",
-    "suggest_initial_queries",
-  ],
-  full: MCP_TOOLS,
-};
 
 function parseComparableVersion(rawValue: unknown): ParsedSemVer | null {
   if (typeof rawValue !== "string") {
@@ -311,26 +265,21 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx @mortenbroesby/astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mode barebones|some|full] [--repo /abs/repo] [--dry-run]",
+      "  npx @mortenbroesby/astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
       "  - IDE: Codex",
-      "  - profile: barebones",
-      "  - writes: astrograph.config.json and managed MCP config",
+      "  - writes: astrograph.config.ts and managed MCP config",
       "  - optional: --agents adds an Astrograph code exploration policy to AGENTS.md",
       "  - ensures: @mortenbroesby/astrograph is set to latest in package.json when package.json exists",
       "",
       "Examples:",
       "  npx @mortenbroesby/astrograph init",
       "  npx @mortenbroesby/astrograph init --yes",
-      "  npx @mortenbroesby/astrograph init --yes --ide all --mode some",
+      "  npx @mortenbroesby/astrograph init --yes --ide all",
     ].join("\n") + "\n",
   );
-}
-
-function isInstallMode(value: string): value is InstallMode {
-  return (INSTALL_MODES as readonly string[]).includes(value);
 }
 
 function isInstallIde(value: string): boolean {
@@ -344,7 +293,6 @@ function parseArgs(argv: string[]): ParsedArgs {
       repo: process.cwd(),
       dryRun: false,
       nonInteractive: false,
-      mode: DEFAULT_INSTALL_MODE,
       agentsPolicy: false,
       hasExplicitArgs: false,
       showHelp: true,
@@ -357,7 +305,6 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--dry-run",
     "--repo",
     "--ide",
-    "--mode",
     "--help",
     "-h",
   ]);
@@ -391,12 +338,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--agents", "Add Astrograph code exploration policy to AGENTS.md."))
     .addOption(new Option("--dry-run", "Preview changes only."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
-    .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined))
-    .addOption(
-      new Option("--mode <mode>", "Setup profile.")
-        .choices([...INSTALL_MODES])
-        .default(DEFAULT_INSTALL_MODE),
-    );
+    .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined));
 
   let options: CliOptions;
   try {
@@ -410,7 +352,6 @@ function parseArgs(argv: string[]): ParsedArgs {
         repo: process.cwd(),
         dryRun: false,
         nonInteractive: false,
-        mode: DEFAULT_INSTALL_MODE,
         agentsPolicy: false,
         hasExplicitArgs: false,
         showHelp: true,
@@ -425,7 +366,6 @@ function parseArgs(argv: string[]): ParsedArgs {
       repo: process.cwd(),
       dryRun: false,
       nonInteractive: false,
-      mode: DEFAULT_INSTALL_MODE,
       agentsPolicy: false,
       hasExplicitArgs: false,
       showHelp: true,
@@ -442,17 +382,13 @@ function parseArgs(argv: string[]): ParsedArgs {
     repo: options.repo ?? process.cwd(),
     dryRun: Boolean(options.dryRun),
     nonInteractive: Boolean(options.yes),
-    mode: typeof options.mode === "string"
-      ? options.mode
-      : DEFAULT_INSTALL_MODE,
     agentsPolicy: Boolean(options.agents),
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("agents") ||
       hasFlag("dry-run") ||
       hasFlag("repo") ||
-      hasFlag("ide") ||
-      hasFlag("mode"),
+      hasFlag("ide"),
     showHelp: false,
   };
 }
@@ -488,7 +424,6 @@ function parseIdeSelections(raw: string | undefined): RequestedIde[] {
 
 async function promptForSetupArgs(): Promise<{
   ides: RequestedIde[];
-  mode: InstallMode;
   repo: string;
   dryRun: boolean;
   agentsPolicy: boolean;
@@ -515,58 +450,15 @@ async function promptForSetupArgs(): Promise<{
   const ide = await select({
     message: "Where should Astrograph be added?",
     options: [
-      {
-        value: "codex",
-        label: "Codex",
-        hint: "Recommended. Writes .codex/config.toml",
-      },
-      {
-        value: "copilot",
-        label: "GitHub Copilot",
-        hint: "Writes .vscode/mcp.json",
-      },
-      {
-        value: "copilot-cli",
-        label: "GitHub Copilot CLI",
-        hint: "Writes .mcp.json",
-      },
-      {
-        value: "all",
-        label: "All supported clients",
-        hint: "Codex, Copilot, and Copilot CLI",
-      },
+      { value: "codex", label: "Codex", hint: "Writes .codex/config.toml" },
+      { value: "copilot", label: "GitHub Copilot", hint: "Writes .vscode/mcp.json" },
+      { value: "copilot-cli", label: "GitHub Copilot CLI", hint: "Writes .mcp.json" },
+      { value: "all", label: "All supported clients", hint: "Codex, Copilot, and Copilot CLI" },
     ],
     initialValue: "codex",
   });
 
   if (isCancel(ide) || typeof ide !== "string") {
-    outro("Setup cancelled.");
-    process.exit(0);
-  }
-
-  const mode = await select({
-    message: "How much should Astrograph expose?",
-    options: [
-      {
-        value: "barebones",
-        label: "Barebones",
-        hint: "Recommended. Query + file discovery only.",
-      },
-      {
-        value: "some",
-        label: "Some",
-        hint: "Adds repo outline and suggested queries.",
-      },
-      {
-        value: "full",
-        label: "Full (batteries included)",
-        hint: "All MCP tools, including diagnostics and index management.",
-      },
-    ],
-    initialValue: DEFAULT_INSTALL_MODE,
-  });
-
-  if (isCancel(mode) || !isInstallMode(typeof mode === "string" ? mode : "")) {
     outro("Setup cancelled.");
     process.exit(0);
   }
@@ -585,7 +477,6 @@ async function promptForSetupArgs(): Promise<{
 
   return {
     ides: [ide as RequestedIde],
-    mode,
     repo: resolvedRepo,
     dryRun: false,
     agentsPolicy: Boolean(agentsPolicy),
@@ -727,15 +618,6 @@ function validateIdes(args: { ides: RequestedIde[] }): { ides: InstallIde[] } {
   return { ides: args.ides as InstallIde[] };
 }
 
-function validateMode(args: { mode: InstallMode | string }): { mode: InstallMode } {
-  if (typeof args.mode !== "string" || !isInstallMode(args.mode)) {
-    throw new Error(
-      "Astrograph init supports --mode barebones, --mode some, and --mode full",
-    );
-  }
-  return { mode: args.mode };
-}
-
 function resolveRepoRoot(repoRoot: string): string {
   const absoluteRepoRoot = path.resolve(repoRoot);
   try {
@@ -779,43 +661,30 @@ function resolveManagedInvocation(): ManagedInvocation {
   };
 }
 
-function resolveToolSet(mode: InstallMode = DEFAULT_INSTALL_MODE): readonly string[] {
-  return MCP_TOOL_PROFILE[mode] ?? MCP_TOOL_PROFILE.full;
+function createMinimalTsConfig(): string {
+  const excludeLines = [
+    "node_modules/**",
+    "dist/**",
+    "coverage/**",
+    ".git/**",
+  ].map((p) => `    "${p}",`).join("\n");
+  return [
+    `import { defineConfig } from "${PACKAGE_NAME}";`,
+    "",
+    "export default defineConfig({",
+    "  performance: {",
+    "    exclude: [",
+    excludeLines,
+    "    ],",
+    "  },",
+    "});",
+    "",
+  ].join("\n");
 }
 
-function createBarebonesEngineConfig(): EngineConfigFile {
-  return {
-    summaryStrategy: "doc-comments-first",
-    observability: {
-      enabled: false,
-    },
-    performance: {
-      exclude: [
-        "node_modules/**",
-        "dist/**",
-        "coverage/**",
-        ".git/**",
-        ".astrograph/**",
-      ],
-      workerPool: {
-        enabled: false,
-      },
-    },
-    watch: {
-      backend: "auto",
-      debounceMs: 100,
-    },
-    limits: {
-      maxFilesDiscovered: 100_000,
-      maxFileBytes: 250_000,
-      maxSymbolsPerFile: 2_000,
-    },
-  };
-}
-
-function astrographConfigBlock(mode: InstallMode = DEFAULT_INSTALL_MODE): string {
-  const enabledTools = resolveToolSet(mode).map((tool) => `"${tool}"`).join(", ");
-  const toolApprovals = resolveToolSet(mode).map((tool) =>
+function astrographConfigBlock(): string {
+  const enabledTools = MCP_TOOLS.map((tool) => `"${tool}"`).join(", ");
+  const toolApprovals = MCP_TOOLS.map((tool) =>
     `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
   ).join("\n\n");
   const invocation = resolveManagedInvocation();
@@ -970,9 +839,8 @@ function replaceManagedServerInJson(
   ) + "\n";
 }
 
-function managedConfigForCopilot(ide: InstallIde, mode: InstallMode = DEFAULT_INSTALL_MODE): InstalledObject {
+function managedConfigForCopilot(ide: InstallIde): InstalledObject {
   const invocation = resolveManagedInvocation();
-  const toolSet = resolveToolSet(mode);
 
   if (ide === "copilot-cli") {
     return {
@@ -980,7 +848,7 @@ function managedConfigForCopilot(ide: InstallIde, mode: InstallMode = DEFAULT_IN
       command: invocation.command,
       args: invocation.args,
       cwd: ".",
-      tools: toolSet,
+      tools: MCP_TOOLS,
     };
   }
 
@@ -996,15 +864,11 @@ function resolveManagedConfig(
   ide: InstallIde,
   repoRoot: string,
   currentContents: string,
-  mode: InstallMode = DEFAULT_INSTALL_MODE,
 ): ManagedConfig {
   if (ide === "codex") {
     return {
       configPath: path.join(repoRoot, ".codex", "config.toml"),
-      nextContents: replaceManagedBlock(
-        currentContents,
-        astrographConfigBlock(mode),
-      ),
+      nextContents: replaceManagedBlock(currentContents, astrographConfigBlock()),
     };
   }
 
@@ -1019,44 +883,34 @@ function resolveManagedConfig(
       currentContents,
       configPath,
       rootKey,
-      managedConfigForCopilot(ide, mode),
+      managedConfigForCopilot(ide),
     ),
   };
 }
 
 export async function setupForIde(
   repoRoot: string,
-  {
-    ide = "codex",
-    mode = DEFAULT_INSTALL_MODE,
-    dryRun = false,
-  }: SetupForIdeOptions = {},
+  { ide = "codex", dryRun = false }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
-  const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "", mode);
-  const engineConfigPath = path.join(resolvedRepoRoot, "astrograph.config.json");
-  const engineConfigPreview = createBarebonesEngineConfig();
+  const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "");
+  const engineConfigPath = path.join(resolvedRepoRoot, "astrograph.config.ts");
+  const engineConfigPreview = createMinimalTsConfig();
   const currentContents = await readFile(configPath, "utf8").catch(() => "");
   const { configPath: finalConfigPath, nextContents } = resolveManagedConfig(
     ide,
     resolvedRepoRoot,
     currentContents,
-    mode,
   );
 
   if (!dryRun) {
     await mkdir(path.dirname(finalConfigPath), { recursive: true });
     await writeFile(finalConfigPath, nextContents, "utf8");
-    await writeFile(
-      engineConfigPath,
-      `${JSON.stringify(engineConfigPreview, null, 2)}\n`,
-      "utf8",
-    );
+    await writeFile(engineConfigPath, engineConfigPreview, "utf8");
   }
 
   return {
     ide,
-    mode,
     repoRoot: resolvedRepoRoot,
     configPath: finalConfigPath,
     engineConfigPath,
@@ -1075,22 +929,20 @@ export async function setupForIde(
 
 export async function setupForCodex(
   repoRoot: string,
-  { mode = DEFAULT_INSTALL_MODE, dryRun = false }: SetupForIdeOptions = {},
+  { dryRun = false }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
-  return setupForIde(repoRoot, { ide: "codex", mode, dryRun });
+  return setupForIde(repoRoot, { ide: "codex", dryRun });
 }
 
 export async function setupForAllIdes(
   repoRoot: string,
   {
     ides = [...DEFAULT_INSTALL_IDES],
-    mode = DEFAULT_INSTALL_MODE,
     dryRun = false,
     agentsPolicy = false,
   }: SetupForAllOptions = {},
 ): Promise<SetupResult | SetupResult[]> {
   const normalizedIdes = validateIdes({ ides }).ides;
-  const normalizedMode = validateMode({ mode }).mode;
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
   const packageDependency = await ensureAstrographDependencyInRepo(
     resolvedRepoRoot,
@@ -1104,11 +956,7 @@ export async function setupForAllIdes(
 
   const results: SetupResult[] = [];
   for (const ide of normalizedIdes) {
-    const result = await setupForIde(resolvedRepoRoot, {
-      ide,
-      mode: normalizedMode,
-      dryRun,
-    });
+    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun });
 
     results.push({
       ...result,
@@ -1136,25 +984,20 @@ async function main(): Promise<void> {
   const normalizedArgs: ParsedArgs = {
     ...parsed,
     ides: parsed.ides || [...DEFAULT_INSTALL_IDES],
-    mode: parsed.mode || DEFAULT_INSTALL_MODE,
     repo: parsed.repo || process.cwd(),
   };
 
   const args = parsed.hasExplicitArgs || parsed.nonInteractive
     ? {
-      ...validateMode(normalizedArgs),
       ...validateIdes({ ides: normalizedArgs.ides ?? [] }),
       repo: normalizedArgs.repo,
       dryRun: normalizedArgs.dryRun,
       agentsPolicy: normalizedArgs.agentsPolicy,
-      nonInteractive: normalizedArgs.nonInteractive,
-      hasExplicitArgs: normalizedArgs.hasExplicitArgs,
     }
     : await promptForSetupArgs();
 
   const result = await setupForAllIdes(args.repo, {
     ides: args.ides,
-    mode: args.mode,
     dryRun: args.dryRun,
     agentsPolicy: args.agentsPolicy,
   });
