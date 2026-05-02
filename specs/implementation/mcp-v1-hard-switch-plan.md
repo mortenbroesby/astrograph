@@ -8,16 +8,30 @@
 
 **Tech Stack:** TypeScript, Node 24, `@modelcontextprotocol/sdk`, Zod, Vitest.
 
-## Phase A: Parser strategy and package decision (preflight before hard-cut)
+## Phase A: Tree-sitter-only parser cutover
 
 **Files:**
-- Read: `package.json`
-- Create: `scripts/bench/parser-parity-check.mjs`
-- Modify: `package.json` (temporary test scripts only)
-- Modify: `src/parser.ts` (to complete tree-sitter-only execution path)
-- Update: `specs/raw/astrograph_jcodemunch_agent_spec.md` (parser mode decision log)
+- Modify: `src/parser.ts`
+- Modify: `src/types.ts` (if parser backend literal types are exposed)
+- Modify: `package.json`
+- Modify: `pnpm-lock.yaml`
+- Modify: `specs/raw/astrograph_jcodemunch_agent_spec.md`
+- Modify: `specs/architecture/adrs.md`
 
-- [ ] **Step 1: Baseline dependency posture**
+- [ ] **Step 1: Record the tree-sitter-only decision**
+
+Update `specs/raw/astrograph_jcodemunch_agent_spec.md` and
+`specs/architecture/adrs.md` with:
+- parser execution is tree-sitter-only for this hard-switch;
+- OXC is removed from active execution and dependencies in this slice;
+- language coverage is prioritized over parser speed until v1 stabilizes;
+- OXC can be reconsidered only in a later ADR after the MCP v1 contract is stable.
+
+Expected:
+- There is one documented parser decision.
+- No spec text presents hybrid parsing as an available implementation path for this plan.
+
+- [ ] **Step 2: Establish current parser baseline before removal**
 
 Run:
 
@@ -27,52 +41,50 @@ pnpm exec node -e "const p=require('./package.json'); console.log({parserDeps:Ob
 ```
 
 Expected:
-- Existing baseline remains a hybrid parser stack with `oxc` first + tree-sitter fallback.
-- No behavior change yet.
+- Current dependencies are visible before removal.
+- Baseline command exits `0`.
 
-- [ ] **Step 2: Run parser parity benchmark before implementation**
+- [ ] **Step 3: Remove OXC parser execution**
 
-Add and run a temporary one-off benchmark script:
+In `src/parser.ts`:
+- remove OXC imports and OXC parsing code;
+- make `parseSourceFile` call the tree-sitter parser path directly;
+- remove recovery fields that only describe OXC fallback, or normalize them to
+  tree-sitter-only values if public types/tests still require them;
+- keep chunked tree-sitter recovery for large or recoverable parse failures.
+
+Expected:
+- There is no active OXC parser execution path.
+- Tree-sitter remains the only parser backend used by indexing.
+
+- [ ] **Step 4: Remove OXC parser dependency**
+
+Update dependency metadata:
+- remove `oxc-parser` from `package.json` if unused after parser cutover;
+- keep `oxc-resolver` only if import resolution still uses it outside parser code;
+- update `pnpm-lock.yaml`.
+
+Expected:
+- No unused parser package remains.
+- Import resolution dependencies are not removed unless source search confirms they are unused.
+
+- [ ] **Step 5: Add tree-sitter regression coverage**
+
+Add or update tests to assert:
+- parser backend metadata reports tree-sitter-only behavior;
+- representative TS/JS/TSX/JSX fixtures still produce deterministic symbols;
+- symbol drift caused by the parser cutover is reviewed and accepted in test snapshots or fixture assertions.
+
+Run:
 
 ```bash
-pnpm exec node scripts/bench/parser-parity-check.mjs <repoRoot>
+pnpm type-lint
+pnpm exec vitest run tests/engine-contract.test.ts tests/engine-behavior.test.ts
 ```
 
-The script should produce:
-- parse success rate by parser (`oxc` vs `tree-sitter`)
-- fallback frequency (if hybrid stays)
-- symbol extraction parity for a representative corpus (`symbolId`, symbol count, missing/extra symbols)
-- latency summary p50/p95/p99
-
 Expected:
-- A decision memo is captured in `specs/raw/astrograph_jcodemunch_agent_spec.md` under Hard-switch notes.
-- If the benchmark shows high parity risk, defer any parser changes and keep hybrid.
-
-- [ ] **Step 3: Decide parser mode for v1 hard-switch**
-
-Record one of these options as explicit implementation decision:
-
-- **Option 1 (Default): Keep OXC-first + tree-sitter fallback**
-  - Minimal behavior churn; parser failure signal already implemented.
-- **Option 2: Tree-sitter-first with OXC fallback**
-  - Requires schema/behavior checks for `symbol.kind`, positions, and confidence deltas.
-- **Option 3: Hybrid removal + single parser**
-  - Requires full symbol-fidelity and cache-impact assessment plus migration note.
-- **Decision (Adopted): Option 4: Tree-sitter-only execution**
-  - Remove OXC execution from MCP hard-switch path.
-  - Keep OXC as a re-introduction target after hard-switch stability pass.
-- **Decision lock:** this decision is accepted even if symbol-count/perf shifts occur, unless a regression blocks release.
-
-Decision acceptance gate:
-- If parser decision is not `Option 4`, require explicit ADR and migration constraints in `specs/architecture/adrs.md` before touching MCP tool contracts.
-- If `Option 4` is chosen, still require one ADR entry in `specs/architecture/adrs.md`:
-  - tree-sitter-only switch rationale,
-  - temporary rollback path to OXC,
-  - symbol-level acceptance criteria.
-
-Expected:
-- The hard-switch implementation path is locked to tree-sitter-only for parser execution.
-- OXC may only be reintroduced in a follow-up ADR milestone after `v1` stabilization.
+- Tests pass with tree-sitter as the only parser backend.
+- Any accepted fixture changes are explicit in the test diff.
 
 ## Task 1: Lock v1 contract and baseline behavior (docs first)
 
@@ -104,12 +116,12 @@ Make and record all decisions:
 - New MCP v1 tools: `search_symbols`, `get_symbol_source`, `get_context_bundle`, `get_ranked_context`.
 - Envelope is mandatory for all MCP tool calls: `ok`, `data`, `meta`, and optional `error` on failure.
 - Registration metadata must include tool contract metadata (`toolVersion: "1"`).
-- MCP cache behavior is **deferred/remove from v1 scope**.
+- MCP cache behavior is removed from MCP v1; any future cache design requires a separate plan.
 
 Expected:
-- `specs/architecture/adrs.md` includes ADR-003 with parser decision gate linked to Task A.
+- `specs/architecture/adrs.md` includes ADR-003 with the tree-sitter-only parser decision linked to Task A.
 - `specs/api-design/mcp-tools.md` has exact request/response envelopes for each new tool.
-- `specs/raw/astrograph_jcodemunch_agent_spec.md` states that package choice impacts are allowed only if parity gates pass.
+- `specs/raw/astrograph_jcodemunch_agent_spec.md` states that OXC is removed from active parser execution for the v1 hard-switch.
 
 ## Task 2: Remove `query_code` and add explicit MCP tool registrations
 
@@ -183,11 +195,12 @@ Expected:
 - All successful responses include non-null `dataFreshness` and `tokenBudgetUsed` when available.
 - Failures set `dataFreshness: "unknown"`, `tokenBudgetUsed: null`.
 
-- [ ] **Step 3: Add strict schema guards and parser mode tags**
+- [ ] **Step 3: Add strict schema guards and parser metadata**
 
 For `search_symbols`/`get_context_bundle`/`get_ranked_context`, assert:
 - required arguments are present and typed
 - engine outputs are runtime-validated for version contract
+- parser metadata, when exposed, reports tree-sitter-only execution
 - response metadata includes `toolVersion: "1"`
 
 Expected:
@@ -212,13 +225,13 @@ Update interface tests to assert:
 Expected:
 - Explicit coverage for the four v1 tools in happy-path and argument-validation paths.
 
-- [ ] **Step 2: Add parser strategy regression tests**
+- [ ] **Step 2: Add tree-sitter parser regression tests**
 
-- Add/extend tests to confirm parser mode choice does not change symbol IDs unexpectedly for selected fixtures.
-- If parser choice changed from baseline in Task A, add compatibility tests in a temporary fixture scope.
+- Add/extend tests to confirm tree-sitter-only parsing produces deterministic symbol IDs for selected fixtures.
+- Review and accept any symbol snapshot changes caused by removing OXC execution.
 
 Expected:
-- Parser behavior remains deterministic under selected mode.
+- Parser behavior remains deterministic with tree-sitter-only execution.
 
 - [ ] **Step 3: Run targeted behavioral verification**
 
@@ -231,7 +244,7 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "readiness|diagnostics|pro
 Expected:
 - All target tests pass.
 - No MCP path invokes `query_code`.
-- Parser fallback/primary mode assertions pass if modified.
+- Parser metadata assertions reflect tree-sitter-only execution.
 
 ## Task 5: Release hardening and final rollout checks
 
@@ -252,14 +265,14 @@ pnpm exec vitest run tests/engine-behavior.test.ts -t "readiness|project status|
 
 Expected:
 - All checks pass.
-- Parser/contract decision from Task A is implemented exactly.
+- Tree-sitter-only parser cutover and MCP contract decisions are implemented exactly.
 
 - [ ] **Step 2: Version policy + commit checkpoint**
 
 Run:
 
 ```bash
-git add src/mcp.ts src/mcp-contract.ts src/validation.ts src/index.ts src/types.ts src/config.ts src/language-registry.ts src/scripts/install.ts tests/interface.test.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/mcp-v1-hard-switch-plan.md specs/raw/astrograph_jcodemunch_agent_spec.md specs/architecture/adrs.md specs/api-design/mcp-tools.md specs/implementation/README.md specs/README.md
+git add src/parser.ts src/mcp.ts src/mcp-contract.ts src/validation.ts src/index.ts src/types.ts src/config.ts src/language-registry.ts src/scripts/install.ts package.json pnpm-lock.yaml tests/interface.test.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/mcp-v1-hard-switch-plan.md specs/raw/astrograph_jcodemunch_agent_spec.md specs/architecture/adrs.md specs/api-design/mcp-tools.md specs/implementation/README.md specs/README.md
 pnpm check:version-bump
 git commit -m "feat: hard-switch mcp to strict v1 retrieval tools"
 ```
@@ -272,9 +285,8 @@ Expected:
 
 - `query_code` absent from MCP tool registration and runtime call-path assertions.
 - All MCP calls return envelope response shape (`ok`, `meta`, optional `error`).
-- Parser decision is documented and not silently changed:
-  - if Option 1 chosen, existing fallback semantics are preserved
-  - if Option 2/3 chosen, ADR and migration constraints are in ADR-003 and tests are updated
+- Parser decision is documented and implemented as tree-sitter-only.
+- OXC is not present in active parser execution and may only return through a later ADR.
 - MCP v1 does not include cache behavior.
 - No broadening of MCP intent surface beyond explicit tools.
 - No silent behavior drift in install guidance and docs.
@@ -286,6 +298,6 @@ Expected:
 - [ ] Dispatch always returns a strict envelope.
 - [ ] Error responses are normalized and never raw thrown strings.
 - [ ] Token metadata and freshness metadata are present in all successful responses.
-- [ ] Parser strategy decision is explicitly recorded and tested.
+- [ ] Tree-sitter-only parser decision is explicitly recorded and tested.
 - [ ] Targeted and contract tests pass before merge.
 - [ ] Version policy check passed before commit.
