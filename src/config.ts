@@ -23,7 +23,8 @@ import { SUMMARY_STRATEGIES as SUMMARY_STRATEGY_VALUES } from "./types.ts";
 export const ENGINE_STORAGE_DIRNAME = ".astrograph";
 export const ENGINE_STORAGE_VERSION = 1;
 export const ENGINE_SCHEMA_VERSION = 4;
-export const ENGINE_CONFIG_FILENAME = "astrograph.config.json";
+export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
+export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";
 export const ENGINE_DISPLAY_NAME = "@astrograph";
 export const DEFAULT_SUMMARY_STRATEGY: SummaryStrategy = "doc-comments-first";
 export const DEFAULT_OBSERVABILITY_HOST = "127.0.0.1";
@@ -278,6 +279,52 @@ function createDefaultResolvedRepoEngineConfig(
   };
 }
 
+function resolveEngineConfigFromParsed(
+  configPath: string,
+  resolvedRepoRoot: string,
+  data: RepoEngineConfig,
+  defaults: ResolvedRepoEngineConfig,
+): ResolvedRepoEngineConfig {
+  return {
+    configPath,
+    repoRoot: resolvedRepoRoot,
+    summaryStrategy: data.summaryStrategy ?? defaults.summaryStrategy,
+    storageMode: data.storageMode ?? defaults.storageMode,
+    observability: {
+      enabled: data.observability?.enabled ?? defaults.observability.enabled,
+      host: data.observability?.host ?? defaults.observability.host,
+      port: data.observability?.port ?? defaults.observability.port,
+      recentLimit: data.observability?.recentLimit ?? defaults.observability.recentLimit,
+      retentionDays: data.observability?.retentionDays ?? defaults.observability.retentionDays,
+      snapshotIntervalMs: data.observability?.snapshotIntervalMs ?? defaults.observability.snapshotIntervalMs,
+      redactSourceText: data.observability?.redactSourceText ?? defaults.observability.redactSourceText,
+    },
+    performance: {
+      include: data.performance?.include ?? defaults.performance.include,
+      exclude: data.performance?.exclude ?? defaults.performance.exclude,
+      fileProcessingConcurrency: normalizeFileProcessingConcurrency(data.performance?.fileProcessingConcurrency),
+      workerPool: {
+        enabled: data.performance?.workerPool?.enabled ?? defaults.performance.workerPool.enabled,
+        maxWorkers: normalizeWorkerPoolMaxWorkers(data.performance?.workerPool?.maxWorkers),
+      },
+    },
+    ranking: resolveRankingWeights(data.ranking),
+    watch: {
+      backend: data.watch?.backend ?? defaults.watch.backend,
+      debounceMs: data.watch?.debounceMs ?? defaults.watch.debounceMs,
+    },
+    limits: {
+      maxFilesDiscovered: data.limits?.maxFilesDiscovered ?? defaults.limits.maxFilesDiscovered,
+      maxFileBytes: data.limits?.maxFileBytes ?? defaults.limits.maxFileBytes,
+      maxSymbolsPerFile: data.limits?.maxSymbolsPerFile ?? defaults.limits.maxSymbolsPerFile,
+      maxSymbolResults: data.limits?.maxSymbolResults ?? defaults.limits.maxSymbolResults,
+      maxTextResults: data.limits?.maxTextResults ?? defaults.limits.maxTextResults,
+      maxChildProcessOutputBytes: data.limits?.maxChildProcessOutputBytes ?? defaults.limits.maxChildProcessOutputBytes,
+      maxLiveSearchMatches: data.limits?.maxLiveSearchMatches ?? defaults.limits.maxLiveSearchMatches,
+    },
+  };
+}
+
 export async function loadRepoEngineConfig(
   repoRoot: string,
   options: { repoRootResolved?: boolean } = {},
@@ -287,90 +334,99 @@ export async function loadRepoEngineConfig(
     : await resolveEngineRepoRoot(repoRoot);
   const defaults = createDefaultResolvedRepoEngineConfig(resolvedRepoRoot);
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
-  const contents = await readFile(configPath, "utf8").catch((error: unknown) => {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  });
+  const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
 
-  if (contents === null) {
+  const contents = await readFile(configPath, "utf8")
+    .catch((error: unknown) => {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    });
+
+  if (contents !== null) {
+    const parsedJson = await loadTsConfig(configPath);
+    const parsed = repoEngineConfigSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      );
+    }
+    return resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults);
+  }
+
+  const legacyContents = await readFile(legacyConfigPath, "utf8")
+    .catch((error: unknown) => {
+      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+        return null;
+      }
+      throw error;
+    });
+
+  if (legacyContents === null) {
     return defaults;
   }
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(contents);
+    parsedJson = JSON.parse(legacyContents);
   } catch (error) {
     throw new Error(
-      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
   const parsed = repoEngineConfigSchema.safeParse(parsedJson);
   if (!parsed.success) {
     throw new Error(
-      `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
     );
   }
 
-  return {
-    configPath,
-    repoRoot: resolvedRepoRoot,
-    summaryStrategy: parsed.data.summaryStrategy ?? defaults.summaryStrategy,
-    storageMode: parsed.data.storageMode ?? defaults.storageMode,
-    observability: {
-      enabled: parsed.data.observability?.enabled ?? defaults.observability.enabled,
-      host: parsed.data.observability?.host ?? defaults.observability.host,
-      port: parsed.data.observability?.port ?? defaults.observability.port,
-      recentLimit:
-        parsed.data.observability?.recentLimit ?? defaults.observability.recentLimit,
-      retentionDays:
-        parsed.data.observability?.retentionDays
-        ?? defaults.observability.retentionDays,
-      snapshotIntervalMs:
-        parsed.data.observability?.snapshotIntervalMs
-        ?? defaults.observability.snapshotIntervalMs,
-      redactSourceText:
-        parsed.data.observability?.redactSourceText
-        ?? defaults.observability.redactSourceText,
-    },
-    performance: {
-      include: parsed.data.performance?.include ?? defaults.performance.include,
-      exclude: parsed.data.performance?.exclude ?? defaults.performance.exclude,
-      fileProcessingConcurrency: normalizeFileProcessingConcurrency(
-        parsed.data.performance?.fileProcessingConcurrency,
-      ),
-      workerPool: {
-        enabled: parsed.data.performance?.workerPool?.enabled ?? defaults.performance.workerPool.enabled,
-        maxWorkers: normalizeWorkerPoolMaxWorkers(
-          parsed.data.performance?.workerPool?.maxWorkers,
-        ),
+  return resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults);
+}
+
+export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
+  return config;
+}
+
+async function loadTsConfig(configPath: string): Promise<unknown> {
+  const loaderCode = [
+    "import { pathToFileURL } from 'node:url';",
+    `const mod = await import(pathToFileURL(${JSON.stringify(configPath)}).href);`,
+    "process.stdout.write(JSON.stringify(mod.default ?? mod));",
+  ].join("\n");
+
+  let output: string;
+  try {
+    output = execFileSync(
+      process.execPath,
+      ["--experimental-strip-types", "--input-type=module"],
+      {
+        input: loaderCode,
+        encoding: "utf8",
+        stdio: ["pipe", "pipe", "pipe"],
+        timeout: 5_000,
       },
-    },
-    ranking: resolveRankingWeights(parsed.data.ranking),
-    watch: {
-      backend: parsed.data.watch?.backend ?? defaults.watch.backend,
-      debounceMs: parsed.data.watch?.debounceMs ?? defaults.watch.debounceMs,
-    },
-    limits: {
-      maxFilesDiscovered:
-        parsed.data.limits?.maxFilesDiscovered ?? defaults.limits.maxFilesDiscovered,
-      maxFileBytes:
-        parsed.data.limits?.maxFileBytes ?? defaults.limits.maxFileBytes,
-      maxSymbolsPerFile:
-        parsed.data.limits?.maxSymbolsPerFile ?? defaults.limits.maxSymbolsPerFile,
-      maxSymbolResults:
-        parsed.data.limits?.maxSymbolResults ?? defaults.limits.maxSymbolResults,
-      maxTextResults:
-        parsed.data.limits?.maxTextResults ?? defaults.limits.maxTextResults,
-      maxChildProcessOutputBytes:
-        parsed.data.limits?.maxChildProcessOutputBytes
-        ?? defaults.limits.maxChildProcessOutputBytes,
-      maxLiveSearchMatches:
-        parsed.data.limits?.maxLiveSearchMatches ?? defaults.limits.maxLiveSearchMatches,
-    },
-  };
+    ) as string;
+  } catch (error) {
+    const maybeProcessError = error as { stderr?: Buffer | string; message?: string };
+    const stderr = typeof maybeProcessError.stderr === "string"
+      ? maybeProcessError.stderr.trim()
+      : maybeProcessError.stderr instanceof Buffer
+        ? maybeProcessError.stderr.toString("utf8").trim()
+        : "";
+    const message = stderr || maybeProcessError.message || String(error);
+    throw new Error(`Invalid ${ENGINE_CONFIG_FILENAME}: ${message}`);
+  }
+
+  try {
+    return JSON.parse(output);
+  } catch (error) {
+    throw new Error(
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 export function isSummaryStrategy(value: unknown): value is SummaryStrategy {

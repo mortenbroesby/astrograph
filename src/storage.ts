@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, realpath, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
@@ -22,10 +22,8 @@ import {
 
 import {
   createDefaultEngineConfig,
-  ENGINE_SCHEMA_VERSION,
   ENGINE_STORAGE_VERSION,
   loadRepoEngineConfig,
-  normalizeSummaryStrategy,
   resolveEngineRepoRoot,
 } from "./config.ts";
 import { emitEngineEvent } from "./event-sink.ts";
@@ -37,7 +35,6 @@ import {
   compareDirectoryStates,
   isGitIgnored,
   listSupportedFiles,
-  loadFilesystemSnapshot,
   loadFilesystemStateSnapshot,
   loadKnownDirectoryStateSnapshot,
   loadSupportedFileStatesForSubtree,
@@ -45,11 +42,15 @@ import {
   scanDirectoryStateSnapshot,
   snapshotHash,
 } from "./filesystem-scan.ts";
-import { hashString } from "./hash.ts";
+import {
+  finalizeIndex,
+  persistFileIndexResult,
+  removeFileIndex,
+} from "./indexing.ts";
+import type { AnalyzedFileIndexResult } from "./indexing.ts";
+import { refreshFileSetWithDependents } from "./index-refresh.ts";
 import type {
   IndexBackendConnection,
-  IndexBackendValue,
-  IndexStatement,
 } from "./index-backend.ts";
 import {
   availableSupportTiersForFile,
@@ -63,37 +64,61 @@ import {
   supportTierForFile,
 } from "./language-registry.ts";
 import { createPathMatcher } from "./path-matcher.ts";
-import { containsSecretLikeText } from "./privacy.ts";
 import {
-  buildReadinessStatus,
   normalizeRepoReadiness,
   summarizeReadiness,
 } from "./readiness.ts";
 import type { RepoMetaReadinessRecord } from "./readiness.ts";
+import {
+  createDefaultWatchDiagnostics,
+  readRepoMeta,
+  readRepoMetaHealth,
+  writeRepoMetaFiles,
+} from "./repo-meta.ts";
 import { getLogger } from "./logger.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
+import {
+  buildDoctorResult,
+  loadDependencyGraphHealth,
+} from "./doctor.ts";
+import {
+  initializeDatabase,
+} from "./storage-schema.ts";
+import {
+  countRows,
+  mapSymbolRow,
+  typedAll,
+  typedGet,
+} from "./storage-queries.ts";
+import type {
+  DbSymbolRow,
+  TrackedFileRow,
+} from "./storage-queries.ts";
+import {
+  buildTextMatchResults,
+  getContextBundleFromContext,
+  getFileContentFromContext,
+  getRankedContextFromContext,
+  getSymbolSourceFromContext,
+  queryCodeInContext,
+  resolveQueryCodeIntent,
+  searchSymbolsInContext,
+  searchTextInContext,
+} from "./retrieval.ts";
 import { subscribeRepo } from "./watch-backend.ts";
+import { buildDiagnosticsResult } from "./diagnostics.ts";
 import {
-  ASTROGRAPH_PACKAGE_VERSION,
-  ASTROGRAPH_VERSION_PARTS,
-} from "./version.ts";
-import {
-  validateContextBundleOptions,
   validateFindFilesOptions,
   validateFileSummaryOptions,
   validateProjectStatusOptions,
-  validateRankedContextOptions,
   validateSearchTextOptions,
   validateSearchSymbolsOptions,
-  validateSymbolSourceOptions,
 } from "./validation.ts";
 import type {
   DiagnosticsOptions,
   DiagnosticsResult,
   DoctorResult,
   ContextBundle,
-  ContextBundleItem,
-  ContextBundleItemRole,
   ContextBundleOptions,
   FindFilesMatch,
   FindFilesOptions,
@@ -107,27 +132,15 @@ import type {
   IndexSummary,
   ProjectStatusOptions,
   ProjectStatusResult,
-  QueryCodeAssembleResult,
-  QueryCodeDiscoverResult,
-  QueryCodeIntent,
-  QueryCodeMatchReason,
-  QueryCodeSymbolMatch,
-  QueryCodeTextMatch,
   QueryCodeOptions,
   QueryCodeResult,
-  QueryCodeSourceResult,
-  ImportSpecifier,
-  RankingWeights,
-  RankedContextCandidate,
   RankedContextResult,
   RepoOutline,
   SearchSymbolsOptions,
   SearchTextOptions,
   SearchTextMatch,
   SymbolSourceResult,
-  SymbolSourceItem,
   SymbolSummary,
-  SummarySource,
   SummaryStrategy,
   SupportedLanguage,
   WatchBackendKind,
@@ -139,39 +152,7 @@ import type {
 import type {
   DirectoryStateEntry,
   FilesystemStateEntry,
-  SnapshotEntry,
 } from "./filesystem-scan.ts";
-
-interface DbSymbolRow {
-  file_id?: number;
-  id: string;
-  name: string;
-  qualified_name: string | null;
-  kind: SymbolSummary["kind"];
-  file_path: string;
-  signature: string;
-  summary: string;
-  summary_source: SummarySource;
-  start_line: number;
-  end_line: number;
-  start_byte: number;
-  end_byte: number;
-  exported: number;
-}
-
-interface DbFileContentRow extends DbSymbolRow {
-  content_hash: string;
-  integrity_hash: string | null;
-  content: string;
-}
-
-interface TrackedFileRow {
-  id: number;
-  content_hash: string;
-  integrity_hash: string | null;
-  size_bytes: number | null;
-  mtime_ms: number | null;
-}
 
 const DISCOVERY_SKIP_SEGMENTS = new Set([
   ".git",
@@ -184,114 +165,6 @@ const DISCOVERY_SKIP_SEGMENTS = new Set([
   "dist",
   "node_modules",
 ]);
-
-type AnalyzedFileIndexResult =
-  | {
-    kind: "unchanged";
-    existing: TrackedFileRow;
-  }
-  | {
-    kind: "symbol-limit-exceeded";
-    existing: TrackedFileRow | undefined;
-    symbolCount: number;
-  }
-  | {
-    kind: "content-unchanged";
-    existing: TrackedFileRow;
-    file: Awaited<ReturnType<typeof readRepoFile>>;
-    reparsed: FileAnalysisTaskOutput["parsed"];
-    symbolSignatureHash: string;
-    importHash: string;
-  }
-  | {
-    kind: "reindexed";
-    existing: TrackedFileRow | undefined;
-    file: Awaited<ReturnType<typeof readRepoFile>>;
-    reparsed: FileAnalysisTaskOutput["parsed"];
-    symbolSignatureHash: string;
-    importHash: string;
-  };
-
-interface RepoMetaRecord {
-  repoRoot: string;
-  storageVersion?: number;
-  indexedAt: string;
-  indexedFiles: number;
-  indexedSymbols: number;
-  indexedSnapshotHash: string;
-  storageMode: string;
-  storageBackend?: string;
-  staleStatus: "fresh" | "stale" | "unknown";
-  summaryStrategy?: SummaryStrategy;
-  readiness?: RepoMetaReadinessRecord;
-  watch?: WatchDiagnostics;
-}
-
-type RepoMetaHealthStatus =
-  | "ok"
-  | "missing"
-  | "unreadable"
-  | "missing-integrity"
-  | "integrity-mismatch";
-
-interface RepoMetaHealth {
-  meta: RepoMetaRecord | null;
-  status: RepoMetaHealthStatus;
-}
-
-interface SchemaMigration {
-  toVersion: number;
-  run(db: IndexBackendConnection): void;
-}
-
-function loadParserHealth(db: IndexBackendConnection): DiagnosticsResult["parser"] {
-  const parserStats = typedGet<{
-    indexed_file_count: number;
-    known_file_count: number;
-    fallback_file_count: number;
-    unknown_file_count: number;
-  }>(
-    db.prepare(`
-      SELECT
-        COUNT(*) AS indexed_file_count,
-        SUM(CASE WHEN parser_backend IS NOT NULL THEN 1 ELSE 0 END) AS known_file_count,
-        SUM(CASE WHEN parser_fallback_used = 1 THEN 1 ELSE 0 END) AS fallback_file_count,
-        SUM(CASE WHEN parser_backend IS NULL THEN 1 ELSE 0 END) AS unknown_file_count
-      FROM files
-    `),
-  ) ?? {
-    indexed_file_count: 0,
-    known_file_count: 0,
-    fallback_file_count: 0,
-    unknown_file_count: 0,
-  };
-
-  const fallbackReasons = Object.fromEntries(
-    typedAll<{ reason: string; count: number }>(
-      db.prepare(`
-        SELECT parser_fallback_reason AS reason, COUNT(*) AS count
-        FROM files
-        WHERE parser_fallback_used = 1
-          AND parser_fallback_reason IS NOT NULL
-          AND parser_fallback_reason != ''
-        GROUP BY parser_fallback_reason
-      `),
-    ).map((row) => [row.reason, row.count]),
-  ) as Record<string, number>;
-
-  const knownFileCount = parserStats.known_file_count ?? 0;
-  const fallbackFileCount = parserStats.fallback_file_count ?? 0;
-
-  return {
-    primaryBackend: "oxc",
-    fallbackBackend: "tree-sitter",
-    indexedFileCount: parserStats.indexed_file_count ?? 0,
-    fallbackFileCount,
-    fallbackRate: knownFileCount > 0 ? fallbackFileCount / knownFileCount : null,
-    unknownFileCount: parserStats.unknown_file_count ?? 0,
-    fallbackReasons,
-  };
-}
 
 interface EngineContext {
   config: Awaited<ReturnType<typeof ensureStorage>>;
@@ -336,10 +209,6 @@ const sourceAnalyzeFileWorkerEntrypoint = path.join(
 let fileAnalysisPool: Piscina<FileAnalysisTaskInput, FileAnalysisTaskOutput> | null = null;
 let fileAnalysisPoolKey: string | null = null;
 
-function sha256(value: string): string {
-  return createHash("sha256").update(value).digest("hex");
-}
-
 function resolveAnalyzeFileWorkerOptions(): {
   filename: string;
   execArgv?: string[];
@@ -379,36 +248,6 @@ function getFileAnalysisPool(maxWorkers: number) {
   return fileAnalysisPool;
 }
 
-function mapSymbolRow(row: DbSymbolRow): SymbolSummary {
-  return {
-    id: row.id,
-    name: row.name,
-    qualifiedName: row.qualified_name,
-    kind: row.kind,
-    filePath: row.file_path,
-    signature: row.signature,
-    summary: row.summary,
-    summarySource: row.summary_source,
-    startLine: row.start_line,
-    endLine: row.end_line,
-    exported: Boolean(row.exported),
-  };
-}
-
-function typedAll<TRow>(
-  statement: IndexStatement,
-  ...params: IndexBackendValue[]
-): TRow[] {
-  return statement.all(...params) as unknown as TRow[];
-}
-
-function typedGet<TRow>(
-  statement: IndexStatement,
-  ...params: IndexBackendValue[]
-): TRow | undefined {
-  return statement.get(...params) as unknown as TRow | undefined;
-}
-
 function getLruEntry<TKey, TValue>(
   cache: Map<TKey, TValue>,
   key: TKey,
@@ -445,208 +284,6 @@ function setLruEntry<TKey, TValue>(
     cache.delete(oldestKey);
     onEvict?.(oldestKey, oldestValue);
   }
-}
-
-function readMetaNumber(
-  db: IndexBackendConnection,
-  key: string,
-): number | null {
-  const row = typedGet<{ value: string }>(
-    db.prepare("SELECT value FROM meta WHERE key = ?"),
-    key,
-  );
-  if (!row) {
-    return null;
-  }
-
-  const parsed = Number.parseInt(row.value, 10);
-  return Number.isInteger(parsed) ? parsed : null;
-}
-
-function writeMetaNumber(
-  db: IndexBackendConnection,
-  key: string,
-  value: number,
-) {
-  db.prepare(
-    "INSERT INTO meta (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-  ).run(key, String(value));
-}
-
-function hasTableColumn(
-  db: IndexBackendConnection,
-  tableName: string,
-  columnName: string,
-) {
-  return typedAll<{ name: string }>(
-    db.prepare(`PRAGMA table_info(${tableName})`),
-  ).some((column) => column.name === columnName);
-}
-
-const SCHEMA_MIGRATIONS: SchemaMigration[] = [
-  {
-    toVersion: 1,
-    run(db) {
-      if (!hasTableColumn(db, "symbols", "summary_source")) {
-        db.exec(
-          "ALTER TABLE symbols ADD COLUMN summary_source TEXT NOT NULL DEFAULT 'signature'",
-        );
-      }
-      if (!hasTableColumn(db, "files", "parser_backend")) {
-        db.exec("ALTER TABLE files ADD COLUMN parser_backend TEXT");
-      }
-      if (!hasTableColumn(db, "files", "parser_fallback_used")) {
-        db.exec(
-          "ALTER TABLE files ADD COLUMN parser_fallback_used INTEGER NOT NULL DEFAULT 0",
-        );
-      }
-      if (!hasTableColumn(db, "files", "parser_fallback_reason")) {
-        db.exec("ALTER TABLE files ADD COLUMN parser_fallback_reason TEXT");
-      }
-    },
-  },
-  {
-    toVersion: 2,
-    run(db) {
-      if (!hasTableColumn(db, "files", "size_bytes")) {
-        db.exec("ALTER TABLE files ADD COLUMN size_bytes INTEGER");
-      }
-      if (!hasTableColumn(db, "files", "mtime_ms")) {
-        db.exec("ALTER TABLE files ADD COLUMN mtime_ms INTEGER");
-      }
-      if (!hasTableColumn(db, "files", "symbol_signature_hash")) {
-        db.exec("ALTER TABLE files ADD COLUMN symbol_signature_hash TEXT");
-      }
-      if (!hasTableColumn(db, "files", "import_hash")) {
-        db.exec("ALTER TABLE files ADD COLUMN import_hash TEXT");
-      }
-    },
-  },
-  {
-    toVersion: 3,
-    run(db) {
-      db.exec(`
-        CREATE TABLE IF NOT EXISTS file_dependencies (
-          importer_file_id INTEGER NOT NULL,
-          importer_path TEXT NOT NULL,
-          target_path TEXT NOT NULL,
-          source TEXT NOT NULL,
-          PRIMARY KEY(importer_file_id, target_path, source),
-          FOREIGN KEY(importer_file_id) REFERENCES files(id) ON DELETE CASCADE
-        );
-      `);
-    },
-  },
-  {
-    toVersion: 4,
-    run(db) {
-      if (!hasTableColumn(db, "files", "integrity_hash")) {
-        db.exec("ALTER TABLE files ADD COLUMN integrity_hash TEXT");
-      }
-    },
-  },
-];
-
-function runSchemaMigrations(db: IndexBackendConnection) {
-  const currentVersion = readMetaNumber(db, "schemaVersion") ?? 0;
-
-  for (const migration of SCHEMA_MIGRATIONS) {
-    if (migration.toVersion <= currentVersion) {
-      continue;
-    }
-    migration.run(db);
-    writeMetaNumber(db, "schemaVersion", migration.toVersion);
-  }
-
-  const resolvedVersion = readMetaNumber(db, "schemaVersion") ?? 0;
-  if (resolvedVersion !== ENGINE_SCHEMA_VERSION) {
-    throw new Error(
-      `Astrograph schema migration mismatch. Expected ${ENGINE_SCHEMA_VERSION}, got ${resolvedVersion}.`,
-    );
-  }
-}
-
-function initializeDatabase(db: IndexBackendConnection) {
-  db.exec(`
-    PRAGMA foreign_keys = ON;
-    PRAGMA journal_mode = WAL;
-    CREATE TABLE IF NOT EXISTS meta (
-      key TEXT PRIMARY KEY,
-      value TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS files (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      path TEXT NOT NULL UNIQUE,
-      language TEXT NOT NULL,
-      content_hash TEXT NOT NULL,
-      integrity_hash TEXT,
-      size_bytes INTEGER,
-      mtime_ms INTEGER,
-      symbol_signature_hash TEXT,
-      import_hash TEXT,
-      parser_backend TEXT,
-      parser_fallback_used INTEGER NOT NULL DEFAULT 0,
-      parser_fallback_reason TEXT,
-      symbol_count INTEGER NOT NULL,
-      updated_at TEXT NOT NULL
-    );
-    CREATE TABLE IF NOT EXISTS symbols (
-      id TEXT PRIMARY KEY,
-      file_id INTEGER NOT NULL,
-      file_path TEXT NOT NULL,
-      name TEXT NOT NULL,
-      qualified_name TEXT,
-      kind TEXT NOT NULL,
-      signature TEXT NOT NULL,
-      summary TEXT NOT NULL,
-      summary_source TEXT NOT NULL DEFAULT 'signature',
-      start_line INTEGER NOT NULL,
-      end_line INTEGER NOT NULL,
-      start_byte INTEGER NOT NULL,
-      end_byte INTEGER NOT NULL,
-      exported INTEGER NOT NULL,
-      FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS imports (
-      file_id INTEGER NOT NULL,
-      source TEXT NOT NULL,
-      specifiers TEXT NOT NULL,
-      FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS file_dependencies (
-      importer_file_id INTEGER NOT NULL,
-      importer_path TEXT NOT NULL,
-      target_path TEXT NOT NULL,
-      source TEXT NOT NULL,
-      PRIMARY KEY(importer_file_id, target_path, source),
-      FOREIGN KEY(importer_file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-    CREATE TABLE IF NOT EXISTS content_blobs (
-      file_id INTEGER PRIMARY KEY,
-      content TEXT NOT NULL,
-      FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
-    );
-    CREATE VIRTUAL TABLE IF NOT EXISTS symbol_search USING fts5(
-      symbol_id UNINDEXED,
-      file_id UNINDEXED,
-      name,
-      qualified_name,
-      signature,
-      summary,
-      file_path UNINDEXED,
-      kind UNINDEXED,
-      tokenize = 'unicode61'
-    );
-    CREATE VIRTUAL TABLE IF NOT EXISTS content_search USING fts5(
-      file_id UNINDEXED,
-      file_path UNINDEXED,
-      content,
-      tokenize = 'unicode61'
-    );
-    CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
-    CREATE INDEX IF NOT EXISTS idx_symbols_file_path ON symbols(file_path);
-  `);
-  runSchemaMigrations(db);
 }
 
 function shareDatabaseConnection(actual: IndexBackendConnection): IndexBackendConnection {
@@ -1155,80 +792,6 @@ async function writeSidecars(input: {
   await writeRepoMetaFiles(config.paths.repoMetaPath, config.paths.integrityPath, meta);
 }
 
-function createDefaultWatchDiagnostics(): WatchDiagnostics {
-  return {
-    status: "idle",
-    backend: null,
-    debounceMs: null,
-    pollMs: null,
-    startedAt: null,
-    lastEvent: null,
-    lastEventAt: null,
-    lastChangedPaths: [],
-    reindexCount: 0,
-    lastError: null,
-    lastSummary: null,
-  };
-}
-
-function normalizeWatchDiagnostics(value: unknown): WatchDiagnostics {
-  if (typeof value !== "object" || value === null) {
-    return createDefaultWatchDiagnostics();
-  }
-
-  const candidate = value as Partial<WatchDiagnostics>;
-  return {
-    status: candidate.status === "watching" ? "watching" : "idle",
-    backend:
-      candidate.backend === "parcel" ||
-      candidate.backend === "node-fs-watch" ||
-      candidate.backend === "polling"
-        ? candidate.backend
-        : null,
-    debounceMs:
-      typeof candidate.debounceMs === "number" ? candidate.debounceMs : null,
-    pollMs: typeof candidate.pollMs === "number" ? candidate.pollMs : null,
-    startedAt: typeof candidate.startedAt === "string" ? candidate.startedAt : null,
-    lastEvent:
-      candidate.lastEvent === "ready" ||
-      candidate.lastEvent === "reindex" ||
-      candidate.lastEvent === "error" ||
-      candidate.lastEvent === "close"
-        ? candidate.lastEvent
-        : null,
-    lastEventAt:
-      typeof candidate.lastEventAt === "string" ? candidate.lastEventAt : null,
-    lastChangedPaths: Array.isArray(candidate.lastChangedPaths)
-      ? candidate.lastChangedPaths.filter(
-          (entry): entry is string => typeof entry === "string",
-        )
-      : [],
-    reindexCount:
-      typeof candidate.reindexCount === "number" ? candidate.reindexCount : 0,
-    lastError: typeof candidate.lastError === "string" ? candidate.lastError : null,
-    lastSummary:
-      typeof candidate.lastSummary === "object" &&
-      candidate.lastSummary !== null &&
-      typeof candidate.lastSummary.indexedFiles === "number" &&
-      typeof candidate.lastSummary.indexedSymbols === "number" &&
-      (candidate.lastSummary.staleStatus === "fresh" ||
-        candidate.lastSummary.staleStatus === "stale" ||
-        candidate.lastSummary.staleStatus === "unknown")
-        ? candidate.lastSummary
-        : null,
-  };
-}
-
-async function writeRepoMetaFiles(
-  repoMetaPath: string,
-  integrityPath: string,
-  meta: RepoMetaRecord,
-) {
-  const metaJson = JSON.stringify(meta, null, 2);
-  await writeFile(repoMetaPath, metaJson);
-  await writeFile(integrityPath, sha256(metaJson));
-}
-
 async function writeWatchDiagnostics(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
@@ -1281,127 +844,6 @@ async function writeReadinessCheckpoint(input: {
     },
     watch: meta?.watch ?? createDefaultWatchDiagnostics(),
   });
-}
-
-async function readRepoMeta(
-  repoMetaPath: string,
-): Promise<RepoMetaRecord | null> {
-  try {
-    const content = await readFile(repoMetaPath, "utf8");
-    const parsed = JSON.parse(content) as RepoMetaRecord;
-    return {
-      ...parsed,
-      storageVersion:
-        typeof parsed.storageVersion === "number" &&
-        Number.isInteger(parsed.storageVersion)
-          ? parsed.storageVersion
-          : ENGINE_STORAGE_VERSION,
-      summaryStrategy: normalizeSummaryStrategy(parsed.summaryStrategy),
-      readiness: normalizeRepoReadiness(parsed.readiness),
-      watch: normalizeWatchDiagnostics(parsed.watch),
-    };
-  } catch {
-    return null;
-  }
-}
-
-async function readRepoMetaHealth(
-  repoMetaPath: string,
-  integrityPath: string,
-): Promise<RepoMetaHealth> {
-  const metaContents = await readFile(repoMetaPath, "utf8").catch((error: unknown) => {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  });
-
-  if (metaContents === null) {
-    return {
-      meta: null,
-      status: "missing",
-    };
-  }
-
-  let parsed: RepoMetaRecord;
-  try {
-    parsed = JSON.parse(metaContents) as RepoMetaRecord;
-  } catch {
-    return {
-      meta: null,
-      status: "unreadable",
-    };
-  }
-
-  const meta: RepoMetaRecord = {
-    ...parsed,
-    storageVersion:
-      typeof parsed.storageVersion === "number" &&
-      Number.isInteger(parsed.storageVersion)
-        ? parsed.storageVersion
-        : ENGINE_STORAGE_VERSION,
-    summaryStrategy: normalizeSummaryStrategy(parsed.summaryStrategy),
-    readiness: normalizeRepoReadiness(parsed.readiness),
-    watch: normalizeWatchDiagnostics(parsed.watch),
-  };
-  const integrityContents = await readFile(integrityPath, "utf8").catch((error: unknown) => {
-    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return null;
-    }
-    throw error;
-  });
-
-  if (integrityContents === null) {
-    return {
-      meta,
-      status: "missing-integrity",
-    };
-  }
-
-  return {
-    meta,
-    status:
-      integrityContents.trim() === sha256(metaContents)
-        ? "ok"
-        : "integrity-mismatch",
-  };
-}
-
-function loadIndexedSnapshot(
-  db: IndexBackendConnection,
-): SnapshotEntry[] {
-  return typedAll<SnapshotEntry>(
-    db.prepare(
-      "SELECT path, content_hash AS contentHash FROM files ORDER BY path ASC",
-    ),
-  );
-}
-
-function compareSnapshots(
-  indexedEntries: SnapshotEntry[],
-  currentEntries: SnapshotEntry[],
-) {
-  const indexedMap = new Map(indexedEntries.map((entry) => [entry.path, entry]));
-  const currentMap = new Map(currentEntries.map((entry) => [entry.path, entry]));
-  const missingFiles = indexedEntries.filter((entry) => !currentMap.has(entry.path));
-  const extraFiles = currentEntries.filter((entry) => !indexedMap.has(entry.path));
-  const changedFiles = indexedEntries.filter((entry) => {
-    const currentEntry = currentMap.get(entry.path);
-    return Boolean(currentEntry && currentEntry.contentHash !== entry.contentHash);
-  });
-
-  return {
-    missingPaths: missingFiles.map((entry) => entry.path),
-    extraPaths: extraFiles.map((entry) => entry.path),
-    changedPaths: changedFiles.map((entry) => entry.path),
-    indexedFiles: indexedEntries.length,
-    currentFiles: currentEntries.length,
-    missingFiles: missingFiles.length,
-    changedFiles: changedFiles.length,
-    extraFiles: extraFiles.length,
-    indexedSnapshotHash: snapshotHash(indexedEntries),
-    currentSnapshotHash: snapshotHash(currentEntries),
-  };
 }
 
 async function emitWatchEvent(
@@ -1470,58 +912,6 @@ function getIndexTestDelayMs(): number {
   }
   const parsed = Number(raw);
   return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : 0;
-}
-
-async function resolveRepoFileRefreshState(
-  repoRoot: string,
-  filePath: string,
-): Promise<{
-  relativePath: string;
-  exists: boolean;
-  supported: boolean;
-  ignored: boolean;
-}> {
-  const { absolutePath, relativePath } = normalizeRepoRelativePath(repoRoot, filePath);
-  const exists = await stat(absolutePath)
-    .then((entry) => entry.isFile())
-    .catch(() => false);
-
-  return {
-    relativePath,
-    exists,
-    supported: Boolean(supportedLanguageForFile(relativePath)),
-    ignored: isGitIgnored(repoRoot, relativePath),
-  };
-}
-
-function countRows(db: IndexBackendConnection, sql: string): number {
-  const row = db.prepare(sql).get() as { count: number };
-  return row.count;
-}
-
-function normalizeQuery(value: string): string {
-  return value.trim().toLowerCase();
-}
-
-function queryTokens(value: string): string[] {
-  return normalizeQuery(value)
-    .split(/[^a-z0-9_]+/g)
-    .filter(Boolean);
-}
-
-function uniqueQueryTerms(value: string): string[] {
-  return [...new Set([
-    normalizeQuery(value),
-    ...queryTokens(value),
-  ].filter(Boolean))];
-}
-
-function persistedSymbolCount(db: IndexBackendConnection, fileId: number): number {
-  const countRow = typedGet<{ count: number }>(
-    db.prepare("SELECT COUNT(*) AS count FROM symbols WHERE file_id = ?"),
-    fileId,
-  );
-  return countRow?.count ?? 0;
 }
 
 async function analyzeFileIndexResult(input: {
@@ -1594,205 +984,6 @@ async function analyzeFileIndexResult(input: {
     symbolSignatureHash,
     importHash,
   };
-}
-
-function persistFileIndexResult(
-  db: IndexBackendConnection,
-  analyzed: AnalyzedFileIndexResult,
-): { indexed: boolean; symbolCount: number } {
-  if (analyzed.kind === "unchanged") {
-    return {
-      indexed: false,
-      symbolCount: persistedSymbolCount(db, analyzed.existing.id),
-    };
-  }
-
-  if (analyzed.kind === "symbol-limit-exceeded") {
-    if (analyzed.existing) {
-      clearFileSearchRows(db, analyzed.existing.id);
-      db.prepare("DELETE FROM files WHERE id = ?").run(analyzed.existing.id);
-    }
-
-    return {
-      indexed: false,
-      symbolCount: 0,
-    };
-  }
-
-  if (analyzed.kind === "content-unchanged") {
-    db.prepare(
-      `
-        UPDATE files
-        SET size_bytes = ?, mtime_ms = ?, integrity_hash = ?, symbol_signature_hash = ?, import_hash = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    ).run(
-      analyzed.file.size,
-      Math.trunc(analyzed.file.mtimeMs),
-      analyzed.reparsed.integrityHash,
-      analyzed.symbolSignatureHash,
-      analyzed.importHash,
-      new Date().toISOString(),
-      analyzed.existing.id,
-    );
-    return {
-      indexed: false,
-      symbolCount: persistedSymbolCount(db, analyzed.existing.id),
-    };
-  }
-
-  const { existing, file, reparsed, symbolSignatureHash, importHash } = analyzed;
-
-  if (existing) {
-    clearFileSearchRows(db, existing.id);
-    db.prepare("DELETE FROM imports WHERE file_id = ?").run(existing.id);
-    db.prepare("DELETE FROM symbols WHERE file_id = ?").run(existing.id);
-    db.prepare("DELETE FROM content_blobs WHERE file_id = ?").run(existing.id);
-    db.prepare(
-      `
-        UPDATE files
-        SET language = ?, content_hash = ?, integrity_hash = ?, parser_backend = ?, parser_fallback_used = ?, parser_fallback_reason = ?, symbol_count = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    ).run(
-      reparsed.language,
-      reparsed.contentHash,
-      reparsed.integrityHash,
-      reparsed.backend,
-      reparsed.fallbackUsed ? 1 : 0,
-      reparsed.fallbackReason,
-      reparsed.symbols.length,
-      new Date().toISOString(),
-      existing.id,
-    );
-    db.prepare(
-      `
-        UPDATE files
-        SET size_bytes = ?, mtime_ms = ?, symbol_signature_hash = ?, import_hash = ?, updated_at = ?
-        WHERE id = ?
-      `,
-    ).run(
-      file.size,
-      Math.trunc(file.mtimeMs),
-      symbolSignatureHash,
-      importHash,
-      new Date().toISOString(),
-      existing.id,
-    );
-  } else {
-    db.prepare(
-      `
-        INSERT INTO files (
-          path, language, content_hash, integrity_hash, size_bytes, mtime_ms,
-          symbol_signature_hash, import_hash, parser_backend, parser_fallback_used,
-          parser_fallback_reason, symbol_count, updated_at
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `,
-    ).run(
-      file.relativePath,
-      reparsed.language,
-      reparsed.contentHash,
-      reparsed.integrityHash,
-      file.size,
-      Math.trunc(file.mtimeMs),
-      symbolSignatureHash,
-      importHash,
-      reparsed.backend,
-      reparsed.fallbackUsed ? 1 : 0,
-      reparsed.fallbackReason,
-      reparsed.symbols.length,
-      new Date().toISOString(),
-    );
-  }
-
-  const fileRow = db
-    .prepare("SELECT id FROM files WHERE path = ?")
-    .get(file.relativePath) as { id: number };
-  db.prepare(
-    "INSERT INTO content_blobs (file_id, content) VALUES (?, ?)",
-  ).run(fileRow.id, file.content);
-  db.prepare(
-    "INSERT INTO content_search (file_id, file_path, content) VALUES (?, ?, ?)",
-  ).run(fileRow.id, file.relativePath, file.content);
-  const insertSymbol = db.prepare(`
-    INSERT INTO symbols (
-      id, file_id, file_path, name, qualified_name, kind, signature,
-      summary, summary_source, start_line, end_line, start_byte, end_byte, exported
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  const insertSymbolSearch = db.prepare(`
-    INSERT INTO symbol_search (
-      symbol_id, file_id, name, qualified_name, signature, summary, file_path, kind
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `);
-  for (const symbol of reparsed.symbols) {
-    insertSymbol.run(
-      symbol.id,
-      fileRow.id,
-      file.relativePath,
-      symbol.name,
-      symbol.qualifiedName,
-      symbol.kind,
-      symbol.signature,
-      symbol.summary,
-      symbol.summarySource,
-      symbol.startLine,
-      symbol.endLine,
-      symbol.startByte,
-      symbol.endByte,
-      symbol.exported ? 1 : 0,
-    );
-    insertSymbolSearch.run(
-      symbol.id,
-      fileRow.id,
-      symbol.name,
-      symbol.qualifiedName ?? "",
-      symbol.signature,
-      symbol.summary,
-      file.relativePath,
-      symbol.kind,
-    );
-  }
-  const insertImport = db.prepare(
-    "INSERT INTO imports (file_id, source, specifiers) VALUES (?, ?, ?)",
-  );
-  for (const dependency of reparsed.imports) {
-    insertImport.run(
-      fileRow.id,
-      dependency.source,
-      JSON.stringify(dependency.specifiers),
-    );
-  }
-
-  return {
-    indexed: true,
-    symbolCount: reparsed.symbols.length,
-  };
-}
-
-function quoteFtsTerm(term: string): string {
-  return `"${term.replace(/"/g, '""')}"`;
-}
-
-function buildFtsMatchQuery(value: string): string | null {
-  const terms = uniqueQueryTerms(value)
-    .map((term) => term.trim())
-    .filter((term) => term.length >= 2);
-
-  if (terms.length === 0) {
-    return null;
-  }
-
-  return terms
-    .map((term) => `${quoteFtsTerm(term)}*`)
-    .join(" OR ");
-}
-
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 function matchesFilePattern(filePath: string, pattern?: string): boolean {
@@ -1980,214 +1171,6 @@ function summarizeDiscoveryContent(relativePath: string, content: string): {
   };
 }
 
-function estimateTokens(value: string): number {
-  return Math.max(1, Math.ceil(value.length / 4));
-}
-
-function rowText(row: DbSymbolRow): string {
-  return [
-    row.name,
-    row.qualified_name ?? "",
-    row.signature,
-    row.summary,
-    row.summary_source,
-    row.file_path,
-    row.kind,
-  ]
-    .join(" ")
-    .toLowerCase();
-}
-
-function scoreSymbolRow(
-  row: DbSymbolRow,
-  query: string,
-  weights: RankingWeights,
-): number {
-  const normalized = normalizeQuery(query);
-  if (!normalized) {
-    return 0;
-  }
-
-  const name = row.name.toLowerCase();
-  const qualifiedName = row.qualified_name?.toLowerCase() ?? "";
-  const signature = row.signature.toLowerCase();
-  const summary = row.summary.toLowerCase();
-  const filePath = row.file_path.toLowerCase();
-  const haystack = rowText(row);
-  const tokens = queryTokens(query);
-  let score = 0;
-
-  if (name === normalized) {
-    score += weights.exactName;
-  }
-  if (qualifiedName === normalized) {
-    score += weights.exactQualifiedName;
-  }
-  if (name.startsWith(normalized)) {
-    score += weights.prefixName;
-  }
-  if (qualifiedName.startsWith(normalized)) {
-    score += weights.prefixQualifiedName;
-  }
-  if (name.includes(normalized)) {
-    score += weights.containsName;
-  }
-  if (qualifiedName.includes(normalized)) {
-    score += weights.containsQualifiedName;
-  }
-  if (signature.includes(normalized)) {
-    score += weights.signatureContains;
-  }
-  if (summary.includes(normalized)) {
-    score += weights.summaryContains;
-  }
-  if (filePath.includes(normalized)) {
-    score += weights.filePathContains;
-  }
-
-  const exactWord = new RegExp(`\\b${escapeRegExp(normalized)}\\b`, "i");
-  if (exactWord.test(rowText(row))) {
-    score += weights.exactWord;
-  }
-
-  for (const token of tokens) {
-    if (haystack.includes(token)) {
-      score += weights.tokenMatch;
-    }
-  }
-
-  if (score > 0 && row.exported) {
-    score += weights.exportedBonus;
-  }
-
-  return score;
-}
-
-function clearFileSearchRows(
-  db: IndexBackendConnection,
-  fileId: number,
-) {
-  db.prepare("DELETE FROM symbol_search WHERE file_id = ?").run(fileId);
-  db.prepare("DELETE FROM content_search WHERE file_id = ?").run(fileId);
-}
-
-function loadSymbolRows(
-  db: IndexBackendConnection,
-  input: {
-    query?: string;
-    kind?: SearchSymbolsOptions["kind"];
-    language?: SearchSymbolsOptions["language"];
-    filePattern?: SearchSymbolsOptions["filePattern"];
-  } = {},
-): DbSymbolRow[] {
-  const whereClauses: string[] = [];
-  const params: IndexBackendValue[] = [];
-  const ftsQuery = buildFtsMatchQuery(input.query ?? "");
-  let candidateIds: string[] | null = null;
-
-  if (input.kind) {
-    whereClauses.push("symbols.kind = ?");
-    params.push(input.kind);
-  }
-
-  if (input.language) {
-    whereClauses.push("files.language = ?");
-    params.push(input.language);
-  }
-
-  const queryTerms = uniqueQueryTerms(input.query ?? "");
-
-  if (ftsQuery) {
-    const ftsParams: IndexBackendValue[] = [ftsQuery, ...params];
-
-    const ftsRows = typedAll<{ symbol_id: string }>(
-      db.prepare(
-        `
-          SELECT DISTINCT symbol_search.symbol_id
-          FROM symbol_search
-          INNER JOIN symbols ON symbols.id = symbol_search.symbol_id
-          INNER JOIN files ON files.id = symbols.file_id
-          WHERE symbol_search MATCH ?
-          ${whereClauses.length > 0 ? `AND ${whereClauses.join(" AND ")}` : ""}
-          LIMIT 400
-        `,
-      ),
-      ...ftsParams,
-    );
-
-    candidateIds = ftsRows
-      .map((row) => row.symbol_id)
-      .filter(Boolean);
-  }
-
-  if (queryTerms.length > 0) {
-    const tokenClauses = queryTerms.map(() =>
-      `(
-        lower(symbols.name) LIKE ?
-        OR lower(COALESCE(symbols.qualified_name, '')) LIKE ?
-        OR lower(symbols.signature) LIKE ?
-        OR lower(symbols.summary) LIKE ?
-        OR lower(symbols.file_path) LIKE ?
-      )`,
-    );
-    whereClauses.push(`(${tokenClauses.join(" OR ")})`);
-
-    for (const term of queryTerms) {
-      const wildcard = `%${term}%`;
-      params.push(wildcard, wildcard, wildcard, wildcard, wildcard);
-    }
-  }
-
-  if (candidateIds && candidateIds.length > 0) {
-    const placeholders = candidateIds.map(() => "?").join(", ");
-    whereClauses.push(`symbols.id IN (${placeholders})`);
-    params.push(...candidateIds);
-  }
-
-  const rows = typedAll<DbSymbolRow>(
-    db.prepare(
-      `
-        SELECT
-          symbols.id, symbols.name, symbols.qualified_name, symbols.kind,
-          symbols.file_path, symbols.signature, symbols.summary,
-          symbols.summary_source,
-          symbols.start_line, symbols.end_line, symbols.start_byte,
-          symbols.end_byte, symbols.exported
-        FROM symbols
-        INNER JOIN files ON files.id = symbols.file_id
-        ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ""}
-      `,
-    ),
-    ...params,
-  );
-
-  return rows
-    .filter((row) => matchesFilePattern(row.file_path, input.filePattern));
-}
-
-function loadSymbolSourceRow(
-  db: IndexBackendConnection,
-  symbolId: string,
-) {
-  return typedGet<DbFileContentRow>(
-    db.prepare(
-      `
-        SELECT
-          symbols.id, symbols.name, symbols.qualified_name, symbols.kind, symbols.file_path,
-          symbols.signature, symbols.summary, symbols.summary_source,
-          symbols.start_line, symbols.end_line, symbols.start_byte, symbols.end_byte,
-          symbols.exported,
-          files.content_hash, files.integrity_hash, content_blobs.content
-        FROM symbols
-        INNER JOIN files ON files.id = symbols.file_id
-        INNER JOIN content_blobs ON content_blobs.file_id = files.id
-        WHERE symbols.id = ?
-      `,
-    ),
-    symbolId,
-  );
-}
-
 function resolveImportedFilePaths(
   db: IndexBackendConnection,
   sourceFilePath: string,
@@ -2226,60 +1209,6 @@ function resolveImportedFilePaths(
   }
 
   return [];
-}
-
-function normalizeImportSpecifier(
-  value: unknown,
-): ImportSpecifier | null {
-  if (typeof value === "string") {
-    const importedName = value.trim();
-    return importedName
-      ? {
-          kind: "unknown",
-          importedName,
-          localName: null,
-        }
-      : null;
-  }
-
-  if (!value || typeof value !== "object") {
-    return null;
-  }
-
-  const kind = "kind" in value ? value.kind : null;
-  const importedName = "importedName" in value ? value.importedName : null;
-  const localName = "localName" in value ? value.localName : null;
-
-  if (
-    (kind !== "named" && kind !== "default" && kind !== "namespace" && kind !== "unknown")
-    || typeof importedName !== "string"
-    || importedName.trim().length === 0
-  ) {
-    return null;
-  }
-
-  return {
-    kind,
-    importedName: importedName.trim(),
-    localName: typeof localName === "string" && localName.trim().length > 0
-      ? localName.trim()
-      : null,
-  };
-}
-
-function parseStoredImportSpecifiers(serialized: string): ImportSpecifier[] {
-  try {
-    const parsed = JSON.parse(serialized) as unknown;
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .map((entry) => normalizeImportSpecifier(entry))
-      .filter((entry): entry is ImportSpecifier => entry !== null);
-  } catch {
-    return [];
-  }
 }
 
 function rebuildFileDependencies(db: IndexBackendConnection) {
@@ -2336,498 +1265,6 @@ function loadDirectImporterPaths(
   ).map((row) => row.importer_path);
 }
 
-function pickDependencyRows(
-  db: IndexBackendConnection,
-  seedRow: DbSymbolRow,
-): Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> {
-  const imports = typedAll<{
-    target_path: string;
-    source: string;
-    specifiers: string;
-  }>(
-    db.prepare(
-      `
-        SELECT file_dependencies.target_path AS target_path, file_dependencies.source AS source, imports.specifiers AS specifiers
-        FROM file_dependencies
-        INNER JOIN files ON files.id = file_dependencies.importer_file_id
-        INNER JOIN imports ON imports.file_id = files.id AND imports.source = file_dependencies.source
-        WHERE file_dependencies.importer_path = ?
-        ORDER BY file_dependencies.target_path ASC, file_dependencies.source ASC
-      `,
-    ),
-    seedRow.file_path,
-  );
-
-  const matches: Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> = [];
-  const seen = new Set<string>();
-
-  for (const importRow of imports) {
-    const specifiers = parseStoredImportSpecifiers(importRow.specifiers);
-
-    const picked: DbSymbolRow[] = [];
-
-    for (const specifier of specifiers) {
-      const row = typedGet<DbSymbolRow>(
-        db.prepare(
-          `
-            SELECT
-              id, name, qualified_name, kind, file_path, signature, summary,
-              summary_source,
-              start_line, end_line, start_byte, end_byte, exported
-            FROM symbols
-            WHERE file_path = ? AND (name = ? OR qualified_name = ?)
-            ORDER BY exported DESC, start_line ASC
-            LIMIT 1
-          `,
-        ),
-        importRow.target_path,
-        specifier.importedName,
-        specifier.importedName,
-      );
-      if (row) {
-        picked.push(row);
-      }
-    }
-
-    if (picked.length === 0) {
-      const row = typedGet<DbSymbolRow>(
-        db.prepare(
-          `
-            SELECT
-              id, name, qualified_name, kind, file_path, signature, summary,
-              summary_source,
-              start_line, end_line, start_byte, end_byte, exported
-            FROM symbols
-            WHERE file_path = ?
-            ORDER BY exported DESC, kind = 'class' DESC, kind = 'function' DESC, start_line ASC
-            LIMIT 1
-          `,
-        ),
-        importRow.target_path,
-      );
-      if (row) {
-        picked.push(row);
-      }
-    }
-
-    for (const row of picked) {
-      if (seen.has(row.id)) {
-        continue;
-      }
-      seen.add(row.id);
-      matches.push({
-        row,
-        reason: importRow.source.startsWith(".")
-          ? "imports_matched_file"
-          : "reexport_match",
-      });
-    }
-  }
-
-  return matches;
-}
-
-function pickImporterRows(
-  db: IndexBackendConnection,
-  seedRow: DbSymbolRow,
-): Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> {
-  const importers = typedAll<{
-    importer_path: string;
-  }>(
-    db.prepare(
-      `
-        SELECT importer_path
-        FROM file_dependencies
-        WHERE target_path = ?
-        ORDER BY importer_path ASC
-      `,
-    ),
-    seedRow.file_path,
-  );
-
-  const matches: Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> = [];
-  const seen = new Set<string>();
-
-  for (const importer of importers) {
-    const row = typedGet<DbSymbolRow>(
-      db.prepare(
-        `
-          SELECT
-            id, name, qualified_name, kind, file_path, signature, summary,
-            summary_source,
-            start_line, end_line, start_byte, end_byte, exported
-          FROM symbols
-          WHERE file_path = ?
-          ORDER BY exported DESC, kind = 'class' DESC, kind = 'function' DESC, start_line ASC
-          LIMIT 1
-        `,
-      ),
-      importer.importer_path,
-    );
-    if (!row || seen.has(row.id)) {
-      continue;
-    }
-    seen.add(row.id);
-    matches.push({
-      row,
-      reason: "imported_by_match",
-    });
-  }
-
-  return matches;
-}
-
-function pickReferenceRows(
-  db: IndexBackendConnection,
-  seedRow: DbSymbolRow,
-): Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> {
-  const importers = typedAll<{
-    importer_path: string;
-    specifiers: string;
-  }>(
-    db.prepare(
-      `
-        SELECT file_dependencies.importer_path AS importer_path, imports.specifiers AS specifiers
-        FROM file_dependencies
-        INNER JOIN files ON files.id = file_dependencies.importer_file_id
-        INNER JOIN imports ON imports.file_id = files.id AND imports.source = file_dependencies.source
-        WHERE file_dependencies.target_path = ?
-        ORDER BY file_dependencies.importer_path ASC
-      `,
-    ),
-    seedRow.file_path,
-  );
-
-  const matches: Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> = [];
-  const seen = new Set<string>();
-
-  for (const importer of importers) {
-    const specifiers = parseStoredImportSpecifiers(importer.specifiers);
-    if (!specifiers.some((specifier) => specifier.importedName === seedRow.name)) {
-      continue;
-    }
-
-    const row = typedGet<DbSymbolRow>(
-      db.prepare(
-        `
-          SELECT
-            id, name, qualified_name, kind, file_path, signature, summary,
-            summary_source,
-            start_line, end_line, start_byte, end_byte, exported
-          FROM symbols
-          WHERE file_path = ?
-          ORDER BY exported DESC, kind = 'class' DESC, kind = 'function' DESC, start_line ASC
-          LIMIT 1
-        `,
-      ),
-      importer.importer_path,
-    );
-    if (!row || seen.has(row.id)) {
-      continue;
-    }
-    seen.add(row.id);
-    matches.push({
-      row,
-      reason: "references_match",
-    });
-  }
-
-  return matches;
-}
-
-function makeContextBundleItem(
-  row: DbSymbolRow,
-  source: string,
-  role: ContextBundleItemRole,
-  reason: string,
-): ContextBundleItem {
-  return {
-    role,
-    reason,
-    symbol: mapSymbolRow(row),
-    source,
-    tokenCount: estimateTokens(source) + 8,
-  };
-}
-
-function buildSymbolSourceItem(
-  row: DbFileContentRow,
-  verify: boolean,
-  contextLines = 0,
-): SymbolSourceItem {
-  const normalizedContextLines = Math.max(0, Math.floor(contextLines));
-  const lines = row.content.split("\n");
-  const startLine = Math.max(1, row.start_line - normalizedContextLines);
-  const endLine = Math.min(lines.length, row.end_line + normalizedContextLines);
-  return {
-    symbol: mapSymbolRow(row),
-    source: lines.slice(startLine - 1, endLine).join("\n"),
-    verified: verify
-      ? row.integrity_hash === hashString(row.content, "integrity")
-        || sha256(row.content) === row.content_hash
-      : false,
-    startLine,
-    endLine,
-  };
-}
-
-interface RankedSeedCandidate {
-  row: DbFileContentRow;
-  reason: QueryCodeMatchReason;
-  score: number;
-}
-
-function sortRankedSymbolEntries(
-  left: { row: DbSymbolRow; score: number },
-  right: { row: DbSymbolRow; score: number },
-) {
-  return (
-    right.score - left.score ||
-    Number(right.row.exported) - Number(left.row.exported) ||
-    left.row.file_path.localeCompare(right.row.file_path) ||
-    left.row.start_line - right.row.start_line ||
-    left.row.name.localeCompare(right.row.name)
-  );
-}
-
-function resolveRankedSeedCandidates(
-  context: EngineContext,
-  input: ContextBundleOptions,
-): RankedSeedCandidate[] {
-  if (input.symbolIds?.length) {
-    return input.symbolIds
-      .map((symbolId) => loadSymbolSourceRow(context.db, symbolId))
-      .filter(
-        (row): row is DbFileContentRow => Boolean(row),
-      )
-      .map((row, index) => ({
-        row,
-        reason: "explicit_symbol_id",
-        score: Math.max(1, input.symbolIds!.length - index),
-      }));
-  }
-
-  if (!input.query) {
-    return [];
-  }
-
-  return loadSymbolRows(context.db, { query: input.query })
-    .map((row) => ({
-      row,
-      score: scoreSymbolRow(row, input.query ?? "", context.config.rankingWeights),
-    }))
-    .filter((entry) => entry.score > 0)
-    .sort(sortRankedSymbolEntries)
-    .slice(0, 5)
-    .map((entry) => ({
-      row: loadSymbolSourceRow(context.db, entry.row.id),
-      reason:
-        normalizeQuery(input.query ?? "") === normalizeQuery(entry.row.name)
-        || normalizeQuery(input.query ?? "") === normalizeQuery(entry.row.qualified_name ?? "")
-          ? "exact_symbol_match"
-          : "query_match",
-      score: entry.score,
-    }))
-    .filter(
-      (
-        entry,
-      ): entry is RankedSeedCandidate => Boolean(entry.row),
-    );
-}
-
-function buildContextBundleFromSeeds(
-  db: IndexBackendConnection,
-  input: ContextBundleOptions & Pick<QueryCodeOptions, "includeDependencies" | "includeImporters" | "includeReferences" | "relationDepth">,
-  seedCandidates: RankedSeedCandidate[],
-): ContextBundle {
-  const bundleCandidates: Array<ContextBundleItem> = [];
-  const seen = new Set<string>();
-
-  for (const seed of seedCandidates) {
-    if (seen.has(seed.row.id)) {
-      continue;
-    }
-    seen.add(seed.row.id);
-    bundleCandidates.push(
-      makeContextBundleItem(
-        seed.row,
-        seed.row.content.slice(seed.row.start_byte, seed.row.end_byte),
-        "target",
-        seed.reason,
-      ),
-    );
-  }
-
-  const relationDepth = Math.min(3, Math.max(1, input.relationDepth ?? 1));
-  const includeDependencies = input.includeDependencies ?? true;
-  const includeImporters = input.includeImporters ?? false;
-  const includeReferences = input.includeReferences ?? false;
-  let frontier = seedCandidates.map((seed) => seed.row as DbSymbolRow);
-  const visited = new Set(frontier.map((row) => row.id));
-
-  for (let depth = 0; depth < relationDepth; depth += 1) {
-    const nextFrontier: DbSymbolRow[] = [];
-
-    for (const seedRow of frontier) {
-      const relatedRows = [
-        ...(includeDependencies ? pickDependencyRows(db, seedRow) : []),
-        ...(includeReferences ? pickReferenceRows(db, seedRow) : []),
-        ...(includeImporters ? pickImporterRows(db, seedRow) : []),
-      ];
-
-      for (const related of relatedRows) {
-        if (seen.has(related.row.id)) {
-          continue;
-        }
-        seen.add(related.row.id);
-        const sourceRow = loadSymbolSourceRow(db, related.row.id);
-        if (!sourceRow) {
-          continue;
-        }
-        bundleCandidates.push(
-          makeContextBundleItem(
-            related.row,
-            sourceRow.content.slice(sourceRow.start_byte, sourceRow.end_byte),
-            "dependency",
-            related.reason,
-          ),
-        );
-        if (!visited.has(related.row.id)) {
-          visited.add(related.row.id);
-          nextFrontier.push(related.row);
-        }
-      }
-    }
-
-    frontier = nextFrontier;
-    if (frontier.length === 0) {
-      break;
-    }
-  }
-
-  const tokenBudget = input.tokenBudget ?? 1200;
-  const estimatedTokens = bundleCandidates.reduce(
-    (total, item) => total + item.tokenCount,
-    0,
-  );
-  const items: ContextBundleItem[] = [];
-  let usedTokens = 0;
-
-  for (const item of bundleCandidates) {
-    if (usedTokens + item.tokenCount > tokenBudget) {
-      break;
-    }
-    items.push(item);
-    usedTokens += item.tokenCount;
-  }
-
-  return {
-    repoRoot: input.repoRoot,
-    query: input.query ?? null,
-    tokenBudget,
-    estimatedTokens,
-    usedTokens,
-    truncated: estimatedTokens > tokenBudget,
-    items,
-  };
-}
-
-function buildDiscoverGraphMatches(
-  db: IndexBackendConnection,
-  seedSymbols: SymbolSummary[],
-  input: Pick<QueryCodeOptions, "query" | "includeDependencies" | "includeImporters" | "includeReferences" | "relationDepth" | "includeTextMatches">,
-): {
-  matches: QueryCodeSymbolMatch[];
-  textMatchResults: QueryCodeTextMatch[];
-} {
-  const matches = new Map<string, QueryCodeSymbolMatch>();
-  const query = normalizeQuery(input.query ?? "");
-  const seedRows = seedSymbols
-    .map((symbol) => loadSymbolSourceRow(db, symbol.id))
-    .filter((row): row is DbFileContentRow => Boolean(row));
-
-  for (const symbol of seedSymbols) {
-    matches.set(symbol.id, {
-      symbol,
-      reasons: [
-        query === normalizeQuery(symbol.name) || query === normalizeQuery(symbol.qualifiedName ?? "")
-          ? "exact_symbol_match"
-          : "query_match",
-      ],
-      depth: 0,
-    });
-  }
-
-  const relationDepth = Math.min(3, Math.max(1, input.relationDepth ?? 1));
-  let frontier = seedRows.map((row) => ({ row: row as DbSymbolRow, depth: 0 }));
-  const visited = new Set(frontier.map((entry) => entry.row.id));
-
-  while (frontier.length > 0) {
-    const nextFrontier: Array<{ row: DbSymbolRow; depth: number }> = [];
-
-    for (const entry of frontier) {
-      if (entry.depth >= relationDepth) {
-        continue;
-      }
-
-      const relatedRows = [
-        ...(input.includeDependencies ? pickDependencyRows(db, entry.row) : []),
-        ...(input.includeReferences ? pickReferenceRows(db, entry.row) : []),
-        ...(input.includeImporters ? pickImporterRows(db, entry.row) : []),
-      ];
-
-      for (const related of relatedRows) {
-        const existing = matches.get(related.row.id);
-        if (existing) {
-          if (!existing.reasons.includes(related.reason)) {
-            existing.reasons.push(related.reason);
-          }
-          existing.depth = Math.min(existing.depth, entry.depth + 1);
-        } else {
-          matches.set(related.row.id, {
-            symbol: mapSymbolRow(related.row),
-            reasons: [related.reason],
-            depth: entry.depth + 1,
-          });
-        }
-
-        if (!visited.has(related.row.id)) {
-          visited.add(related.row.id);
-          nextFrontier.push({
-            row: related.row,
-            depth: entry.depth + 1,
-          });
-        }
-      }
-    }
-
-    frontier = nextFrontier;
-  }
-
-  return {
-    matches: [...matches.values()].sort(
-      (left, right) =>
-        left.depth - right.depth ||
-        Number(right.symbol.exported) - Number(left.symbol.exported) ||
-        left.symbol.filePath.localeCompare(right.symbol.filePath) ||
-        left.symbol.startLine - right.symbol.startLine,
-    ),
-    textMatchResults: [],
-  };
-}
-
-function buildTextMatchResults(
-  textMatches: SearchTextMatch[],
-): QueryCodeTextMatch[] {
-  return textMatches.map((match) => ({
-    match,
-    reasons:
-      match.reason === "ripgrep_fallback"
-        ? ["ripgrep_fallback"]
-        : ["text_match"],
-  }));
-}
-
 async function shouldUseLiveTextSearchFallback(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
@@ -2835,88 +1272,6 @@ async function shouldUseLiveTextSearchFallback(input: {
   const config = await ensureStorage(input.repoRoot, input.summaryStrategy);
   const meta = await readRepoMeta(config.paths.repoMetaPath);
   return !meta || meta.staleStatus !== "fresh";
-}
-
-function buildRankedContextResult(
-  input: ContextBundleOptions & { query: string },
-  seedCandidates: RankedSeedCandidate[],
-  bundle: ContextBundle,
-): RankedContextResult {
-  const selectedSeedIds = bundle.items
-    .filter((item) => item.role === "target")
-    .map((item) => item.symbol.id);
-
-  const candidates: RankedContextCandidate[] = seedCandidates.map((candidate, index) => ({
-    rank: index + 1,
-    score: candidate.score,
-    reason: candidate.reason,
-    symbol: mapSymbolRow(candidate.row),
-    selected: selectedSeedIds.includes(candidate.row.id),
-  }));
-
-  return {
-    repoRoot: input.repoRoot,
-    query: input.query,
-    tokenBudget: bundle.tokenBudget,
-    candidateCount: candidates.length,
-    selectedSeedIds,
-    candidates,
-    bundle,
-  };
-}
-
-function removeFileIndex(
-  db: IndexBackendConnection,
-  filePath: string,
-): boolean {
-  const fileRow = typedGet<{ id: number }>(
-    db.prepare("SELECT id FROM files WHERE path = ?"),
-    filePath,
-  );
-  if (!fileRow) {
-    return false;
-  }
-  clearFileSearchRows(db, fileRow.id);
-  const result = db.prepare("DELETE FROM files WHERE path = ?").run(filePath);
-  return Number(result.changes ?? 0) > 0;
-}
-
-async function finalizeIndex(
-  db: IndexBackendConnection,
-  repoRoot: string,
-  indexedAt: string,
-  summaryStrategy: SummaryStrategy,
-  discoveredFiles?: number,
-): Promise<"fresh" | "stale"> {
-  rebuildFileDependencies(db);
-  const dependencyGraph = loadDependencyGraphHealth(db);
-  const totalFiles = countRows(db, "SELECT COUNT(*) AS count FROM files");
-  const totalSymbols = countRows(db, "SELECT COUNT(*) AS count FROM symbols");
-  const indexedSnapshotHash = snapshotHash(loadIndexedSnapshot(db));
-  const staleStatus =
-    dependencyGraph.brokenRelativeImportCount > 0
-    || dependencyGraph.brokenRelativeSymbolImportCount > 0
-      ? "stale"
-      : "fresh";
-  db.prepare(
-    "INSERT INTO meta (key, value) VALUES ('staleStatus', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-  ).run(staleStatus);
-  await writeSidecars({
-    repoRoot,
-    indexedAt,
-    indexedFiles: totalFiles,
-    totalSymbols,
-    indexedSnapshotHash,
-    staleStatus,
-    summaryStrategy,
-    readiness: {
-      discoveryIndexedAt: indexedAt,
-      discoveredFiles: discoveredFiles ?? totalFiles,
-      deepIndexedAt: indexedAt,
-      deepening: null,
-    },
-  });
-  return staleStatus;
 }
 
 async function indexFolderDirect(input: {
@@ -2994,13 +1349,16 @@ async function indexFolderDirect(input: {
     }
 
     const indexedAt = new Date().toISOString();
-    const staleStatus = await finalizeIndex(
+    const staleStatus = await finalizeIndex({
       db,
       repoRoot,
       indexedAt,
-      config.summaryStrategy,
-      supportedFiles.length,
-    );
+      summaryStrategy: config.summaryStrategy,
+      discoveredFiles: supportedFiles.length,
+      rebuildFileDependencies,
+      loadDependencyGraphHealth,
+      writeSidecars,
+    });
 
     return {
       indexedFiles,
@@ -3125,16 +1483,11 @@ async function indexFileDirect(input: {
 
   try {
     const meta = await readRepoMeta(config.paths.repoMetaPath);
-    const fileState = await resolveRepoFileRefreshState(repoRoot, input.filePath);
-    const dependentPaths = loadDirectImporterPaths(db, fileState.relativePath)
-      .filter((candidate) => candidate !== fileState.relativePath);
-
-    let indexedFiles = 0;
-    let indexedSymbols = 0;
-
-    const primaryResult = await refreshIndexedFilePath(db, {
+    const { relativePath } = normalizeRepoRelativePath(repoRoot, input.filePath);
+    return refreshFileSetWithDependents({
+      db,
       repoRoot,
-      filePath: fileState.relativePath,
+      filePaths: [relativePath],
       summaryStrategy: config.summaryStrategy,
       forceRefresh: meta?.summaryStrategy !== config.summaryStrategy,
       maxFileBytes: config.maxFileBytes,
@@ -3143,35 +1496,15 @@ async function indexFileDirect(input: {
         enabled: config.workerPoolEnabled,
         maxWorkers: config.workerPoolMaxWorkers,
       },
+      loadDirectImporterPaths,
+      refreshFilePath: refreshIndexedFilePath,
+      finalizeIndex: (refreshInput) => finalizeIndex({
+        ...refreshInput,
+        rebuildFileDependencies,
+        loadDependencyGraphHealth,
+        writeSidecars,
+      }),
     });
-    indexedFiles += primaryResult.indexedFiles;
-    indexedSymbols += primaryResult.indexedSymbols;
-
-    for (const dependentPath of dependentPaths) {
-      const dependentResult = await refreshIndexedFilePath(db, {
-        repoRoot,
-        filePath: dependentPath,
-        summaryStrategy: config.summaryStrategy,
-        forceRefresh: true,
-        maxFileBytes: config.maxFileBytes,
-        maxSymbolsPerFile: config.maxSymbolsPerFile,
-        workerPool: {
-          enabled: config.workerPoolEnabled,
-          maxWorkers: config.workerPoolMaxWorkers,
-        },
-      });
-      indexedFiles += dependentResult.indexedFiles;
-      indexedSymbols += dependentResult.indexedSymbols;
-    }
-
-    const indexedAt = new Date().toISOString();
-    const staleStatus = await finalizeIndex(db, repoRoot, indexedAt, config.summaryStrategy);
-
-    return {
-      indexedFiles,
-      indexedSymbols,
-      staleStatus,
-    };
   } finally {
     db.close();
   }
@@ -3344,63 +1677,34 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
       const db = openDatabase(config.paths.databasePath);
       const meta = await readRepoMeta(config.paths.repoMetaPath);
       const forceRefresh = meta?.summaryStrategy !== config.summaryStrategy;
-      const dependentPaths = new Set<string>();
-
-      let indexedFiles = 0;
-      let indexedSymbols = 0;
 
       try {
-        for (const filePath of changedPaths) {
-          for (const importerPath of loadDirectImporterPaths(db, filePath)) {
-            if (!changedPaths.includes(importerPath) && importerPath !== filePath) {
-              dependentPaths.add(importerPath);
-            }
-          }
-
-          const result = await refreshIndexedFilePath(db, {
-            repoRoot,
-            filePath,
-            summaryStrategy: config.summaryStrategy,
-            forceRefresh,
-            maxFileBytes: config.maxFileBytes,
-            maxSymbolsPerFile: config.maxSymbolsPerFile,
-            workerPool: {
-              enabled: config.workerPoolEnabled,
-              maxWorkers: config.workerPoolMaxWorkers,
-            },
-          });
-          indexedFiles += result.indexedFiles;
-          indexedSymbols += result.indexedSymbols;
-        }
-
-        for (const dependentPath of [...dependentPaths].sort()) {
-          const result = await refreshIndexedFilePath(db, {
-            repoRoot,
-            filePath: dependentPath,
-            summaryStrategy: config.summaryStrategy,
-            forceRefresh: true,
-            maxFileBytes: config.maxFileBytes,
-            maxSymbolsPerFile: config.maxSymbolsPerFile,
-            workerPool: {
-              enabled: config.workerPoolEnabled,
-              maxWorkers: config.workerPoolMaxWorkers,
-            },
-          });
-          indexedFiles += result.indexedFiles;
-          indexedSymbols += result.indexedSymbols;
-        }
-
-        const indexedAt = new Date().toISOString();
-        const staleStatus = await finalizeIndex(db, repoRoot, indexedAt, config.summaryStrategy);
+        const summary = await refreshFileSetWithDependents({
+          db,
+          repoRoot,
+          filePaths: changedPaths,
+          summaryStrategy: config.summaryStrategy,
+          forceRefresh,
+          maxFileBytes: config.maxFileBytes,
+          maxSymbolsPerFile: config.maxSymbolsPerFile,
+          workerPool: {
+            enabled: config.workerPoolEnabled,
+            maxWorkers: config.workerPoolMaxWorkers,
+          },
+          loadDirectImporterPaths,
+          refreshFilePath: refreshIndexedFilePath,
+          finalizeIndex: (refreshInput) => finalizeIndex({
+            ...refreshInput,
+            rebuildFileDependencies,
+            loadDependencyGraphHealth,
+            writeSidecars,
+          }),
+        });
 
         return {
           type: "reindex",
           changedPaths,
-          summary: {
-            indexedFiles,
-            indexedSymbols,
-            staleStatus,
-          },
+          summary,
         } satisfies WatchEvent;
       } finally {
         db.close();
@@ -3776,40 +2080,6 @@ export async function suggestInitialQueries(input: {
   }
 }
 
-function searchSymbolsInContext(
-  context: EngineContext,
-  input: SearchSymbolsOptions,
-): SymbolSummary[] {
-  const resultLimit = Math.min(
-    input.limit ?? context.config.maxSymbolResults,
-    context.config.maxSymbolResults,
-  );
-  const rows = loadSymbolRows(context.db, {
-    query: input.query,
-    kind: input.kind,
-    language: input.language,
-    filePattern: input.filePattern,
-  });
-  const normalizedQuery = normalizeQuery(input.query);
-
-  return rows
-    .map((row) => ({
-      row,
-      score: scoreSymbolRow(row, normalizedQuery, context.config.rankingWeights),
-    }))
-    .filter((entry) => entry.score > 0)
-    .sort(
-      (left, right) =>
-        right.score - left.score ||
-        Number(right.row.exported) - Number(left.row.exported) ||
-        left.row.file_path.localeCompare(right.row.file_path) ||
-        left.row.start_line - right.row.start_line ||
-        left.row.name.localeCompare(right.row.name),
-    )
-    .slice(0, resultLimit)
-    .map((entry) => mapSymbolRow(entry.row));
-}
-
 export async function searchSymbols(
   input: SearchSymbolsOptions,
 ): Promise<SymbolSummary[]> {
@@ -3821,78 +2091,6 @@ export async function searchSymbols(
   } finally {
     closeEngineContext(context);
   }
-}
-
-function searchTextInContext(
-  context: EngineContext,
-  input: SearchTextOptions,
-): SearchTextMatch[] {
-  validateSearchTextOptions(input);
-  const whereClauses: string[] = [];
-  const params: IndexBackendValue[] = [];
-  const ftsQuery = buildFtsMatchQuery(input.query);
-  const resultLimit = Math.min(
-    input.limit ?? context.config.maxTextResults,
-    context.config.maxTextResults,
-  );
-
-  if (ftsQuery) {
-    const ftsRows = typedAll<{ file_id: number }>(
-      context.db.prepare(
-        `
-          SELECT DISTINCT file_id
-          FROM content_search
-          WHERE content_search MATCH ?
-          LIMIT 200
-        `,
-      ),
-      ftsQuery,
-    );
-    if (ftsRows.length > 0) {
-      const placeholders = ftsRows.map(() => "?").join(", ");
-      whereClauses.push(`files.id IN (${placeholders})`);
-      params.push(...ftsRows.map((row) => row.file_id));
-    }
-  }
-
-  const rows = typedAll<{ file_path: string; content: string }>(
-    context.db.prepare(
-      `
-        SELECT files.path AS file_path, content_blobs.content AS content
-        FROM content_blobs
-        INNER JOIN files ON files.id = content_blobs.file_id
-        ${whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : ""}
-        ORDER BY files.path ASC
-      `,
-    ),
-    ...params,
-  );
-  const lowerQuery = input.query.toLowerCase();
-  const matches: SearchTextMatch[] = [];
-
-  for (const row of rows) {
-    if (!matchesFilePattern(row.file_path, input.filePattern)) {
-      continue;
-    }
-    const lines = row.content.split("\n");
-    lines.forEach((line, index) => {
-      if (matches.length >= resultLimit) {
-        return;
-      }
-      if (line.toLowerCase().includes(lowerQuery)) {
-        matches.push({
-          filePath: row.file_path,
-          line: index + 1,
-          preview: line.trim(),
-        });
-      }
-    });
-    if (matches.length >= resultLimit) {
-      break;
-    }
-  }
-
-  return matches;
 }
 
 export async function searchText(
@@ -4141,135 +2339,10 @@ export async function queryCode(
   const context = await createEngineContext(input);
 
   try {
-    switch (resolvedIntent) {
-      case "discover": {
-        const symbolMatches = searchSymbolsInContext(context, {
-          repoRoot: context.config.repoRoot,
-          query: input.query ?? "",
-          kind: input.kind,
-          language: input.language,
-          filePattern: input.filePattern,
-          limit: input.limit,
-        });
-        const textMatches = input.includeTextMatches
-          ? searchTextInContext(context, {
-              repoRoot: context.config.repoRoot,
-              query: input.query ?? "",
-              filePattern: input.filePattern,
-            })
-          : [];
-        const graphMatches = buildDiscoverGraphMatches(
-          context.db,
-          symbolMatches,
-          input,
-        );
-
-        const result: QueryCodeDiscoverResult = {
-          intent: "discover",
-          query: input.query ?? "",
-          symbolMatches,
-          textMatches,
-          matches: graphMatches.matches,
-          textMatchResults: buildTextMatchResults(textMatches),
-        };
-        return result;
-      }
-      case "source": {
-        const fileContent = input.filePath
-          ? getFileContentFromContext(context, input.filePath)
-          : null;
-        const hasSymbolRequest = Boolean(input.symbolId) || Boolean(input.symbolIds?.length);
-        const symbolSource = hasSymbolRequest
-          ? getSymbolSourceFromContext(context, {
-              symbolId: input.symbolId,
-              symbolIds: input.symbolIds,
-              contextLines: input.contextLines,
-              verify: input.verify,
-            })
-          : null;
-
-        const result: QueryCodeSourceResult = {
-          intent: "source",
-          fileContent,
-          symbolSource,
-        };
-        return result;
-      }
-      case "assemble": {
-        const ranked = input.includeRankedCandidates && input.query
-          ? getRankedContextFromContext(context, {
-              repoRoot: context.config.repoRoot,
-              query: input.query,
-              tokenBudget: input.tokenBudget,
-              includeDependencies: input.includeDependencies,
-              includeImporters: input.includeImporters,
-              relationDepth: input.relationDepth,
-            })
-          : null;
-        const bundle = ranked
-          ? ranked.bundle
-          : getContextBundleFromContext(context, {
-              repoRoot: context.config.repoRoot,
-              query: input.query,
-              symbolIds: input.symbolIds,
-              tokenBudget: input.tokenBudget,
-              includeDependencies: input.includeDependencies,
-              includeImporters: input.includeImporters,
-              relationDepth: input.relationDepth,
-            });
-
-        const result: QueryCodeAssembleResult = {
-          intent: "assemble",
-          bundle,
-          ranked,
-        };
-        return result;
-      }
-      default:
-        throw new Error(`Unsupported query_code intent: ${String(input.intent)}`);
-    }
+    return queryCodeInContext(context, input, resolvedIntent);
   } finally {
     closeEngineContext(context);
   }
-}
-
-function resolveQueryCodeIntent(
-  input: Pick<
-    QueryCodeOptions,
-    "intent" | "symbolId" | "symbolIds" | "filePath" | "tokenBudget" | "includeRankedCandidates"
-  >,
-): Exclude<QueryCodeIntent, "auto"> {
-  if (input.intent && input.intent !== "auto") {
-    return input.intent;
-  }
-
-  if (input.filePath || input.symbolId) {
-    return "source";
-  }
-
-  if (input.tokenBudget !== undefined || input.includeRankedCandidates) {
-    return "assemble";
-  }
-
-  if (input.symbolIds && input.symbolIds.length > 0) {
-    return "source";
-  }
-
-  return "discover";
-}
-
-function getContextBundleFromContext(
-  context: EngineContext,
-  input: ContextBundleOptions,
-): ContextBundle {
-  const normalizedSeeds = validateContextBundleOptions(input);
-  const normalizedInput = {
-    ...input,
-    repoRoot: context.config.repoRoot,
-    ...normalizedSeeds,
-  };
-  const seedCandidates = resolveRankedSeedCandidates(context, normalizedInput).slice(0, 3);
-  return buildContextBundleFromSeeds(context.db, normalizedInput, seedCandidates);
 }
 
 export async function getContextBundle(
@@ -4284,24 +2357,6 @@ export async function getContextBundle(
   }
 }
 
-function getRankedContextFromContext(context: EngineContext, input: {
-  repoRoot: string;
-  query: string;
-  tokenBudget?: number;
-  includeDependencies?: boolean;
-  includeImporters?: boolean;
-  includeReferences?: boolean;
-  relationDepth?: number;
-}): RankedContextResult {
-  validateRankedContextOptions(input);
-  const normalizedInput = {
-    ...input,
-    repoRoot: context.config.repoRoot,
-  };
-  const seedCandidates = resolveRankedSeedCandidates(context, normalizedInput);
-  const bundle = buildContextBundleFromSeeds(context.db, normalizedInput, seedCandidates.slice(0, 3));
-  return buildRankedContextResult(normalizedInput, seedCandidates, bundle);
-}
 
 export async function getRankedContext(input: {
   repoRoot: string;
@@ -4321,29 +2376,6 @@ export async function getRankedContext(input: {
   }
 }
 
-function getFileContentFromContext(
-  context: EngineContext,
-  filePath: string,
-): FileContentResult {
-  const { relativePath } = normalizeRepoRelativePath(context.config.repoRoot, filePath);
-  const row = context.db.prepare(
-      `
-        SELECT content_blobs.content AS content
-        FROM content_blobs
-        INNER JOIN files ON files.id = content_blobs.file_id
-        WHERE files.path = ?
-      `,
-    ).get(relativePath) as { content: string } | undefined;
-
-  if (!row) {
-    throw new Error(`File not indexed: ${relativePath}`);
-  }
-
-  return {
-    filePath: relativePath,
-    content: row.content,
-  };
-}
 
 export async function getFileContent(input: {
   repoRoot: string;
@@ -4358,60 +2390,6 @@ export async function getFileContent(input: {
   }
 }
 
-function getSymbolSourceFromContext(context: EngineContext, input: {
-  symbolId?: string;
-  symbolIds?: string[];
-  verify?: boolean;
-  contextLines?: number;
-}): SymbolSourceResult {
-  validateSymbolSourceOptions(input);
-  const requestedIds = [
-    ...(input.symbolId ? [input.symbolId] : []),
-    ...(input.symbolIds ?? []),
-  ];
-  const symbolIds = [...new Set(requestedIds.filter(Boolean))];
-
-  if (symbolIds.length === 0) {
-    throw new Error("At least one symbol id is required");
-  }
-
-  const rows = symbolIds.map((symbolId) => {
-    const row = context.db.prepare(
-      `
-        SELECT
-          symbols.id, symbols.name, symbols.qualified_name, symbols.kind, symbols.file_path,
-          symbols.signature, symbols.summary, symbols.summary_source,
-          symbols.start_line, symbols.end_line, symbols.start_byte, symbols.end_byte,
-          symbols.exported,
-          files.content_hash, files.integrity_hash, content_blobs.content
-        FROM symbols
-        INNER JOIN files ON files.id = symbols.file_id
-        INNER JOIN content_blobs ON content_blobs.file_id = files.id
-        WHERE symbols.id = ?
-      `,
-    ).get(symbolId) as DbFileContentRow | undefined;
-
-    if (!row) {
-      throw new Error(`Symbol not indexed: ${symbolId}`);
-    }
-    return row;
-  });
-
-  const items = rows.map((row) =>
-    buildSymbolSourceItem(row, input.verify === true, input.contextLines),
-  );
-  const first = items[0];
-
-  return {
-    requestedContextLines: Math.max(0, Math.floor(input.contextLines ?? 0)),
-    items,
-    symbol: first?.symbol,
-    source: first?.source,
-    verified: first?.verified,
-    startLine: first?.startLine,
-    endLine: first?.endLine,
-  };
-}
 
 export async function getSymbolSource(input: {
   repoRoot: string;
@@ -4439,393 +2417,25 @@ export async function diagnostics(input: DiagnosticsOptions): Promise<Diagnostic
       config.paths.repoMetaPath,
       config.paths.integrityPath,
     );
-    const meta = metaHealth.meta;
-    const indexedEntries = loadIndexedSnapshot(db);
     const dependencyGraph = loadDependencyGraphHealth(db);
-    const indexedSnapshotHash =
-      meta?.indexedSnapshotHash ?? (indexedEntries.length > 0 ? snapshotHash(indexedEntries) : null);
-    const scanFreshness = input.scanFreshness === true;
-  const drift = scanFreshness
-      ? compareSnapshots(
-          indexedEntries,
-          await loadFilesystemSnapshot(repoRoot, {
-            include: config.indexInclude,
-            exclude: config.indexExclude,
-            maxFilesDiscovered: config.maxFilesDiscovered,
-            maxFileBytes: config.maxFileBytes,
-          }),
-        )
-      : {
-          missingPaths: [] as string[],
-          extraPaths: [] as string[],
-          changedPaths: [] as string[],
-          indexedFiles: indexedEntries.length,
-          currentFiles: meta?.indexedFiles ?? indexedEntries.length,
-          missingFiles: 0,
-          changedFiles: 0,
-          extraFiles: 0,
-          indexedSnapshotHash: indexedSnapshotHash ?? null,
-          currentSnapshotHash: indexedSnapshotHash ?? null,
-        };
-    const indexedAt = meta?.indexedAt ?? null;
-    const indexAgeMs =
-      indexedAt !== null ? Math.max(0, Date.now() - Date.parse(indexedAt)) : null;
-    const staleReasons: string[] = [];
-
-    if (metaHealth.status === "missing") {
-      staleReasons.push("index metadata missing");
-    }
-    if (metaHealth.status === "unreadable") {
-      staleReasons.push("index metadata unreadable");
-    }
-    if (metaHealth.status === "missing-integrity") {
-      staleReasons.push("index metadata integrity missing");
-    }
-    if (metaHealth.status === "integrity-mismatch") {
-      staleReasons.push("index metadata integrity mismatch");
-    }
-    if (dependencyGraph.brokenRelativeImportCount > 0) {
-      staleReasons.push("unresolved relative imports");
-    }
-    if (dependencyGraph.brokenRelativeSymbolImportCount > 0) {
-      staleReasons.push("unresolved relative symbol imports");
-    }
-    if (scanFreshness) {
-      if (drift.missingFiles > 0) {
-        staleReasons.push("missing files");
-      }
-      if (drift.changedFiles > 0) {
-        staleReasons.push("content drift");
-      }
-      if (drift.extraFiles > 0) {
-        staleReasons.push("new files");
-      }
-    }
-
-    const staleStatus: DiagnosticsResult["staleStatus"] =
-      scanFreshness
-        ? meta && staleReasons.length === 0
-          ? "fresh"
-          : meta
-            ? "stale"
-            : "unknown"
-        : staleReasons.length > 0
-          ? meta
-            ? "stale"
-            : "unknown"
-          : meta?.staleStatus ?? "unknown";
-    const summarySources = Object.fromEntries(
-      typedAll<{ summary_source: SummarySource; count: number }>(
-        db.prepare(
-          `
-            SELECT summary_source, COUNT(*) AS count
-            FROM symbols
-            GROUP BY summary_source
-          `,
-        ),
-      ).map((row) => [row.summary_source, row.count]),
-    ) as DiagnosticsResult["summarySources"];
-    const indexedFiles = meta?.indexedFiles ?? drift.indexedFiles;
-    const readiness = buildReadinessStatus({
-      readiness: meta?.readiness,
-      indexedFiles,
-    });
-    const languageRegistry = getLanguageRegistrySnapshot();
-
-    return {
-      engineVersion: ASTROGRAPH_PACKAGE_VERSION,
-      engineVersionParts: ASTROGRAPH_VERSION_PARTS,
+    return buildDiagnosticsResult({
+      db,
+      repoRoot,
       storageDir: config.paths.storageDir,
       databasePath: config.paths.databasePath,
-      storageVersion: meta?.storageVersion ?? ENGINE_STORAGE_VERSION,
-      schemaVersion: readMetaNumber(db, "schemaVersion") ?? ENGINE_SCHEMA_VERSION,
       storageMode: config.storageMode,
+      summaryStrategy: config.summaryStrategy,
       storageBackend: SQLITE_INDEX_BACKEND.backendName,
-      staleStatus,
-      freshnessMode: scanFreshness ? "scan" : "metadata",
-      freshnessScanned: scanFreshness,
-      summaryStrategy: meta?.summaryStrategy ?? config.summaryStrategy,
-      summarySources,
-      indexedAt,
-      indexAgeMs,
-      indexedFiles,
-      indexedSymbols:
-        meta?.indexedSymbols ??
-        countRows(db, "SELECT COUNT(*) AS count FROM symbols"),
-      currentFiles: drift.currentFiles,
-      missingFiles: drift.missingFiles,
-      changedFiles: drift.changedFiles,
-      extraFiles: drift.extraFiles,
-      indexedSnapshotHash,
-      currentSnapshotHash: drift.currentSnapshotHash,
-      staleReasons,
-      readiness,
-      parser: loadParserHealth(db),
+      metaHealth,
       dependencyGraph,
-      languageRegistry,
-      watch: meta?.watch ?? createDefaultWatchDiagnostics(),
-    };
+      scanFreshness: input.scanFreshness === true,
+      indexInclude: config.indexInclude,
+      indexExclude: config.indexExclude,
+      maxFilesDiscovered: config.maxFilesDiscovered,
+      maxFileBytes: config.maxFileBytes,
+    });
   } finally {
     db.close();
-  }
-}
-
-async function resolveDoctorObservability(
-  repoRoot: string,
-): Promise<DoctorResult["observability"]> {
-  const repoConfig = await loadRepoEngineConfig(repoRoot, { repoRootResolved: true });
-
-  if (!repoConfig.observability.enabled) {
-    return {
-      enabled: false,
-      configuredHost: repoConfig.observability.host,
-      configuredPort: repoConfig.observability.port,
-      status: "disabled",
-      url: null,
-    };
-  }
-
-  return {
-    enabled: true,
-    configuredHost: repoConfig.observability.host,
-    configuredPort: repoConfig.observability.port,
-    status: "recording",
-    url: null,
-  };
-}
-
-function loadDependencyGraphHealth(
-  db: IndexBackendConnection,
-): DoctorResult["dependencyGraph"] {
-  const brokenDependencyRows = typedAll<{
-    importer_path: string;
-    source: string;
-  }>(
-    db.prepare(`
-      SELECT files.path AS importer_path, imports.source AS source
-      FROM imports
-      INNER JOIN files ON files.id = imports.file_id
-      LEFT JOIN file_dependencies
-        ON file_dependencies.importer_file_id = imports.file_id
-        AND file_dependencies.source = imports.source
-      WHERE (imports.source LIKE './%' OR imports.source LIKE '../%' OR imports.source LIKE '/%')
-        AND file_dependencies.target_path IS NULL
-      ORDER BY files.path ASC, imports.source ASC
-    `),
-  );
-  const affectedImporters = [...new Set(
-    brokenDependencyRows.map((row) => row.importer_path),
-  )];
-  const brokenRelativeSymbolRows = typedAll<{
-    importer_path: string;
-    target_path: string;
-    specifiers: string;
-  }>(
-    db.prepare(`
-      SELECT
-        file_dependencies.importer_path AS importer_path,
-        file_dependencies.target_path AS target_path,
-        imports.specifiers AS specifiers
-      FROM file_dependencies
-      INNER JOIN files ON files.id = file_dependencies.importer_file_id
-      INNER JOIN imports
-        ON imports.file_id = files.id
-        AND imports.source = file_dependencies.source
-      WHERE file_dependencies.source LIKE './%'
-        OR file_dependencies.source LIKE '../%'
-        OR file_dependencies.source LIKE '/%'
-      ORDER BY file_dependencies.importer_path ASC, file_dependencies.target_path ASC
-    `),
-  );
-
-  const brokenRelativeSymbolImporters = new Set<string>();
-  let brokenRelativeSymbolImportCount = 0;
-
-  for (const row of brokenRelativeSymbolRows) {
-    const missingNamedSpecifiers = parseStoredImportSpecifiers(row.specifiers)
-      .filter((specifier) => specifier.kind === "named")
-      .filter((specifier) => {
-        const exportedSymbol = typedGet<{ id: string }>(
-          db.prepare(
-            `
-              SELECT id
-              FROM symbols
-              WHERE file_path = ?
-                AND exported = 1
-                AND (name = ? OR qualified_name = ?)
-              LIMIT 1
-            `,
-          ),
-          row.target_path,
-          specifier.importedName,
-          specifier.importedName,
-        );
-        return !exportedSymbol;
-      });
-
-    if (missingNamedSpecifiers.length === 0) {
-      continue;
-    }
-
-    brokenRelativeSymbolImportCount += missingNamedSpecifiers.length;
-    brokenRelativeSymbolImporters.add(row.importer_path);
-  }
-
-  const allAffectedImporters = [...new Set([
-    ...affectedImporters,
-    ...brokenRelativeSymbolImporters,
-  ])];
-  const sampleImporterPaths = allAffectedImporters.slice(0, 5);
-
-  return {
-    brokenRelativeImportCount: brokenDependencyRows.length,
-    brokenRelativeSymbolImportCount,
-    affectedImporterCount: allAffectedImporters.length,
-    sampleImporterPaths,
-  };
-}
-
-function loadPrivacyHealth(
-  db: IndexBackendConnection,
-): DoctorResult["privacy"] {
-  const rows = typedAll<{ file_path: string; content: string }>(
-    db.prepare(`
-      SELECT files.path AS file_path, content_blobs.content AS content
-      FROM content_blobs
-      INNER JOIN files ON files.id = content_blobs.file_id
-      ORDER BY files.path ASC
-    `),
-  );
-  const sampleFilePaths: string[] = [];
-  let secretLikeFileCount = 0;
-
-  for (const row of rows) {
-    if (!containsSecretLikeText(row.content)) {
-      continue;
-    }
-
-    secretLikeFileCount += 1;
-    if (sampleFilePaths.length < 5) {
-      sampleFilePaths.push(row.file_path);
-    }
-  }
-
-  return {
-    secretLikeFileCount,
-    sampleFilePaths,
-  };
-}
-
-function buildDoctorWarnings(result: DoctorResult): string[] {
-  const warnings: string[] = [];
-
-  if (result.indexStatus === "not-indexed") {
-    warnings.push("No Astrograph index was found for this repository yet.");
-  }
-  if (result.indexStatus === "stale") {
-    warnings.push("Indexed repository data is stale.");
-  }
-  if (result.parser.unknownFileCount > 0) {
-    warnings.push(
-      `Parser health is unavailable for ${result.parser.unknownFileCount} indexed file(s) created before parser metrics were recorded.`,
-    );
-  }
-  if ((result.parser.fallbackRate ?? 0) > 0) {
-    warnings.push(
-      `Parser fallback was used for ${result.parser.fallbackFileCount} of ${result.parser.indexedFileCount} indexed file(s).`,
-    );
-  }
-  if (result.dependencyGraph.brokenRelativeImportCount > 0) {
-    warnings.push(
-      `Dependency graph contains ${result.dependencyGraph.brokenRelativeImportCount} unresolved relative import(s) across ${result.dependencyGraph.affectedImporterCount} importer file(s).`,
-    );
-  }
-  if (result.dependencyGraph.brokenRelativeSymbolImportCount > 0) {
-    warnings.push(
-      `Dependency graph contains ${result.dependencyGraph.brokenRelativeSymbolImportCount} unresolved relative symbol import(s).`,
-    );
-  }
-  if (result.privacy.secretLikeFileCount > 0) {
-    warnings.push(
-      `Indexed source contains ${result.privacy.secretLikeFileCount} file(s) with obvious secret-like content.`,
-    );
-  }
-  if (result.watch.status !== "watching") {
-    warnings.push("Watch mode is not currently running.");
-  }
-
-  return warnings;
-}
-
-function buildMetaHealthWarnings(status: RepoMetaHealthStatus): string[] {
-  switch (status) {
-    case "unreadable":
-      return ["Index metadata is unreadable."];
-    case "missing-integrity":
-      return ["Index metadata integrity file is missing."];
-    case "integrity-mismatch":
-      return ["Index metadata integrity check failed."];
-    default:
-      return [];
-  }
-}
-
-function buildDoctorSuggestedActions(result: DoctorResult): string[] {
-  const actions: string[] = [];
-
-  if (result.indexStatus === "not-indexed") {
-    actions.push(`Run \`pnpm exec astrograph cli index-folder --repo ${result.repoRoot}\` to create the initial index.`);
-  }
-  if (result.indexStatus === "stale") {
-    actions.push(`Run \`pnpm exec astrograph cli index-folder --repo ${result.repoRoot}\` to refresh the stale index.`);
-  }
-  if (result.parser.unknownFileCount > 0) {
-    actions.push("Reindex the repository to backfill parser health metrics on older indexed files.");
-  }
-  if (result.dependencyGraph.brokenRelativeImportCount > 0) {
-    const sample = result.dependencyGraph.sampleImporterPaths[0];
-    actions.push(
-      sample
-        ? `Fix or reindex importer paths such as \`${sample}\` so Astrograph can resolve their relative dependencies again.`
-        : "Fix or reindex importer paths with unresolved relative dependencies.",
-    );
-  }
-  if (result.dependencyGraph.brokenRelativeSymbolImportCount > 0) {
-    const sample = result.dependencyGraph.sampleImporterPaths[0];
-    actions.push(
-      sample
-        ? `Update importer paths such as \`${sample}\` or restore the expected exported symbols in their relative dependencies.`
-        : "Update importer paths or restore the expected exported symbols in their relative dependencies.",
-    );
-  }
-  if (result.privacy.secretLikeFileCount > 0) {
-    const sample = result.privacy.sampleFilePaths[0];
-    actions.push(
-      sample
-        ? `Review indexed file(s) such as \`${sample}\` and remove or rotate any real secrets that should not live in source.`
-        : "Review indexed files with secret-like content and remove or rotate any real secrets that should not live in source.",
-    );
-  }
-  if (result.watch.status !== "watching") {
-    actions.push(`Run \`pnpm exec astrograph cli watch --repo ${result.repoRoot}\` if you want automatic local refresh while editing.`);
-  }
-
-  return actions;
-}
-
-function buildMetaHealthSuggestedActions(
-  repoRoot: string,
-  status: RepoMetaHealthStatus,
-): string[] {
-  switch (status) {
-    case "unreadable":
-    case "missing-integrity":
-    case "integrity-mismatch":
-      return [
-        `Rebuild Astrograph metadata with \`pnpm exec astrograph cli index-folder --repo ${repoRoot}\` because the repo-local metadata sidecars are corrupted or incomplete.`,
-      ];
-    default:
-      return [];
   }
 }
 
@@ -4842,58 +2452,12 @@ export async function doctor(input: DiagnosticsOptions): Promise<DoctorResult> {
   const db = openDatabase(health.databasePath);
 
   try {
-    const importCount = countRows(db, "SELECT COUNT(*) AS count FROM imports");
-    const dependencyGraph = loadDependencyGraphHealth(db);
-    const privacy = loadPrivacyHealth(db);
-    const observability = await resolveDoctorObservability(resolvedRepoRoot);
-    const result: DoctorResult = {
-      repoRoot: resolvedRepoRoot,
-      storageDir: health.storageDir,
-      databasePath: health.databasePath,
-      storageVersion: health.storageVersion,
-      schemaVersion: health.schemaVersion,
-      storageBackend: health.storageBackend,
-      storageMode: health.storageMode,
-      indexStatus:
-        health.indexedAt === null && health.indexedFiles === 0
-          ? "not-indexed"
-          : health.staleStatus === "stale"
-            ? "stale"
-            : "indexed",
-      freshness: {
-        status: health.staleStatus,
-        mode: health.freshnessMode,
-        scanned: health.freshnessScanned,
-        indexedAt: health.indexedAt,
-        indexAgeMs: health.indexAgeMs,
-        indexedFiles: health.indexedFiles,
-        currentFiles: health.currentFiles,
-        indexedSymbols: health.indexedSymbols,
-        indexedImports: importCount,
-        missingFiles: health.missingFiles,
-        changedFiles: health.changedFiles,
-        extraFiles: health.extraFiles,
-      },
-      parser: {
-        ...health.parser,
-      },
-      dependencyGraph,
-      observability,
-      privacy,
-      watch: health.watch,
-      warnings: [],
-      suggestedActions: [],
-    };
-
-    result.warnings = [
-      ...buildDoctorWarnings(result),
-      ...buildMetaHealthWarnings(metaHealth.status),
-    ];
-    result.suggestedActions = [
-      ...buildDoctorSuggestedActions(result),
-      ...buildMetaHealthSuggestedActions(result.repoRoot, metaHealth.status),
-    ];
-    return result;
+    return buildDoctorResult({
+      resolvedRepoRoot,
+      diagnostics: health,
+      db,
+      metaHealth,
+    });
   } finally {
     db.close();
   }

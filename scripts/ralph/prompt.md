@@ -1,6 +1,6 @@
 # Ralph Runner Instructions
 
-You are running one opt-in Ralph iteration for `playground`.
+You are running one opt-in Ralph iteration for `astrograph`.
 
 ## Run Context
 

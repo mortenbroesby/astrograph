@@ -16,18 +16,11 @@ All CLI output is JSON by default.
 
 Choose one profile to match how many tools you want installed:
 
-| Profile | Included tool set | Trade-off |
-|---|---|---|
-| `full` | All tools (`query_code`, indexing, diagnostics) | Richest experience; largest surface |
-| `some` | Query/discovery + helper tools | Strong day-to-day productivity with fewer hooks |
-| `barebones` | Query + file tree + file outline | Lowest complexity and permissions |
-
 ```bash
-npx @mortenbroesby/astrograph init --ide copilot --mode full
-npx @mortenbroesby/astrograph init --yes --ide codex --mode some --repo /repo
-npx @mortenbroesby/astrograph init --yes --ide codex --mode barebones --repo /repo
-npx @mortenbroesby/astrograph init --yes --ide all --mode some --repo /repo
-npx @mortenbroesby/astrograph init --yes --ide codex,copilot-cli --mode full --repo /repo
+npx @mortenbroesby/astrograph init --ide copilot
+npx @mortenbroesby/astrograph init --yes --ide codex --repo /repo
+npx @mortenbroesby/astrograph init --yes --ide all --repo /repo
+npx @mortenbroesby/astrograph init --yes --ide codex,copilot-cli --repo /repo
 ```
 
 The interactive installer prompts for profile selection when run as:
@@ -105,17 +98,20 @@ npx astrograph git-refresh push --execute
 
 ## Repo configuration
 
-Astrograph reads optional defaults from `astrograph.config.json`.
+Astrograph reads optional defaults from `astrograph.config.ts`. Legacy
+`astrograph.config.json` files are still read when no TypeScript config exists.
 
-```json
-{
-  "summaryStrategy": "doc-comments-first",
-  "storageMode": "wal",
-  "observability": {
-    "retentionDays": 3,
-    "redactSourceText": true
+```ts
+import { defineConfig } from "@mortenbroesby/astrograph";
+
+export default defineConfig({
+  summaryStrategy: "doc-comments-first",
+  storageMode: "wal",
+  observability: {
+    retentionDays: 3,
+    redactSourceText: true,
   },
-  "ranking": {
+  ranking: {
     "exactName": 1000,
     "filePathContains": 120,
     "exportedBonus": 20
@@ -142,7 +138,7 @@ Astrograph reads optional defaults from `astrograph.config.json`.
     "maxChildProcessOutputBytes": 1000000,
     "maxLiveSearchMatches": 100
   }
-}
+});
 ```
 
 ## Development examples

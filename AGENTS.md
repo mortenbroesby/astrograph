@@ -10,6 +10,8 @@ referenced `zyncbase/specs` setup:
 - `specs/implementation/` for internal implementation specs and plans
 - `specs/templates/` for reusable authoring templates
 
+For general agent tasks, use the repo-local commands in `.agents/commands/` and shared guidance in `.agents/references/`.
+
 Before creating or changing specs, use the repo-local skills in `.agents/skills/`:
 
 - `spec-authoring`
@@ -17,6 +19,8 @@ Before creating or changing specs, use the repo-local skills in `.agents/skills/
 - `implementation-plan-authoring`
 - `spec-maintenance`
 - `release-decision`
+
+Keep durable policy in `.agents/rules/`.
 
 Keep user-facing setup docs in `README.md`, release workflow in `docs/release.md`,
 and performance workflow in `docs/performance.md`.
@@ -36,7 +40,6 @@ triggers, dependency caching, PR concurrency cancellation, and the split between
 fast required checks and expensive optional checks unless the task explicitly
 sets `ALLOW_GITHUB_ACTIONS_COST_INCREASE=true`.
 
-<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->
 ## Code Exploration Policy
 
 Prefer Astrograph MCP tools for code exploration before falling back to raw file reads or shell search.
@@ -46,4 +49,3 @@ Prefer Astrograph MCP tools for code exploration before falling back to raw file
 - Before searching broadly, use `query_code`, `find_files`, or `search_text`.
 - Before exploring structure, use `get_file_tree` or `get_repo_outline`.
 - Use raw file reads or shell search only when Astrograph cannot answer the question or when debugging Astrograph itself.
-<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->

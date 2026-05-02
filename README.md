@@ -58,23 +58,14 @@ npm install -g @mortenbroesby/astrograph
 astrograph init
 ```
 
-Want control over what gets installed? Pick one profile:
+Want control over where setup writes MCP config? Pick the IDE target:
 
 ```bash
-astrograph init --ide codex --mode full
-astrograph init --ide codex --mode some
-astrograph init --ide codex --mode barebones
+astrograph init --ide codex
+astrograph init --ide copilot
+astrograph init --ide copilot-cli
+astrograph init --ide all
 ```
-
-Profiles:
-
-| Profile | Tools included | What you get | Trade-off |
-|---|---|---|---|
-| `full` | All (`query_code`, indexing, diagnostics) | Batteries included, broadest capabilities | Highest surface area and config size |
-| `some` | Core query/discovery + suggestion tools | Most useful features for daily agent work | Reduced introspection and admin surface |
-| `barebones` | Query + tree/outline tools only | Fastest onboarding and smallest permissions | Less automation and diagnostics |
-
-Default is `full`.
 
 If you need non-interactive install:
 
