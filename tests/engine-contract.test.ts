@@ -249,45 +249,48 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({
-        summaryStrategy: "signature-only",
-        storageMode: "wal",
-        ranking: {
-          exactName: 0,
-          filePathContains: 2000,
-        },
-        observability: {
-          enabled: true,
-          port: 0,
-          recentLimit: 17,
-          retentionDays: 5,
-          snapshotIntervalMs: 250,
-          redactSourceText: false,
-        },
-        performance: {
-          include: ["src/**/*.ts"],
-          exclude: ["**/*.test.ts"],
-          fileProcessingConcurrency: 1,
-          workerPool: {
-            enabled: true,
-            maxWorkers: 2,
-          },
-        },
-        watch: {
-          backend: "polling",
-          debounceMs: 175,
-        },
-        limits: {
-          maxFilesDiscovered: 1234,
-          maxFileBytes: 4321,
-          maxSymbolsPerFile: 7,
-          maxSymbolResults: 9,
-          maxTextResults: 8,
-          maxChildProcessOutputBytes: 7654,
-          maxLiveSearchMatches: 3,
-        },
-      }),
+      path.join(repoRoot, "astrograph.config.ts"),
+      [
+        "export default {",
+        '  summaryStrategy: "signature-only",',
+        '  storageMode: "wal",',
+        "  ranking: {",
+        "    exactName: 0,",
+        "    filePathContains: 2000,",
+        "  },",
+        "  observability: {",
+        "    enabled: true,",
+        "    port: 0,",
+        "    recentLimit: 17,",
+        "    retentionDays: 5,",
+        "    snapshotIntervalMs: 250,",
+        "    redactSourceText: false,",
+        "  },",
+        "  performance: {",
+        '    include: ["src/**/*.ts"],',
+        '    exclude: ["**/*.test.ts"],',
+        "    fileProcessingConcurrency: 1,",
+        "    workerPool: {",
+        "      enabled: true,",
+        "      maxWorkers: 2,",
+        "    },",
+        "  },",
+        "  watch: {",
+        '    backend: "polling",',
+        "    debounceMs: 175,",
+        "  },",
+        "  limits: {",
+        "    maxFilesDiscovered: 1234,",
+        "    maxFileBytes: 4321,",
+        "    maxSymbolsPerFile: 7,",
+        "    maxSymbolResults: 9,",
+        "    maxTextResults: 8,",
+        "    maxChildProcessOutputBytes: 7654,",
+        "    maxLiveSearchMatches: 3,",
+        "  },",
+        "};",
+        "",
+      ].join("\n"),
     );
 
     const config = await loadRepoEngineConfig(repoRoot);
@@ -328,7 +331,7 @@ describe("ai-context-engine contract", () => {
       maxChildProcessOutputBytes: 7654,
       maxLiveSearchMatches: 3,
     });
-    expect(config.configPath).toContain("astrograph.config.json");
+    expect(config.configPath).toContain("astrograph.config.ts");
   });
 
   it("fails clearly for invalid repo-root config", async () => {
@@ -336,16 +339,19 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({
-        observability: {
-          recentLimit: 0,
-        },
-      }),
+      path.join(repoRoot, "astrograph.config.ts"),
+      [
+        "export default {",
+        "  observability: {",
+        "    recentLimit: 0,",
+        "  },",
+        "};",
+        "",
+      ].join("\n"),
     );
 
     await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
-      /Invalid astrograph\.config\.json/i,
+      /Invalid astrograph\.config\.ts/i,
     );
   });
 
@@ -354,16 +360,19 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({
-        storageMode: "wal",
-        ranking: {
-          exportedBonus: 5,
-        },
-        performance: {
-          fileProcessingConcurrency: "auto",
-        },
-      }),
+      path.join(repoRoot, "astrograph.config.ts"),
+      [
+        "export default {",
+        '  storageMode: "wal",',
+        "  ranking: {",
+        "    exportedBonus: 5,",
+        "  },",
+        "  performance: {",
+        '    fileProcessingConcurrency: "auto",',
+        "  },",
+        "};",
+        "",
+      ].join("\n"),
     );
 
     const autoConfig = await loadRepoEngineConfig(repoRoot);
@@ -397,16 +406,19 @@ describe("ai-context-engine contract", () => {
     });
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({
-        performance: {
-          fileProcessingConcurrency: 99,
-          workerPool: {
-            enabled: true,
-            maxWorkers: 99,
-          },
-        },
-      }),
+      path.join(repoRoot, "astrograph.config.ts"),
+      [
+        "export default {",
+        "  performance: {",
+        "    fileProcessingConcurrency: 99,",
+        "    workerPool: {",
+        "      enabled: true,",
+        "      maxWorkers: 99,",
+        "    },",
+        "  },",
+        "};",
+        "",
+      ].join("\n"),
     );
 
     const boundedConfig = await loadRepoEngineConfig(repoRoot);
@@ -432,18 +444,13 @@ describe("ai-context-engine contract", () => {
 
     expect(result.packageName).toBe("@mortenbroesby/astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
-    expect(result.engineConfigPath).toContain("astrograph.config.json");
-    expect(result.engineConfigPreview).toMatchObject({
-      summaryStrategy: "doc-comments-first",
-      observability: {
-        enabled: false,
-      },
-      performance: {
-        workerPool: {
-          enabled: false,
-        },
-      },
-    });
+    expect(result.engineConfigPath).toContain("astrograph.config.ts");
+    expect(result.engineConfigPreview).toContain(
+      'import { defineConfig } from "@mortenbroesby/astrograph";',
+    );
+    expect(result.engineConfigPreview).toContain("export default defineConfig({");
+    expect(result.engineConfigPreview).toContain("performance:");
+    expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
@@ -723,6 +730,6 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"command": "npx"');
     expect(result.configPreview).toContain('"type": "local"');
     expect(result.configPreview).toContain('"tools": [');
-    expect(result.configPreview).not.toContain('"diagnostics"');
+    expect(result.configPreview).toContain('"diagnostics"');
   });
 });
