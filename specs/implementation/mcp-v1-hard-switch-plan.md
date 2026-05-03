@@ -16,9 +16,9 @@
 
   Documented here and in the run log: complete the in-progress planning updates first.
 
-- [ ] **1) MCPV1-2 checkpoint commit**
+- [ ] **1) Checkpoint commit (MCPV1-2)**
 
-  Check in the current plan state and task-priority update before moving to implementation.
+  Check in the current plan state and task-priority update first, then commit and push that PR state.
 
 - [ ] **2) Implement MCPV1-3 strict v1 envelopes**
 
@@ -26,7 +26,7 @@
 
 - [ ] **3) Check in MCPV1-3**
 
-  Commit and publish results from step 2 before returning to parser/task cleanup.
+  After step 2 is complete, commit and check in MCPV1-3 before parser/task cleanup resumes.
 
 - [ ] **4) Consider `oxc-resolver`/parser cleanup**
 
