@@ -69,7 +69,7 @@ while moving to a cleaner versioned contract. Maintaining the existing
 - Add strict v1 tools: `search_symbols`, `get_symbol_source`,
   `get_context_bundle`, and `get_ranked_context`.
 - Use a single strict v1 response envelope for success and failure.
-- Carry versioning in both registration metadata (`version: "1"`) and response
+- Carry versioning in both registration metadata (`toolVersion: "1"`) and response
   metadata (`meta.toolVersion`).
 - Keep plain tool names (no `_v1` suffix).
 - Remove query/result/session caching from MCP v1 until 1.0; no cache tables,

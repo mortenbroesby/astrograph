@@ -1,0 +1,8 @@
+{
+  "generatedAt": "2026-05-03T13:11:44.790Z",
+  "branch": "feat/mcp-v1-hard-switch",
+  "storyId": "MCPV1-3",
+  "storyTitle": "Enforce strict MCP v1 response envelopes",
+  "storyStatus": "pending",
+  "promptPath": ".ralph/mcp-v1-hard-switch/prompt-2026-05-03T13-11-44.783Z.md"
+}
