@@ -10,6 +10,28 @@
 
 ## Phase A: Tree-sitter-only parser cutover
 
+## Execution sequencing (requested)
+
+- [x] **0) Clarify and checkpoint inventory**
+
+  Documented here and in the run log: complete the in-progress planning updates first.
+
+- [ ] **1) MCPV1-2 checkpoint commit**
+
+  Check in the current plan state and task-priority update before moving to implementation.
+
+- [ ] **2) Implement MCPV1-3 strict v1 envelopes**
+
+  Start from `src/mcp.ts` and `src/mcp-contract.ts`, then expand/update tests.
+
+- [ ] **3) Check in MCPV1-3**
+
+  Commit and publish results from step 2 before returning to parser/task cleanup.
+
+- [ ] **4) Consider `oxc-resolver`/parser cleanup**
+
+  Defer `oxc-resolver` cleanup (Phase A Step 4) and remaining parser regression checks until after MCPV1-3 lands.
+
 **Files:**
 - Modify: `src/parser.ts`
 - Modify: `src/types.ts` (if parser backend literal types are exposed)
@@ -116,7 +138,7 @@ Expected:
 - All commands pass.
 - Baseline includes current behavior of `query_code`, readiness output, and current tool registry shape.
 
-- [ ] **Step 2: Lock explicit v1 contract in docs**
+- [x] **Step 2: Lock explicit v1 contract in docs**
 
 Make and record all decisions:
 - MCP v1 removes `query_code` from tool surface.
@@ -139,7 +161,7 @@ Expected:
 - Modify: `src/config.ts` (tool-list defaults/profile mapping)
 - Modify: `src/types.ts` (MCP tool union/types)
 
-- [ ] **Step 1: Update MCP tool definitions**
+- [x] **Step 1: Update MCP tool definitions**
 
 In `MCP_TOOL_DEFINITIONS`:
 - Remove `query_code` tool definition.
@@ -155,7 +177,7 @@ Expected:
 - `MCP_TOOL_NAMES` no longer includes `query_code`.
 - New tool names are discoverable and typed.
 
-- [ ] **Step 2: Preserve non-MCP `queryCode` API where required**
+- [x] **Step 2: Preserve non-MCP `queryCode` API where required**
 
 If CLI or SDK still depends on non-MCP `queryCode`, keep it exported from `src/index.ts` but do not expose MCP path.
 
@@ -163,7 +185,7 @@ Expected:
 - Non-MCP callers keep behavior.
 - MCP no longer routes through `query_code`.
 
-- [ ] **Step 3: Align tool profile and install UX**
+- [x] **Step 3: Align tool profile and install UX**
 
 Update install/tool selection docs and defaults:
 - `src/scripts/install.ts` profile modes and help text no longer treat `query_code` as default required path for MCP.
