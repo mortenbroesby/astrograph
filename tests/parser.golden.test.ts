@@ -94,4 +94,107 @@ export namespace Shapes {
       },
     ]);
   });
+
+  it("keeps tree-sitter parser output deterministic across ts/js/tsx/jsx fixtures", () => {
+    const fixtures = [
+      {
+        language: "ts",
+        relativePath: "src/parser-fixture.ts",
+        content: `import type { WidgetProps } from "./types";
+
+export interface WidgetProps {
+  label: string;
+}
+
+export const count = 3;
+
+  export function makeLabel(value: string): string {
+  return \`\${value}:\${count}\`;
+}
+
+class ParserService {
+  handle(input: string): string {
+    return input;
+  }
+}
+
+export const widget = {
+  props: {} as WidgetProps,
+  helper: new ParserService(),
+};
+`,
+      },
+      {
+        language: "js",
+        relativePath: "src/parser-fixture.js",
+        content: `export const answer = 42;
+
+export function formatValue(value) {
+  return String(value).trim();
+}
+
+class ParserService {
+  constructor() {}
+  transform(value) {
+    return value;
+  }
+}`,
+      },
+      {
+        language: "tsx",
+        relativePath: "src/parser-fixture.tsx",
+        content: `export interface WidgetProps {
+  label: string;
+}
+
+export function Widget(props: WidgetProps) {
+  return <div>{\`props.label\`}</div>;
+}
+
+export const render = (props: WidgetProps) => <span>{\`props.label\`}</span>;
+`,
+      },
+      {
+        language: "jsx",
+        relativePath: "src/parser-fixture.jsx",
+        content: `export function Widget() {
+  return <section>parser coverage</section>;
+}
+
+export const render = () => <button>run</button>;
+`,
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const first = parseSourceFile({
+        relativePath: fixture.relativePath,
+        language: fixture.language,
+        content: fixture.content,
+      });
+      const second = parseSourceFile({
+        relativePath: fixture.relativePath,
+        language: fixture.language,
+        content: fixture.content,
+      });
+
+      expect(first.backend).toBe("tree-sitter");
+      expect(first.fallbackUsed).toBe(false);
+      expect(first.fallbackReason).toBeNull();
+      expect(first.symbols.length).toBeGreaterThan(1);
+      expect(first.symbols).toHaveLength(second.symbols.length);
+      expect(first.symbols.map((entry) => entry.name)).toEqual(
+        second.symbols.map((entry) => entry.name),
+      );
+      expect(first.symbols.map((entry) => entry.id)).toEqual(
+        second.symbols.map((entry) => entry.id),
+      );
+      expect(first.symbols.map((entry) => entry.qualifiedName)).toEqual(
+        second.symbols.map((entry) => entry.qualifiedName),
+      );
+      expect(first.symbols.map((entry) => entry.signature)).toEqual(
+        second.symbols.map((entry) => entry.signature),
+      );
+    }
+  });
 });

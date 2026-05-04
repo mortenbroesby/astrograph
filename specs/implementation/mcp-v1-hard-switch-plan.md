@@ -97,7 +97,7 @@ Expected:
 > `oxc-parser` and `oxc-resolver` are both removed from direct dependencies for
 > this hard-switch slice, and no source files import `oxc-resolver`.
 
-- [ ] **Step 5: Add tree-sitter regression coverage**
+- [x] **Step 5: Add tree-sitter regression coverage**
 
 Add or update tests to assert:
 - parser backend metadata reports tree-sitter-only behavior;
@@ -256,7 +256,7 @@ Update interface tests to assert:
 Expected:
 - Explicit coverage for the four v1 tools in happy-path and argument-validation paths.
 
-- [ ] **Step 2: Add tree-sitter parser regression tests**
+- [x] **Step 2: Add tree-sitter parser regression tests**
 
 - Add/extend tests to confirm tree-sitter-only parsing produces deterministic symbol IDs for selected fixtures.
 - Review and accept any symbol snapshot changes caused by removing OXC execution.
