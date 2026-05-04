@@ -148,10 +148,10 @@ class ParserService {
 }
 
 export function Widget(props: WidgetProps) {
-  return <div>{\`props.label\`}</div>;
+  return <div>{"label"}</div>;
 }
 
-export const render = (props: WidgetProps) => <span>{\`props.label\`}</span>;
+export const render = (props: WidgetProps) => <span>{"label"}</span>;
 `,
       },
       {
