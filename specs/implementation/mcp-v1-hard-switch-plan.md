@@ -28,7 +28,7 @@
 
   After step 2 is complete, commit and check in MCPV1-3 before parser/task cleanup resumes.
 
-- [ ] **4) Consider `oxc-resolver`/parser cleanup**
+- [x] **4) Consider `oxc-resolver`/parser cleanup**
 
   `oxc-parser`/`oxc-resolver` cleanup is complete for this slice.
   Remaining parser work is now limited to deterministic regression coverage in Step 5.
@@ -298,7 +298,7 @@ Expected:
 - All checks pass.
 - Tree-sitter-only parser cutover and MCP contract decisions are implemented exactly.
 
-- [ ] **Step 2: Version policy + commit checkpoint**
+- [x] **Step 2: Version policy + commit checkpoint**
 
 Run:
 
@@ -324,11 +324,11 @@ Expected:
 
 ## Reviewer Checklist
 
-- [ ] `query_code` removed from all MCP-facing docs and `MCP_TOOL_DEFINITIONS`.
-- [ ] New tool schemas use strict input validation and include version metadata.
-- [ ] Dispatch always returns a strict envelope.
-- [ ] Error responses are normalized and never raw thrown strings.
-- [ ] Token metadata and freshness metadata are present in all successful responses.
-- [ ] Tree-sitter-only parser decision is explicitly recorded and tested.
-- [ ] Targeted and contract tests pass before merge.
-- [ ] Version policy check passed before commit.
+- [x] `query_code` removed from all MCP-facing docs and `MCP_TOOL_DEFINITIONS`.
+- [x] New tool schemas use strict input validation and include version metadata.
+- [x] Dispatch always returns a strict envelope.
+- [x] Error responses are normalized and never raw thrown strings.
+- [x] Token metadata and freshness metadata are present in all successful responses.
+- [x] Tree-sitter-only parser decision is explicitly recorded and tested.
+- [x] Targeted and contract tests pass before merge.
+- [x] Version policy check passed before commit.
