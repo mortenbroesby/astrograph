@@ -29,7 +29,8 @@
 
 Astrograph is a local MCP server for AI agents.  
 You add it to a repo, run one command to generate MCP config, and let your IDE
-consume `query_code`, `find_files`, and related retrieval tools.
+consume explicit retrieval tools (`search_symbols`, `get_symbol_source`,
+`get_context_bundle`, `get_ranked_context`) plus status and indexing tools.
 
 ## Why this exists
 

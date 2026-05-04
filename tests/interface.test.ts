@@ -1156,6 +1156,46 @@ export class Greeter {
     });
   });
 
+  it("rejects malformed MCP tool outputs with a strict failure envelope", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "search_symbols");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => [
+        {
+          id: "sym-id",
+          kind: "class",
+          filePath: "src/strings.ts",
+        },
+      ];
+
+      const malformedResult = await dispatchTool("search_symbols", {
+        repoRoot,
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("symbol output"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  }, 15_000);
+
   it("exposes a workspace bin wrapper for cli commands", async () => {
     const repoRoot = await createFixtureRepo();
     const binPath = path.join(packageRoot, "scripts", "ai-context-engine.mjs");

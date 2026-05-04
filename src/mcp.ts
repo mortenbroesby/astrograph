@@ -114,9 +114,71 @@ function ensureNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function ensureString(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0;
+}
+
+function ensureBoolean(value: unknown): value is boolean {
+  return typeof value === "boolean";
+}
+
+function ensureArrayOfStrings(value: unknown, fieldName: string): value is string[] {
+  if (!Array.isArray(value)) {
+    throw new Error(`get_${fieldName} output must include an array of strings`);
+  }
+  if (!value.every((entry) => typeof entry === "string")) {
+    throw new Error(`get_${fieldName} output must include strings only`);
+  }
+  return true;
+}
+
+function assertSymbolSummary(value: unknown): value is Record<string, unknown> {
+  assertIsObject(value);
+  if (!ensureString(value.id)) {
+    throw new Error("symbol output missing id");
+  }
+  if (!ensureString(value.name)) {
+    throw new Error("symbol output missing name");
+  }
+  if (
+    value.qualifiedName !== null
+    && typeof value.qualifiedName !== "string"
+  ) {
+    throw new Error("symbol output has invalid qualifiedName");
+  }
+  if (!ensureString(value.kind)) {
+    throw new Error("symbol output missing kind");
+  }
+  if (!ensureString(value.filePath)) {
+    throw new Error("symbol output missing filePath");
+  }
+  if (!ensureString(value.signature)) {
+    throw new Error("symbol output missing signature");
+  }
+  if (!ensureString(value.summary)) {
+    throw new Error("symbol output missing summary");
+  }
+  if (!ensureString(value.summarySource)) {
+    throw new Error("symbol output missing summarySource");
+  }
+  if (!ensureNumber(value.startLine)) {
+    throw new Error("symbol output missing startLine");
+  }
+  if (!ensureNumber(value.endLine)) {
+    throw new Error("symbol output missing endLine");
+  }
+  if (!ensureBoolean(value.exported)) {
+    throw new Error("symbol output missing exported");
+  }
+  return true;
+}
+
 function validateSearchSymbolsOutput(result: unknown) {
   if (!Array.isArray(result)) {
     throw new Error("search_symbols output must be an array");
+  }
+  for (const symbol of result) {
+    assertSymbolSummary(symbol);
   }
 }
 
@@ -128,6 +190,35 @@ function validateSymbolSourceOutput(result: unknown) {
   if (!Array.isArray(result.items)) {
     throw new Error("get_symbol_source output must include items");
   }
+  for (const item of result.items) {
+    assertIsObject(item);
+    if (typeof item.source !== "string") {
+      throw new Error("get_symbol_source item must include source");
+    }
+    if (!ensureNumber(item.startLine) || !ensureNumber(item.endLine)) {
+      throw new Error("get_symbol_source item must include numeric lines");
+    }
+    if (!ensureBoolean(item.verified)) {
+      throw new Error("get_symbol_source item must include verified");
+    }
+    assertSymbolSummary(item.symbol);
+  }
+
+  if (result.symbol !== undefined) {
+    assertSymbolSummary(result.symbol);
+  }
+  if (result.source !== undefined && typeof result.source !== "string") {
+    throw new Error("get_symbol_source output invalid source");
+  }
+  if (result.verified !== undefined && !ensureBoolean(result.verified)) {
+    throw new Error("get_symbol_source output invalid verified");
+  }
+  if (result.startLine !== undefined && !ensureNumber(result.startLine)) {
+    throw new Error("get_symbol_source output invalid startLine");
+  }
+  if (result.endLine !== undefined && !ensureNumber(result.endLine)) {
+    throw new Error("get_symbol_source output invalid endLine");
+  }
 }
 
 function validateContextBundleOutput(result: unknown) {
@@ -138,8 +229,37 @@ function validateContextBundleOutput(result: unknown) {
   if (!ensureNumber(result.usedTokens)) {
     throw new Error("get_context_bundle output must include usedTokens");
   }
+  if (!ensureNumber(result.estimatedTokens)) {
+    throw new Error("get_context_bundle output must include estimatedTokens");
+  }
+  if (!ensureBoolean(result.truncated)) {
+    throw new Error("get_context_bundle output must include truncated");
+  }
+  if (typeof result.query !== "string" && result.query !== null) {
+    throw new Error("get_context_bundle output must include query as string or null");
+  }
+  if (typeof result.repoRoot !== "string") {
+    throw new Error("get_context_bundle output must include repoRoot");
+  }
   if (!Array.isArray(result.items)) {
     throw new Error("get_context_bundle output must include items");
+  }
+
+  for (const item of result.items) {
+    assertIsObject(item);
+    if (!ensureString(item.role)) {
+      throw new Error("context bundle item missing role");
+    }
+    if (!ensureString(item.reason)) {
+      throw new Error("context bundle item missing reason");
+    }
+    if (!ensureString(item.source)) {
+      throw new Error("context bundle item missing source");
+    }
+    if (!ensureNumber(item.tokenCount)) {
+      throw new Error("context bundle item missing tokenCount");
+    }
+    assertSymbolSummary(item.symbol);
   }
 }
 
@@ -148,14 +268,56 @@ function validateRankedContextOutput(result: unknown) {
   if (typeof result.query !== "string") {
     throw new Error("get_ranked_context output must include query");
   }
+  if (!ensureNumber(result.tokenBudget)) {
+    throw new Error("get_ranked_context output must include tokenBudget");
+  }
+  if (!ensureNumber(result.candidateCount)) {
+    throw new Error("get_ranked_context output must include candidateCount");
+  }
+  if (typeof result.repoRoot !== "string") {
+    throw new Error("get_ranked_context output must include repoRoot");
+  }
   if (!Array.isArray(result.candidates)) {
     throw new Error("get_ranked_context output must include candidates");
+  }
+  for (const candidate of result.candidates) {
+    assertIsObject(candidate);
+    if (!ensureNumber(candidate.rank) || !ensureNumber(candidate.score)) {
+      throw new Error("get_ranked_context candidate must include numeric rank and score");
+    }
+    if (!ensureString(candidate.reason)) {
+      throw new Error("get_ranked_context candidate must include reason");
+    }
+    if (typeof candidate.selected !== "boolean") {
+      throw new Error("get_ranked_context candidate must include selected");
+    }
+    assertSymbolSummary(candidate.symbol);
   }
   if (!Array.isArray(result.selectedSeedIds)) {
     throw new Error("get_ranked_context output must include selectedSeedIds");
   }
+  ensureArrayOfStrings(result.selectedSeedIds, "ranked_context selectedSeedIds");
   if (typeof result.bundle !== "object" || result.bundle === null) {
     throw new Error("get_ranked_context output must include bundle");
+  }
+  const bundle = result.bundle as Record<string, unknown>;
+  if (typeof bundle.query !== "string" && bundle.query !== null) {
+    throw new Error("get_ranked_context bundle output must include query");
+  }
+  if (typeof bundle.repoRoot !== "string") {
+    throw new Error("get_ranked_context bundle output must include repoRoot");
+  }
+  if (!ensureNumber(bundle.tokenBudget)) {
+    throw new Error("get_ranked_context bundle output must include tokenBudget");
+  }
+  if (!ensureNumber(bundle.estimatedTokens)) {
+    throw new Error("get_ranked_context bundle output must include estimatedTokens");
+  }
+  if (!ensureNumber(bundle.usedTokens)) {
+    throw new Error("get_ranked_context bundle output must include usedTokens");
+  }
+  if (typeof bundle.truncated !== "boolean") {
+    throw new Error("get_ranked_context bundle output must include truncated");
   }
 }
 
