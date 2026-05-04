@@ -195,6 +195,81 @@ describe("ai-context-engine contract", () => {
     }
   });
 
+  it("rejects malformed get_symbol_source output with a strict failure envelope", async () => {
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_symbol_source");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        requestedContextLines: 5,
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_symbol_source", {
+        repoRoot: "/tmp",
+        symbolId: "fake-symbol",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_symbol_source output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  });
+
+  it("rejects malformed get_context_bundle output with a strict failure envelope", async () => {
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        tokenBudget: 128,
+        usedTokens: 12,
+        estimatedTokens: 18,
+        truncated: false,
+        query: "Greeter",
+        repoRoot: "/tmp",
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_context_bundle", {
+        repoRoot: "/tmp",
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_context_bundle output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  });
+
   it("uses package.json as the canonical Astrograph version source", async () => {
     const packageJson = JSON.parse(
       await readFile(new URL("../package.json", import.meta.url), "utf8"),

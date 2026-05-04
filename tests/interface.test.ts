@@ -1196,6 +1196,86 @@ export class Greeter {
     }
   }, 15_000);
 
+  it("rejects malformed get_symbol_source MCP output with a strict failure envelope", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_symbol_source");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        requestedContextLines: 5,
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_symbol_source", {
+        repoRoot,
+        symbolId: "fake-symbol",
+        contextLines: 3,
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_symbol_source output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  }, 15_000);
+
+  it("rejects malformed get_context_bundle MCP output with a strict failure envelope", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        tokenBudget: 128,
+        usedTokens: 12,
+        estimatedTokens: 18,
+        truncated: false,
+        query: "Greeter",
+        repoRoot,
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_context_bundle", {
+        repoRoot,
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_context_bundle output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  }, 15_000);
+
   it("exposes a workspace bin wrapper for cli commands", async () => {
     const repoRoot = await createFixtureRepo();
     const binPath = path.join(packageRoot, "scripts", "ai-context-engine.mjs");
