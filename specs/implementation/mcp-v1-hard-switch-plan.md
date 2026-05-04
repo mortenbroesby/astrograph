@@ -16,15 +16,15 @@
 
   Documented here and in the run log: complete the in-progress planning updates first.
 
-- [ ] **1) Checkpoint commit (MCPV1-2)**
+- [x] **1) Checkpoint commit (MCPV1-2)**
 
   Check in the current plan state and task-priority update first, then commit and push that PR state.
 
-- [ ] **2) Implement MCPV1-3 strict v1 envelopes**
+- [x] **2) Implement MCPV1-3 strict v1 envelopes**
 
   Start from `src/mcp.ts` and `src/mcp-contract.ts`, then expand/update tests.
 
-- [ ] **3) Check in MCPV1-3**
+- [x] **3) Check in MCPV1-3**
 
   After step 2 is complete, commit and check in MCPV1-3 before parser/task cleanup resumes.
 
@@ -124,7 +124,7 @@ Expected:
 - Modify: `specs/implementation/README.md`
 - Modify: `specs/README.md`
 
-- [ ] **Step 1: Baseline current behavior in tests and docs**
+- [x] **Step 1: Baseline current behavior in tests and docs**
 
 Run:
 
@@ -244,7 +244,7 @@ Expected:
 - Modify: `tests/engine-contract.test.ts`
 - Modify: `tests/engine-behavior.test.ts`
 
-- [ ] **Step 1: Replace MCP interface assertions**
+- [x] **Step 1: Replace MCP interface assertions**
 
 Update interface tests to assert:
 - registry does not include `query_code`
@@ -264,7 +264,7 @@ Expected:
 Expected:
 - Parser behavior remains deterministic with tree-sitter-only execution.
 
-- [ ] **Step 3: Run targeted behavioral verification**
+- [x] **Step 3: Run targeted behavioral verification**
 
 ```bash
 pnpm type-lint
@@ -286,7 +286,7 @@ Expected:
 - `src/mcp.ts`, `src/mcp-contract.ts`, `src/validation.ts`, `src/index.ts`, `src/types.ts`, `src/config.ts`, `src/language-registry.ts`
 - `tests/interface.test.ts`, `tests/engine-contract.test.ts`, `tests/engine-behavior.test.ts`
 
-- [ ] **Step 1: Run required final checks**
+- [x] **Step 1: Run required final checks**
 
 ```bash
 pnpm type-lint
