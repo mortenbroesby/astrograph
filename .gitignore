@@ -10,4 +10,4 @@ tests/.ai-context-engine/
 *.tsbuildinfo
 *.log
 .DS_Store
-
+.ralph/

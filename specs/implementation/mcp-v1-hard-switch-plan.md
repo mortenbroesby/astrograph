@@ -30,7 +30,8 @@
 
 - [ ] **4) Consider `oxc-resolver`/parser cleanup**
 
-  Defer `oxc-resolver` cleanup (Phase A Step 4) and remaining parser regression checks until after MCPV1-3 lands.
+  `oxc-parser`/`oxc-resolver` cleanup is complete for this slice.
+  Remaining parser work is now limited to deterministic regression coverage in Step 5.
 
 **Files:**
 - Modify: `src/parser.ts`
@@ -82,7 +83,7 @@ Expected:
 > Done in PR #1 refactor. `src/parser.ts` is now 8 lines — a direct delegate to
 > `parseWithTreeSitter`. No OXC imports remain anywhere in `src/`.
 
-- [ ] **Step 4: Remove OXC parser dependency**
+- [x] **Step 4: Remove OXC parser dependency**
 
 Update dependency metadata:
 - remove `oxc-parser` from `package.json` if unused after parser cutover;
@@ -93,9 +94,8 @@ Expected:
 - No unused parser package remains.
 - Import resolution dependencies are not removed unless source search confirms they are unused.
 
-> `oxc-parser` is already gone. `oxc-resolver` is still listed in `package.json`
-> but zero source files import it — it is an unused dangling dependency and should
-> be removed as the remaining work for this step.
+> `oxc-parser` and `oxc-resolver` are both removed from direct dependencies for
+> this hard-switch slice, and no source files import `oxc-resolver`.
 
 - [ ] **Step 5: Add tree-sitter regression coverage**
 
@@ -202,7 +202,7 @@ Expected:
 - Modify: `src/mcp-contract.ts`
 - Add/Modify: tests in `tests/interface.test.ts`, `tests/engine-contract.test.ts`
 
-- [ ] **Step 1: Introduce strict response envelopes**
+- [x] **Step 1: Introduce strict response envelopes**
 
 Define and use:
 
@@ -215,7 +215,7 @@ Expected:
 - On success, every call returns `ok: true` and metadata.
 - On throw, callers receive `ok: false` with normalized error code/message.
 
-- [ ] **Step 2: Add `dataFreshness` and token budget semantics**
+- [x] **Step 2: Add `dataFreshness` and token budget semantics**
 
 Set freshness from existing metadata or explicit defaults.
 Preserve current estimate values but move them into envelope metadata so callers can budget token use.
@@ -224,7 +224,7 @@ Expected:
 - All successful responses include non-null `dataFreshness` and `tokenBudgetUsed` when available.
 - Failures set `dataFreshness: "unknown"`, `tokenBudgetUsed: null`.
 
-- [ ] **Step 3: Add strict schema guards and parser metadata**
+- [x] **Step 3: Add strict schema guards and parser metadata**
 
 For `search_symbols`/`get_context_bundle`/`get_ranked_context`, assert:
 - required arguments are present and typed
@@ -234,6 +234,8 @@ For `search_symbols`/`get_context_bundle`/`get_ranked_context`, assert:
 
 Expected:
 - No untyped `any` escape path remains in MCP dispatch.
+
+> Story 3 checks and implementation are now represented in Ralph Story-3. MCP dispatch, validation, and engine contract assertions already enforce v1 envelopes and contract tags across explicit tool calls.
 
 ## Task 4: Tests and interface lock-in
 
