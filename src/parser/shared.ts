@@ -35,7 +35,7 @@ export interface ParsedFile {
   integrityHash: string;
   symbols: ParsedSymbol[];
   imports: ParsedImport[];
-  backend: "oxc" | "tree-sitter";
+  backend: "tree-sitter";
   fallbackUsed: boolean;
   fallbackReason: string | null;
 }
@@ -94,7 +94,7 @@ export function buildParsedFile(input: {
   content: string;
   symbols: ParsedSymbol[];
   imports: ParsedImport[];
-  backend: "oxc" | "tree-sitter";
+  backend: "tree-sitter";
   fallbackUsed: boolean;
   fallbackReason: string | null;
 }): ParsedFile {

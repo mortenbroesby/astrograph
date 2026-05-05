@@ -113,8 +113,8 @@ export function loadParserHealth(db: IndexBackendConnection): DiagnosticsResult[
   const fallbackFileCount = parserStats.fallback_file_count ?? 0;
 
   return {
-    primaryBackend: "oxc",
-    fallbackBackend: "tree-sitter",
+    primaryBackend: "tree-sitter",
+    fallbackBackend: null,
     indexedFileCount: parserStats.indexed_file_count ?? 0,
     fallbackFileCount,
     fallbackRate: knownFileCount > 0 ? fallbackFileCount / knownFileCount : null,

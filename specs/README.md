@@ -28,7 +28,7 @@ Implementation specs, refactor plans, and internal subsystem ownership.
 - [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
-- [MCP v1 Hard-Switch Plan](./implementation/mcp-v1-hard-switch-plan.md) - Remove `query_code`, ship strict v1 schemas, and define the explicit retrieval tool surface.
+- [MCP v1 Hard-Switch Plan](./implementation/mcp-v1-hard-switch-plan.md) - Remove MCP `query_code`, ship strict `ok`/`data`/`meta`/`error` envelopes with `toolVersion: "1"`, keep MCP cache behavior out of v1, and define the explicit `search_symbols`/`get_symbol_source`/`get_context_bundle`/`get_ranked_context` retrieval surface.
 
 ### [Templates](./templates/README.md)
 
@@ -69,7 +69,7 @@ Reusable starting points for agent-created docs.
 - [ ] Document CLI command shapes and JSON output expectations.
 - [ ] Document TypeScript API stability levels.
 - [ ] Link contract tests to each public API spec.
-- [ ] Complete and merge MCP v1 hard-switch plan.
+- [x] Complete and merge MCP v1 hard-switch plan.
 
 ### Phase 4: Implementation Plans (Planned)
 

@@ -19,8 +19,8 @@ alwaysApply: true
 ## Code Navigation
 
 - Use Astrograph as the default code retrieval path.
-- Start with `query_code`, then prefer `get_file_outline`, `get_file_tree`, and
-  `get_repo_outline`.
+- Start with explicit MCP retrieval tools: `search_symbols`, then `get_file_outline`,
+  `get_file_tree`, and `get_repo_outline`.
 - Prefer Astrograph retrieval surfaces above broad file reads or
   shell-based code scans.
 - Use `get_file_outline` to inspect a file cheaply before opening it.

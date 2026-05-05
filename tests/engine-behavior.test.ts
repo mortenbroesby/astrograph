@@ -327,8 +327,8 @@ describe("ai-context-engine behavior", () => {
         signature: 1,
       },
       parser: {
-        primaryBackend: "oxc",
-        fallbackBackend: "tree-sitter",
+        primaryBackend: "tree-sitter",
+        fallbackBackend: null,
         indexedFileCount: 2,
         fallbackFileCount: 0,
         fallbackRate: 0,
@@ -1002,7 +1002,7 @@ export function workerGenerated${index}(value: number): string {
     expect(snapshotIndexedRows(workerRepoRoot)).toEqual(
       snapshotIndexedRows(directRepoRoot),
     );
-  });
+  }, 30_000);
 
   it("offers a unified query surface for discovery, source retrieval, and assembly", async () => {
     const repoRoot = await createFixtureRepo();
@@ -1393,6 +1393,7 @@ export function circleArea(radius: number): number {
 
     const summary = await indexFolder({ repoRoot });
     const fileTree = await getFileTree({ repoRoot });
+    const snapshot = snapshotIndexedRows(repoRoot);
     const largeOutline = await getFileOutline({
       repoRoot,
       filePath: "src/large.ts",
@@ -1421,6 +1422,17 @@ export function circleArea(radius: number): number {
         expect.objectContaining({
           path: "src/large.ts",
           symbolCount: 900,
+        }),
+      ]),
+    );
+    expect(snapshot.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          path: "src/large.ts",
+          parser_backend: "tree-sitter",
+          parser_fallback_used: 1,
+          parser_fallback_reason: "tree-sitter-chunk-recovery",
+          symbol_count: 900,
         }),
       ]),
     );

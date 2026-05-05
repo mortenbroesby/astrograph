@@ -21,6 +21,7 @@ import {
 } from "./shared.ts";
 
 const parser = new Parser();
+const CHUNK_RECOVERY_FALLBACK_REASON = "tree-sitter-chunk-recovery";
 
 function isRecoverableParseFailure(error: unknown): boolean {
   return error instanceof Error && error.message === "Invalid argument";
@@ -160,7 +161,9 @@ function parseImport(
   const source = nodeText(sourceText, sourceNode.startIndex, sourceNode.endIndex)
     .replace(/^['"]|['"]$/g, "");
   const statementText = nodeText(sourceText, node.startIndex, node.endIndex);
-  const clauseMatch = statementText.match(/^\s*import\s+([\s\S]+?)\s+from\s+['"]/u);
+  const clauseMatch =
+    statementText.match(/^\s*import\s+([\s\S]+?)\s+from\s+['"]/u)
+    ?? statementText.match(/^\s*export\s+([\s\S]+?)\s+from\s+['"]/u);
   const specifiers = clauseMatch
     ? parseImportClauseSpecifiers(clauseMatch[1] ?? "")
     : [];
@@ -384,6 +387,10 @@ function visitNode(
 ) {
   switch (node.type) {
     case "export_statement": {
+      const parsedImport = parseImport(node, sourceText);
+      if (parsedImport) {
+        imports.push(parsedImport);
+      }
       for (const child of node.namedChildren) {
         visitDeclarationNode(
           child,
@@ -416,11 +423,12 @@ function visitNode(
   }
 }
 
-export function parseWithTreeSitter(input: ParseSourceInput & { fallbackReason?: string }): ParsedFile {
+export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   parser.setLanguage(languageFor(input.language));
   const symbols: ParsedSymbol[] = [];
   const imports: ParsedImport[] = [];
   const summaryStrategy = input.summaryStrategy ?? "doc-comments-first";
+  let chunkRecoveryUsed = false;
 
   try {
     const tree = parser.parse(input.content);
@@ -440,6 +448,7 @@ export function parseWithTreeSitter(input: ParseSourceInput & { fallbackReason?:
       throw error;
     }
 
+    chunkRecoveryUsed = true;
     for (const chunk of splitSourceIntoChunks(input.content)) {
       try {
         const tree = parser.parse(chunk.content);
@@ -476,7 +485,7 @@ export function parseWithTreeSitter(input: ParseSourceInput & { fallbackReason?:
     symbols,
     imports,
     backend: "tree-sitter",
-    fallbackUsed: true,
-    fallbackReason: input.fallbackReason ?? "oxc-parse-failed",
+    fallbackUsed: chunkRecoveryUsed,
+    fallbackReason: chunkRecoveryUsed ? CHUNK_RECOVERY_FALLBACK_REASON : null,
   });
 }

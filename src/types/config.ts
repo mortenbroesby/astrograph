@@ -29,7 +29,6 @@ export interface EnginePaths {
   repoMetaPath: string;
   integrityPath: string;
   storageVersionPath: string;
-  rawCacheDir: string;
   eventsPath: string;
 }
 
@@ -175,5 +174,8 @@ export type EngineToolName =
   | "get_file_tree"
   | "get_file_outline"
   | "suggest_initial_queries"
-  | "query_code"
+  | "search_symbols"
+  | "get_symbol_source"
+  | "get_context_bundle"
+  | "get_ranked_context"
   | "diagnostics";

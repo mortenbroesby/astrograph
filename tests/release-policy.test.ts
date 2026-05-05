@@ -3,6 +3,7 @@ import {
   type AstrographReleaseDecisionKind,
   decideAstrographRelease,
   nextAstrographReleaseVersion,
+  targetAstrographPublishVersion,
 } from "../src/release-policy.ts";
 
 const previous = {
@@ -78,6 +79,139 @@ describe("release policy", () => {
     expectPublishKind(decision.kind);
     expect(nextAstrographReleaseVersion(previous, decision.kind)).toBe(
       "1.0.0-alpha.61",
+    );
+  });
+
+  it("keeps minor publish alpha increments ahead of the current package version", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 72,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
+      "0.4.0-alpha.73",
+    );
+  });
+
+  it("keeps patch publish alpha increments ahead of the current package version", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 72,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "patch")).toBe(
+      "0.3.1-alpha.73",
+    );
+  });
+
+  it("keeps an already-current publish target stable", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 0,
+      minor: 4,
+      patch: 0,
+      increment: 73,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
+      "0.4.0-alpha.73",
+    );
+  });
+
+  it("advances stale alpha when current semantic core equals the publish target", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 0,
+      minor: 4,
+      patch: 0,
+      increment: 60,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
+      "0.4.0-alpha.70",
+    );
+  });
+
+  it("keeps a current minor version ahead of a patch target stable", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 0,
+      minor: 4,
+      patch: 0,
+      increment: 72,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "patch")).toBe(
+      "0.4.0-alpha.72",
+    );
+  });
+
+  it("keeps current semantic core and advances stale alpha when current semantic core is ahead", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 1,
+      minor: 0,
+      patch: 0,
+      increment: 60,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
+      "1.0.0-alpha.70",
+    );
+  });
+
+  it("keeps a current major version ahead of a minor target stable", () => {
+    const base = {
+      major: 0,
+      minor: 3,
+      patch: 0,
+      increment: 69,
+    };
+    const current = {
+      major: 1,
+      minor: 0,
+      patch: 0,
+      increment: 72,
+    };
+
+    expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
+      "1.0.0-alpha.72",
     );
   });
 });

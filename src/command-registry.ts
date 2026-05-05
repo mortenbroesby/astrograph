@@ -147,6 +147,7 @@ export const COMMAND_REGISTRY = {
   searchSymbols: {
     id: "search_symbols",
     cliCommand: "search-symbols",
+    mcpToolName: "search_symbols",
     description: "Search indexed symbols by name, kind, language, or file pattern.",
     normalizedOptions: [
       "repoRoot",
@@ -161,7 +162,6 @@ export const COMMAND_REGISTRY = {
   queryCode: {
     id: "query_code",
     cliCommand: "query-code",
-    mcpToolName: "query_code",
     description: "Unified code query surface for discovery, exact retrieval, and bounded assembly.",
     normalizedOptions: [
       "repoRoot",
@@ -186,9 +186,19 @@ export const COMMAND_REGISTRY = {
     ],
     execute: (engine, input: QueryCodeOptions) => engine.queryCode(input),
   },
+  getSymbolSource: {
+    id: "get_symbol_source",
+    cliCommand: "get-symbol-source",
+    mcpToolName: "get_symbol_source",
+    description: "Return source snippets for one or more indexed symbols.",
+    normalizedOptions: ["repoRoot", "symbolId", "symbolIds", "contextLines", "verify"],
+    execute: (engine, input: SymbolSourceInput): Promise<SymbolSourceResult> =>
+      engine.getSymbolSource(input),
+  },
   getContextBundle: {
     id: "get_context_bundle",
     cliCommand: "get-context-bundle",
+    mcpToolName: "get_context_bundle",
     description: "Build a bounded context bundle from query or symbol seeds.",
     normalizedOptions: [
       "repoRoot",
@@ -205,6 +215,7 @@ export const COMMAND_REGISTRY = {
   getRankedContext: {
     id: "get_ranked_context",
     cliCommand: "get-ranked-context",
+    mcpToolName: "get_ranked_context",
     description: "Rank and build a bounded context bundle for a query.",
     normalizedOptions: [
       "repoRoot",
@@ -223,14 +234,6 @@ export const COMMAND_REGISTRY = {
     description: "Return text content for one repository file.",
     normalizedOptions: ["repoRoot", "filePath"],
     execute: (engine, input: FilePathInput) => engine.getFileContent(input),
-  },
-  getSymbolSource: {
-    id: "get_symbol_source",
-    cliCommand: "get-symbol-source",
-    description: "Return source snippets for one or more indexed symbols.",
-    normalizedOptions: ["repoRoot", "symbolId", "symbolIds", "contextLines", "verify"],
-    execute: (engine, input: SymbolSourceInput): Promise<SymbolSourceResult> =>
-      engine.getSymbolSource(input),
   },
   diagnostics: {
     id: "diagnostics",

@@ -45,6 +45,12 @@ function asTextResultForTest(value: unknown) {
   return JSON.stringify(value, null, 2);
 }
 
+type McpToolTextResult = { type: string; text: string };
+function parseMcpToolResult(value: { content: McpToolTextResult[] } | McpToolTextResult): any {
+  const text = "content" in value ? value.content[0].text : value.text;
+  return JSON.parse(text as string);
+}
+
 async function withMcpClient<T>(
   run: (context: {
     client: Client;
@@ -430,21 +436,18 @@ export function circumference(radius: number): string {
         },
       });
       const discoverResult = await client.callTool({
-        name: "query_code",
+        name: "search_symbols",
         arguments: {
           repoRoot,
-          intent: "discover",
           query: "Greeter",
           kind: "class",
-          includeTextMatches: true,
           limit: 1,
         },
       });
       const filteredSearchResult = await client.callTool({
-        name: "query_code",
+        name: "search_symbols",
         arguments: {
           repoRoot,
-          intent: "discover",
           query: "Greeter",
           language: "ts",
           filePattern: "src/*.ts",
@@ -452,10 +455,9 @@ export function circumference(radius: number): string {
         },
       });
       const greetResult = await client.callTool({
-        name: "query_code",
+        name: "search_symbols",
         arguments: {
           repoRoot,
-          intent: "discover",
           query: "greet",
           kind: "method",
           limit: 1,
@@ -490,13 +492,11 @@ export function circumference(radius: number): string {
         },
       });
       const bundleResult = await client.callTool({
-        name: "query_code",
+        name: "get_ranked_context",
         arguments: {
           repoRoot,
-          intent: "assemble",
           query: "Greeter",
           tokenBudget: 120,
-          includeRankedCandidates: true,
         },
       });
 
@@ -504,73 +504,103 @@ export function circumference(radius: number): string {
       expect(indexResult.isError).not.toBe(true);
 
       const tools = (toolsResult as {
-        tools: Array<{ name: string }>;
+        tools: Array<{ name: string; annotations?: { toolVersion?: string } }>;
       }).tools;
 
       expect(tools.map((tool) => tool.name)).toEqual(
         MCP_TOOL_DEFINITIONS.map((tool) => tool.name),
       );
+      expect(tools.map((tool) => tool.name)).not.toContain("query_code");
+      expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
+        "search_symbols",
+        "get_symbol_source",
+        "get_context_bundle",
+        "get_ranked_context",
+      ]));
+      expect(MCP_TOOL_DEFINITIONS.every((tool) => tool.toolVersion === "1")).toBe(true);
 
-      const content = (
+      const discoverPayload = parseMcpToolResult(
         discoverResult as {
         content: Array<{ type: string; text: string }>;
-        }).content[0];
-      expect(content.type).toBe("text");
-      expect(JSON.parse(content.text)).toMatchObject({
-        intent: "discover",
-        query: "Greeter",
+        },
+      );
+      expect(discoverPayload).toMatchObject({
+        ok: true,
+        meta: {
+          toolVersion: "1",
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
+          tokenBudgetUsed: expect.any(Number),
+        },
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            name: "Greeter",
+            kind: "class",
+            filePath: "src/strings.ts",
+            summarySource: "signature",
+          }),
+        ]),
       });
-      expect(JSON.parse(content.text).symbolMatches).toHaveLength(1);
-      expect(JSON.parse(content.text).symbolMatches[0]).toMatchObject({
-        name: "Greeter",
-        kind: "class",
-        filePath: "src/strings.ts",
-        summarySource: "signature",
-      });
-      expect(JSON.parse(content.text).textMatches.length).toBeGreaterThan(0);
+      expect(discoverPayload.data).toHaveLength(1);
+      expect(discoverPayload.data).toEqual(
+        expect.not.arrayContaining([
+          expect.objectContaining({
+            textMatches: expect.anything(),
+          }),
+        ]),
+      );
 
-      const filteredSearchContent = (
+      const filteredSearchPayload = parseMcpToolResult(
         filteredSearchResult as {
-        content: Array<{ type: string; text: string }>;
-        }).content[0];
-      const filteredDiscover = JSON.parse(filteredSearchContent.text);
-      expect(filteredDiscover.symbolMatches.every((entry: { filePath: string }) =>
+          content: Array<{ type: string; text: string }>;
+        },
+      );
+      expect(filteredSearchPayload).toMatchObject({
+        ok: true,
+        meta: {
+          toolVersion: "1",
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
+          tokenBudgetUsed: expect.any(Number),
+        },
+      });
+      const filteredDiscover = filteredSearchPayload.data;
+      expect(filteredDiscover.every((entry: { filePath: string }) =>
         entry.filePath.endsWith(".ts"),
       )).toBe(true);
-      const greeterToolId = JSON.parse(content.text).symbolMatches[0].id as string;
+      const greeterToolId = discoverPayload.data[0].id as string;
 
-      const greetContent = (
+      const greetPayload = parseMcpToolResult(
         greetResult as {
-        content: Array<{ type: string; text: string }>;
-        }).content[0];
-      const greetToolId = JSON.parse(greetContent.text).symbolMatches[0].id as string;
+          content: Array<{ type: string; text: string }>;
+        },
+      );
+      const greetToolId = greetPayload.data[0].id as string;
 
-      const findFilesContent = (
+      const findFilesPayload = parseMcpToolResult(
         findFilesResult as {
           content: Array<{ type: string; text: string }>;
-        }
-      ).content[0];
-      expect(JSON.parse(findFilesContent.text)[0]).toMatchObject({
+        },
+      );
+      expect(findFilesPayload.data[0]).toMatchObject({
         filePath: "README.md",
         supportTier: "discovery",
       });
 
-      const searchTextContent = (
+      const searchTextPayload = parseMcpToolResult(
         searchTextResult as {
           content: Array<{ type: string; text: string }>;
-        }
-      ).content[0];
-      expect(JSON.parse(searchTextContent.text)).toHaveLength(1);
-      expect(JSON.parse(searchTextContent.text)[0]).toMatchObject({
+        },
+      );
+      expect(searchTextPayload.data).toHaveLength(1);
+      expect(searchTextPayload.data[0]).toMatchObject({
         filePath: "src/strings.ts",
       });
 
-      const fileSummaryContent = (
+      const fileSummaryPayload = parseMcpToolResult(
         fileSummaryResult as {
           content: Array<{ type: string; text: string }>;
-        }
-      ).content[0];
-      expect(JSON.parse(fileSummaryContent.text)).toMatchObject({
+        },
+      );
+      expect(fileSummaryPayload.data).toMatchObject({
         filePath: "README.md",
         summarySource: "markdown-headings",
         supportTier: "discovery",
@@ -581,12 +611,12 @@ export function circumference(radius: number): string {
         },
       });
 
-      const projectStatusContent = (
+      const projectStatusPayload = parseMcpToolResult(
         projectStatusResult as {
           content: Array<{ type: string; text: string }>;
-        }
-      ).content[0];
-      expect(JSON.parse(projectStatusContent.text)).toMatchObject({
+        },
+      );
+      expect(projectStatusPayload.data).toMatchObject({
         readiness: {
           stage: "deep-retrieval-ready",
           discoveryReady: true,
@@ -610,7 +640,12 @@ export function circumference(radius: number): string {
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
               toolAvailability: expect.objectContaining({
-                graph: expect.arrayContaining(["query_code"]),
+                graph: expect.arrayContaining([
+                  "search_symbols",
+                  "get_symbol_source",
+                  "get_context_bundle",
+                  "get_ranked_context",
+                ]),
               }),
             },
             {
@@ -619,7 +654,12 @@ export function circumference(radius: number): string {
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
               toolAvailability: expect.objectContaining({
-                graph: expect.arrayContaining(["query_code"]),
+                graph: expect.arrayContaining([
+                  "search_symbols",
+                  "get_symbol_source",
+                  "get_context_bundle",
+                  "get_ranked_context",
+                ]),
               }),
             },
           ]),
@@ -636,66 +676,70 @@ export function circumference(radius: number): string {
         },
       });
 
-      const bundleContent = (
-        bundleResult as {
-        content: Array<{ type: string; text: string }>;
-        }).content[0];
-      expect(bundleContent.type).toBe("text");
-      expect(JSON.parse(bundleContent.text)).toMatchObject({
-        intent: "assemble",
-        bundle: {
+      const bundlePayload = parseMcpToolResult(
+        bundleResult as { content: Array<{ type: string; text: string }> },
+      );
+      expect(bundlePayload).toMatchObject({
+        ok: true,
+        meta: {
+          toolVersion: "1",
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
+          tokenBudgetUsed: expect.any(Number),
+        },
+        data: {
           query: "Greeter",
-          tokenBudget: 120,
+          bundle: {
+            tokenBudget: 120,
+          },
         },
       });
-      expect(JSON.parse(bundleContent.text).bundle.items[0]).toMatchObject({
-        symbol: {
-          name: "Greeter",
-        },
-      });
-      expect(JSON.parse(bundleContent.text).ranked).toMatchObject({
-        query: "Greeter",
-        bundle: {
-          tokenBudget: 120,
-        },
-      });
-      expect(JSON.parse(bundleContent.text).ranked.candidates[0]).toMatchObject({
+      expect(bundlePayload.data.candidates[0]).toMatchObject({
         symbol: {
           name: "Greeter",
         },
         selected: true,
       });
 
-      const symbolSourceResponse = await dispatchTool("query_code", {
+      const symbolSourceResponse = await dispatchTool("get_symbol_source", {
         repoRoot,
-        intent: "source",
         symbolIds: [greeterToolId, greetToolId],
         contextLines: 1,
       });
 
       const symbolSourceContent = asTextResultForTest(symbolSourceResponse);
-      expect(JSON.parse(symbolSourceContent)).toMatchObject({
-        intent: "source",
-        symbolSource: {
+      const parsedSymbolSource = JSON.parse(symbolSourceContent);
+      expect(parsedSymbolSource).toMatchObject({
+        ok: true,
+        data: {
           requestedContextLines: 1,
         },
+        meta: {
+          toolVersion: "1",
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
+          tokenBudgetUsed: expect.any(Number),
+        },
       });
-      expect(JSON.parse(symbolSourceContent).symbolSource.items).toHaveLength(2);
+      expect(parsedSymbolSource.data.items).toHaveLength(2);
 
-      const queryCodeResponse = await dispatchTool("query_code", {
+      const searchSymbolsResponse = await dispatchTool("search_symbols", {
         repoRoot,
-        intent: "discover",
         query: "Greeter",
-        includeTextMatches: true,
       });
 
-      const queryCodeContent = asTextResultForTest(queryCodeResponse);
-      expect(JSON.parse(queryCodeContent)).toMatchObject({
-        intent: "discover",
-        query: "Greeter",
-      });
-      expect(JSON.parse(queryCodeContent).symbolMatches[0]).toMatchObject({
-        name: "Greeter",
+      const searchSymbolsContent = asTextResultForTest(searchSymbolsResponse);
+      const parsedSearchSymbols = JSON.parse(searchSymbolsContent);
+      expect(parsedSearchSymbols).toMatchObject({
+        ok: true,
+        data: expect.arrayContaining([
+          expect.objectContaining({
+            name: "Greeter",
+          }),
+        ]),
+        meta: {
+          toolVersion: "1",
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
+          tokenBudgetUsed: expect.any(Number),
+        },
       });
       let latestDiscoverEvent:
         | Awaited<ReturnType<typeof readRecentEngineEvents>>[number]
@@ -705,7 +749,7 @@ export function circumference(radius: number): string {
         latestDiscoverEvent = [...recentEvents].reverse().find((event) =>
           event.event === "mcp.tool.finished"
           && event.source === "mcp"
-          && event.data?.toolName === "query_code"
+          && event.data?.toolName === "search_symbols"
           && typeof event.data?.tokenEstimate === "object",
         );
         return latestDiscoverEvent !== undefined;
@@ -730,26 +774,38 @@ export function circumference(radius: number): string {
         )?.savedPercent ?? 0,
       ).toBeGreaterThanOrEqual(0);
 
-      const autoAssembleResponse = await dispatchTool("query_code", {
+      const contextBundleResponse = await dispatchTool("get_context_bundle", {
         repoRoot,
         query: "Greeter",
         tokenBudget: 120,
       });
 
-      const autoAssembleContent = asTextResultForTest(autoAssembleResponse);
-      expect(JSON.parse(autoAssembleContent)).toMatchObject({
-        intent: "assemble",
-        bundle: {
+      const contextBundleContent = asTextResultForTest(contextBundleResponse);
+      expect(JSON.parse(contextBundleContent)).toMatchObject({
+        ok: true,
+        data: {
+          query: "Greeter",
           tokenBudget: 120,
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: expect.any(Number),
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
         },
       });
 
       await expect(
-        dispatchTool("search_symbols", {
+        dispatchTool("query_code", {
           repoRoot,
           query: "Greeter",
         }),
-      ).rejects.toThrow(/unknown tool: search_symbols/i);
+      ).resolves.toMatchObject({
+        ok: false,
+        error: {
+          code: "tool_not_found",
+          message: expect.stringContaining("query_code"),
+        },
+      });
 
       for (let attempt = 0; attempt < 10; attempt += 1) {
         await dispatchTool("get_repo_outline", { repoRoot });
@@ -809,15 +865,23 @@ export function circumference(radius: number): string {
           content: Array<{ type: string; text: string }>;
         }
       ).content[0];
+      const diagnosticsPayload = parseMcpToolResult(diagnosticsContent as McpToolTextResult);
 
       expect(stderr()).toBe("");
-      expect(JSON.parse(diagnosticsContent.text)).toMatchObject({
-        engineVersion: ASTROGRAPH_PACKAGE_VERSION,
-        storageDir: path.join(canonicalRepoRoot, ".astrograph"),
-        storageVersion: 1,
-        schemaVersion: 4,
-        readiness: {
-          stage: "not-ready",
+      expect(diagnosticsPayload).toMatchObject({
+        ok: true,
+        data: {
+          engineVersion: ASTROGRAPH_PACKAGE_VERSION,
+          storageDir: path.join(canonicalRepoRoot, ".astrograph"),
+          storageVersion: 1,
+          schemaVersion: 4,
+          readiness: {
+            stage: "not-ready",
+          },
+        },
+        meta: {
+          toolVersion: "1",
+          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
         },
       });
     });
@@ -848,7 +912,17 @@ export function circumference(radius: number): string {
         repoRoot,
         summaryStrategy: "bogus",
       }),
-    ).rejects.toThrow(/unsupported summaryStrategy/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+      meta: {
+        toolVersion: "1",
+        tokenBudgetUsed: null,
+        dataFreshness: "unknown",
+      },
+    });
   }, 30_000);
 
   it("rejects malformed CLI arguments instead of silently coercing them", async () => {
@@ -1006,56 +1080,201 @@ export class Greeter {
     const repoRoot = await createFixtureRepo();
 
     await expect(
-      dispatchTool("query_code", {
+      dispatchTool("search_symbols", {
         repoRoot,
-        intent: "discover",
         query: "Greeter",
         kind: "bogus",
       }),
-    ).rejects.toThrow(/invalid option|unsupported kind/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
 
     await expect(
-      dispatchTool("query_code", {
+      dispatchTool("get_ranked_context", {
         repoRoot,
-        intent: "assemble",
         query: "Greeter",
         tokenBudget: "oops",
       }),
-    ).rejects.toThrow(/expected number|invalid numeric argument/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
 
     await expect(
-      dispatchTool("query_code", {
+      dispatchTool("search_symbols", {
         repoRoot,
-        intent: "discover",
         query: "Greeter",
         limit: 0,
       }),
-    ).rejects.toThrow(/limit must be positive|must be positive/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
 
     await expect(
-      dispatchTool("query_code", {
+      dispatchTool("get_symbol_source", {
         repoRoot,
-        intent: "source",
         symbolId: "fake-symbol",
         contextLines: -1,
       }),
-    ).rejects.toThrow(/contextLines must be non-negative|must be non-negative/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
 
     await expect(
-      dispatchTool("query_code", {
+      dispatchTool("get_context_bundle", {
         repoRoot,
-        intent: "assemble",
         query: "   ",
         symbolIds: ["   "],
       }),
-    ).rejects.toThrow(/query_code assemble intent requires a non-empty query or symbolIds/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
 
     await expect(
-      dispatchTool("query_code", {
+      dispatchTool("get_context_bundle", {
         repoRoot,
       }),
-    ).rejects.toThrow(/query_code auto intent resolved to discover and requires a non-empty query/i);
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
   });
+
+  it("rejects malformed MCP tool outputs with a strict failure envelope", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "search_symbols");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => [
+        {
+          id: "sym-id",
+          kind: "class",
+          filePath: "src/strings.ts",
+        },
+      ];
+
+      const malformedResult = await dispatchTool("search_symbols", {
+        repoRoot,
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("symbol output"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  }, 15_000);
+
+  it("rejects malformed get_symbol_source MCP output with a strict failure envelope", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_symbol_source");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        requestedContextLines: 5,
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_symbol_source", {
+        repoRoot,
+        symbolId: "fake-symbol",
+        contextLines: 3,
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_symbol_source output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  }, 15_000);
+
+  it("rejects malformed get_context_bundle MCP output with a strict failure envelope", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        tokenBudget: 128,
+        usedTokens: 12,
+        estimatedTokens: 18,
+        truncated: false,
+        query: "Greeter",
+        repoRoot,
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_context_bundle", {
+        repoRoot,
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_context_bundle output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  }, 15_000);
 
   it("exposes a workspace bin wrapper for cli commands", async () => {
     const repoRoot = await createFixtureRepo();

@@ -77,7 +77,10 @@ export const ENGINE_TOOLS: EngineToolName[] = [
   "get_file_tree",
   "get_file_outline",
   "suggest_initial_queries",
-  "query_code",
+  "search_symbols",
+  "get_symbol_source",
+  "get_context_bundle",
+  "get_ranked_context",
   "diagnostics",
 ];
 
@@ -212,7 +215,6 @@ export function resolveEnginePaths(repoRoot: string): EnginePaths {
     repoMetaPath: path.join(storageDir, "repo-meta.json"),
     integrityPath: path.join(storageDir, "integrity.sha256"),
     storageVersionPath: path.join(storageDir, "storage-version.json"),
-    rawCacheDir: path.join(storageDir, "raw-cache"),
     eventsPath: path.join(storageDir, "events.jsonl"),
   };
 }

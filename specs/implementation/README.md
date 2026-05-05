@@ -8,7 +8,7 @@ This directory contains internal implementation plans and subsystem specs.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.
 - [Release Agent Workflow](./release-agent.md) - Decide publish-worthy changes and push release tags.
-- [MCP v1 Hard-Switch Plan](./mcp-v1-hard-switch-plan.md) - Hard removal of `query_code`, strict v1 schemas, and direct retrieval tools.
+- [MCP v1 Hard-Switch Plan](./mcp-v1-hard-switch-plan.md) - Hard removal of MCP `query_code`, strict `ok`/`data`/`meta`/`error` envelopes, `toolVersion: "1"` metadata, no MCP cache behavior, and the explicit `search_symbols`/`get_symbol_source`/`get_context_bundle`/`get_ranked_context` retrieval tools.
 
 ## Planned Subsystem Specs
 
@@ -21,7 +21,6 @@ This directory contains internal implementation plans and subsystem specs.
 - MCP tool observability
 - Internal type ownership
 - Diagnostics, doctor, and event retention
-- MCP v1 hard-switch and API envelope migration (in progress)
 
 ## Implementation Rules
 

@@ -402,36 +402,3 @@ export function parseQueryCodeCliInput(args: Record<string, string>): QueryCodeO
 
   return parsed.data;
 }
-
-export function parseQueryCodeMcpInput(args: Record<string, unknown>): QueryCodeOptions {
-  const rawInput = {
-    repoRoot: typeof args.repoRoot === "string" ? args.repoRoot : "",
-    intent: args.intent,
-    query: typeof args.query === "string" ? args.query : undefined,
-    symbolId: typeof args.symbolId === "string" ? args.symbolId : undefined,
-    symbolIds: Array.isArray(args.symbolIds)
-      ? args.symbolIds.filter((value): value is string => typeof value === "string")
-      : undefined,
-    filePath: typeof args.filePath === "string" ? args.filePath : undefined,
-    kind: args.kind,
-    language: args.language,
-    filePattern: typeof args.filePattern === "string" ? args.filePattern : undefined,
-    limit: args.limit,
-    contextLines: args.contextLines,
-    verify: args.verify === true,
-    tokenBudget: args.tokenBudget,
-    includeTextMatches: args.includeTextMatches === true,
-    includeRankedCandidates: args.includeRankedCandidates === true,
-    includeDependencies: args.includeDependencies === true,
-    includeImporters: args.includeImporters === true,
-    includeReferences: args.includeReferences === true,
-    relationDepth: args.relationDepth,
-  };
-
-  const parsed = queryCodeOptionsSchema.safeParse(rawInput);
-  if (!parsed.success) {
-    throw new Error(normalizeZodError(parsed.error, "Invalid query_code arguments"));
-  }
-
-  return parsed.data;
-}

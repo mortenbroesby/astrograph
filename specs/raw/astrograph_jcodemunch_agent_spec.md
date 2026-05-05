@@ -44,8 +44,7 @@ Astrograph already has a strong foundation:
 - standalone npm package identity,
 - local-first repo indexing,
 - SQLite-backed storage,
-- OXC parser for JavaScript and TypeScript,
-- tree-sitter fallback,
+- tree-sitter parser execution for JavaScript and TypeScript during the MCP v1 hard-switch,
 - `astrograph init` setup flow,
 - install profiles such as `full`, `some`, and `barebones`,
 - MCP server,
@@ -59,7 +58,8 @@ The current gap is not that Astrograph lacks a foundation. The gap is that Astro
 
 The highest-value improvements are:
 
-1. Expose direct retrieval tools in MCP, not only `query_code`.
+1. Expose direct retrieval tools in MCP and remove `query_code` from the MCP v1
+   tool surface.
 2. Add detail levels and response envelopes.
 3. Add index generation and freshness controls (cache features are deferred/removed in v1).
 4. Improve ranking with identifier tokenization, BM25, fuzzy fallback, and centrality.
@@ -83,7 +83,7 @@ The roadmap below is now governed by the following mandatory decisions:
 - Cache is fully removed in v1. No cache tables, cache-driven tools, or cache-hit logic are implemented before `1.0.0`.
 - Backward compatibility is intentionally deprioritized in this hard-switch; migration is release-focused.
 - Tool contract versioning is explicit at both levels:
-  - Tool registration metadata: `version: "1"` for new v1 tools.
+  - Tool registration metadata: `toolVersion: "1"` for new v1 tools.
   - Response envelope metadata: `meta.toolVersion === "1"`.
 - On version upgrades, treat `.astrograph` as disposable cache/state and rebuild from a clean `.astrograph` directory.
 - Tool names remain readable and stable (no `_v1` suffix); version is carried in metadata.
@@ -101,11 +101,13 @@ Observed current-state assumptions:
 
 - Package name: `@mortenbroesby/astrograph`.
 - Runtime target: Node 24+.
-- Core stack includes TypeScript, SQLite via `better-sqlite3`, OXC parser/resolver, tree-sitter JS/TS fallback, ripgrep fallback, `@modelcontextprotocol/sdk`, `piscina`, `@parcel/watcher`, tokenizers, and benchmarking/profiling scripts.
+- Core stack includes TypeScript, SQLite via `better-sqlite3`, tree-sitter JS/TS parsing for the MCP v1 hard-switch, ripgrep fallback, `@modelcontextprotocol/sdk`, `piscina`, `@parcel/watcher`, tokenizers, and benchmarking/profiling scripts. OXC parser execution is removed from the active v1 hard-switch path; OXC may only return through a later ADR after the MCP v1 contract stabilizes.
 - README positions Astrograph as a local MCP server for AI agents.
 - `astrograph init` can configure MCP settings for Codex, GitHub Copilot, and GitHub Copilot CLI.
 - Setup modes exist: `full`, `some`, and `barebones`.
-- Current MCP tools are narrow and centered around indexing, discovery, outlines, `query_code`, status, and diagnostics.
+- Pre-switch MCP tools are narrow and centered around indexing, discovery,
+  outlines, `query_code`, status, and diagnostics; MCP v1 replaces the
+  MCP-facing `query_code` path with explicit retrieval tools.
 - Library exports more retrieval functionality than MCP currently exposes.
 - Current graph-tier language support is JavaScript and TypeScript family only: `ts`, `tsx`, `js`, `jsx`.
 - Fallback support exists for file summaries/discovery for Markdown, JSON, YAML, SQL, shell, and text, but these are not graph-tier languages.
@@ -174,7 +176,7 @@ search symbols → inspect outline → retrieve exact source → assemble bounde
 | Area | Astrograph current state | jCodeMunch-style capability | Gap / action |
 |---|---|---|---|
 | Install and setup | Strong standalone `astrograph init` flow with IDE modes. | Broad setup plus guide/hook/session concepts. | Add runtime guidance and lifecycle hooks. |
-| MCP surface | Narrow, centered on `query_code` and discovery/status tools. | Broad explicit workflow tools. | Expose direct retrieval tools. |
+| MCP surface | Pre-switch surface is centered on `query_code` and discovery/status tools. | Broad explicit workflow tools. | Remove MCP `query_code` in v1 and expose direct retrieval tools. |
 | Library capability | Exports `searchSymbols`, `getSymbolSource`, `getContextBundle`, `getRankedContext`, etc. | MCP exposes most workflow steps directly. | Map existing exports into MCP. |
 | Search/ranking | Deterministic weighted scoring. | BM25, fuzzy, abbreviations, semantic, centrality. | Add stronger retrieval algorithms. |
 | Token efficiency | Token-budgeted bundles and token tooling. | Detail levels, token budgets, compact output, schema profiles. | Add detail levels and compact encoding. |
@@ -191,7 +193,8 @@ search symbols → inspect outline → retrieve exact source → assemble bounde
 
 ### 5.1 Prefer direct, obvious MCP tools over one overloaded umbrella tool
 
-Keep `query_code`, but do not force all workflows through it.
+Remove `query_code` from the MCP v1 tool surface. Keep any direct TypeScript or
+CLI `queryCode` API only outside MCP where non-MCP consumers still need it.
 
 Add direct tools for common agent intentions:
 
@@ -200,6 +203,12 @@ search_symbols
 get_symbol_source
 get_context_bundle
 get_ranked_context
+```
+
+Post-v1 plans can add broader graph and file tools after the strict contract
+stabilizes:
+
+```text
 get_file_content
 find_importers
 find_references
@@ -249,7 +258,9 @@ Every major retrieval improvement should be measured on task cards.
 
 ### Goal
 
-Expose Astrograph’s existing direct retrieval functionality through MCP so agents can use simple, explicit tools instead of relying only on `query_code`.
+Expose Astrograph’s existing direct retrieval functionality through MCP so
+agents use simple, explicit tools instead of the pre-switch `query_code`
+umbrella.
 
 ### Why this is important
 
@@ -264,8 +275,6 @@ search_symbols
 get_symbol_source
 get_context_bundle
 get_ranked_context
-get_file_content
-astrograph_guide
 ```
 
 ### Files to modify
@@ -361,7 +370,7 @@ Purpose:
 Search and assemble a ranked context bundle in one step.
 ```
 
-#### `get_file_content`
+#### `get_file_content` (post-v1)
 
 Purpose:
 
@@ -369,7 +378,7 @@ Purpose:
 Controlled file read with freshness metadata. Use only when symbol-level retrieval is insufficient.
 ```
 
-#### `astrograph_guide`
+#### `astrograph_guide` (post-v1)
 
 Purpose:
 
@@ -401,7 +410,8 @@ Editing:
 ### Acceptance criteria
 
 - MCP tool list includes the new direct retrieval tools.
-- Existing `query_code` still works.
+- MCP `query_code` is removed in v1. Non-MCP `queryCode` may continue to work
+  for direct library or CLI consumers.
 - Existing CLI and library APIs remain backward compatible.
 - Interface tests assert the new MCP tools are registered.
 - README documents the direct retrieval workflow.
@@ -764,6 +774,10 @@ storage rebuild
 
 ### Add query cache table
 
+This cache design is deferred until after MCP v1. The hard-switch release must
+not add MCP cache tables, cache tools, cache-hit metadata, or cache invalidation
+behavior.
+
 ```sql
 CREATE TABLE IF NOT EXISTS query_cache (
   cache_key TEXT PRIMARY KEY,
@@ -799,6 +813,9 @@ ranking mode
 
 ### In-memory cache
 
+Deferred until after MCP v1. Do not add in-memory MCP result caching in the
+hard-switch slice.
+
 Use a small LRU cache for hot results.
 
 Possible package:
@@ -811,16 +828,19 @@ Or implement a simple Map-based LRU locally.
 
 ### Cache these first
 
+Post-v1 only:
+
 ```text
 search_symbols
 find_files
 get_file_tree
 get_file_outline
 get_ranked_context
-query_code discover
 ```
 
 ### Avoid caching these aggressively at first
+
+Post-v1 only:
 
 ```text
 get_file_content
@@ -833,7 +853,8 @@ If source retrieval is cached, include content hash and verification state in th
 
 - Same query on same index generation hits cache.
 - Reindex invalidates cache via generation change.
-- Cache hit/miss is visible in `_meta`.
+- Cache hit/miss is visible in `_meta` after cache behavior is reintroduced
+  outside MCP v1.
 - Cached results do not bypass freshness warnings.
 - Tests cover cache invalidation after `index_file`.
 
@@ -1066,7 +1087,7 @@ export interface LanguageAdapter {
   language: string;
   extensions: string[];
   supportTier: "outline" | "retrieval" | "graph";
-  parserBackend: "oxc" | "tree-sitter" | "regex" | "external";
+  parserBackend: "tree-sitter" | "regex" | "external";
 
   parse(input: {
     filePath: string;
@@ -1167,14 +1188,12 @@ full
 #### Core
 
 ```text
-query_code
 search_symbols
 get_symbol_source
 get_context_bundle
 find_files
 search_text
 get_project_status
-astrograph_guide
 ```
 
 #### Standard
@@ -1208,16 +1227,16 @@ benchmark/debug tools
 
 ### Compact schemas
 
-Some tools have many optional arguments. In compact schema mode, hide advanced rarely used fields from `tools/list` while still accepting them if called.
+Some tools have many optional arguments. In compact schema mode, hide advanced
+rarely used fields from `tools/list` while still accepting them if called. This
+is post-v1 work; MCP v1 uses strict full schemas only.
 
-For example, compact `query_code` schema could show only:
+For example, a future compact `get_context_bundle` schema could show only:
 
 ```text
 repoRoot
 query
-intent
-symbolId
-filePath
+symbolIds
 tokenBudget
 ```
 
@@ -1238,6 +1257,9 @@ includeReferences
 relationDepth
 ```
 
+For MCP v1, compact schema variants are disabled and `query_code` is not exposed
+through MCP. Any compact schema work must start from the explicit v1 tool set.
+
 ### Files
 
 ```text
@@ -1254,8 +1276,9 @@ README.md
 
 - Runtime MCP tool list changes based on profile.
 - Setup modes map cleanly to runtime profiles.
-- Compact schemas reduce visible argument surface.
-- Always-present tools remain available: `astrograph_guide`, profile/status tools.
+- Compact schemas reduce visible argument surface after MCP v1.
+- Always-present tools remain available: profile/status tools; future
+  guidance tools require their own plan.
 
 ---
 
@@ -1270,11 +1293,12 @@ Make agents reliably use Astrograph instead of blind file reads and stale contex
 ```text
 astrograph_guide
 register_edit
-invalidate_cache
 get_session_context
 get_session_snapshot
 get_watch_status
 ```
+
+Cache invalidation tools are post-v1 only and require a separate cache plan.
 
 ### Add CLI commands
 
@@ -1404,7 +1428,6 @@ successCriteria:
   "baselineTokens": 48000,
   "retrievedTokens": 1400,
   "tokenReductionPct": 97.1,
-  "cacheHit": false,
   "evidence": [
     "src/storage.ts::watchFolder#function"
   ]
@@ -1530,8 +1553,10 @@ Astrograph already uses many good packages. Keep using them:
 |---|---|
 | `@modelcontextprotocol/sdk` | MCP server. |
 | `better-sqlite3` | Local SQLite index. |
-| `oxc-parser` | JS/TS parser. |
-| `oxc-resolver` | JS/TS import resolution. |
+| `tree-sitter` | Active parser execution model for the MCP v1 hard-switch. |
+| `tree-sitter-javascript` | JavaScript and JSX grammar. |
+| `tree-sitter-typescript` | TypeScript and TSX grammar. |
+| `oxc-resolver` | JS/TS import resolution if source search confirms it is still used outside parser execution. |
 | `@vscode/ripgrep` | Live text fallback. |
 | `@parcel/watcher` | Watch mode. |
 | `piscina` | Worker-thread indexing. |
@@ -1544,7 +1569,7 @@ Potential additions:
 
 | Package | Use |
 |---|---|
-| `lru-cache` | In-memory query/result cache. |
+| `lru-cache` | Candidate for post-v1 in-memory query/result cache; not used by MCP v1. |
 | `tree-sitter-python` | Python adapter pilot. |
 | `tree-sitter-go` | Go adapter pilot. |
 
@@ -1565,8 +1590,6 @@ search_symbols
 get_symbol_source
 get_context_bundle
 get_ranked_context
-get_file_content
-astrograph_guide
 ```
 
 Why:
@@ -1599,22 +1622,22 @@ Difficulty: medium.
 
 ---
 
-### Priority 2: Add index generation and query cache
+### Priority 2: Defer index generation and query cache to a separate post-v1 plan
 
 Add:
 
 ```text
-indexGeneration
-query_cache
-in-memory LRU
-cache invalidation
+post-v1 indexGeneration
+post-v1 query_cache
+post-v1 in-memory LRU
+post-v1 cache invalidation
 ```
 
 Why:
 
-- Critical for large repos.
-- Prevents repeated query cost.
-- Enables session restore later.
+- Important for large repos, but not part of the MCP v1 hard-switch.
+- Prevents repeated query cost after the v1 contract stabilizes.
+- Enables session restore later without mixing cache migration into v1.
 
 Difficulty: medium.
 
@@ -1765,7 +1788,6 @@ register_edit
 get_session_context
 policy generate
 hooks install
-invalidate_cache
 ```
 
 Why:
@@ -1843,13 +1865,16 @@ Recommended first agent task:
 
 ```text
 Implement Workstream A, Slice 1:
-Expose search_symbols, get_symbol_source, get_context_bundle, get_ranked_context, get_file_content, and astrograph_guide through src/mcp-contract.ts, with interface tests and README updates.
+Expose search_symbols, get_symbol_source, get_context_bundle, and
+get_ranked_context through src/mcp-contract.ts, with interface tests and README
+updates.
 ```
 
 Recommended second agent task:
 
 ```text
-Implement response detail levels and a standard result envelope for search_symbols and get_ranked_context, but keep behavior backward compatible where possible.
+Implement the strict v1 result envelope for all MCP tool calls. Backward
+compatibility is not required for the MCP hard-switch.
 ```
 
 Recommended third agent task:

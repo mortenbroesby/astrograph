@@ -121,6 +121,15 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm build
+
+      - name: Type lint
+        run: pnpm type-lint
+
+      - name: Release policy tests
+        run: pnpm exec vitest run tests/release-policy.test.ts tests/engine-contract.test.ts
+
       - name: Decide release
         id: release
         run: |

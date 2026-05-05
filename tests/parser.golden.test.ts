@@ -1,9 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import { parseSourceFile } from "../src/parser.ts";
+import { parseWithTreeSitter } from "../src/parser/tree-sitter.ts";
 
 describe("astrograph parser golden coverage", () => {
-  it("extracts common export, class, object, and namespace constructs on the oxc path", () => {
+  it("extracts the accepted tree-sitter-only parser baseline", () => {
     const parsed = parseSourceFile({
       relativePath: "src/parser-fixture.ts",
       language: "ts",
@@ -47,76 +48,182 @@ export namespace Shapes {
 `,
     });
 
-    expect(parsed.backend).toBe("oxc");
+    expect(parsed.backend).toBe("tree-sitter");
     expect(parsed.fallbackUsed).toBe(false);
+    expect(parsed.fallbackReason).toBeNull();
     expect(parsed.imports.map((entry) => entry.source)).toContain("./dep");
+    expect(parsed.symbols.map((symbol) => ({
+      name: symbol.name,
+      qualifiedName: symbol.qualifiedName,
+      kind: symbol.kind,
+      exported: symbol.exported,
+    }))).toEqual([
+      {
+        name: "toolkit",
+        qualifiedName: "toolkit",
+        kind: "constant",
+        exported: true,
+      },
+      {
+        name: "Service",
+        qualifiedName: "Service",
+        kind: "class",
+        exported: false,
+      },
+      {
+        name: "constructor",
+        qualifiedName: "Service.constructor",
+        kind: "method",
+        exported: false,
+      },
+      {
+        name: "status",
+        qualifiedName: "Service.status",
+        kind: "method",
+        exported: false,
+      },
+      {
+        name: "status",
+        qualifiedName: "Service.status",
+        kind: "method",
+        exported: false,
+      },
+      {
+        name: "run",
+        qualifiedName: "Service.run",
+        kind: "method",
+        exported: false,
+      },
+    ]);
+  });
+
+  it("keeps tree-sitter parser output deterministic across ts/js/tsx/jsx fixtures", () => {
+    const fixtures = [
+      {
+        language: "ts",
+        relativePath: "src/parser-fixture.ts",
+        content: `import type { WidgetProps } from "./types";
+
+export interface WidgetProps {
+  label: string;
+}
+
+export const count = 3;
+
+  export function makeLabel(value: string): string {
+  return \`\${value}:\${count}\`;
+}
+
+class ParserService {
+  handle(input: string): string {
+    return input;
+  }
+}
+
+export const widget = {
+  props: {} as WidgetProps,
+  helper: new ParserService(),
+};
+`,
+      },
+      {
+        language: "js",
+        relativePath: "src/parser-fixture.js",
+        content: `export const answer = 42;
+
+export function formatValue(value) {
+  return String(value).trim();
+}
+
+class ParserService {
+  constructor() {}
+  transform(value) {
+    return value;
+  }
+}`,
+      },
+      {
+        language: "tsx",
+        relativePath: "src/parser-fixture.tsx",
+        content: `export interface WidgetProps {
+  label: string;
+}
+
+export function Widget(props: WidgetProps) {
+  return <div>{"label"}</div>;
+}
+
+export const render = (props: WidgetProps) => <span>{"label"}</span>;
+`,
+      },
+      {
+        language: "jsx",
+        relativePath: "src/parser-fixture.jsx",
+        content: `export function Widget() {
+  return <section>parser coverage</section>;
+}
+
+export const render = () => <button>run</button>;
+`,
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const first = parseSourceFile({
+        relativePath: fixture.relativePath,
+        language: fixture.language,
+        content: fixture.content,
+      });
+      const second = parseSourceFile({
+        relativePath: fixture.relativePath,
+        language: fixture.language,
+        content: fixture.content,
+      });
+
+      expect(first.backend).toBe("tree-sitter");
+      expect(first.fallbackUsed).toBe(false);
+      expect(first.fallbackReason).toBeNull();
+      expect(first.symbols.length).toBeGreaterThan(1);
+      expect(first.symbols).toHaveLength(second.symbols.length);
+      expect(first.symbols.map((entry) => entry.name)).toEqual(
+        second.symbols.map((entry) => entry.name),
+      );
+      expect(first.symbols.map((entry) => entry.id)).toEqual(
+        second.symbols.map((entry) => entry.id),
+      );
+      expect(first.symbols.map((entry) => entry.qualifiedName)).toEqual(
+        second.symbols.map((entry) => entry.qualifiedName),
+      );
+      expect(first.symbols.map((entry) => entry.signature)).toEqual(
+        second.symbols.map((entry) => entry.signature),
+      );
+    }
+  });
+
+  it("marks tree-sitter chunk recovery as parser fallback metadata", () => {
+    const content = Array.from({ length: 900 }, (_, index) =>
+      `export function helper${index}(value: number): number { return value + ${index}; }`,
+    ).join("\n");
+
+    const parsed = parseWithTreeSitter({
+      relativePath: "src/large.ts",
+      language: "ts",
+      content: `${content}\n`,
+    });
+
+    expect(parsed.backend).toBe("tree-sitter");
+    expect(parsed.fallbackUsed).toBe(true);
+    expect(parsed.fallbackReason).toBe("tree-sitter-chunk-recovery");
+    expect(parsed.symbols).toHaveLength(900);
     expect(parsed.symbols).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          name: "toolkit",
-          exported: true,
-          kind: "constant",
-        }),
-        expect.objectContaining({
-          name: "build",
-          qualifiedName: "toolkit.build",
-          kind: "method",
-          exported: true,
-        }),
-        expect.objectContaining({
-          name: "format",
-          qualifiedName: "toolkit.format",
-          kind: "method",
-          exported: true,
-        }),
-        expect.objectContaining({
-          name: "legacy",
-          qualifiedName: "toolkit.legacy",
-          kind: "method",
-          exported: true,
-        }),
-        expect.objectContaining({
-          name: "Service",
-          exported: true,
-          kind: "class",
-        }),
-        expect.objectContaining({
-          name: "constructor",
-          qualifiedName: "Service.constructor",
-          kind: "method",
-        }),
-        expect.objectContaining({
-          name: "status",
-          qualifiedName: "Service.status",
-        }),
-        expect.objectContaining({
-          name: "ready",
-          qualifiedName: "Service.ready",
-          kind: "constant",
-        }),
-        expect.objectContaining({
-          name: "run",
-          qualifiedName: "Service.run",
-          kind: "method",
-        }),
-        expect.objectContaining({
-          name: "aliasedThing",
-          exported: true,
-          kind: "constant",
-        }),
-        expect.objectContaining({
-          name: "default",
+          name: "helper0",
           exported: true,
           kind: "function",
         }),
         expect.objectContaining({
-          name: "Shapes",
-          exported: true,
-          kind: "type",
-        }),
-        expect.objectContaining({
-          name: "area",
-          qualifiedName: "Shapes.area",
+          name: "helper899",
           exported: true,
           kind: "function",
         }),

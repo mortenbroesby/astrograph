@@ -33,7 +33,9 @@ import {
   getCommandByCliCommand,
   getCommandByMcpToolName,
 } from "../src/command-registry.ts";
+import { MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { setupForAllIdes, setupForCodex, setupForIde } from "../src/scripts/install.ts";
+import { dispatchTool } from "../src/mcp.ts";
 
 const tempDirs: string[] = [];
 
@@ -57,7 +59,6 @@ describe("ai-context-engine contract", () => {
       repoMetaPath: "/tmp/playground/.astrograph/repo-meta.json",
       integrityPath: "/tmp/playground/.astrograph/integrity.sha256",
       storageVersionPath: "/tmp/playground/.astrograph/storage-version.json",
-      rawCacheDir: "/tmp/playground/.astrograph/raw-cache",
       eventsPath: "/tmp/playground/.astrograph/events.jsonl",
     });
   });
@@ -105,7 +106,10 @@ describe("ai-context-engine contract", () => {
       "get_file_tree",
       "get_file_outline",
       "suggest_initial_queries",
-      "query_code",
+      "search_symbols",
+      "get_symbol_source",
+      "get_context_bundle",
+      "get_ranked_context",
       "diagnostics",
     ]);
     expect(MCP_COMMAND_REGISTRY.map((command) => command.mcpToolName)).toEqual(
@@ -117,7 +121,152 @@ describe("ai-context-engine contract", () => {
     ]);
     expect(COMMAND_REGISTRY.queryCode.normalizedOptions).toContain("tokenBudget");
     expect(getCommandByCliCommand("query-code")).toBe(COMMAND_REGISTRY.queryCode);
-    expect(getCommandByMcpToolName("query_code")).toBe(COMMAND_REGISTRY.queryCode);
+    expect(getCommandByMcpToolName("query_code")).toBeUndefined();
+    expect(getCommandByMcpToolName("search_symbols")).toBe(COMMAND_REGISTRY.searchSymbols);
+    expect(getCommandByMcpToolName("get_symbol_source")).toBe(COMMAND_REGISTRY.getSymbolSource);
+    expect(getCommandByMcpToolName("get_context_bundle")).toBe(COMMAND_REGISTRY.getContextBundle);
+    expect(getCommandByMcpToolName("get_ranked_context")).toBe(COMMAND_REGISTRY.getRankedContext);
+  });
+
+  it("normalizes dispatch failures into MCP envelopes", async () => {
+    const unknownToolResult = await dispatchTool("query_code", { repoRoot: "/tmp" });
+    expect(unknownToolResult).toMatchObject({
+      ok: false,
+      data: null,
+      error: {
+        code: "tool_not_found",
+      },
+      meta: {
+        toolVersion: "1",
+        tokenBudgetUsed: null,
+        dataFreshness: "unknown",
+      },
+    });
+
+    const invalidArgResult = await dispatchTool("search_symbols", {
+      repoRoot: "/tmp",
+      query: "Greeter",
+      kind: "bogus",
+    });
+    expect(invalidArgResult).toMatchObject({
+      ok: false,
+      error: {
+        code: "invalid_argument",
+      },
+    });
+  });
+
+  it("rejects malformed MCP tool output with a strict failure envelope", async () => {
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "search_symbols");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => [
+        {
+          id: "sym-id",
+          kind: "class",
+          filePath: "src/strings.ts",
+        },
+      ];
+
+      const malformedResult = await dispatchTool("search_symbols", {
+        repoRoot: "/tmp",
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("symbol output"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  });
+
+  it("rejects malformed get_symbol_source output with a strict failure envelope", async () => {
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_symbol_source");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        requestedContextLines: 5,
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_symbol_source", {
+        repoRoot: "/tmp",
+        symbolId: "fake-symbol",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_symbol_source output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
+  });
+
+  it("rejects malformed get_context_bundle output with a strict failure envelope", async () => {
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+    expect(tool).toBeDefined();
+
+    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
+    const originalExecute = mutableTool.execute;
+    try {
+      mutableTool.execute = async () => ({
+        tokenBudget: 128,
+        usedTokens: 12,
+        estimatedTokens: 18,
+        truncated: false,
+        query: "Greeter",
+        repoRoot: "/tmp",
+        items: "not-an-array",
+      });
+
+      const malformedResult = await dispatchTool("get_context_bundle", {
+        repoRoot: "/tmp",
+        query: "Greeter",
+      });
+
+      expect(malformedResult).toMatchObject({
+        ok: false,
+        data: null,
+        error: {
+          code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
+          message: expect.stringContaining("get_context_bundle output must include items"),
+        },
+        meta: {
+          toolVersion: "1",
+          tokenBudgetUsed: null,
+          dataFreshness: "unknown",
+        },
+      });
+    } finally {
+      mutableTool.execute = originalExecute;
+    }
   });
 
   it("uses package.json as the canonical Astrograph version source", async () => {
@@ -576,7 +725,9 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("### Working agreements");
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
-    expect(result.agentsPolicyPreview).toContain("query_code");
+    expect(result.agentsPolicyPreview).toContain("search_symbols");
+    expect(result.agentsPolicyPreview).toContain("get_context_bundle");
+    expect(result.agentsPolicyPreview).not.toContain("query_code");
   });
 
   it("writes copilot-instructions.md when --agents is used with copilot IDE", async () => {
@@ -651,7 +802,11 @@ describe("ai-context-engine contract", () => {
     });
 
     expect(result.configPreview).toContain("index_folder");
-    expect(result.configPreview).toContain("query_code");
+    expect(result.configPreview).toContain("search_symbols");
+    expect(result.configPreview).toContain("get_symbol_source");
+    expect(result.configPreview).toContain("get_context_bundle");
+    expect(result.configPreview).toContain("get_ranked_context");
+    expect(result.configPreview).not.toContain("query_code");
     expect(result.configPreview).toContain("diagnostics");
   });
 
@@ -672,7 +827,11 @@ describe("ai-context-engine contract", () => {
     });
 
     expect(result.configPreview).toContain('"tools": [');
-    expect(result.configPreview).toContain('"query_code"');
+    expect(result.configPreview).toContain('"search_symbols"');
+    expect(result.configPreview).toContain('"get_symbol_source"');
+    expect(result.configPreview).toContain('"get_context_bundle"');
+    expect(result.configPreview).toContain('"get_ranked_context"');
+    expect(result.configPreview).not.toContain('"query_code"');
     expect(result.configPreview).toContain('"suggest_initial_queries"');
     expect(result.configPreview).toContain('"diagnostics"');
   });

@@ -216,7 +216,9 @@ function resolveAnalyzeFileWorkerOptions(): {
   const preferSource =
     process.env.ASTROGRAPH_USE_SOURCE === "1"
     || process.env.ASTROGRAPH_USE_SOURCE === "true";
+  const runningFromSource = storageModulePath.endsWith(".ts");
   const useBuiltTarget = existsSync(builtAnalyzeFileWorkerEntrypoint)
+    && !runningFromSource
     && (!preferSource || !existsSync(sourceAnalyzeFileWorkerEntrypoint));
 
   return useBuiltTarget
@@ -585,7 +587,6 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
   if (!getLruEntry(ensuredStorageRoots, resolvedRepoRoot)) {
     await mkdir(config.paths.storageDir, { recursive: true });
     await ensureStorageVersion(config);
-    await mkdir(config.paths.rawCacheDir, { recursive: true });
     setLruEntry(
       ensuredStorageRoots,
       resolvedRepoRoot,
@@ -696,7 +697,6 @@ async function resetStorageForVersionMismatch(
   ensuredStorageRoots.delete(config.repoRoot);
   await rm(config.paths.storageDir, { recursive: true, force: true });
   await mkdir(config.paths.storageDir, { recursive: true });
-  await mkdir(config.paths.rawCacheDir, { recursive: true });
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
 }
 
