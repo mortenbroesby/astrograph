@@ -59,7 +59,7 @@ async function withMcpClient<T>(
 ) {
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [path.join(packageRoot, "scripts", "ai-context-engine.mjs"), "mcp"],
+    args: [path.join(packageRoot, "scripts", "astrograph.mjs"), "mcp"],
     cwd: packageRoot,
     stderr: "pipe",
     env: {
@@ -1278,7 +1278,7 @@ export class Greeter {
 
   it("exposes a workspace bin wrapper for cli commands", async () => {
     const repoRoot = await createFixtureRepo();
-    const binPath = path.join(packageRoot, "scripts", "ai-context-engine.mjs");
+    const binPath = path.join(packageRoot, "scripts", "astrograph.mjs");
 
     const { stdout } = await execFileAsync(process.execPath, [
       binPath,

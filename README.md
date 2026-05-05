@@ -132,9 +132,7 @@ astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
 ## Install details
 
 - Node target: `>=24`
-- Entry commands:
-  - `astrograph` (preferred)
-  - `ai-context-engine` (compatibility alias)
+- Entry command: `astrograph`
 
 ## License
 

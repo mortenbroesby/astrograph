@@ -173,7 +173,7 @@ describe("ai-context-engine behavior", () => {
     const child = spawn(
       process.execPath,
       [
-        path.join(packageRoot, "scripts", "ai-context-engine.mjs"),
+        path.join(packageRoot, "scripts", "astrograph.mjs"),
         "cli",
         "index-folder",
         "--repo",

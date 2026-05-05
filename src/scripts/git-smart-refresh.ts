@@ -25,8 +25,8 @@ const MAX_INCREMENTAL_FILES = 12;
 
 const scriptPath = fileURLToPath(import.meta.url);
 const packageRoot = path.resolve(path.dirname(scriptPath), "..", "..");
-const wrapperPath = path.join(packageRoot, "dist", "ai-context-engine.js");
-const sourceWrapperPath = path.join(packageRoot, "src", "ai-context-engine.ts");
+const wrapperPath = path.join(packageRoot, "dist", "astrograph.js");
+const sourceWrapperPath = path.join(packageRoot, "src", "astrograph.ts");
 const wrapperArgs = existsSync(wrapperPath)
   ? [wrapperPath]
   : ["--experimental-strip-types", sourceWrapperPath];

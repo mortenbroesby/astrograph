@@ -366,7 +366,7 @@ function handleCodeNav(payload) {
   ) {
     return {};
   }
-  if (/\b(?:cat|sed|awk|node|npm|pnpm|git|ai-context-engine|astrograph)\b/.test(command)) {
+  if (/\b(?:cat|sed|awk|node|npm|pnpm|git|astrograph)\b/.test(command)) {
     return {};
   }
   return { stderr: 'For exploratory reads, prefer targeted reads and repo search tools first. Use broader reads in small chunks.\n' };

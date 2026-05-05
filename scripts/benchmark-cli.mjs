@@ -117,7 +117,7 @@ async function benchmarkCli(repoRoot, options) {
 
   runCommand("pnpm", [
     "exec",
-    "ai-context-engine",
+    "astrograph",
     "cli",
     "index-folder",
     "--repo",
@@ -127,7 +127,7 @@ async function benchmarkCli(repoRoot, options) {
   const searchSeed = JSON.parse(
     runCommand("pnpm", [
       "exec",
-      "ai-context-engine",
+      "astrograph",
       "cli",
       "search-symbols",
       "--repo",
