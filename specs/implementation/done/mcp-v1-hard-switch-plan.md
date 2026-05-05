@@ -280,7 +280,7 @@ Expected:
 ## Task 5: Release hardening and final rollout checks
 
 **Files:**
-- `specs/implementation/mcp-v1-hard-switch-plan.md`
+- `specs/implementation/done/mcp-v1-hard-switch-plan.md`
 - `specs/raw/astrograph_jcodemunch_agent_spec.md`
 - `specs/architecture/adrs.md`
 - `src/mcp.ts`, `src/mcp-contract.ts`, `src/validation.ts`, `src/index.ts`, `src/types.ts`, `src/config.ts`, `src/language-registry.ts`
@@ -303,7 +303,7 @@ Expected:
 Run:
 
 ```bash
-git add src/parser.ts src/mcp.ts src/mcp-contract.ts src/validation.ts src/index.ts src/types.ts src/config.ts src/language-registry.ts src/scripts/install.ts package.json pnpm-lock.yaml tests/interface.test.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/mcp-v1-hard-switch-plan.md specs/raw/astrograph_jcodemunch_agent_spec.md specs/architecture/adrs.md specs/api-design/mcp-tools.md specs/implementation/README.md specs/README.md
+git add src/parser.ts src/mcp.ts src/mcp-contract.ts src/validation.ts src/index.ts src/types.ts src/config.ts src/language-registry.ts src/scripts/install.ts package.json pnpm-lock.yaml tests/interface.test.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/done/mcp-v1-hard-switch-plan.md specs/raw/astrograph_jcodemunch_agent_spec.md specs/architecture/adrs.md specs/api-design/mcp-tools.md specs/implementation/README.md specs/README.md
 pnpm check:version-bump
 git commit -m "feat: hard-switch mcp to strict v1 retrieval tools"
 ```

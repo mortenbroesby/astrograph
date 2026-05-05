@@ -1,26 +1,29 @@
 # Implementation Specifications
 
-This directory contains internal implementation plans and subsystem specs.
+This directory contains active internal implementation plans and subsystem specs.
+Completed execution plans live in [`done/`](./done/README.md).
 
-## Current Plans
+## Active Plans
 
-- [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.
-- [Release Agent Workflow](./release-agent.md) - Decide publish-worthy changes and push release tags.
-- [MCP v1 Hard-Switch Plan](./mcp-v1-hard-switch-plan.md) - Hard removal of MCP `query_code`, strict `ok`/`data`/`meta`/`error` envelopes, `toolVersion: "1"` metadata, no MCP cache behavior, and the explicit `search_symbols`/`get_symbol_source`/`get_context_bundle`/`get_ranked_context` retrieval tools.
+
+## Completed Plans
+
+- [Completed Implementation Plans](./done/README.md)
 
 ## Planned Subsystem Specs
 
-- Storage metadata and readiness
-- Schema and migration lifecycle
-- Indexing and file refresh
-- Retrieval and context assembly
-- Parser backend ownership
-- CLI and MCP command registry
-- MCP tool observability
-- Internal type ownership
-- Diagnostics, doctor, and event retention
+The active queue is maintained in the roadmap:
+
+- [Agent Parity Roadmap](../roadmap/agent-parity-roadmap.md)
+
+Expected next implementation plans:
+
+- Retrieval quality upgrade
+- Stable symbol identity
+- Reference and dependency graph tools
+- Compact output and detail levels
 
 ## Implementation Rules
 
@@ -28,3 +31,4 @@ This directory contains internal implementation plans and subsystem specs.
 - Each plan must include exact commands and expected outcomes.
 - Source-changing work must handle package version policy.
 - Use isolated worktrees unless the user explicitly asks for direct `main` work.
+- Move completed plans to `done/` instead of leaving them in the active list.

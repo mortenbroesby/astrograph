@@ -2040,6 +2040,32 @@ export function renderValue(value: number): string {
     expect(result.storageMode).toBe("wal");
   });
 
+  it("expands common code-search abbreviations during symbol search", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "package-config.ts"),
+      [
+        "export function loadPackageConfig(): string {",
+        '  return "package config";',
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    await indexFolder({ repoRoot });
+
+    const symbolMatches = await searchSymbols({
+      repoRoot,
+      query: "pkg cfg",
+    });
+
+    expect(symbolMatches[0]).toMatchObject({
+      name: "loadPackageConfig",
+      filePath: "src/package-config.ts",
+    });
+  });
+
   it("applies repo-config ranking weights to symbol search and ranked context", async () => {
     const repoRoot = await createFixtureRepo();
 

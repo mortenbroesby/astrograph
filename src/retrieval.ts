@@ -93,10 +93,26 @@ function normalizeQuery(value: string): string {
   return value.trim().toLowerCase();
 }
 
+const QUERY_TOKEN_EXPANSIONS: Record<string, readonly string[]> = {
+  auth: ["authentication", "authorization"],
+  cfg: ["config", "configuration"],
+  ctx: ["context"],
+  db: ["database"],
+  fn: ["function"],
+  impl: ["implementation"],
+  pkg: ["package"],
+  repo: ["repository"],
+};
+
 function queryTokens(value: string): string[] {
-  return normalizeQuery(value)
+  const tokens = normalizeQuery(value)
     .split(/[^a-z0-9_]+/g)
     .filter(Boolean);
+
+  return tokens.flatMap((token) => [
+    token,
+    ...(QUERY_TOKEN_EXPANSIONS[token] ?? []),
+  ]);
 }
 
 function uniqueQueryTerms(value: string): string[] {
