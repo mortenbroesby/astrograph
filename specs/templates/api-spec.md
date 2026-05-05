@@ -24,7 +24,7 @@ astrograph cli command --repo /repo
 ```
 
 ```ts
-import { functionName } from "@mortenbroesby/astrograph";
+import { functionName } from "astrograph";
 ```
 
 ## Verification

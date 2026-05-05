@@ -37,10 +37,10 @@ performance paths without changing the core storage model.
 Run baseline timing commands before and after a dependency-oriented change:
 
 ```bash
-pnpm --filter @mortenbroesby/astrograph bench:perf -- --repo /abs/repo --runs 10
-pnpm --filter @mortenbroesby/astrograph bench:perf:index -- --repo /abs/repo
-pnpm --filter @mortenbroesby/astrograph bench:perf:query -- --repo /abs/repo --runs 25
-pnpm --filter @mortenbroesby/astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
+pnpm --filter astrograph bench:perf -- --repo /abs/repo --runs 10
+pnpm --filter astrograph bench:perf:index -- --repo /abs/repo
+pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
+pnpm --filter astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
 ```
 
 Use these to compare:
@@ -58,8 +58,8 @@ Use profilers only after a benchmark shows a regression worth investigating.
 ### Clinic
 
 ```bash
-pnpm --filter @mortenbroesby/astrograph profile:index:clinic
-pnpm --filter @mortenbroesby/astrograph profile:query:clinic
+pnpm --filter astrograph profile:index:clinic
+pnpm --filter astrograph profile:query:clinic
 ```
 
 Use Clinic first when you want higher-level diagnosis:
@@ -77,8 +77,8 @@ Artifacts are written under:
 ### 0x
 
 ```bash
-pnpm --filter @mortenbroesby/astrograph profile:index:0x
-pnpm --filter @mortenbroesby/astrograph profile:query:0x
+pnpm --filter astrograph profile:index:0x
+pnpm --filter astrograph profile:query:0x
 ```
 
 Use `0x` when you specifically want flamegraph output and direct stack hot-path

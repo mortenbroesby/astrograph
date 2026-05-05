@@ -74,6 +74,6 @@ It publishes with npm provenance, public access, and the explicit `latest`
 dist-tag. After publish, verify:
 
 ```sh
-npm view @mortenbroesby/astrograph dist-tags
-npm view @mortenbroesby/astrograph@latest version
+npm view astrograph dist-tags
+npm view astrograph@latest version
 ```

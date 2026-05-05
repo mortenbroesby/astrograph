@@ -268,7 +268,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx @mortenbroesby/astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run]",
+      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -278,12 +278,12 @@ function usage(): void {
       "      codex       → AGENTS.md",
       "      copilot     → .github/copilot-instructions.md",
       "      copilot-cli → AGENTS.md",
-      "  - ensures: @mortenbroesby/astrograph is set to latest in package.json when package.json exists",
+      "  - ensures: astrograph is set to latest in package.json when package.json exists",
       "",
       "Examples:",
-      "  npx @mortenbroesby/astrograph init",
-      "  npx @mortenbroesby/astrograph init --yes",
-      "  npx @mortenbroesby/astrograph init --yes --ide all",
+      "  npx astrograph init",
+      "  npx astrograph init --yes",
+      "  npx astrograph init --yes --ide all",
     ].join("\n") + "\n",
   );
 }
@@ -588,7 +588,7 @@ async function ensureAstrographDependencyInRepo(
 
   const packageDependencyReason = hadAstrographDependency
     ? "updated Astrograph dependency to latest"
-    : "added @mortenbroesby/astrograph@latest";
+    : "added astrograph@latest";
 
   if (dryRun) {
     return {

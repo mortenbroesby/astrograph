@@ -99,7 +99,7 @@ Use the standalone repo as baseline.
 
 Observed current-state assumptions:
 
-- Package name: `@mortenbroesby/astrograph`.
+- Package name: `astrograph`.
 - Runtime target: Node 24+.
 - Core stack includes TypeScript, SQLite via `better-sqlite3`, tree-sitter JS/TS parsing for the MCP v1 hard-switch, ripgrep fallback, `@modelcontextprotocol/sdk`, `piscina`, `@parcel/watcher`, tokenizers, and benchmarking/profiling scripts. OXC parser execution is removed from the active v1 hard-switch path; OXC may only return through a later ADR after the MCP v1 contract stabilizes.
 - README positions Astrograph as a local MCP server for AI agents.

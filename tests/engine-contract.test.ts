@@ -591,11 +591,11 @@ describe("ai-context-engine contract", () => {
 
     const result = await setupForCodex(repoRoot, { dryRun: true });
 
-    expect(result.packageName).toBe("@mortenbroesby/astrograph");
+    expect(result.packageName).toBe("astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
     expect(result.engineConfigPath).toContain("astrograph.config.ts");
     expect(result.engineConfigPreview).toContain(
-      'import { defineConfig } from "@mortenbroesby/astrograph";',
+      'import { defineConfig } from "astrograph";',
     );
     expect(result.engineConfigPreview).toContain("export default defineConfig({");
     expect(result.engineConfigPreview).toContain("performance:");
@@ -603,7 +603,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["-y", "--package", "@mortenbroesby/astrograph@latest", "astrograph", "mcp"]',
+      'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
     );
   });
 
@@ -644,7 +644,7 @@ describe("ai-context-engine contract", () => {
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["-y", "--package", "@mortenbroesby/astrograph@latest", "astrograph", "mcp"]',
+      'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
     );
     expect(result.configPreview.match(/\[mcp_servers\.astrograph\]/g)).toHaveLength(1);
     expect(result.configPreview).toContain("# END ASTROGRAPH\n\n[features]");
@@ -771,7 +771,7 @@ describe("ai-context-engine contract", () => {
     await writeFile(
       path.join(repoRoot, "package.json"),
       JSON.stringify({
-        name: "@mortenbroesby/astrograph",
+        name: "astrograph",
         private: false,
       }, null, 2),
     );

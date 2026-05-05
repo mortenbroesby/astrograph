@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@mortenbroesby/astrograph"><img alt="npm" src="https://img.shields.io/npm/v/%40mortenbroesby%2Fastrograph?color=0f172a&label=npm"></a>
+  <a href="https://www.npmjs.com/package/astrograph"><img alt="npm" src="https://img.shields.io/npm/v/astrograph?color=0f172a&label=npm"></a>
   <a href="https://github.com/mortenbroesby/astrograph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mortenbroesby/astrograph/ci.yml?branch=main&label=ci"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-14b8a6"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D24-6366f1">
@@ -44,13 +44,13 @@ context — fast and with clear freshness signals.
 Use dependency-based setup if you want `astrograph` in package scripts:
 
 ```bash
-npm install -D @mortenbroesby/astrograph
+npm install -D astrograph
 ```
 
 Or install globally:
 
 ```bash
-npm install -g @mortenbroesby/astrograph
+npm install -g astrograph
 ```
 
 ### 2) Configure MCP (default: Copilot)
@@ -71,13 +71,13 @@ astrograph init --ide all
 If you need non-interactive install:
 
 ```bash
-npx @mortenbroesby/astrograph init --yes --repo /absolute/path/to/repo
+npx astrograph init --yes --repo /absolute/path/to/repo
 ```
 
 If you are not using a global install:
 
 ```bash
-npx @mortenbroesby/astrograph init
+npx astrograph init
 ```
 
 ### 3) Start your IDE session and use your agent tools.
@@ -89,7 +89,7 @@ Your tooling reads the generated MCP config and you are done.
 Astrograph can configure MCP settings for Codex, GitHub Copilot, and GitHub
 Copilot CLI. Non-interactive default is `--ide copilot`.
 If a newer Astrograph release is published, `init` prints a short update hint:
-`npm install @mortenbroesby/astrograph@latest`.
+`npm install astrograph@latest`.
 
 ```bash
 astrograph init

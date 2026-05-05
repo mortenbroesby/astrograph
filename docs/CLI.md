@@ -17,16 +17,16 @@ All CLI output is JSON by default.
 Choose one profile to match how many tools you want installed:
 
 ```bash
-npx @mortenbroesby/astrograph init --ide copilot
-npx @mortenbroesby/astrograph init --yes --ide codex --repo /repo
-npx @mortenbroesby/astrograph init --yes --ide all --repo /repo
-npx @mortenbroesby/astrograph init --yes --ide codex,copilot-cli --repo /repo
+npx astrograph init --ide copilot
+npx astrograph init --yes --ide codex --repo /repo
+npx astrograph init --yes --ide all --repo /repo
+npx astrograph init --yes --ide codex,copilot-cli --repo /repo
 ```
 
 The interactive installer prompts for profile selection when run as:
 
 ```bash
-npx @mortenbroesby/astrograph init
+npx astrograph init
 ```
 
 If the target repository has `package.json`, the setup run ensures Astrograph is tracked
@@ -34,7 +34,7 @@ at `latest` in dependencies (updating existing entries when needed), and adds:
 
 ```json
 {
-  "@mortenbroesby/astrograph": "latest"
+  "astrograph": "latest"
 }
 ```
 
@@ -42,7 +42,7 @@ to `devDependencies`.
 
 After running `init`, the installer checks npm metadata and prints an update
 hint when a newer version is available:
-`npm install @mortenbroesby/astrograph@latest`.
+`npm install astrograph@latest`.
 
 For major upgrades or after MCP contract changes, clear local state and rebuild
 indexing on next run:
@@ -102,7 +102,7 @@ Astrograph reads optional defaults from `astrograph.config.ts`. Legacy
 `astrograph.config.json` files are still read when no TypeScript config exists.
 
 ```ts
-import { defineConfig } from "@mortenbroesby/astrograph";
+import { defineConfig } from "astrograph";
 
 export default defineConfig({
   summaryStrategy: "doc-comments-first",
