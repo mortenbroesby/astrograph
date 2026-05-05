@@ -69,7 +69,7 @@ Reusable starting points for agent-created docs.
 - [ ] Document CLI command shapes and JSON output expectations.
 - [ ] Document TypeScript API stability levels.
 - [ ] Link contract tests to each public API spec.
-- [ ] Complete and merge MCP v1 hard-switch plan.
+- [x] Complete and merge MCP v1 hard-switch plan.
 
 ### Phase 4: Implementation Plans (Planned)
 

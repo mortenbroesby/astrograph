@@ -21,7 +21,6 @@ This directory contains internal implementation plans and subsystem specs.
 - MCP tool observability
 - Internal type ownership
 - Diagnostics, doctor, and event retention
-- MCP v1 hard-switch and API envelope migration (in progress)
 
 ## Implementation Rules
 
