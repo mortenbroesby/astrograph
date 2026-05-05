@@ -21,6 +21,7 @@ import {
 } from "./shared.ts";
 
 const parser = new Parser();
+const CHUNK_RECOVERY_FALLBACK_REASON = "tree-sitter-chunk-recovery";
 
 function isRecoverableParseFailure(error: unknown): boolean {
   return error instanceof Error && error.message === "Invalid argument";
@@ -427,6 +428,7 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   const symbols: ParsedSymbol[] = [];
   const imports: ParsedImport[] = [];
   const summaryStrategy = input.summaryStrategy ?? "doc-comments-first";
+  let chunkRecoveryUsed = false;
 
   try {
     const tree = parser.parse(input.content);
@@ -446,6 +448,7 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
       throw error;
     }
 
+    chunkRecoveryUsed = true;
     for (const chunk of splitSourceIntoChunks(input.content)) {
       try {
         const tree = parser.parse(chunk.content);
@@ -482,7 +485,7 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
     symbols,
     imports,
     backend: "tree-sitter",
-    fallbackUsed: false,
-    fallbackReason: null,
+    fallbackUsed: chunkRecoveryUsed,
+    fallbackReason: chunkRecoveryUsed ? CHUNK_RECOVERY_FALLBACK_REASON : null,
   });
 }

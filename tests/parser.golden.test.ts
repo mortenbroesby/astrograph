@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { parseSourceFile } from "../src/parser.ts";
+import { parseWithTreeSitter } from "../src/parser/tree-sitter.ts";
 
 describe("astrograph parser golden coverage", () => {
   it("extracts the accepted tree-sitter-only parser baseline", () => {
@@ -49,6 +50,7 @@ export namespace Shapes {
 
     expect(parsed.backend).toBe("tree-sitter");
     expect(parsed.fallbackUsed).toBe(false);
+    expect(parsed.fallbackReason).toBeNull();
     expect(parsed.imports.map((entry) => entry.source)).toContain("./dep");
     expect(parsed.symbols.map((symbol) => ({
       name: symbol.name,
@@ -196,5 +198,36 @@ export const render = () => <button>run</button>;
         second.symbols.map((entry) => entry.signature),
       );
     }
+  });
+
+  it("marks tree-sitter chunk recovery as parser fallback metadata", () => {
+    const content = Array.from({ length: 900 }, (_, index) =>
+      `export function helper${index}(value: number): number { return value + ${index}; }`,
+    ).join("\n");
+
+    const parsed = parseWithTreeSitter({
+      relativePath: "src/large.ts",
+      language: "ts",
+      content: `${content}\n`,
+    });
+
+    expect(parsed.backend).toBe("tree-sitter");
+    expect(parsed.fallbackUsed).toBe(true);
+    expect(parsed.fallbackReason).toBe("tree-sitter-chunk-recovery");
+    expect(parsed.symbols).toHaveLength(900);
+    expect(parsed.symbols).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "helper0",
+          exported: true,
+          kind: "function",
+        }),
+        expect.objectContaining({
+          name: "helper899",
+          exported: true,
+          kind: "function",
+        }),
+      ]),
+    );
   });
 });
