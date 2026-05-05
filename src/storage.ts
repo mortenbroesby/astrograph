@@ -587,7 +587,6 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
   if (!getLruEntry(ensuredStorageRoots, resolvedRepoRoot)) {
     await mkdir(config.paths.storageDir, { recursive: true });
     await ensureStorageVersion(config);
-    await mkdir(config.paths.rawCacheDir, { recursive: true });
     setLruEntry(
       ensuredStorageRoots,
       resolvedRepoRoot,
@@ -698,7 +697,6 @@ async function resetStorageForVersionMismatch(
   ensuredStorageRoots.delete(config.repoRoot);
   await rm(config.paths.storageDir, { recursive: true, force: true });
   await mkdir(config.paths.storageDir, { recursive: true });
-  await mkdir(config.paths.rawCacheDir, { recursive: true });
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
 }
 

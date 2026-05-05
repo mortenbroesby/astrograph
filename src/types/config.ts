@@ -29,7 +29,6 @@ export interface EnginePaths {
   repoMetaPath: string;
   integrityPath: string;
   storageVersionPath: string;
-  rawCacheDir: string;
   eventsPath: string;
 }
 

@@ -59,7 +59,6 @@ describe("ai-context-engine contract", () => {
       repoMetaPath: "/tmp/playground/.astrograph/repo-meta.json",
       integrityPath: "/tmp/playground/.astrograph/integrity.sha256",
       storageVersionPath: "/tmp/playground/.astrograph/storage-version.json",
-      rawCacheDir: "/tmp/playground/.astrograph/raw-cache",
       eventsPath: "/tmp/playground/.astrograph/events.jsonl",
     });
   });
