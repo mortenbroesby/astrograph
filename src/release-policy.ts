@@ -117,6 +117,13 @@ export function nextAstrographReleaseVersion(
   previous: AstrographVersionParts,
   kind: Exclude<AstrographReleaseDecisionKind, "none">,
 ): string {
+  return formatAstrographVersion(nextAstrographReleaseParts(previous, kind));
+}
+
+function nextAstrographReleaseParts(
+  previous: AstrographVersionParts,
+  kind: Exclude<AstrographReleaseDecisionKind, "none">,
+): AstrographVersionParts {
   const next: AstrographVersionParts = {
     ...previous,
     increment: previous.increment + 1,
@@ -133,6 +140,40 @@ export function nextAstrographReleaseVersion(
     next.patch += 1;
   }
 
+  return next;
+}
+
+function compareAstrographSemanticVersion(
+  left: AstrographVersionParts,
+  right: AstrographVersionParts,
+): number {
+  return (
+    left.major - right.major
+    || left.minor - right.minor
+    || left.patch - right.patch
+  );
+}
+
+export function targetAstrographPublishVersion(
+  previous: AstrographVersionParts,
+  current: AstrographVersionParts,
+  kind: AstrographPublishReleaseKind,
+): string {
+  const next = nextAstrographReleaseParts(previous, kind);
+  const nextIncrement = Math.max(previous.increment, current.increment) + 1;
+
+  if (compareAstrographSemanticVersion(current, next) >= 0) {
+    if (current.increment > previous.increment) {
+      return formatAstrographVersion(current);
+    }
+
+    return formatAstrographVersion({
+      ...current,
+      increment: nextIncrement,
+    });
+  }
+
+  next.increment = nextIncrement;
   return formatAstrographVersion(next);
 }
 

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 import {
   decideAstrographRelease,
   isReleasePublishKind,
-  nextAstrographReleaseVersion,
+  targetAstrographPublishVersion,
 } from "../release-policy.ts";
 import type { AstrographReleaseDecision, AstrographReleaseDecisionKind } from "../release-policy.ts";
 import { assessAstrographVersionBump, parseAstrographVersion } from "../version.ts";
@@ -181,8 +181,9 @@ function main(): void {
   const shouldPublish = isReleasePublishKind(releaseDecision.kind);
   let targetVersion = currentVersion;
   if (shouldPublish) {
-    targetVersion = nextAstrographReleaseVersion(
+    targetVersion = targetAstrographPublishVersion(
       baseParts,
+      currentParts,
       releaseDecision.kind as Exclude<AstrographReleaseDecisionKind, "none" | "increment">,
     );
   }
