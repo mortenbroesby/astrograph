@@ -45,6 +45,7 @@ import type {
   SearchSymbolsOptions,
   SearchTextMatch,
   SearchTextOptions,
+  SymbolRankingDebug,
   SymbolSourceItem,
   SymbolSourceResult,
   SymbolSummary,
@@ -98,21 +99,46 @@ const QUERY_TOKEN_EXPANSIONS: Record<string, readonly string[]> = {
   cfg: ["config", "configuration"],
   ctx: ["context"],
   db: ["database"],
+  entry: ["entrypoint"],
   fn: ["function"],
   impl: ["implementation"],
   pkg: ["package"],
   repo: ["repository"],
+  srch: ["search"],
+  sym: ["symbol", "symbols"],
 };
+
+const QUERY_STOPWORDS = new Set([
+  "a",
+  "an",
+  "code",
+  "for",
+  "how",
+  "is",
+  "question",
+  "questions",
+  "symbol",
+  "symbols",
+  "the",
+  "what",
+  "which",
+]);
 
 function queryTokens(value: string): string[] {
   const tokens = normalizeQuery(value)
     .split(/[^a-z0-9_]+/g)
-    .filter(Boolean);
+    .filter((token) => token.length > 0 && !QUERY_STOPWORDS.has(token));
 
   return tokens.flatMap((token) => [
     token,
     ...(QUERY_TOKEN_EXPANSIONS[token] ?? []),
   ]);
+}
+
+function queryTokenSequence(value: string): string[] {
+  return normalizeQuery(value)
+    .split(/[^a-z0-9_]+/g)
+    .filter((token) => token.length > 0 && !QUERY_STOPWORDS.has(token));
 }
 
 function uniqueQueryTerms(value: string): string[] {
@@ -154,38 +180,96 @@ function estimateTokens(value: string): number {
   return Math.max(1, Math.ceil(value.length / 4));
 }
 
-function rowText(row: DbSymbolRow): string {
-  return [
-    row.name,
-    row.qualified_name ?? "",
-    row.signature,
-    row.summary,
-    row.summary_source,
-    row.file_path,
-    row.kind,
-  ]
-    .join(" ")
-    .toLowerCase();
+function tokenizeIdentifierish(value: string): string[] {
+  return value
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/([A-Z]+)([A-Z][a-z])/g, "$1 $2")
+    .split(/[^A-Za-z0-9]+/g)
+    .map((token) => token.trim().toLowerCase())
+    .filter((token) => token.length > 0);
 }
 
-function scoreSymbolRow(
+function identifierTokenSets(row: DbSymbolRow) {
+  return {
+    name: new Set(tokenizeIdentifierish(row.name)),
+    qualifiedName: new Set(tokenizeIdentifierish(row.qualified_name ?? "")),
+    filePath: new Set(tokenizeIdentifierish(row.file_path)),
+  };
+}
+
+function countMatchedTokens(
+  sourceTokens: ReadonlySet<string>,
+  queryTokens: readonly string[],
+): number {
+  let matches = 0;
+
+  for (const token of queryTokens) {
+    if (sourceTokens.has(token)) {
+      matches += 1;
+    }
+  }
+
+  return matches;
+}
+
+function countMatchedAdjacentPairs(
+  sourceTokens: readonly string[],
+  queryTokens: readonly string[],
+): string[] {
+  if (sourceTokens.length < 2 || queryTokens.length < 2) {
+    return [];
+  }
+
+  const sourcePairs = new Set<string>();
+  for (let index = 0; index < sourceTokens.length - 1; index += 1) {
+    sourcePairs.add(`${sourceTokens[index]} ${sourceTokens[index + 1]}`);
+  }
+
+  const matches: string[] = [];
+  for (let index = 0; index < queryTokens.length - 1; index += 1) {
+    const first = queryTokens[index];
+    const second = queryTokens[index + 1];
+    if (
+      !first
+      || !second
+      || QUERY_STOPWORDS.has(first)
+      || QUERY_STOPWORDS.has(second)
+      || first.length < 4
+      || second.length < 4
+    ) {
+      continue;
+    }
+
+    const pair = `${first} ${second}`;
+    if (sourcePairs.has(pair)) {
+      matches.push(pair);
+    }
+  }
+
+  return matches;
+}
+
+function buildRankingDebug(
   row: DbSymbolRow,
   query: string,
   weights: RankingWeights,
-): number {
-  const normalized = normalizeQuery(query);
-  if (!normalized) {
-    return 0;
-  }
+): SymbolRankingDebug {
+  const haystack = rowText(row);
+  const tokens = [...new Set(queryTokens(query))];
+  const querySequence = queryTokenSequence(query);
+  const nameTokenList = tokenizeIdentifierish(row.name);
+  const identifierTokens = identifierTokenSets(row);
+  const matchedTokens: string[] = [];
+  const matchedNameTokens = countMatchedTokens(identifierTokens.name, tokens);
+  const matchedAdjacentPairs = countMatchedAdjacentPairs(nameTokenList, querySequence);
+  let score = 0;
 
+  const normalized = normalizeQuery(query);
   const name = row.name.toLowerCase();
   const qualifiedName = row.qualified_name?.toLowerCase() ?? "";
   const signature = row.signature.toLowerCase();
   const summary = row.summary.toLowerCase();
   const filePath = row.file_path.toLowerCase();
-  const haystack = rowText(row);
-  const tokens = queryTokens(query);
-  let score = 0;
 
   if (name === normalized) {
     score += weights.exactName;
@@ -221,16 +305,66 @@ function scoreSymbolRow(
   }
 
   for (const token of tokens) {
+    let matched = false;
     if (haystack.includes(token)) {
       score += weights.tokenMatch;
+      matched = true;
+    }
+    if (identifierTokens.name.has(token)) {
+      score += weights.tokenMatch * 2;
+      matched = true;
+    } else if (
+      identifierTokens.qualifiedName.has(token)
+      || identifierTokens.filePath.has(token)
+    ) {
+      score += weights.tokenMatch;
+      matched = true;
+    }
+
+    if (matched) {
+      matchedTokens.push(token);
     }
   }
 
+  if (matchedNameTokens > 0 && identifierTokens.name.size > 0) {
+    score += Math.floor(
+      weights.tokenMatch * 3 * (matchedNameTokens / identifierTokens.name.size),
+    );
+  }
+  if (matchedAdjacentPairs.length > 0) {
+    score += matchedAdjacentPairs.length * weights.tokenMatch * 3;
+  }
   if (score > 0 && row.exported) {
     score += weights.exportedBonus;
   }
 
-  return score;
+  return {
+    score,
+    matchedTokens,
+    matchedAdjacentPairs,
+  };
+}
+
+function rowText(row: DbSymbolRow): string {
+  return [
+    row.name,
+    row.qualified_name ?? "",
+    row.signature,
+    row.summary,
+    row.summary_source,
+    row.file_path,
+    row.kind,
+  ]
+    .join(" ")
+    .toLowerCase();
+}
+
+function scoreSymbolRow(
+  row: DbSymbolRow,
+  query: string,
+  weights: RankingWeights,
+): number {
+  return buildRankingDebug(row, query, weights).score;
 }
 
 function loadSymbolRows(
@@ -941,14 +1075,26 @@ export function searchSymbolsInContext(
   const normalizedQuery = normalizeQuery(input.query);
 
   return rows
-    .map((row) => ({
-      row,
-      score: scoreSymbolRow(row, normalizedQuery, context.config.rankingWeights),
-    }))
-    .filter((entry) => entry.score > 0)
+    .map((row) => {
+      const ranking = buildRankingDebug(
+        row,
+        normalizedQuery,
+        context.config.rankingWeights,
+      );
+
+      return {
+        row,
+        ranking,
+        score: ranking.score,
+      };
+    })
+    .filter((entry) => entry.ranking.score > 0)
     .sort(sortRankedSymbolEntries)
     .slice(0, resultLimit)
-    .map((entry) => mapSymbolRow(entry.row));
+    .map((entry) => ({
+      ...mapSymbolRow(entry.row),
+      ...(input.debug ? { ranking: entry.ranking } : {}),
+    }));
 }
 
 export function searchTextInContext(

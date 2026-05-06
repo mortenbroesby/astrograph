@@ -1,0 +1,203 @@
+{
+  "schemaVersion": 1,
+  "benchmark": "retrieval-quality-search",
+  "generatedAt": "2026-05-06T15:46:55.452Z",
+  "repoRoot": "/Users/macbook/personal/astrograph.worktrees/feat-retrieval-quality-roadmap",
+  "repoSha": "ae9ca78f0d43854cac19150465c08212c4a1901d",
+  "corpusPath": "/Users/macbook/personal/astrograph.worktrees/feat-retrieval-quality-roadmap/bench/tests/fixtures/benchmarks/ai-context-engine-benchmark-corpus.json",
+  "taskPrefix": "task-retrieval-quality-",
+  "limit": 5,
+  "tasks": [
+    {
+      "taskId": "task-retrieval-quality-vague-ranked-context",
+      "query": "Which symbol assembles ranked context for vague code questions?",
+      "slice": "src",
+      "workflows": [
+        "symbol-first"
+      ],
+      "allowedPaths": [
+        "src/**/*.ts"
+      ],
+      "targets": [
+        {
+          "kind": "symbol",
+          "value": "getRankedContext",
+          "mode": "exact"
+        }
+      ],
+      "successCriteria": [
+        "the ranked-context entrypoint is discoverable from a natural-language task card"
+      ],
+      "topResults": [
+        {
+          "id": "0d765325d54e76db",
+          "name": "getRankedContext",
+          "qualifiedName": "getRankedContext",
+          "kind": "function",
+          "filePath": "src/storage.ts",
+          "startLine": 2361,
+          "endLine": 2377,
+          "exported": true
+        },
+        {
+          "id": "2a7c77065247c9d3",
+          "name": "RankedContextCandidate",
+          "qualifiedName": "RankedContextCandidate",
+          "kind": "type",
+          "filePath": "src/types/retrieval.ts",
+          "startLine": 290,
+          "endLine": 296,
+          "exported": true
+        },
+        {
+          "id": "9359e64fdf7d0e7f",
+          "name": "RankedContextResult",
+          "qualifiedName": "RankedContextResult",
+          "kind": "type",
+          "filePath": "src/types/retrieval.ts",
+          "startLine": 298,
+          "endLine": 306,
+          "exported": true
+        },
+        {
+          "id": "0442aecc70baa519",
+          "name": "RankedContextInput",
+          "qualifiedName": "RankedContextInput",
+          "kind": "type",
+          "filePath": "src/command-registry.ts",
+          "startLine": 51,
+          "endLine": 53,
+          "exported": false
+        },
+        {
+          "id": "02511f132fbfb529",
+          "name": "validateRankedContextOutput",
+          "qualifiedName": "validateRankedContextOutput",
+          "kind": "function",
+          "filePath": "src/mcp.ts",
+          "startLine": 266,
+          "endLine": 322,
+          "exported": false
+        }
+      ],
+      "matches": [
+        {
+          "target": {
+            "kind": "symbol",
+            "value": "getRankedContext",
+            "mode": "exact"
+          },
+          "matched": true,
+          "rank": 1,
+          "filePath": "src/storage.ts"
+        }
+      ],
+      "metrics": {
+        "targetCount": 1,
+        "hitCount": 1,
+        "firstRelevantRank": 1,
+        "top1Hit": true,
+        "top3Hit": true
+      }
+    },
+    {
+      "taskId": "task-retrieval-quality-abbrev-symbol-search",
+      "query": "sym srch entry",
+      "slice": "src",
+      "workflows": [
+        "symbol-first"
+      ],
+      "allowedPaths": [
+        "src/**/*.ts"
+      ],
+      "targets": [
+        {
+          "kind": "symbol",
+          "value": "searchSymbols",
+          "mode": "exact"
+        }
+      ],
+      "successCriteria": [
+        "the symbol-search entrypoint remains discoverable from an abbreviated query"
+      ],
+      "topResults": [
+        {
+          "id": "876af0cf44c3220b",
+          "name": "searchSymbols",
+          "qualifiedName": "searchSymbols",
+          "kind": "function",
+          "filePath": "src/storage.ts",
+          "startLine": 2083,
+          "endLine": 2094,
+          "exported": true
+        },
+        {
+          "id": "dd51dbadfa167b02",
+          "name": "searchSymbolsInContext",
+          "qualifiedName": "searchSymbolsInContext",
+          "kind": "function",
+          "filePath": "src/retrieval.ts",
+          "startLine": 1061,
+          "endLine": 1098,
+          "exported": true
+        },
+        {
+          "id": "1dfb5d906140731a",
+          "name": "SearchSymbolsOptions",
+          "qualifiedName": "SearchSymbolsOptions",
+          "kind": "type",
+          "filePath": "src/types/retrieval.ts",
+          "startLine": 58,
+          "endLine": 66,
+          "exported": true
+        },
+        {
+          "id": "bb1592ed2aa96305",
+          "name": "validateSearchSymbolsOptions",
+          "qualifiedName": "validateSearchSymbolsOptions",
+          "kind": "function",
+          "filePath": "src/validation.ts",
+          "startLine": 218,
+          "endLine": 224,
+          "exported": true
+        },
+        {
+          "id": "cdf1e14d43431397",
+          "name": "validateSearchSymbolsOutput",
+          "qualifiedName": "validateSearchSymbolsOutput",
+          "kind": "function",
+          "filePath": "src/mcp.ts",
+          "startLine": 176,
+          "endLine": 183,
+          "exported": false
+        }
+      ],
+      "matches": [
+        {
+          "target": {
+            "kind": "symbol",
+            "value": "searchSymbols",
+            "mode": "exact"
+          },
+          "matched": true,
+          "rank": 1,
+          "filePath": "src/storage.ts"
+        }
+      ],
+      "metrics": {
+        "targetCount": 1,
+        "hitCount": 1,
+        "firstRelevantRank": 1,
+        "top1Hit": true,
+        "top3Hit": true
+      }
+    }
+  ],
+  "summary": {
+    "taskCount": 2,
+    "hitCount": 2,
+    "targetCount": 2,
+    "top1HitCount": 2,
+    "top3HitCount": 2
+  }
+}

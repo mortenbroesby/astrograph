@@ -134,10 +134,27 @@ describe("ai-context-engine-bench corpus loader", () => {
     expect(corpus.manifest.repoSha).toBe(
       "74f79fa02cb2956dfce8dcef4333dfeb0de1a1bf",
     );
-    expect(corpus.manifest.tasks).toHaveLength(6);
-    expect(corpus.tasks).toHaveLength(6);
+    expect(corpus.manifest.tasks).toHaveLength(8);
+    expect(corpus.tasks).toHaveLength(8);
     expect(corpus.tasks[0].frontmatter.id).toBe("task-corpus-loader");
     expect(corpus.tasks[0].frontmatter.query).toBe("loadBenchmarkCorpus");
+    expect(
+      corpus.tasks.some(
+        (task) =>
+          task.frontmatter.id ===
+            "task-retrieval-quality-vague-ranked-context" &&
+          task.frontmatter.query ===
+            "Which symbol assembles ranked context for vague code questions?",
+      ),
+    ).toBe(true);
+    expect(
+      corpus.tasks.some(
+        (task) =>
+          task.frontmatter.id ===
+            "task-retrieval-quality-abbrev-symbol-search" &&
+          task.frontmatter.query === "sym srch entry",
+      ),
+    ).toBe(true);
   });
 
   it("loads the manifest and task cards in manifest order", () => {

@@ -2066,6 +2066,157 @@ export function renderValue(value: number): string {
     });
   });
 
+  it("matches abbreviated snake_case identifiers against full-word queries", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "context-builder.ts"),
+      [
+        "export function build_cfg_ctx(): string {",
+        '  return "context";',
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    await indexFolder({ repoRoot });
+
+    const symbolMatches = await searchSymbols({
+      repoRoot,
+      query: "config context",
+    });
+
+    expect(symbolMatches[0]).toMatchObject({
+      name: "build_cfg_ctx",
+      filePath: "src/context-builder.ts",
+    });
+  });
+
+  it("matches abbreviated entrypoint queries against camelCase symbol names", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "symbol-search.ts"),
+      [
+        "export function searchSymbols(): string {",
+        '  return "symbol search";',
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    await writeFile(
+      path.join(repoRoot, "src", "symbol-summary.ts"),
+      [
+        "export function summarizeToolCompletion(): string {",
+        '  return "summary";',
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    await indexFolder({ repoRoot });
+
+    const symbolMatches = await searchSymbols({
+      repoRoot,
+      query: "sym srch entry",
+    });
+
+    expect(symbolMatches[0]).toMatchObject({
+      name: "searchSymbols",
+      filePath: "src/symbol-search.ts",
+    });
+  });
+
+  it("keeps the ranked-context entrypoint within the top results for natural-language queries", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "ranked-context.ts"),
+      [
+        "/** Assemble ranked context for vague code questions. */",
+        "export function getRankedContext(query: string): string {",
+        '  return query;',
+        "}",
+        "",
+        "/** Validate ranked context output before returning it. */",
+        "export function validateRankedContextOutput(result: unknown): boolean {",
+        "  return Boolean(result);",
+        "}",
+        "",
+        "/** Build the ranked context result payload. */",
+        "export function buildRankedContextResult(): string {",
+        '  return \"result\";',
+        "}",
+        "",
+        "export type RankedContextCandidate = {",
+        "  score: number;",
+        "};",
+        "",
+      ].join("\n"),
+    );
+
+    await writeFile(
+      path.join(repoRoot, "src", "query-code.ts"),
+      [
+        "/** Query code in context for broad code questions. */",
+        "export function queryCodeInContext(query: string): string {",
+        '  return query;',
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    await indexFolder({ repoRoot });
+
+    const symbolMatches = await searchSymbols({
+      repoRoot,
+      query: "Which symbol assembles ranked context for vague code questions?",
+      limit: 5,
+    });
+
+    expect(symbolMatches.slice(0, 3)).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          name: "getRankedContext",
+          filePath: "src/ranked-context.ts",
+        }),
+      ]),
+    );
+  });
+
+  it("returns deterministic ranking debug details when symbol search debug mode is enabled", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "package-config.ts"),
+      [
+        "export function loadPackageConfig(): string {",
+        '  return "package config";',
+        "}",
+        "",
+      ].join("\n"),
+    );
+
+    await indexFolder({ repoRoot });
+
+    const symbolMatches = await searchSymbols({
+      repoRoot,
+      query: "pkg cfg",
+      debug: true,
+    });
+
+    expect(symbolMatches[0]).toMatchObject({
+      name: "loadPackageConfig",
+      filePath: "src/package-config.ts",
+      ranking: {
+        matchedTokens: ["package", "config"],
+      },
+    });
+    expect(symbolMatches[0]?.ranking?.score).toBeGreaterThan(0);
+    expect(symbolMatches[0]?.ranking?.matchedAdjacentPairs).toEqual([]);
+  });
+
   it("applies repo-config ranking weights to symbol search and ranked context", async () => {
     const repoRoot = await createFixtureRepo();
 

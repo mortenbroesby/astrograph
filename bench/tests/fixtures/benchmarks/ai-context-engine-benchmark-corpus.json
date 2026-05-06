@@ -140,6 +140,38 @@
           "mode": "exact"
         }
       ]
+    },
+    {
+      "id": "task-retrieval-quality-vague-ranked-context",
+      "path": "tasks/task-retrieval-quality-vague-ranked-context.md",
+      "slice": "src",
+      "workflows": ["symbol-first"],
+      "allowedPaths": [
+        "src/**/*.ts"
+      ],
+      "targets": [
+        {
+          "kind": "symbol",
+          "value": "getRankedContext",
+          "mode": "exact"
+        }
+      ]
+    },
+    {
+      "id": "task-retrieval-quality-abbrev-symbol-search",
+      "path": "tasks/task-retrieval-quality-abbrev-symbol-search.md",
+      "slice": "src",
+      "workflows": ["symbol-first"],
+      "allowedPaths": [
+        "src/**/*.ts"
+      ],
+      "targets": [
+        {
+          "kind": "symbol",
+          "value": "searchSymbols",
+          "mode": "exact"
+        }
+      ]
     }
   ]
 }

@@ -41,6 +41,13 @@ export interface SymbolSummary {
   startLine: number;
   endLine: number;
   exported: boolean;
+  ranking?: SymbolRankingDebug;
+}
+
+export interface SymbolRankingDebug {
+  score: number;
+  matchedTokens: string[];
+  matchedAdjacentPairs: string[];
 }
 
 export interface FileOutline {
@@ -55,6 +62,7 @@ export interface SearchSymbolsOptions {
   language?: SupportedLanguage;
   filePattern?: string;
   limit?: number;
+  debug?: boolean;
 }
 
 export interface SearchTextMatch {
