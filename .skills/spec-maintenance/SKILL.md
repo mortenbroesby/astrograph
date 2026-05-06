@@ -24,8 +24,8 @@ When changing specs:
 ## Migration Rules
 
 - Prefer moving old plan docs into `specs/implementation/`.
-- Keep release docs in `docs/release.md`.
-- Keep performance workflow docs in `docs/performance.md`.
+- Keep release docs in `docs/reference/release.md`.
+- Keep performance workflow docs in `docs/guides/performance.md`.
 - Do not move README user-facing installation guidance into specs.
 
 ## Verification
@@ -34,7 +34,7 @@ For documentation-only changes, run:
 
 ```bash
 git diff --check
-find specs .agents/skills -type f -name '*.md' -print
+find specs .skills -type f -name '*.md' -print
 ```
 
 If package metadata, source, tests, or scripts changed, run the relevant project

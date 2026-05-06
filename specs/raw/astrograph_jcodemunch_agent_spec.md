@@ -288,7 +288,7 @@ src/language-registry.ts
 src/cli.ts, if CLI flags need parity
 tests/*
 README.md
-docs/CLI.md, if present
+docs/reference/cli.md, if present
 ```
 
 ### Tool behavior

@@ -9,7 +9,7 @@ Astrograph specs are organized like the reference `zyncbase/specs` structure:
 
 ## Agent Workflow
 
-Agents should use the repo-local skills under `.agents/skills/` before creating
+Agents should use the repo-local skills under `.skills/` before creating
 or changing specs.
 
 | Task | Skill |
