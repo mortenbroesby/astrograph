@@ -16,7 +16,7 @@
       .bg { fill: url(#bgGradient); }
       .panel { fill: #ffffff; stroke: #334155; stroke-width: 2; }
       .panelAccent { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
-      .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); stroke-linecap: round; stroke-linejoin: round; }
       .label { font: 700 14px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; fill: #475569; }
       .headerText { font: 700 16px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; fill: #475569; }
       .title { font: 700 30px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #0f172a; }
@@ -64,8 +64,8 @@
   <text class="text" x="480" y="655" text-anchor="middle">Reliable answer</text>
   <text class="text" x="480" y="675" text-anchor="middle">Lower token waste, less context bloat</text>
 
-  <path class="line" d="M 460 260 V 302"/>
-  <path class="line" d="M 460 410 V 452"/>
-  <path class="line" d="M 460 560 V 602"/>
+  <path class="line" d="M 460 260 Q 488 281 460 302"/>
+  <path class="line" d="M 460 410 Q 488 431 460 452"/>
+  <path class="line" d="M 460 560 Q 488 581 460 602"/>
 
 </svg>

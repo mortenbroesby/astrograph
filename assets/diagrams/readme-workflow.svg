@@ -64,8 +64,8 @@
   <text class="text" x="480" y="655" text-anchor="middle">Reliable answer</text>
   <text class="text" x="480" y="675" text-anchor="middle">Lower token waste, less context bloat</text>
 
-  <path class="line" d="M 460 260 V 302"/>
-  <path class="line" d="M 460 410 V 452"/>
-  <path class="line" d="M 460 560 V 602"/>
+  <path class="line" d="M 460 260 Q 460 268 460 296"/>
+  <path class="line" d="M 460 410 Q 460 418 460 446"/>
+  <path class="line" d="M 460 560 Q 460 568 460 596"/>
 
 </svg>
