@@ -245,7 +245,7 @@ describe("ai-context-engine behavior", () => {
 
     expect(result).toMatchObject({
       repoRoot: resolvedRepoRoot,
-      schemaVersion: 4,
+      schemaVersion: 5,
       indexStatus: "not-indexed",
       freshness: {
         indexedFiles: 0,
@@ -320,7 +320,7 @@ describe("ai-context-engine behavior", () => {
     expect(health).toMatchObject({
       engineVersion: ASTROGRAPH_PACKAGE_VERSION,
       engineVersionParts: ASTROGRAPH_VERSION_PARTS,
-      schemaVersion: 4,
+      schemaVersion: 5,
       summaryStrategy: "doc-comments-first",
       summarySources: {
         "doc-comment": 4,
@@ -488,7 +488,7 @@ module.exports = {
       path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
     );
     expect(health.storageVersion).toBe(1);
-    expect(health.schemaVersion).toBe(4);
+    expect(health.schemaVersion).toBe(5);
   });
 
   it("migrates legacy Astrograph schema state before serving diagnostics", async () => {
@@ -517,14 +517,20 @@ module.exports = {
     legacyDb.close();
 
     const health = await diagnostics({ repoRoot });
-    expect(health.schemaVersion).toBe(4);
+    expect(health.schemaVersion).toBe(5);
 
     const migratedDb = new Database(paths.databasePath, { readonly: true });
     const fileColumns = migratedDb
       .prepare("PRAGMA table_info(files)")
       .all() as Array<{ name: string }>;
+    const symbolColumns = migratedDb
+      .prepare("PRAGMA table_info(symbols)")
+      .all() as Array<{ name: string }>;
     const dependencyTable = migratedDb
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'file_dependencies'")
+      .get() as { name: string } | undefined;
+    const symbolAliasTable = migratedDb
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'symbol_aliases'")
       .get() as { name: string } | undefined;
     const schemaVersionRow = migratedDb
       .prepare("SELECT value FROM meta WHERE key = 'schemaVersion'")
@@ -541,7 +547,13 @@ module.exports = {
       ]),
     );
     expect(dependencyTable?.name).toBe("file_dependencies");
-    expect(schemaVersionRow?.value).toBe("4");
+    expect(symbolColumns.map((column) => column.name)).toEqual(
+      expect.arrayContaining([
+        "stable_id",
+      ]),
+    );
+    expect(symbolAliasTable?.name).toBe("symbol_aliases");
+    expect(schemaVersionRow?.value).toBe("5");
   });
 
   it("supports symbol and text search plus exact retrieval", async () => {
