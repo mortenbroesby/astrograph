@@ -35,6 +35,7 @@
 
 ![Workflow diagram showing an agent question flowing through Astrograph's local retrieval surfaces to a grounded answer with lower token waste.](./assets/diagrams/readme-workflow.svg)
 
+<a id="why-astrograph"></a>
 ## 🔭 Why Astrograph
 
 Astrograph gives AI coding agents structured, local access to the codebase they
@@ -74,6 +75,7 @@ It is the code-intelligence layer: local-first, source-grounded, and
 deterministic enough to give agents a better starting point than grep plus huge
 context windows.
 
+<a id="use-cases"></a>
 ## ✨ Use Cases
 
 Reach for Astrograph when you want an agent to:
@@ -102,6 +104,7 @@ Broad search, repeated full-file reads, and oversized context windows are noisy,
 expensive, and easy to derail. Astrograph gives the agent structured access to
 code so it can retrieve less and understand more.
 
+<a id="quick-start"></a>
 ## 🚀 Quick Start
 
 ### 1) Install
@@ -185,6 +188,7 @@ npx astrograph init --yes --ide all --repo /absolute/path/to/repo
 npx astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
 ```
 
+<a id="documentation"></a>
 ## 📚 Documentation
 
 The README is the short version. Use the docs for operational detail:
