@@ -33,6 +33,7 @@ Implementation specs, refactor plans, and internal subsystem ownership.
 
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
+- [Python Language Adapter Pilot Implementation Plan](./implementation/python-language-adapter-pilot.md) - Adapter-driven language support plus the structured-only Python pilot.
 - [Completed Implementation Plans](./implementation/done/README.md) - Archived plans whose execution work is complete.
 
 ### [Templates](./templates/README.md)

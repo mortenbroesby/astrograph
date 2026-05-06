@@ -7,6 +7,7 @@ Completed execution plans live in [`done/`](./done/README.md).
 
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.
+- [Python Language Adapter Pilot Implementation Plan](./python-language-adapter-pilot.md) - Convert language support to adapters and add structured-only Python parsing.
 
 ## Completed Plans
 
@@ -20,10 +21,8 @@ The active queue is maintained in the roadmap:
 
 Expected next implementation plans:
 
-- Retrieval quality upgrade
-- Stable symbol identity
-- Reference and dependency graph tools
-- Compact output and detail levels
+- Python language adapter pilot
+- Agent lifecycle tools
 
 ## Implementation Rules
 
