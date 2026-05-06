@@ -40,31 +40,20 @@
 <a id="why-astrograph"></a>
 ## 🔭 Why Astrograph
 
-Astrograph gives AI coding agents structured, local access to the codebase they
-are working in.
-
-That means an agent can inspect the implementation of a symbol, trace a code
-path across files, or answer repository questions without shoveling large file
-dumps into context first.
-
-The result is straightforward:
-
-- more reliable answers grounded in source
-- less token waste from broad file reads
-- less context bloat in long-running agent sessions
-- a better default than guessing from partial snippets
+Astrograph gives coding agents a local-first, structured way to navigate codebases
+without dumping full-repo context. It returns symbol-accurate insights faster,
+with source-linked confidence, and lower token spend across long sessions.
 
 <a id="key-features"></a>
 ## ✨ Key Features
 
-- 🧠 **Persistent Context State** - keep indexing and diagnostics in sync across sessions instead of rebuilding setup each time
-- 📊 **Progressive Retrieval** - surface only what an agent needs, with less context noise and clearer token control
-- 🔍 **Skill-Based Search** - query symbols, outlines, and dependencies through predictable commands
-- 🛠️ **MCP + CLI Surfaces** - same retrieval engine for both agent tooling and shell workflows
-- 🖥️ **Tooling Integration** - wire into Codex or Copilot once and reuse everywhere
-- ⚙️ **Reference-Heavy Navigation** - jump from a symbol to related definitions with explicit, verifiable links
-- 🧹 **Health & Refresh** - detect drift and refresh indexes with a dedicated maintenance flow
-- 🧪 **Token-Aware by Design** - minimize reruns from broad reads by fetching only the minimum useful slices
+- 🧠 **Persistent Context State** - stable indexing and diagnostics across sessions
+- 📊 **Progressive Retrieval** - less noise, fewer tokens, faster answers
+- 🔍 **Skill-Based Search** - find symbols, outlines, and dependencies by intent
+- 🛠️ **MCP + CLI Surfaces** - one retrieval engine for agents and shell
+- 🖥️ **Tooling Integration** - wire into Codex or Copilot once
+- 🧹 **Health & Refresh** - detect drift and fix stale indexes quickly
+- 🧪 **Token-Aware by Design** - fetch just enough context, not full files
 
 ## 🧭 What It Is
 
