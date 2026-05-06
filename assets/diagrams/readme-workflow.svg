@@ -12,12 +12,25 @@
     <filter id="shadow" x="-15%" y="-15%" width="130%" height="130%">
       <feDropShadow dx="0" dy="3" stdDeviation="4" flood-opacity="0.12"/>
     </filter>
+    <g id="workflow-step-white-144">
+      <rect class="panel" x="0" y="0" width="483" height="144" rx="18" ry="18"/>
+    </g>
+    <g id="workflow-step-accent-108">
+      <rect class="panelAccent" x="0" y="0" width="483" height="108" rx="18" ry="18"/>
+    </g>
+    <g id="workflow-step-white-108">
+      <rect class="panel" x="0" y="0" width="483" height="108" rx="18" ry="18"/>
+    </g>
+    <g id="workflow-step-white-96">
+      <rect class="panel" x="0" y="0" width="483" height="96" rx="18" ry="18"/>
+    </g>
     <style>
       .bg { fill: url(#bgGradient); }
       .panel { fill: #ffffff; stroke: #334155; stroke-width: 2; }
       .panelAccent { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; }
       .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
       .label { font: 700 14px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; fill: #475569; }
+      .headerText { font: 700 16px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; letter-spacing: 0.08em; text-transform: uppercase; fill: #475569; }
       .title { font: 700 30px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #0f172a; }
       .text { font: 500 16px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #1e293b; }
       .small { font: 500 13px "Avenir Next", Avenir, "Helvetica Neue", Helvetica, Arial, sans-serif; fill: #475569; }
@@ -27,14 +40,14 @@
   </defs>
 
   <rect class="bg" x="0" y="0" width="920" height="760" rx="26" ry="26"/>
-  <rect x="56" y="30" width="808" height="34" rx="10" fill="#0f172a" opacity="0.07"/>
-  <text class="label" x="460" y="54" text-anchor="middle">How Astrograph Works In Practice</text>
+  <rect x="56" y="24" width="808" height="48" rx="12" fill="#0f172a" opacity="0.07"/>
+  <text class="headerText" x="460" y="57" text-anchor="middle">How Astrograph Works In Practice</text>
 
   <g filter="url(#shadow)">
-    <rect class="panel" x="218.5" y="116" width="483" height="144" rx="18" ry="18"/>
-    <rect class="panelAccent" x="218.5" y="302" width="483" height="108" rx="18" ry="18"/>
-    <rect class="panel" x="218.5" y="452" width="483" height="108" rx="18" ry="18"/>
-    <rect class="panel" x="218.5" y="602" width="483" height="96" rx="18" ry="18"/>
+    <use href="#workflow-step-white-144" x="218.5" y="116"/>
+    <use href="#workflow-step-accent-108" x="218.5" y="302"/>
+    <use href="#workflow-step-white-108" x="218.5" y="452"/>
+    <use href="#workflow-step-white-96" x="218.5" y="602"/>
   </g>
 
   <circle class="stepDot" cx="250" cy="147.5" r="16"/>
