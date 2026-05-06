@@ -84,14 +84,15 @@ describe("benchmark runner", () => {
     try {
       const corpus = loadBenchmarkCorpus(fixture.corpusPath);
       await indexFolder({ repoRoot: fixture.repoRoot });
-      const task = corpus.tasks[0];
-      if (!task) {
-        throw new Error("Expected checked-in benchmark task");
+      const narrowTask = corpus.tasks[0];
+      const bundleTask = corpus.tasks.find((entry) => entry.frontmatter.id === "task-bundle-workflow");
+      if (!narrowTask || !bundleTask) {
+        throw new Error("Expected checked-in benchmark tasks");
       }
 
       const symbolFirst = await runWorkflowTask({
         repoRoot: fixture.repoRoot,
-        task,
+        task: narrowTask,
         workflowId: "symbol-first",
       });
       expect(symbolFirst.success).toBe(true);
@@ -101,13 +102,25 @@ describe("benchmark runner", () => {
 
       const bundle = await runWorkflowTask({
         repoRoot: fixture.repoRoot,
-        task,
+        task: bundleTask,
         workflowId: "bundle",
       });
-      expect(bundle.success).toBe(true);
       expect(
         bundle.evidence.some((item) => item.includes("a-outside.ts")),
       ).toBe(false);
+
+      const compactBundle = await runWorkflowTask({
+        repoRoot: fixture.repoRoot,
+        task: bundleTask,
+        workflowId: "bundle-compact",
+      });
+      expect(compactBundle.success).toBe(bundle.success);
+      expect(
+        compactBundle.evidence.some((item) => item.includes("a-outside.ts")),
+      ).toBe(false);
+      expect(compactBundle.rankedEvidence).toEqual(bundle.rankedEvidence);
+      expect(compactBundle.estimatedRetrievedTokens).toBeGreaterThan(0);
+      expect(compactBundle.notes).toContain("compact detail level");
     } finally {
       rmSync(fixture.repoRoot, { recursive: true, force: true });
     }

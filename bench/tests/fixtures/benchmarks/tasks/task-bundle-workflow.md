@@ -2,7 +2,7 @@
 id: task-bundle-workflow
 slice: bench
 query: Which workflow assembles bounded context for benchmark queries?
-workflowSet: [baseline, discovery-first, text-first, bundle]
+workflowSet: [baseline, discovery-first, text-first, bundle, bundle-compact]
 allowedPaths:
   - bench/src/workflows.ts
 targets:
@@ -18,4 +18,5 @@ successCriteria:
 ---
 
 This query measures whether the harness can retrieve the bounded-context
-workflow rather than only the raw symbol and text search flows.
+workflow rather than only the raw symbol and text search flows, including the
+compact-detail benchmark lane.

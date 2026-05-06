@@ -10,6 +10,7 @@ import {
   searchSymbols,
   searchText,
 } from "../../src/index.ts";
+import { shapeToolResult } from "../../src/serialization.ts";
 
 import { countTokens, estimateTokens } from "./tokenizer.ts";
 import type { BenchmarkCorpusTask } from "./types.ts";
@@ -335,12 +336,60 @@ const bundleWorkflow: WorkflowDefinition = {
   },
 };
 
+const compactBundleWorkflow: WorkflowDefinition = {
+  workflowId: "bundle-compact",
+  label: "Bundle Compact",
+  description: "Query-driven bounded context assembly with compact detail shaping.",
+  async run({ repoRoot, task }) {
+    const bundle = await getContextBundle({
+      repoRoot,
+      query: task.frontmatter.query,
+      tokenBudget: 400,
+    });
+    const allowedItems = bundle.items.filter((item) =>
+      matchesAllowedPath(item.symbol.filePath, task.manifest.allowedPaths),
+    );
+    const rankedEvidence = uniqueOrdered(
+      allowedItems.flatMap((item) => [item.symbol.name, item.symbol.filePath]),
+    );
+    const compactBundle = shapeToolResult("get_context_bundle", bundle, "compact");
+    const compactPayload = JSON.stringify({
+      itemCount:
+        typeof compactBundle === "object"
+        && compactBundle !== null
+        && "itemCount" in compactBundle
+          ? compactBundle.itemCount
+          : allowedItems.length,
+      items:
+        typeof compactBundle === "object"
+        && compactBundle !== null
+        && "items" in compactBundle
+          ? compactBundle.items
+          : [],
+    });
+    return {
+      retrievedTokens: countTokens(compactPayload),
+      estimatedRetrievedTokens: estimateTokens(compactPayload),
+      toolCalls: 1,
+      evidence: rankedEvidence,
+      rankedEvidence,
+      notes: [
+        "compact detail level",
+        ...(bundle.truncated ? ["bundle truncated"] : []),
+        ...(allowedItems.length < bundle.items.length ? ["filtered to allowed paths"] : []),
+      ],
+      success: successForTask(task, rankedEvidence),
+    };
+  },
+};
+
 export const WORKFLOWS: WorkflowDefinition[] = [
   baselineWorkflow,
   discoveryFirstWorkflow,
   symbolFirstWorkflow,
   textFirstWorkflow,
   bundleWorkflow,
+  compactBundleWorkflow,
 ];
 
 export function getWorkflowDefinition(workflowId: string): WorkflowDefinition {

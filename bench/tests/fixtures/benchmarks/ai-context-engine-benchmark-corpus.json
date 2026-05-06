@@ -104,7 +104,7 @@
       "id": "task-bundle-workflow",
       "path": "tasks/task-bundle-workflow.md",
       "slice": "bench",
-      "workflows": ["baseline", "discovery-first", "text-first", "bundle"],
+      "workflows": ["baseline", "discovery-first", "text-first", "bundle", "bundle-compact"],
       "allowedPaths": ["bench/src/workflows.ts"],
       "targets": [
         {

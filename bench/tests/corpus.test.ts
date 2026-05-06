@@ -155,6 +155,13 @@ describe("ai-context-engine-bench corpus loader", () => {
           task.frontmatter.query === "sym srch entry",
       ),
     ).toBe(true);
+    expect(
+      corpus.tasks.some(
+        (task) =>
+          task.frontmatter.id === "task-bundle-workflow" &&
+          task.frontmatter.workflowSet.includes("bundle-compact"),
+      ),
+    ).toBe(true);
   });
 
   it("loads the manifest and task cards in manifest order", () => {
