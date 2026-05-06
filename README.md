@@ -27,14 +27,16 @@
 
 ---
 
+## Disclaimer
+
+This package started as a 100% vibe-coded proof-of-concept, to test out a theory. It is very much still work-in-progress, and considered in late alpha. We expect there to be issues, big and small. Until we hit 1.0.0, we strongly recommend using it for hobby-projects. No support is expected until further notice.
+
+## What is Astrograph?
+
 Astrograph is a local MCP server for AI agents.  
 You add it to a repo, run one command to generate MCP config, and let your IDE
 consume explicit retrieval tools (`search_symbols`, `get_symbol_source`,
 `get_context_bundle`, `get_ranked_context`) plus status and indexing tools.
-
-## Disclaimer
-
-This package started as a 100% vibe-coded proof-of-concept, to test out a theory. It is very much still work-in-progress, and considered in late alpha. We expect there to be issues, big and small. Until we hit 1.0.0, we strongly recommend using it for hobby-projects. No support is expected until further notice.
 
 ## Why this exists
 
