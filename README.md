@@ -22,6 +22,8 @@
 <p align="center">
   <a href="#why-astrograph">Why Astrograph</a>
   <span> | </span>
+  <a href="#key-features">Key features</a>
+  <span> | </span>
   <a href="#use-cases">Use cases</a>
   <span> | </span>
   <a href="#quick-start">Quick start</a>
@@ -51,6 +53,18 @@ The result is straightforward:
 - less token waste from broad file reads
 - less context bloat in long-running agent sessions
 - a better default than guessing from partial snippets
+
+<a id="key-features"></a>
+## ✨ Key Features
+
+- 🧠 **Persistent Context State** - keep indexing and diagnostics in sync across sessions instead of rebuilding setup each time
+- 📊 **Progressive Retrieval** - surface only what an agent needs, with less context noise and clearer token control
+- 🔍 **Skill-Based Search** - query symbols, outlines, and dependencies through predictable commands
+- 🛠️ **MCP + CLI Surfaces** - same retrieval engine for both agent tooling and shell workflows
+- 🖥️ **Tooling Integration** - wire into Codex or Copilot once and reuse everywhere
+- ⚙️ **Reference-Heavy Navigation** - jump from a symbol to related definitions with explicit, verifiable links
+- 🧹 **Health & Refresh** - detect drift and refresh indexes with a dedicated maintenance flow
+- 🧪 **Token-Aware by Design** - minimize reruns from broad reads by fetching only the minimum useful slices
 
 ## 🧭 What It Is
 
