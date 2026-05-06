@@ -21,6 +21,7 @@ import {
   buildToolFailureTokenEstimate,
   summarizeToolCompletion,
 } from "./tool-observability.ts";
+import { shapeToolResult, type DetailLevel } from "./serialization.ts";
 
 type EngineModule = typeof import("./index.ts");
 
@@ -36,6 +37,12 @@ function asTextResult(value: unknown) {
       },
     ],
   };
+}
+
+function optionalDetailLevel(value: unknown): DetailLevel | undefined {
+  return value === "full" || value === "compact" || value === "auto"
+    ? value
+    : undefined;
 }
 
 function normalizeUnknownToolEnvelope(toolName: string): McpErrorEnvelope {
@@ -497,9 +504,10 @@ export async function dispatchTool(
     const result = await tool.execute(engine, args);
     validateToolOutput(name, result);
     const completion = summarizeToolCompletion(name, result);
+    const shapedResult = shapeToolResult(name, result, optionalDetailLevel(args.detailLevel));
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,
-      data: result,
+      data: shapedResult,
       meta: {
         toolVersion: tool.toolVersion,
         tokenBudgetUsed: extractUsedTokenBudget(result, completion.tokenEstimate.returnedTokens),

@@ -252,6 +252,25 @@ describe("ai-context-engine interfaces", () => {
       direction: "dependencies",
       relationDepth: 1,
     });
+    const compactGraphStdout = await handleCli([
+      "get-dependency-graph",
+      "--repo",
+      repoRoot,
+      "--file-path",
+      "src/math.ts",
+      "--direction",
+      "dependencies",
+      "--relation-depth",
+      "1",
+      "--detail-level",
+      "compact",
+    ]);
+    expect(JSON.parse(compactGraphStdout)).toMatchObject({
+      rootFilePath: "src/math.ts",
+      nodeCount: expect.any(Number),
+      edgeCount: expect.any(Number),
+    });
+    expect(JSON.parse(compactGraphStdout).nodes[0]).toEqual(expect.any(String));
     const queryCodeDiscoverStdout = await handleCli([
       "query-code",
       "--repo",
@@ -311,6 +330,21 @@ describe("ai-context-engine interfaces", () => {
       },
       selected: true,
     });
+    const compactBundleStdout = await handleCli([
+      "get-context-bundle",
+      "--repo",
+      repoRoot,
+      "--query",
+      "Greeter",
+      "--budget",
+      "120",
+      "--detail-level",
+      "compact",
+    ]);
+    expect(JSON.parse(compactBundleStdout)).toMatchObject({
+      itemCount: expect.any(Number),
+    });
+    expect(JSON.parse(compactBundleStdout).items[0].source).toBeUndefined();
     const queryCodeAssembleStdout = await handleCli([
       "query-code",
       "--repo",
@@ -953,6 +987,33 @@ export function circumference(radius: number): string {
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
         },
       });
+
+      await client.callTool({
+        name: "index_folder",
+        arguments: {
+          repoRoot,
+        },
+      });
+      const compactGraph = await client.callTool({
+        name: "get_dependency_graph",
+        arguments: {
+          repoRoot,
+          filePath: "src/math.ts",
+          direction: "dependencies",
+          relationDepth: 1,
+          detailLevel: "compact",
+        },
+      });
+      const compactGraphPayload = parseMcpToolResult(compactGraph as { content: McpToolTextResult[] });
+      expect(compactGraphPayload).toMatchObject({
+        ok: true,
+        data: {
+          rootFilePath: "src/math.ts",
+          nodeCount: expect.any(Number),
+          edgeCount: expect.any(Number),
+        },
+      });
+      expect(compactGraphPayload.data.nodes[0]).toEqual(expect.any(String));
     });
   }, 15000);
 

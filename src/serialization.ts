@@ -1,18 +1,26 @@
 import fastJson from "fast-json-stringify";
 import type {
+  ContextBundle,
+  DependencyGraphResult,
   DiagnosticsResult,
   FindFilesMatch,
   FileTreeEntry,
   FileSummaryResult,
   IndexSummary,
   ProjectStatusResult,
+  QueryCodeResult,
+  RankedContextResult,
   RepoOutline,
   SearchTextMatch,
+  SymbolSummary,
 } from "./types.ts";
 
 interface SerializeOptions {
   pretty?: boolean;
+  detailLevel?: DetailLevel;
 }
+
+export type DetailLevel = "full" | "compact" | "auto";
 
 const nullableStringSchema = { type: ["string", "null"] } as const;
 const nullableNumberSchema = { type: ["number", "null"] } as const;
@@ -387,23 +395,182 @@ const COMPACT_SERIALIZERS = new Map<string, (value: unknown) => string>([
   ["get-file-tree", (value) => stringifyFileTree(value as FileTreeEntry[])],
 ]);
 
+function normalizeToolName(toolName: string): string {
+  return toolName.replaceAll("-", "_");
+}
+
+function compactSymbolSummary(symbol: SymbolSummary) {
+  return {
+    id: symbol.id,
+    stableId: symbol.stableId,
+    name: symbol.name,
+    qualifiedName: symbol.qualifiedName,
+    kind: symbol.kind,
+    filePath: symbol.filePath,
+    startLine: symbol.startLine,
+    endLine: symbol.endLine,
+    exported: symbol.exported,
+  };
+}
+
+function compactContextBundle(bundle: ContextBundle) {
+  return {
+    repoRoot: bundle.repoRoot,
+    query: bundle.query,
+    tokenBudget: bundle.tokenBudget,
+    estimatedTokens: bundle.estimatedTokens,
+    usedTokens: bundle.usedTokens,
+    truncated: bundle.truncated,
+    itemCount: bundle.items.length,
+    items: bundle.items.map((item) => ({
+      role: item.role,
+      reason: item.reason,
+      tokenCount: item.tokenCount,
+      symbol: compactSymbolSummary(item.symbol),
+    })),
+  };
+}
+
+function compactRankedContext(result: RankedContextResult) {
+  return {
+    repoRoot: result.repoRoot,
+    query: result.query,
+    tokenBudget: result.tokenBudget,
+    candidateCount: result.candidateCount,
+    selectedSeedIds: result.selectedSeedIds,
+    candidates: result.candidates.map((candidate) => ({
+      rank: candidate.rank,
+      score: candidate.score,
+      reason: candidate.reason,
+      selected: candidate.selected,
+      symbol: compactSymbolSummary(candidate.symbol),
+    })),
+    bundle: compactContextBundle(result.bundle),
+  };
+}
+
+function compactDependencyGraph(result: DependencyGraphResult) {
+  return {
+    rootFilePath: result.rootFilePath,
+    relationDepth: result.relationDepth,
+    direction: result.direction,
+    nodeCount: result.nodes.length,
+    edgeCount: result.edges.length,
+    nodes: result.nodes.map((node) => node.filePath),
+    edges: result.edges,
+  };
+}
+
+function compactQueryCodeResult(result: QueryCodeResult) {
+  if (result.intent === "discover") {
+    return {
+      intent: result.intent,
+      query: result.query,
+      symbolMatchCount: result.symbolMatches.length,
+      textMatchCount: result.textMatches.length,
+      graphMatchCount: result.matches.length,
+      symbolMatches: result.symbolMatches.map(compactSymbolSummary),
+      textMatches: result.textMatches,
+      matches: result.matches.map((match) => ({
+        symbol: compactSymbolSummary(match.symbol),
+        reasons: match.reasons,
+        depth: match.depth,
+      })),
+      textMatchResults: result.textMatchResults,
+    };
+  }
+
+  if (result.intent === "assemble") {
+    return {
+      intent: result.intent,
+      bundle: compactContextBundle(result.bundle),
+      ranked: result.ranked ? compactRankedContext(result.ranked) : null,
+    };
+  }
+
+  return result;
+}
+
+function shouldCompact(toolName: string, value: unknown): boolean {
+  const normalizedToolName = normalizeToolName(toolName);
+
+  if (normalizedToolName === "get_context_bundle") {
+    const bundle = value as ContextBundle;
+    return bundle.items.length > 3 || bundle.usedTokens > 600;
+  }
+
+  if (normalizedToolName === "get_ranked_context") {
+    const result = value as RankedContextResult;
+    return result.candidateCount > 5 || result.bundle.items.length > 3;
+  }
+
+  if (normalizedToolName === "get_dependency_graph") {
+    const result = value as DependencyGraphResult;
+    return result.nodes.length + result.edges.length > 8;
+  }
+
+  if (normalizedToolName === "query_code") {
+    const result = value as QueryCodeResult;
+    if (result.intent === "discover") {
+      return result.matches.length + result.textMatches.length > 6;
+    }
+    if (result.intent === "assemble") {
+      return result.bundle.items.length > 3 || (result.ranked?.candidateCount ?? 0) > 5;
+    }
+  }
+
+  return false;
+}
+
+export function shapeToolResult(
+  toolName: string,
+  value: unknown,
+  detailLevel?: DetailLevel,
+): unknown {
+  if (!detailLevel || detailLevel === "full") {
+    return value;
+  }
+
+  if (detailLevel === "auto" && !shouldCompact(toolName, value)) {
+    return value;
+  }
+
+  const normalizedToolName = normalizeToolName(toolName);
+  if (normalizedToolName === "get_context_bundle") {
+    return compactContextBundle(value as ContextBundle);
+  }
+  if (normalizedToolName === "get_ranked_context") {
+    return compactRankedContext(value as RankedContextResult);
+  }
+  if (normalizedToolName === "get_dependency_graph") {
+    return compactDependencyGraph(value as DependencyGraphResult);
+  }
+  if (normalizedToolName === "query_code") {
+    return compactQueryCodeResult(value as QueryCodeResult);
+  }
+
+  return value;
+}
+
 export function serializeToolResult(
   toolName: string,
   value: unknown,
   options: SerializeOptions = {},
 ): string {
+  const shapedValue = shapeToolResult(toolName, value, options.detailLevel);
+
   if (options.pretty) {
-    return JSON.stringify(value, null, 2);
+    return JSON.stringify(shapedValue, null, 2);
   }
 
   const serializer = COMPACT_SERIALIZERS.get(toolName);
   if (!serializer) {
-    return JSON.stringify(value);
+    return JSON.stringify(shapedValue);
   }
 
   try {
-    return serializer(value);
+    return serializer(shapedValue);
   } catch {
-    return JSON.stringify(value);
+    return JSON.stringify(shapedValue);
   }
 }

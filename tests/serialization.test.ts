@@ -5,12 +5,16 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   diagnostics,
+  getContextBundle,
+  getDependencyGraph,
   findFiles,
   getFileSummary,
   getProjectStatus,
   getFileTree,
   getRepoOutline,
   indexFolder,
+  queryCode,
+  getRankedContext,
   searchText,
 } from "../src/index.ts";
 import { serializeToolResult } from "../src/serialization.ts";
@@ -74,6 +78,85 @@ describe("machine result serialization", () => {
 
     expect(serializeToolResult("query_code", payload)).toBe(JSON.stringify(payload));
   });
+
+  it("produces deterministic compact serialization for broad retrieval payloads", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+
+    const bundle = await getContextBundle({
+      repoRoot,
+      query: "Greeter greet Hello",
+      includeDependencies: true,
+      relationDepth: 1,
+      tokenBudget: 400,
+    });
+    const ranked = await getRankedContext({
+      repoRoot,
+      query: "Greeter greet Hello",
+      includeDependencies: true,
+      relationDepth: 1,
+      tokenBudget: 400,
+    });
+    const graph = await getDependencyGraph({
+      repoRoot,
+      filePath: "src/math.ts",
+      direction: "dependencies",
+      relationDepth: 1,
+    });
+    const discover = await queryCode({
+      repoRoot,
+      intent: "discover",
+      query: "Greeter",
+      includeTextMatches: true,
+      includeDependencies: true,
+      relationDepth: 1,
+    });
+
+    const compactBundle = JSON.parse(
+      serializeToolResult("get_context_bundle", bundle, { detailLevel: "compact" }),
+    );
+    expect(compactBundle).toMatchObject({
+      itemCount: expect.any(Number),
+      items: expect.arrayContaining([
+        expect.objectContaining({
+          symbol: expect.objectContaining({
+            name: expect.any(String),
+            filePath: expect.any(String),
+          }),
+        }),
+      ]),
+    });
+    expect(compactBundle.items[0].source).toBeUndefined();
+
+    const compactRanked = JSON.parse(
+      serializeToolResult("get_ranked_context", ranked, { detailLevel: "compact" }),
+    );
+    expect(compactRanked).toMatchObject({
+      candidateCount: expect.any(Number),
+      bundle: expect.objectContaining({
+        itemCount: expect.any(Number),
+      }),
+    });
+    expect(compactRanked.bundle.items[0].source).toBeUndefined();
+
+    const compactGraph = JSON.parse(
+      serializeToolResult("get_dependency_graph", graph, { detailLevel: "compact" }),
+    );
+    expect(compactGraph).toMatchObject({
+      nodeCount: expect.any(Number),
+      edgeCount: expect.any(Number),
+      nodes: expect.arrayContaining([expect.any(String)]),
+    });
+
+    const compactDiscover = JSON.parse(
+      serializeToolResult("query_code", discover, { detailLevel: "compact" }),
+    );
+    expect(compactDiscover).toMatchObject({
+      intent: "discover",
+      symbolMatchCount: expect.any(Number),
+      graphMatchCount: expect.any(Number),
+    });
+  }, 15_000);
 
   it("can still produce CLI-compatible pretty JSON when requested", async () => {
     const repoRoot = await createFixtureRepo();

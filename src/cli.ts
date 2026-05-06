@@ -4,6 +4,7 @@ import process from "node:process";
 import { readFile, unlink, writeFile } from "node:fs/promises";
 
 import {
+  parseCliDetailLevel,
   parseCliOptionalNumber,
   parseCliSummaryStrategy,
   parseCliSupportedLanguage,
@@ -13,6 +14,7 @@ import {
 import { COMMAND_REGISTRY } from "./command-registry.ts";
 import * as engine from "./index.ts";
 import { getLogger } from "./logger.ts";
+import { serializeToolResult } from "./serialization.ts";
 import type { DependencyGraphDirection } from "./types/retrieval.ts";
 
 type StopReason = "timeout" | "signal" | "closed";
@@ -357,7 +359,12 @@ export async function handleCli(argv: string[]): Promise<string> {
   }
 
   const result = await handler(args);
-  return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  return typeof result === "string"
+    ? result
+    : serializeToolResult(command, result, {
+        pretty: true,
+        detailLevel: parseCliDetailLevel(args, "detail-level"),
+      });
 }
 
 function formatAge(indexAgeMs: number | null): string {

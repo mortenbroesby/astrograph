@@ -26,6 +26,7 @@ const supportedLanguageSchema = z.enum(supportedLanguages as [
 const symbolKindSchema = z.enum(["function", "class", "method", "constant", "type"]);
 const summaryStrategySchema = z.enum(SUMMARY_STRATEGIES);
 const queryCodeIntentSchema = z.enum(["discover", "source", "assemble", "auto"]);
+const detailLevelSchema = z.enum(["full", "compact", "auto"]);
 
 const finiteNumberSchema = z.number().finite();
 const positiveNumberSchema = finiteNumberSchema.refine((value) => value > 0, {
@@ -396,6 +397,25 @@ export function parseCliSummaryStrategy(
   if (!parsed.success) {
     throw new Error(
       `Unsupported --${key}: ${value}. Expected one of: ${SUMMARY_STRATEGIES.join(", ")}`,
+    );
+  }
+
+  return parsed.data;
+}
+
+export function parseCliDetailLevel(
+  args: Record<string, string>,
+  key: string,
+): "full" | "compact" | "auto" | undefined {
+  const value = optionalCliString(args, key);
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = detailLevelSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(
+      `Unsupported --${key}: ${value}. Expected one of: full, compact, auto`,
     );
   }
 

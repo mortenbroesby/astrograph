@@ -111,6 +111,18 @@ describe("cli boundaries", () => {
         "   ",
       ]),
     ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+
+    await expect(
+      handleCli([
+        "get-context-bundle",
+        "--repo",
+        repoRoot,
+        "--query",
+        "Greeter",
+        "--detail-level",
+        "bogus",
+      ]),
+    ).rejects.toThrow(/unsupported --detail-level: bogus\. expected one of: full, compact, auto/i);
   });
 
   it("preserves boolean flag and omitted optional number semantics", async () => {

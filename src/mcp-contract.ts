@@ -93,6 +93,10 @@ function booleanSchema(description: string) {
   return zod.boolean().describe(description);
 }
 
+function detailLevelSchema(description: string) {
+  return zod.enum(["full", "compact", "auto"]).describe(description);
+}
+
 function stringArraySchema(description: string) {
   return zod.array(zod.string()).describe(description);
 }
@@ -448,6 +452,7 @@ export const MCP_TOOL_DEFINITIONS = [
       filePath: stringSchema("Path relative to the repository root"),
       relationDepth: numberSchema("Optional bounded graph expansion depth").optional(),
       direction: zod.enum(["dependencies", "importers", "both"]).describe("Graph traversal direction").optional(),
+      detailLevel: detailLevelSchema("Response detail level").optional(),
     },
     execute: async (engine, args) => {
       const input = {
@@ -473,6 +478,7 @@ export const MCP_TOOL_DEFINITIONS = [
       includeImporters: booleanSchema("When true, expand through reverse importer symbols").optional(),
       includeReferences: booleanSchema("When true, expand through importer files that explicitly reference matched symbols").optional(),
       relationDepth: numberSchema("Optional bounded graph expansion depth for dependency/importer traversal").optional(),
+      detailLevel: detailLevelSchema("Response detail level").optional(),
     },
     execute: async (engine, args) => {
       const input = {
@@ -504,6 +510,7 @@ export const MCP_TOOL_DEFINITIONS = [
       includeImporters: booleanSchema("When true, expand through reverse importer symbols").optional(),
       includeReferences: booleanSchema("When true, expand through importer files that explicitly reference matched symbols").optional(),
       relationDepth: numberSchema("Optional bounded graph expansion depth for dependency/importer traversal").optional(),
+      detailLevel: detailLevelSchema("Response detail level").optional(),
     },
     execute: async (engine, args) => {
       const input = {
