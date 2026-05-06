@@ -8,8 +8,8 @@ Astrograph exposes three main command surfaces:
 
 Use `astrograph mcp` when you want to run the stdio MCP server directly.
 
-Prefer `npx astrograph ...` or `pnpm exec astrograph ...` unless you have
-already verified another local invocation path in your environment.
+Prefer `npx astrograph ...` unless you have already verified another local
+invocation path in your environment.
 
 ## Command Groups
 
@@ -172,7 +172,7 @@ pnpm test
 pnpm test:package-bin
 ```
 
-Source-mode execution:
+Source-mode execution during local development:
 
 ```bash
 ASTROGRAPH_USE_SOURCE=1 pnpm exec astrograph cli diagnostics --repo /repo

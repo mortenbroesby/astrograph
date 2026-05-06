@@ -98,8 +98,8 @@ npx astrograph cli index-folder --repo /absolute/path/to/repo
 
 ## If You Installed Astrograph Locally
 
-If `astrograph` is not on your shell `PATH`, prefer `npx astrograph ...` or
-`pnpm exec astrograph ...` rather than bare `astrograph ...`.
+If `astrograph` is not on your shell `PATH`, prefer `npx astrograph ...`
+rather than bare `astrograph ...`.
 
 ## Where To Go Next
 
