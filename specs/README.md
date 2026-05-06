@@ -84,6 +84,6 @@ Reusable starting points for agent-created docs.
 ## Out of Scope
 
 - Marketing copy and installation tutorials belong in the root README.
-- Release procedure belongs in [docs/release.md](../docs/release.md).
-- Performance profiling procedure belongs in [docs/performance.md](../docs/performance.md).
+- Release procedure belongs in [docs/reference/release.md](../docs/reference/release.md).
+- Performance profiling procedure belongs in [docs/guides/performance.md](../docs/guides/performance.md).
 - Specs do not replace tests. Each public contract spec must point to verification.

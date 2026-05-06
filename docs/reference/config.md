@@ -1,0 +1,193 @@
+# Config Reference
+
+Astrograph reads optional repository defaults from `astrograph.config.ts`.
+
+Use config when you want to tune retrieval behavior, indexing scope,
+observability, watch behavior, or safety limits for one repository.
+
+## File Shape
+
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  summaryStrategy: "doc-comments-first",
+  storageMode: "wal",
+  observability: {
+    retentionDays: 3,
+    redactSourceText: true,
+  },
+  ranking: {
+    exactName: 1000,
+    filePathContains: 120,
+    exportedBonus: 20,
+  },
+  performance: {
+    include: ["src/**/*.{ts,tsx,js,jsx}"],
+    exclude: ["**/*.test.ts"],
+    fileProcessingConcurrency: "auto",
+    workerPool: {
+      enabled: false,
+      maxWorkers: "auto",
+    },
+  },
+  watch: {
+    backend: "auto",
+    debounceMs: 100,
+  },
+  limits: {
+    maxFilesDiscovered: 100000,
+    maxFileBytes: 250000,
+    maxSymbolsPerFile: 2000,
+    maxSymbolResults: 20,
+    maxTextResults: 100,
+    maxChildProcessOutputBytes: 1000000,
+    maxLiveSearchMatches: 100,
+  },
+});
+```
+
+If no TypeScript config is present, Astrograph can still read legacy
+`astrograph.config.json`, but `astrograph.config.ts` is the preferred surface.
+
+## Top-Level Options
+
+### `summaryStrategy`
+
+Controls how file summaries are generated.
+
+Supported values:
+
+- `doc-comments-first`
+- `signature-only`
+
+### `storageMode`
+
+Current supported value:
+
+- `wal`
+
+### `observability`
+
+Controls local event retention and redaction.
+
+Available fields:
+
+- `enabled`
+- `host`
+- `port`
+- `recentLimit`
+- `retentionDays`
+- `snapshotIntervalMs`
+- `redactSourceText`
+
+The most important setting for most users is `redactSourceText`, which defaults
+to `true`.
+
+### `performance`
+
+Controls indexing scope and concurrency.
+
+Available fields:
+
+- `include`
+- `exclude`
+- `fileProcessingConcurrency`
+- `workerPool.enabled`
+- `workerPool.maxWorkers`
+
+### `ranking`
+
+Controls deterministic retrieval weights.
+
+Available fields:
+
+- `exactName`
+- `exactQualifiedName`
+- `prefixName`
+- `prefixQualifiedName`
+- `containsName`
+- `containsQualifiedName`
+- `signatureContains`
+- `summaryContains`
+- `filePathContains`
+- `exactWord`
+- `tokenMatch`
+- `exportedBonus`
+
+### `watch`
+
+Controls local watch-mode behavior.
+
+Available fields:
+
+- `backend`
+- `debounceMs`
+
+Supported backends:
+
+- `auto`
+- `parcel`
+- `node-fs-watch`
+- `polling`
+
+### `limits`
+
+Safety limits for discovery, indexing, and result size.
+
+Available fields:
+
+- `maxFilesDiscovered`
+- `maxFileBytes`
+- `maxSymbolsPerFile`
+- `maxSymbolResults`
+- `maxTextResults`
+- `maxChildProcessOutputBytes`
+- `maxLiveSearchMatches`
+
+## Common Patterns
+
+### Narrow indexing to source files
+
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  performance: {
+    include: ["src/**/*.{ts,tsx,js,jsx}"],
+    exclude: ["**/*.test.ts"],
+  },
+});
+```
+
+### Force polling watch mode
+
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  watch: {
+    backend: "polling",
+    debounceMs: 150,
+  },
+});
+```
+
+### Keep observability privacy-safe
+
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  observability: {
+    retentionDays: 3,
+    redactSourceText: true,
+  },
+});
+```
+
+## Where To Go Next
+
+- For command usage: [CLI Reference](./cli.md)
+- For performance tuning: [Performance Guide](../guides/performance.md)
+- For failure recovery: [Troubleshooting](../guides/troubleshooting.md)

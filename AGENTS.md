@@ -22,8 +22,9 @@ Before creating or changing specs, use the repo-local skills in `.agents/skills/
 
 Keep durable policy in `.agents/rules/`.
 
-Keep user-facing setup docs in `README.md`, release workflow in `docs/release.md`,
-and performance workflow in `docs/performance.md`.
+Keep user-facing setup docs in `README.md`, the docs compendium in `docs/README.md`,
+release workflow in `docs/reference/release.md`, and performance workflow in
+`docs/guides/performance.md`.
 
 ## Release Workflow
 
