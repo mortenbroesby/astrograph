@@ -4,6 +4,8 @@ Astrograph's README explains the thesis. This compendium explains how to use,
 operate, and reason about the tool without turning the root page into a wall of
 detail.
 
+![Docs journey diagram showing new readers starting with concepts and first steps, then branching into workflows, guides, and reference.](../assets/diagrams/docs-journey.svg)
+
 ## Start Here
 
 If you are new to Astrograph, read these in order:

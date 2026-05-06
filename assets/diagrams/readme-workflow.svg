@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+  <title id="title">Astrograph workflow diagram</title>
+  <desc id="desc">A workflow showing an agent question flowing through Astrograph's local index and retrieval tools to a grounded answer with lower token waste.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .bg { fill: #f8fafc; }
+      .panel { fill: #ffffff; stroke: #334155; stroke-width: 2; rx: 18; ry: 18; }
+      .accent { fill: #dbeafe; stroke: #2563eb; stroke-width: 2; rx: 18; ry: 18; }
+      .line { stroke: #334155; stroke-width: 3; fill: none; marker-end: url(#arrow); }
+      .eyebrow { font: 600 15px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; letter-spacing: 0.08em; text-transform: uppercase; fill: #475569; }
+      .h { font: 700 28px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .t { font: 500 18px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #1e293b; }
+      .s { font: 500 15px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #475569; }
+      .c { font: 600 15px ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #2563eb; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="420" rx="28" ry="28"/>
+
+  <text class="eyebrow" x="80" y="70">How Astrograph Works In Practice</text>
+  <text class="h" x="80" y="112">From code question to grounded answer</text>
+  <text class="s" x="80" y="144">Local indexing and structured retrieval let an agent inspect less code while learning more from source.</text>
+
+  <rect class="panel" x="80" y="196" width="220" height="148"/>
+  <text class="eyebrow" x="110" y="228">1. Agent Question</text>
+  <text class="t" x="110" y="264">"Where is this symbol</text>
+  <text class="t" x="110" y="290">implemented, and what</text>
+  <text class="t" x="110" y="316">calls it?"</text>
+
+  <rect class="accent" x="350" y="176" width="250" height="188"/>
+  <text class="eyebrow" x="382" y="212">2. Astrograph</text>
+  <text class="t" x="382" y="250">Local index</text>
+  <text class="t" x="382" y="278">MCP + CLI surfaces</text>
+  <text class="t" x="382" y="306">Code-aware retrieval</text>
+  <text class="c" x="382" y="338">Structured, local, deterministic</text>
+
+  <rect class="panel" x="650" y="196" width="220" height="148"/>
+  <text class="eyebrow" x="680" y="228">3. Focused Retrieval</text>
+  <text class="t" x="680" y="264">Outlines</text>
+  <text class="t" x="680" y="290">Symbols</text>
+  <text class="t" x="680" y="316">Source + targeted search</text>
+
+  <rect class="panel" x="920" y="196" width="200" height="148"/>
+  <text class="eyebrow" x="950" y="228">4. Better Result</text>
+  <text class="t" x="950" y="264">Grounded answer</text>
+  <text class="t" x="950" y="290">Less token waste</text>
+  <text class="t" x="950" y="316">Less context bloat</text>
+
+  <path class="line" d="M 300 270 C 322 270, 328 270, 350 270"/>
+  <path class="line" d="M 600 270 C 622 270, 628 270, 650 270"/>
+  <path class="line" d="M 870 270 C 892 270, 898 270, 920 270"/>
+
+  <text class="s" x="344" y="386">Ask a narrow question instead of dumping files.</text>
+  <text class="s" x="654" y="386">Retrieve only the structure and source that matter.</text>
+</svg>

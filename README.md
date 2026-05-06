@@ -33,6 +33,8 @@
 
 ---
 
+![Workflow diagram showing an agent question flowing through Astrograph's local retrieval surfaces to a grounded answer with lower token waste.](./assets/diagrams/readme-workflow.svg)
+
 ## 🔭 Why Astrograph
 
 Astrograph gives AI coding agents structured, local access to the codebase they
