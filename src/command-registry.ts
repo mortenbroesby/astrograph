@@ -167,7 +167,7 @@ export const COMMAND_REGISTRY = {
     cliCommand: "find-importers",
     mcpToolName: "find_importers",
     description: "Return indexed files that directly import a target file with import evidence.",
-    normalizedOptions: ["repoRoot", "filePath", "limit"],
+    normalizedOptions: ["repoRoot", "filePath", "limit", "detailLevel"],
     execute: (engine, input: FindImportersOptions) => engine.findImporters(input),
   },
   findReferences: {
@@ -175,8 +175,13 @@ export const COMMAND_REGISTRY = {
     cliCommand: "find-references",
     mcpToolName: "find_references",
     description: "Return indexed files that explicitly import a target symbol by name.",
-    normalizedOptions: ["repoRoot", "symbolId", "limit"],
-    execute: (engine, input: FindReferencesOptions) => engine.findReferences(input),
+    normalizedOptions: ["repoRoot", "symbolId", "limit", "detailLevel"],
+    execute: (engine, input: FindReferencesOptions) => {
+      if (input.detailLevel === "compact" || input.detailLevel === "auto") {
+        return engine.findReferences({ ...input, detailLevel: input.detailLevel });
+      }
+      return engine.findReferences({ ...input, detailLevel: "full" });
+    },
   },
   queryCode: {
     id: "query_code",

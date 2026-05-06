@@ -13,12 +13,18 @@ import { Command, Option } from "commander";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
+import {
+  type McpRuntimeProfile,
+  getMcpToolsForProfile,
+  parseMcpProfile,
+} from "../mcp-profiles.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
 const AGENTS_POLICY_BEGIN = "<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->";
 const AGENTS_POLICY_END = "<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->";
 const MCP_SERVER_NAME = "astrograph";
+const DEFAULT_MCP_PROFILE: McpRuntimeProfile = "full";
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const packageJson = JSON.parse(
   await readFile(path.join(packageRoot, "package.json"), "utf8"),
@@ -30,19 +36,6 @@ const PACKAGE_NAME = packageJson.name;
 const PACKAGE_VERSION = packageJson.version;
 const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"] as const;
 const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"] as const;
-const MCP_TOOLS = [
-  "index_folder",
-  "index_file",
-  "get_file_outline",
-  "get_file_tree",
-  "get_repo_outline",
-  "suggest_initial_queries",
-  "search_symbols",
-  "get_symbol_source",
-  "get_context_bundle",
-  "get_ranked_context",
-  "diagnostics",
-] as const;
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
@@ -64,6 +57,7 @@ interface ParsedArgs {
   dryRun: boolean;
   nonInteractive: boolean;
   agentsPolicy: boolean;
+  mcpProfile: McpRuntimeProfile;
   hasExplicitArgs: boolean;
   showHelp: boolean;
 }
@@ -83,6 +77,7 @@ interface PackageDependencyResult {
 
 interface SetupResult {
   ide: InstallIde;
+  mcpProfile: McpRuntimeProfile;
   repoRoot: string;
   configPath: string;
   engineConfigPath: string;
@@ -106,6 +101,7 @@ interface CliOptions {
   repo?: string;
   yes?: boolean;
   agents?: boolean;
+  mcpProfile?: string;
   help?: boolean;
 }
 
@@ -122,12 +118,14 @@ interface ManagedConfig {
 interface SetupForIdeOptions {
   ide?: InstallIde;
   dryRun?: boolean;
+  mcpProfile?: McpRuntimeProfile;
 }
 
 interface SetupForAllOptions {
   ides?: RequestedIde[];
   dryRun?: boolean;
   agentsPolicy?: boolean;
+  mcpProfile?: McpRuntimeProfile;
 }
 
 interface AgentsPolicyResult {
@@ -268,11 +266,12 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run]",
+      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mcp-profile core|standard|full] [--repo /abs/repo] [--dry-run]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
       "  - IDE: Codex",
+      "  - MCP profile: full",
       "  - writes: astrograph.config.ts and managed MCP config",
       "  - optional: --agents adds a tailored agent instruction file for each IDE:",
       "      codex       → AGENTS.md",
@@ -284,6 +283,7 @@ function usage(): void {
       "  npx astrograph init",
       "  npx astrograph init --yes",
       "  npx astrograph init --yes --ide all",
+      "  npx astrograph init --mcp-profile standard --yes --ide all",
     ].join("\n") + "\n",
   );
 }
@@ -300,6 +300,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       dryRun: false,
       nonInteractive: false,
       agentsPolicy: false,
+      mcpProfile: DEFAULT_MCP_PROFILE,
       hasExplicitArgs: false,
       showHelp: true,
     };
@@ -309,6 +310,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--yes",
     "--agents",
     "--dry-run",
+    "--mcp-profile",
     "--repo",
     "--ide",
     "--help",
@@ -344,6 +346,13 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--agents", "Add a tailored agent instruction file for the selected IDE."))
     .addOption(new Option("--dry-run", "Preview changes only."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
+    .addOption(
+      new Option(
+        "--mcp-profile <profile>",
+        "Runtime profile for managed MCP invocation (core|standard|full).",
+      )
+        .default(DEFAULT_MCP_PROFILE),
+    )
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined));
 
   let options: CliOptions;
@@ -359,6 +368,7 @@ function parseArgs(argv: string[]): ParsedArgs {
         dryRun: false,
         nonInteractive: false,
         agentsPolicy: false,
+        mcpProfile: DEFAULT_MCP_PROFILE,
         hasExplicitArgs: false,
         showHelp: true,
       };
@@ -373,9 +383,19 @@ function parseArgs(argv: string[]): ParsedArgs {
       dryRun: false,
       nonInteractive: false,
       agentsPolicy: false,
+      mcpProfile: DEFAULT_MCP_PROFILE,
       hasExplicitArgs: false,
       showHelp: true,
     };
+  }
+
+  const parsedProfile = options.mcpProfile
+    ? parseMcpProfile(options.mcpProfile)
+    : DEFAULT_MCP_PROFILE;
+  if (options.mcpProfile && !parsedProfile) {
+    throw new Error(
+      `Unsupported --mcp-profile value: ${options.mcpProfile}. Expected: core, standard, full`,
+    );
   }
 
   const hasFlag = (name: string): boolean =>
@@ -386,6 +406,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       ? parseIdeSelections(options.ide)
       : null,
     repo: options.repo ?? process.cwd(),
+    mcpProfile: parsedProfile ?? DEFAULT_MCP_PROFILE,
     dryRun: Boolean(options.dryRun),
     nonInteractive: Boolean(options.yes),
     agentsPolicy: Boolean(options.agents),
@@ -393,6 +414,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       hasFlag("yes") ||
       hasFlag("agents") ||
       hasFlag("dry-run") ||
+      hasFlag("mcp-profile") ||
       hasFlag("repo") ||
       hasFlag("ide"),
     showHelp: false,
@@ -433,10 +455,11 @@ async function promptForSetupArgs(): Promise<{
   repo: string;
   dryRun: boolean;
   agentsPolicy: boolean;
+  mcpProfile: McpRuntimeProfile;
 }> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
-      "Interactive setup requires a TTY. Re-run with --yes --ide all|codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run]",
+      "Interactive setup requires a TTY. Re-run with --yes --ide all|codex|copilot|copilot-cli [--mcp-profile core|standard|full] [--repo /abs/repo] [--dry-run]",
     );
   }
 
@@ -490,6 +513,7 @@ async function promptForSetupArgs(): Promise<{
     repo: resolvedRepo,
     dryRun: false,
     agentsPolicy: Boolean(agentsPolicy),
+    mcpProfile: DEFAULT_MCP_PROFILE,
   };
 }
 
@@ -664,10 +688,14 @@ function hasLocalAstrographDependency(repoRoot: string): boolean {
   }
 }
 
-function resolveManagedInvocation(): ManagedInvocation {
+function resolveManagedInvocation(profile: McpRuntimeProfile): ManagedInvocation {
+  const args = ["-y", "--package", `${PACKAGE_NAME}@latest`, "astrograph", "mcp"];
+  if (profile !== DEFAULT_MCP_PROFILE) {
+    args.push("--mcp-profile", profile);
+  }
   return {
     command: "npx",
-    args: ["-y", "--package", `${PACKAGE_NAME}@latest`, "astrograph", "mcp"],
+    args,
   };
 }
 
@@ -692,12 +720,13 @@ function createMinimalTsConfig(): string {
   ].join("\n");
 }
 
-function astrographConfigBlock(): string {
-  const enabledTools = MCP_TOOLS.map((tool) => `"${tool}"`).join(", ");
-  const toolApprovals = MCP_TOOLS.map((tool) =>
+function astrographConfigBlock(profile: McpRuntimeProfile): string {
+  const tools = getMcpToolsForProfile(profile);
+  const enabledTools = tools.map((tool) => `"${tool}"`).join(", ");
+  const toolApprovals = tools.map((tool) =>
     `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
   ).join("\n\n");
-  const invocation = resolveManagedInvocation();
+  const invocation = resolveManagedInvocation(profile);
   const args = invocation.args.map((arg) => `"${arg}"`).join(", ");
 
   return `${MARKER_BEGIN}
@@ -733,7 +762,63 @@ function replaceManagedBlock(contents: string, block: string): string {
 
 // AGENTS.md block — used by Codex and Copilot CLI, which both read AGENTS.md natively.
 // Follows Codex "Working agreements" convention so it fits alongside other AGENTS.md sections.
-function agentsPolicyBlockForAgentsMd(): string {
+function agentsPolicyLines(profile: McpRuntimeProfile): string[] {
+  const enabledTools = new Set(getMcpToolsForProfile(profile));
+  const lines: string[] = [];
+
+  if (enabledTools.has("get_project_status") && enabledTools.has("index_folder")) {
+    lines.push(
+      "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
+    );
+  } else if (enabledTools.has("get_project_status")) {
+    lines.push("- Start with `get_project_status` for the current repository to understand index state.");
+    lines.push(
+      "- If the index is missing or stale and this profile does not expose `index_folder`, switch to a broader profile or refresh the index outside the client.",
+    );
+  }
+
+  if (enabledTools.has("get_symbol_source") && enabledTools.has("get_file_summary")) {
+    lines.push(
+      "- Before reading a symbol, use `get_symbol_source`; before reading a file, use `get_file_summary`.",
+    );
+  } else if (enabledTools.has("get_symbol_source")) {
+    lines.push("- Before reading raw source, use `get_symbol_source`.");
+  } else if (enabledTools.has("get_file_summary")) {
+    lines.push("- Before reading a file, use `get_file_summary`.");
+  }
+
+  const discoveryTools = [
+    enabledTools.has("search_symbols") ? "`search_symbols`" : null,
+    enabledTools.has("suggest_initial_queries") ? "`suggest_initial_queries`" : null,
+    enabledTools.has("find_files") ? "`find_files`" : null,
+    enabledTools.has("search_text") ? "`search_text`" : null,
+  ].filter((tool): tool is string => tool !== null);
+  if (discoveryTools.length > 0) {
+    lines.push(`- Use ${discoveryTools.join(", ")} for discovery before broad raw-file search.`);
+  }
+
+  const contextTools = [
+    enabledTools.has("get_context_bundle") ? "`get_context_bundle`" : null,
+    enabledTools.has("get_ranked_context") ? "`get_ranked_context`" : null,
+  ].filter((tool): tool is string => tool !== null);
+  if (contextTools.length > 0) {
+    lines.push(`- Use ${contextTools.join(" or ")} for bounded implementation context.`);
+  }
+
+  const structureTools = [
+    enabledTools.has("get_file_tree") ? "`get_file_tree`" : null,
+    enabledTools.has("get_file_outline") ? "`get_file_outline`" : null,
+    enabledTools.has("get_repo_outline") ? "`get_repo_outline`" : null,
+  ].filter((tool): tool is string => tool !== null);
+  if (structureTools.length > 0) {
+    lines.push(`- Use ${structureTools.join(", ")} to understand repository structure.`);
+  }
+
+  lines.push("- Use raw file reads or shell search only when Astrograph cannot answer the question.");
+  return lines;
+}
+
+function agentsPolicyBlockForAgentsMd(profile: McpRuntimeProfile): string {
   return [
     AGENTS_POLICY_BEGIN,
     "## Code Exploration with Astrograph",
@@ -742,31 +827,21 @@ function agentsPolicyBlockForAgentsMd(): string {
     "",
     "### Working agreements",
     "",
-    "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
-    "- Before reading a symbol, use `get_symbol_source`; before reading a file, use `get_file_outline` or `get_file_summary`.",
-    "- Before searching broadly, use `search_symbols`, `find_files`, or `search_text`.",
-    "- For bounded implementation context, use `get_context_bundle` or `get_ranked_context`.",
-    "- Before exploring structure, use `get_file_tree` or `get_repo_outline`.",
-    "- Use raw file reads or shell search only when Astrograph cannot answer the question.",
+    ...agentsPolicyLines(profile),
     AGENTS_POLICY_END,
   ].join("\n");
 }
 
 // copilot-instructions.md block — used by GitHub Copilot (VS Code), which reads
 // .github/copilot-instructions.md as persistent repository-wide instructions.
-function agentsPolicyBlockForCopilotInstructions(): string {
+function agentsPolicyBlockForCopilotInstructions(profile: McpRuntimeProfile): string {
   return [
     AGENTS_POLICY_BEGIN,
     "## Code Exploration with Astrograph",
     "",
     "Astrograph MCP tools are configured for this repository. Use them for code intelligence before falling back to raw file reads.",
     "",
-    "- Use `get_project_status` to check the index; run `index_folder` if stale.",
-    "- Use `get_file_outline`, `get_file_summary`, or `get_symbol_source` before opening raw source.",
-    "- Use `search_symbols`, `find_files`, or `search_text` for discovery.",
-    "- Use `get_context_bundle` or `get_ranked_context` for bounded implementation context.",
-    "- Use `get_file_tree` or `get_repo_outline` to understand structure.",
-    "- Fall back to raw file access only when Astrograph tools cannot answer the question.",
+    ...agentsPolicyLines(profile).map((line) => line.replace("Use raw file reads", "Fall back to raw file access")),
     AGENTS_POLICY_END,
   ].join("\n");
 }
@@ -779,11 +854,11 @@ function resolvePolicyFilePath(ide: InstallIde, repoRoot: string): string {
   return path.join(repoRoot, "AGENTS.md");
 }
 
-function agentsPolicyBlockForIde(ide: InstallIde): string {
+function agentsPolicyBlockForIde(ide: InstallIde, profile: McpRuntimeProfile): string {
   if (ide === "copilot") {
-    return agentsPolicyBlockForCopilotInstructions();
+    return agentsPolicyBlockForCopilotInstructions(profile);
   }
-  return agentsPolicyBlockForAgentsMd();
+  return agentsPolicyBlockForAgentsMd(profile);
 }
 
 function replaceManagedAgentsPolicy(contents: string, block: string): string {
@@ -802,6 +877,7 @@ async function writeAgentsPolicy(
   repoRoot: string,
   dryRun: boolean,
   enabled: boolean,
+  profile: McpRuntimeProfile,
   ide: InstallIde = "codex",
 ): Promise<AgentsPolicyResult> {
   const agentsPolicyPath = resolvePolicyFilePath(ide, repoRoot);
@@ -813,7 +889,7 @@ async function writeAgentsPolicy(
     };
   }
 
-  const block = agentsPolicyBlockForIde(ide);
+  const block = agentsPolicyBlockForIde(ide, profile);
   const currentContents = await readFile(agentsPolicyPath, "utf8").catch(() => "");
   const nextContents = replaceManagedAgentsPolicy(currentContents, block);
   if (nextContents === currentContents) {
@@ -890,8 +966,9 @@ function replaceManagedServerInJson(
   ) + "\n";
 }
 
-function managedConfigForCopilot(ide: InstallIde): InstalledObject {
-  const invocation = resolveManagedInvocation();
+function managedConfigForCopilot(ide: InstallIde, profile: McpRuntimeProfile): InstalledObject {
+  const invocation = resolveManagedInvocation(profile);
+  const tools = getMcpToolsForProfile(profile);
 
   if (ide === "copilot-cli") {
     return {
@@ -899,7 +976,7 @@ function managedConfigForCopilot(ide: InstallIde): InstalledObject {
       command: invocation.command,
       args: invocation.args,
       cwd: ".",
-      tools: MCP_TOOLS,
+      tools,
     };
   }
 
@@ -914,12 +991,13 @@ function managedConfigForCopilot(ide: InstallIde): InstalledObject {
 function resolveManagedConfig(
   ide: InstallIde,
   repoRoot: string,
+  profile: McpRuntimeProfile,
   currentContents: string,
 ): ManagedConfig {
   if (ide === "codex") {
     return {
       configPath: path.join(repoRoot, ".codex", "config.toml"),
-      nextContents: replaceManagedBlock(currentContents, astrographConfigBlock()),
+      nextContents: replaceManagedBlock(currentContents, astrographConfigBlock(profile)),
     };
   }
 
@@ -934,23 +1012,24 @@ function resolveManagedConfig(
       currentContents,
       configPath,
       rootKey,
-      managedConfigForCopilot(ide),
+      managedConfigForCopilot(ide, profile),
     ),
   };
 }
 
 export async function setupForIde(
   repoRoot: string,
-  { ide = "codex", dryRun = false }: SetupForIdeOptions = {},
+  { ide = "codex", dryRun = false, mcpProfile = DEFAULT_MCP_PROFILE }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
-  const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "");
+  const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, mcpProfile, "");
   const engineConfigPath = path.join(resolvedRepoRoot, "astrograph.config.ts");
   const engineConfigPreview = createMinimalTsConfig();
   const currentContents = await readFile(configPath, "utf8").catch(() => "");
   const { configPath: finalConfigPath, nextContents } = resolveManagedConfig(
     ide,
     resolvedRepoRoot,
+    mcpProfile,
     currentContents,
   );
 
@@ -962,6 +1041,7 @@ export async function setupForIde(
 
   return {
     ide,
+    mcpProfile,
     repoRoot: resolvedRepoRoot,
     configPath: finalConfigPath,
     engineConfigPath,
@@ -980,9 +1060,9 @@ export async function setupForIde(
 
 export async function setupForCodex(
   repoRoot: string,
-  { dryRun = false }: SetupForIdeOptions = {},
+  { dryRun = false, mcpProfile = DEFAULT_MCP_PROFILE }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
-  return setupForIde(repoRoot, { ide: "codex", dryRun });
+  return setupForIde(repoRoot, { ide: "codex", dryRun, mcpProfile });
 }
 
 export async function setupForAllIdes(
@@ -991,6 +1071,7 @@ export async function setupForAllIdes(
     ides = [...DEFAULT_INSTALL_IDES],
     dryRun = false,
     agentsPolicy = false,
+    mcpProfile = DEFAULT_MCP_PROFILE,
   }: SetupForAllOptions = {},
 ): Promise<SetupResult | SetupResult[]> {
   const normalizedIdes = validateIdes({ ides }).ides;
@@ -1002,11 +1083,12 @@ export async function setupForAllIdes(
 
   const results: SetupResult[] = [];
   for (const ide of normalizedIdes) {
-    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun });
+    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun, mcpProfile });
     const agentsPolicyResult = await writeAgentsPolicy(
       resolvedRepoRoot,
       dryRun,
       agentsPolicy,
+      mcpProfile,
       ide,
     );
 
@@ -1043,6 +1125,7 @@ async function main(): Promise<void> {
     ? {
       ...validateIdes({ ides: normalizedArgs.ides ?? [] }),
       repo: normalizedArgs.repo,
+      mcpProfile: normalizedArgs.mcpProfile,
       dryRun: normalizedArgs.dryRun,
       agentsPolicy: normalizedArgs.agentsPolicy,
     }
@@ -1052,6 +1135,7 @@ async function main(): Promise<void> {
     ides: args.ides,
     dryRun: args.dryRun,
     agentsPolicy: args.agentsPolicy,
+    mcpProfile: args.mcpProfile,
   });
 
   emitUpdateSuggestion(PACKAGE_VERSION);

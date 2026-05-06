@@ -124,6 +124,7 @@ import type {
   CompactDependencyGraphResult,
   CompactQueryCodeResult,
   CompactRankedContextResult,
+  CompactFindReferencesResult,
   DiagnosticsOptions,
   DiagnosticsResult,
   DoctorResult,
@@ -2269,18 +2270,26 @@ export async function findImporters(
     const importers = loadDirectImporterEntries(context.db, input.filePath)
       .slice(0, input.limit ?? Number.POSITIVE_INFINITY);
 
-    return {
+    const result = {
       filePath: input.filePath,
       importers,
     };
+
+    return shapeToolResult("find_importers", result, input.detailLevel) as FindImportersResult;
   } finally {
     closeEngineContext(context);
   }
 }
 
 export async function findReferences(
+  input: FindReferencesOptions & { detailLevel: "compact" | "auto" },
+): Promise<CompactFindReferencesResult>;
+export async function findReferences(
+  input: FindReferencesOptions & { detailLevel?: undefined | "full" },
+): Promise<FindReferencesResult>;
+export async function findReferences(
   input: FindReferencesOptions,
-): Promise<FindReferencesResult> {
+): Promise<FindReferencesResult | CompactFindReferencesResult> {
   validateFindReferencesOptions(input);
   const context = await createEngineContext(input);
 
@@ -2310,10 +2319,13 @@ export async function findReferences(
       }
     }
 
-    return {
+    const result = {
       symbol: mapSymbolRow(seedRow),
       references,
     };
+
+    return shapeToolResult("find_references", result, input.detailLevel) as
+      FindReferencesResult | CompactFindReferencesResult;
   } finally {
     closeEngineContext(context);
   }

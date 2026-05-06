@@ -5,10 +5,13 @@ import type {
   DependencyGraphResult,
   DiagnosticsResult,
   FindFilesMatch,
+  FindReferencesResult,
   FileTreeEntry,
   FileSummaryResult,
   IndexSummary,
   ProjectStatusResult,
+  CompactFindReferencesResult,
+  CompactReferenceMatch,
   QueryCodeResult,
   RankedContextResult,
   RepoOutline,
@@ -490,6 +493,27 @@ function compactQueryCodeResult(result: QueryCodeResult) {
   return result;
 }
 
+function compactReferenceMatch(match: {
+  symbol: SymbolSummary;
+  source: string;
+  importedSymbols: string[];
+}): CompactReferenceMatch {
+  return {
+    symbol: compactSymbolSummary(match.symbol),
+    source: match.source,
+    importedSymbols: match.importedSymbols,
+  };
+}
+
+function compactFindReferencesResult(
+  result: FindReferencesResult,
+): CompactFindReferencesResult {
+  return {
+    symbol: compactSymbolSummary(result.symbol),
+    references: result.references.map((reference) => compactReferenceMatch(reference)),
+  };
+}
+
 function shouldCompact(toolName: string, value: unknown): boolean {
   const normalizedToolName = normalizeToolName(toolName);
 
@@ -516,6 +540,11 @@ function shouldCompact(toolName: string, value: unknown): boolean {
     if (result.intent === "assemble") {
       return result.bundle.items.length > 3 || (result.ranked?.candidateCount ?? 0) > 5;
     }
+  }
+
+  if (normalizedToolName === "find_references") {
+    const result = value as FindReferencesResult;
+    return result.references.length > 5;
   }
 
   return false;
@@ -546,6 +575,9 @@ export function shapeToolResult(
   }
   if (normalizedToolName === "query_code") {
     return compactQueryCodeResult(value as QueryCodeResult);
+  }
+  if (normalizedToolName === "find_references") {
+    return compactFindReferencesResult(value as FindReferencesResult);
   }
 
   return value;

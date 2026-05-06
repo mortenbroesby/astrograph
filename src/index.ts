@@ -97,6 +97,7 @@ export type {
   FileSummarySource,
   FileTreeEntry,
   CompactContextBundle,
+  CompactFindReferencesResult,
   CompactDependencyGraphResult,
   CompactQueryCodeResult,
   CompactRankedContextResult,

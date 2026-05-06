@@ -21,6 +21,13 @@ import {
   buildToolFailureTokenEstimate,
   summarizeToolCompletion,
 } from "./tool-observability.ts";
+import {
+  MCP_PROFILE_NAMES,
+  getMcpProfileFromValue,
+  type McpRuntimeProfile,
+  getMcpToolsForProfile,
+  parseMcpProfile,
+} from "./mcp-profiles.ts";
 
 type EngineModule = typeof import("./index.ts");
 
@@ -202,6 +209,20 @@ function assertCompactSymbolSummary(value: unknown): value is Record<string, unk
   return true;
 }
 
+function assertFindReferencesSymbol(value: unknown): value is Record<string, unknown> {
+  assertIsObject(value);
+  if (!ensureString(value.id)) {
+    throw new Error("find_references symbol summary must include id");
+  }
+
+  if ("summary" in value && "summarySource" in value && "signature" in value) {
+    assertSymbolSummary(value);
+    return true;
+  }
+
+  return assertCompactSymbolSummary(value);
+}
+
 function validateSearchSymbolsOutput(result: unknown) {
   if (!Array.isArray(result)) {
     throw new Error("search_symbols output must be an array");
@@ -233,13 +254,13 @@ function validateFindImportersOutput(result: unknown) {
 
 function validateFindReferencesOutput(result: unknown) {
   assertIsObject(result);
-  assertSymbolSummary(result.symbol);
+  assertFindReferencesSymbol(result.symbol);
   if (!Array.isArray(result.references)) {
     throw new Error("find_references output must include references");
   }
   for (const reference of result.references) {
     assertIsObject(reference);
-    assertSymbolSummary(reference.symbol);
+    assertFindReferencesSymbol(reference.symbol);
     if (!ensureString(reference.source)) {
       throw new Error("find_references reference must include source");
     }
@@ -602,12 +623,18 @@ export async function dispatchTool(
 }
 
 export function createMcpServer() {
+  const profile = resolveMcpProfileFromArgs(process.argv.slice(2));
+  const enabledTools = new Set<string>(getMcpToolsForProfile(profile));
+
   const server = new McpServer({
     name: MCP_SERVER_NAME,
     version: MCP_SERVER_VERSION,
   });
 
   for (const tool of MCP_TOOL_DEFINITIONS) {
+    if (!enabledTools.has(tool.name)) {
+      continue;
+    }
     server.registerTool(tool.name, {
       description: tool.description,
       inputSchema: tool.inputSchema,
@@ -616,6 +643,44 @@ export function createMcpServer() {
   }
 
   return server;
+}
+
+function getCliMcpProfile(args: string[]): string | undefined {
+  for (let index = 0; index < args.length; index += 1) {
+    const token = args[index];
+    if (!token) {
+      continue;
+    }
+    if (token === "--mcp-profile") {
+      const next = args[index + 1];
+      if (!next || next.startsWith("--")) {
+        throw new Error("Missing value for --mcp-profile");
+      }
+      return next;
+    }
+    if (token.startsWith("--mcp-profile=")) {
+      const split = token.split("=", 2);
+      return split[1];
+    }
+  }
+
+  return process.env.ASTROGRAPH_MCP_PROFILE;
+}
+
+export function resolveMcpProfileFromArgs(args: string[]): McpRuntimeProfile {
+  const requestedProfile = getCliMcpProfile(args);
+  const parsedProfile = parseMcpProfile(requestedProfile);
+  if (requestedProfile !== undefined && !parsedProfile) {
+    throw new Error(
+      "Unsupported --mcp-profile: "
+      + `${requestedProfile}. Expected one of: ${getSupportedMcpProfiles().join(", ")}`,
+    );
+  }
+  return getMcpProfileFromValue(requestedProfile);
+}
+
+export function getSupportedMcpProfiles(): string[] {
+  return [...MCP_PROFILE_NAMES];
 }
 
 async function main() {

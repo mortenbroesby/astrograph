@@ -34,6 +34,7 @@ npx astrograph init --ide codex
 npx astrograph init --ide copilot
 npx astrograph init --ide copilot-cli
 npx astrograph init --ide all
+npx astrograph init --mcp-profile core --ide codex
 ```
 
 For non-interactive setup:

@@ -682,6 +682,13 @@ module.exports = {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
+    const [formatLabel] = await searchSymbols({
+      repoRoot,
+      query: "formatLabel",
+      limit: 1,
+    });
+    expect(formatLabel).toBeDefined();
+    expect(formatLabel!.name).toBe("formatLabel");
 
     const compactBundle = await getContextBundle({
       repoRoot,
@@ -721,6 +728,24 @@ module.exports = {
       symbolMatchCount: expect.any(Number),
       graphMatchCount: expect.any(Number),
     });
+
+    const compactReferences = await findReferences({
+      repoRoot,
+      symbolId: formatLabel!.stableId,
+      detailLevel: "compact",
+    });
+    expect(compactReferences).toMatchObject({
+      symbol: {
+        id: formatLabel!.id,
+        filePath: "src/strings.ts",
+        kind: "function",
+      },
+    });
+    expect("signature" in compactReferences.symbol).toBe(false);
+    expect("summary" in compactReferences.symbol).toBe(false);
+    expect(compactReferences.references).toHaveLength(1);
+    expect("signature" in compactReferences.references[0]!.symbol).toBe(false);
+    expect("summary" in compactReferences.references[0]!.symbol).toBe(false);
   });
 
   it("falls back to live-disk text search when the index is missing", async () => {

@@ -40,6 +40,7 @@ Common profiles:
 ```bash
 npx astrograph init --ide copilot
 npx astrograph init --yes --ide codex --repo /repo
+npx astrograph init --mcp-profile standard --yes --ide all --repo /repo
 npx astrograph init --yes --ide all --repo /repo
 npx astrograph init --yes --ide codex,copilot-cli --repo /repo
 ```

@@ -5,9 +5,11 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   diagnostics,
+  findReferences,
   getContextBundle,
   getDependencyGraph,
   findFiles,
+  searchSymbols,
   getFileSummary,
   getProjectStatus,
   getFileTree,
@@ -111,6 +113,17 @@ describe("machine result serialization", () => {
       includeDependencies: true,
       relationDepth: 1,
     });
+    const formatLabel = (await searchSymbols({
+      repoRoot,
+      query: "formatLabel",
+      limit: 1,
+    }))[0];
+    const references = formatLabel
+      ? await findReferences({
+        repoRoot,
+        symbolId: formatLabel.stableId,
+      })
+      : null;
 
     const compactBundle = JSON.parse(
       serializeToolResult("get_context_bundle", bundle, { detailLevel: "compact" }),
@@ -156,6 +169,22 @@ describe("machine result serialization", () => {
       symbolMatchCount: expect.any(Number),
       graphMatchCount: expect.any(Number),
     });
+
+    if (references) {
+      const compactReferences = JSON.parse(
+        serializeToolResult("find_references", references, { detailLevel: "compact" }),
+      );
+      expect(compactReferences).toMatchObject({
+        symbol: {
+          id: expect.any(String),
+          filePath: expect.any(String),
+        },
+      });
+      expect("signature" in compactReferences.symbol).toBe(false);
+      expect("summary" in compactReferences.symbol).toBe(false);
+      expect("signature" in compactReferences.references[0]!.symbol).toBe(false);
+      expect("summary" in compactReferences.references[0]!.symbol).toBe(false);
+    }
   }, 15_000);
 
   it("can still produce CLI-compatible pretty JSON when requested", async () => {

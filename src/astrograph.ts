@@ -16,7 +16,7 @@ function usage() {
     "  astrograph cli <args...>",
     "  astrograph mcp",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
-    "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--dry-run]",
+    "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--mcp-profile core|standard|full] [--repo /abs/repo] [--yes] [--dry-run]",
     "  astrograph init --ide codex",
   ].join("\n") + "\n",
 );

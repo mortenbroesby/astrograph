@@ -34,6 +34,7 @@ import {
   getCommandByMcpToolName,
 } from "../src/command-registry.ts";
 import { MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
+import { getMcpToolsForProfile } from "../src/mcp-profiles.ts";
 import { setupForAllIdes, setupForCodex, setupForIde } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 
@@ -90,7 +91,7 @@ describe("ai-context-engine contract", () => {
     expect(config.paths.databasePath).toContain(".astrograph/index.sqlite");
     expect(config.fileProcessingConcurrency).toBeGreaterThanOrEqual(2);
     expect(ENGINE_STORAGE_VERSION).toBe(1);
-    expect(ENGINE_SCHEMA_VERSION).toBe(4);
+    expect(ENGINE_SCHEMA_VERSION).toBe(5);
   });
 
   it("advertises the required engine tools", () => {
@@ -107,7 +108,10 @@ describe("ai-context-engine contract", () => {
       "get_file_outline",
       "suggest_initial_queries",
       "search_symbols",
+      "find_importers",
+      "find_references",
       "get_symbol_source",
+      "get_dependency_graph",
       "get_context_bundle",
       "get_ranked_context",
       "diagnostics",
@@ -834,6 +838,110 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).not.toContain('"query_code"');
     expect(result.configPreview).toContain('"suggest_initial_queries"');
     expect(result.configPreview).toContain('"diagnostics"');
+  });
+
+  it("writes profile-based tool lists for Codex setup", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-codex-core-"));
+    tempDirs.push(repoRoot);
+
+    const coreTools = getMcpToolsForProfile("core");
+    const fullTools = getMcpToolsForProfile("full");
+    const expected = new Set(coreTools);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await setupForIde(repoRoot, {
+      ide: "codex",
+      dryRun: true,
+      mcpProfile: "core",
+    });
+
+    for (const tool of coreTools) {
+      expect(result.configPreview).toContain(`"${tool}"`);
+    }
+    for (const tool of fullTools) {
+      if (expected.has(tool)) {
+        continue;
+      }
+      expect(result.configPreview).not.toContain(`"${tool}"`);
+    }
+    expect(result.configPreview).toContain('\"--mcp-profile\"');
+    expect(result.configPreview).toContain('"core"');
+  });
+
+  it("writes full tool list for standard Codex profile setup", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-codex-standard-"));
+    tempDirs.push(repoRoot);
+    const standardTools = getMcpToolsForProfile("standard");
+    const fullTools = getMcpToolsForProfile("full");
+    const expected = new Set(standardTools);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await setupForIde(repoRoot, {
+      ide: "codex",
+      dryRun: true,
+      mcpProfile: "standard",
+    });
+
+    for (const tool of standardTools) {
+      expect(result.configPreview).toContain(`"${tool}"`);
+    }
+    for (const tool of fullTools) {
+      if (expected.has(tool)) {
+        continue;
+      }
+      expect(result.configPreview).not.toContain(`"${tool}"`);
+    }
+    expect(result.configPreview).toContain('\"--mcp-profile\"');
+    expect(result.configPreview).toContain('"standard"');
+  });
+
+  it("writes profile-based tools for Copilot CLI setup", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-copilot-cli-standard-"));
+    tempDirs.push(repoRoot);
+
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], {
+        cwd: repoRoot,
+        stdio: ["ignore", "ignore", "ignore"],
+      });
+    });
+
+    const result = await setupForIde(repoRoot, {
+      ide: "copilot-cli",
+      dryRun: true,
+      mcpProfile: "standard",
+    });
+
+    const preview = JSON.parse(result.configPreview);
+    const cliTools = preview.mcpServers?.astrograph?.tools as string[] | undefined;
+    expect(Array.isArray(cliTools)).toBe(true);
+
+    const standardTools = getMcpToolsForProfile("standard");
+    const fullTools = getMcpToolsForProfile("full");
+    const expected = new Set(standardTools);
+    for (const tool of standardTools) {
+      expect(cliTools).toContain(tool);
+    }
+    for (const tool of fullTools) {
+      if (expected.has(tool)) {
+        continue;
+      }
+      expect(cliTools).not.toContain(tool);
+    }
+    expect(result.configPreview).toContain('\"--mcp-profile\"');
+    expect(result.configPreview).toContain('"standard"');
   });
 
   it("supports installing all requested IDEs in one run", async () => {

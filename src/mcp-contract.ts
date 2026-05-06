@@ -398,12 +398,14 @@ export const MCP_TOOL_DEFINITIONS = [
       repoRoot: stringSchema("Repository root path"),
       filePath: stringSchema("Path relative to the repository root"),
       limit: numberSchema("Optional maximum number of importer results").optional(),
+      detailLevel: detailLevelSchema("Response detail level").optional(),
     },
     execute: async (engine, args) => {
       const input = {
         repoRoot: requireString(args, "repoRoot"),
         filePath: requireString(args, "filePath"),
         limit: optionalNumber(args, "limit"),
+        detailLevel: optionalDetailLevel(args.detailLevel),
       };
       validateFindImportersOptions(input);
       return COMMAND_REGISTRY.findImporters.execute(engine, input);
@@ -417,12 +419,14 @@ export const MCP_TOOL_DEFINITIONS = [
       repoRoot: stringSchema("Repository root path"),
       symbolId: stringSchema("Indexed symbol id or stable id"),
       limit: numberSchema("Optional maximum number of reference results").optional(),
+      detailLevel: detailLevelSchema("Response detail level").optional(),
     },
     execute: async (engine, args) => {
       const input = {
         repoRoot: requireString(args, "repoRoot"),
         symbolId: requireString(args, "symbolId"),
         limit: optionalNumber(args, "limit"),
+        detailLevel: optionalDetailLevel(args.detailLevel),
       };
       validateFindReferencesOptions(input);
       return COMMAND_REGISTRY.findReferences.execute(engine, input);

@@ -269,22 +269,25 @@ export function validateFileSummaryOptions(
 }
 
 export function validateFindImportersOptions(
-  input: Pick<FindImportersOptions, "filePath" | "limit">,
+  input: Pick<FindImportersOptions, "filePath" | "limit" | "detailLevel">,
 ): void {
   trimRequiredString(input.filePath, "find_importers requires a non-empty filePath");
   if (input.limit !== undefined) {
     requirePositiveNumber(input.limit, "limit");
   }
+  validateDetailLevel(input);
 }
 
 export function validateFindReferencesOptions(input: {
   symbolId: string;
   limit?: number;
+  detailLevel?: "full" | "compact" | "auto";
 }): void {
   trimRequiredString(input.symbolId, "find_references requires a non-empty symbolId");
   if (input.limit !== undefined) {
     requirePositiveNumber(input.limit, "limit");
   }
+  validateDetailLevel(input);
 }
 
 export function validateDetailLevel(input: {

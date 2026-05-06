@@ -148,6 +148,7 @@ npx astrograph init --ide codex
 npx astrograph init --ide copilot
 npx astrograph init --ide copilot-cli
 npx astrograph init --ide all
+npx astrograph init --mcp-profile full --yes --repo /absolute/path/to/repo
 ```
 
 For a fresh repository, create the initial index before first use:

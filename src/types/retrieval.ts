@@ -85,6 +85,7 @@ export interface FindImportersOptions {
   repoRoot: string;
   filePath: string;
   limit?: number;
+  detailLevel?: DetailLevel;
 }
 
 export interface ImporterMatch {
@@ -102,6 +103,7 @@ export interface FindReferencesOptions {
   repoRoot: string;
   symbolId: string;
   limit?: number;
+  detailLevel?: DetailLevel;
 }
 
 export interface ReferenceMatch {
@@ -113,6 +115,17 @@ export interface ReferenceMatch {
 export interface FindReferencesResult {
   symbol: SymbolSummary;
   references: ReferenceMatch[];
+}
+
+export interface CompactReferenceMatch {
+  symbol: CompactSymbolSummary;
+  source: string;
+  importedSymbols: string[];
+}
+
+export interface CompactFindReferencesResult {
+  symbol: CompactSymbolSummary;
+  references: CompactReferenceMatch[];
 }
 
 export type DetailLevel = "full" | "compact" | "auto";
