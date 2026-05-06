@@ -8,8 +8,8 @@ Astrograph exposes three main command surfaces:
 
 Use `astrograph mcp` when you want to run the stdio MCP server directly.
 
-If Astrograph is not globally installed on your shell `PATH`, prefer
-`npx astrograph ...` or `pnpm exec astrograph ...`.
+Prefer `npx astrograph ...` or `pnpm exec astrograph ...` unless you have
+already verified another local invocation path in your environment.
 
 ## Command Groups
 

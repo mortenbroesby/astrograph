@@ -110,12 +110,6 @@ Use dependency-based setup if you want `astrograph` available in repo scripts:
 npm install -D astrograph
 ```
 
-Or install globally:
-
-```bash
-npm install -g astrograph
-```
-
 If you prefer one-shot setup without a prior install:
 
 ```bash
@@ -147,9 +141,6 @@ npx astrograph init --ide copilot
 npx astrograph init --ide copilot-cli
 npx astrograph init --ide all
 ```
-
-If you installed Astrograph globally, you can omit `npx` and run `astrograph`
-directly.
 
 For a fresh repository, create the initial index before first use:
 

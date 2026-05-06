@@ -10,12 +10,6 @@ If you want Astrograph available in your repository scripts:
 npm install -D astrograph
 ```
 
-If you prefer a global install:
-
-```bash
-npm install -g astrograph
-```
-
 If you just want to initialize once:
 
 ```bash
@@ -47,9 +41,6 @@ For non-interactive setup:
 ```bash
 npx astrograph init --yes --repo /absolute/path/to/repo
 ```
-
-If you installed Astrograph globally, you can omit `npx` and run `astrograph`
-directly.
 
 ## 3. Create the Initial Index
 
