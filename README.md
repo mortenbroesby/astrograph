@@ -33,7 +33,7 @@
 
 ---
 
-## Why Astrograph
+## 🔭 Why Astrograph
 
 Astrograph gives AI coding agents structured, local access to the codebase they
 are working in.
@@ -49,7 +49,7 @@ The result is straightforward:
 - less context bloat in long-running agent sessions
 - a better default than guessing from partial snippets
 
-## What It Is
+## 🧭 What It Is
 
 Astrograph is a local MCP server and CLI for code intelligence. It indexes your
 repository locally and exposes focused tools for file outlines, symbol lookup,
@@ -59,7 +59,7 @@ Use it when you want an agent to ask targeted questions about real code
 structure instead of reading half the repository and hoping it found the right
 thing.
 
-## What It Is Not
+## 🚫 What It Is Not
 
 Astrograph is not:
 
@@ -72,7 +72,7 @@ It is the code-intelligence layer: local-first, source-grounded, and
 deterministic enough to give agents a better starting point than grep plus huge
 context windows.
 
-## Use Cases
+## ✨ Use Cases
 
 Reach for Astrograph when you want an agent to:
 
@@ -82,7 +82,7 @@ Reach for Astrograph when you want an agent to:
 - gather precise source context before planning or patching code
 - stay efficient in larger repos where broad context gets noisy and expensive
 
-## How It Works
+## ⚙️ How It Works
 
 Astrograph indexes your codebase locally and exposes structured tools over MCP
 and CLI surfaces. Instead of treating the repository like raw text, agents can
@@ -92,7 +92,7 @@ context bundles.
 That is where the token savings come from: better questions, smaller retrievals,
 and fewer blind scans.
 
-## Why Not Just Grep and File Reads?
+## 🪓 Why Not Just Grep and File Reads?
 
 Because the default agent fallback is usually too blunt.
 
@@ -100,7 +100,7 @@ Broad search, repeated full-file reads, and oversized context windows are noisy,
 expensive, and easy to derail. Astrograph gives the agent structured access to
 code so it can retrieve less and understand more.
 
-## Quick Start
+## 🚀 Quick Start
 
 ### 1) Install
 
@@ -153,7 +153,7 @@ npx astrograph cli index-folder --repo /absolute/path/to/repo
 Once the MCP config is written, start your editor or CLI agent session and use
 Astrograph's retrieval tools against the local repository.
 
-## IDE Setup
+## 🧩 IDE Setup
 
 Astrograph currently supports MCP setup for Codex, GitHub Copilot, and GitHub
 Copilot CLI.
@@ -183,7 +183,7 @@ npx astrograph init --yes --ide all --repo /absolute/path/to/repo
 npx astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
 ```
 
-## Documentation
+## 📚 Documentation
 
 The README is the short version. Use the docs for operational detail:
 
@@ -195,27 +195,27 @@ The README is the short version. Use the docs for operational detail:
 - [Release reference](./docs/reference/release.md)
 - [Ralph runner](./docs/guides/ralph-runner.md)
 
-## Project Status
+## 🧪 Project Status
 
 Astrograph is still early. Expect rough edges, but the core value proposition is
 already usable today.
 
-## Install Details
+## 📦 Install Details
 
 - Node target: `>=24`
 - Entry command: `astrograph`
 
-## License
+## ⚖️ License
 
 MIT. See [LICENSE](./LICENSE).
 
-## Acknowledgements
+## 🙏 Acknowledgements
 
 - `pnpm`, `Turborepo`, `Vite`, `React`, and `Vitest` for the core workspace foundation
 
 ---
 
-## Author
+## 👤 Author
 
 **Morten Broesby-Olsen** (mortenbroesby)
 
