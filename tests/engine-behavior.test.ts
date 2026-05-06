@@ -678,6 +678,51 @@ module.exports = {
     ]);
   });
 
+  it("supports compact detailLevel directly through the engine contract", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await indexFolder({ repoRoot });
+
+    const compactBundle = await getContextBundle({
+      repoRoot,
+      query: "Greeter",
+      tokenBudget: 120,
+      detailLevel: "compact",
+    });
+    expect(compactBundle).toMatchObject({
+      itemCount: expect.any(Number),
+    });
+    expect("source" in compactBundle.items[0]!).toBe(false);
+
+    const compactGraph = await getDependencyGraph({
+      repoRoot,
+      filePath: "src/math.ts",
+      direction: "dependencies",
+      relationDepth: 1,
+      detailLevel: "compact",
+    });
+    expect(compactGraph).toMatchObject({
+      nodeCount: expect.any(Number),
+      edgeCount: expect.any(Number),
+    });
+    expect(compactGraph.nodes[0]).toEqual(expect.any(String));
+
+    const compactDiscover = await queryCode({
+      repoRoot,
+      intent: "discover",
+      query: "Greeter",
+      detailLevel: "compact",
+    });
+    expect(compactDiscover.intent).toBe("discover");
+    if (compactDiscover.intent !== "discover") {
+      throw new Error("Expected compact discover result");
+    }
+    expect(compactDiscover).toMatchObject({
+      symbolMatchCount: expect.any(Number),
+      graphMatchCount: expect.any(Number),
+    });
+  });
+
   it("falls back to live-disk text search when the index is missing", async () => {
     const repoRoot = await createFixtureRepo();
 

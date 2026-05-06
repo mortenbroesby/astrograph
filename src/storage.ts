@@ -105,9 +105,11 @@ import {
   searchSymbolsInContext,
   searchTextInContext,
 } from "./retrieval.ts";
+import { shapeToolResult } from "./serialization.ts";
 import { subscribeRepo } from "./watch-backend.ts";
 import { buildDiagnosticsResult } from "./diagnostics.ts";
 import {
+  validateDetailLevel,
   validateFindFilesOptions,
   validateFindImportersOptions,
   validateFindReferencesOptions,
@@ -118,6 +120,10 @@ import {
   validateSearchSymbolsOptions,
 } from "./validation.ts";
 import type {
+  CompactContextBundle,
+  CompactDependencyGraphResult,
+  CompactQueryCodeResult,
+  CompactRankedContextResult,
   DiagnosticsOptions,
   DiagnosticsResult,
   DoctorResult,
@@ -145,6 +151,7 @@ import type {
   ProjectStatusResult,
   QueryCodeOptions,
   QueryCodeResult,
+  RankedContextOptions,
   RankedContextResult,
   RepoOutline,
   SearchSymbolsOptions,
@@ -2313,8 +2320,17 @@ export async function findReferences(
 }
 
 export async function getDependencyGraph(
+  input: DependencyGraphOptions & { detailLevel: "compact" | "auto" },
+): Promise<CompactDependencyGraphResult>;
+export async function getDependencyGraph(
+  input: DependencyGraphOptions & { detailLevel?: undefined | "full" },
+): Promise<DependencyGraphResult>;
+export async function getDependencyGraph(
   input: DependencyGraphOptions,
-): Promise<DependencyGraphResult> {
+): Promise<DependencyGraphResult | CompactDependencyGraphResult>;
+export async function getDependencyGraph(
+  input: DependencyGraphOptions,
+): Promise<DependencyGraphResult | CompactDependencyGraphResult> {
   validateDependencyGraphOptions(input);
   const context = await createEngineContext(input);
 
@@ -2367,7 +2383,7 @@ export async function getDependencyGraph(
       }
     }
 
-    return {
+    const result: DependencyGraphResult = {
       rootFilePath: input.filePath,
       relationDepth,
       direction,
@@ -2381,6 +2397,9 @@ export async function getDependencyGraph(
           || left.source.localeCompare(right.source),
       ),
     };
+    return shapeToolResult("get_dependency_graph", result, input.detailLevel) as
+      | DependencyGraphResult
+      | CompactDependencyGraphResult;
   } finally {
     closeEngineContext(context);
   }
@@ -2573,8 +2592,18 @@ export async function getProjectStatus(
 }
 
 export async function queryCode(
+  input: QueryCodeOptions & { detailLevel: "compact" | "auto" },
+): Promise<CompactQueryCodeResult>;
+export async function queryCode(
+  input: QueryCodeOptions & { detailLevel?: undefined | "full" },
+): Promise<QueryCodeResult>;
+export async function queryCode(
   input: QueryCodeOptions,
-): Promise<QueryCodeResult> {
+): Promise<QueryCodeResult | CompactQueryCodeResult>;
+export async function queryCode(
+  input: QueryCodeOptions,
+): Promise<QueryCodeResult | CompactQueryCodeResult> {
+  validateDetailLevel(input);
   const resolvedIntent = resolveQueryCodeIntent(input);
   if (
     resolvedIntent === "discover"
@@ -2591,7 +2620,7 @@ export async function queryCode(
       maxMatches: Math.min(config.maxLiveSearchMatches, config.maxTextResults),
       maxOutputBytes: config.maxChildProcessOutputBytes,
     });
-    return {
+    const result: QueryCodeResult = {
       intent: "discover",
       query: input.query ?? "",
       symbolMatches: [],
@@ -2599,43 +2628,67 @@ export async function queryCode(
       matches: [],
       textMatchResults: buildTextMatchResults(textMatches),
     };
+    return shapeToolResult("query_code", result, input.detailLevel) as
+      | QueryCodeResult
+      | CompactQueryCodeResult;
   }
 
   const context = await createEngineContext(input);
 
   try {
-    return queryCodeInContext(context, input, resolvedIntent);
+    const result = queryCodeInContext(context, input, resolvedIntent);
+    return shapeToolResult("query_code", result, input.detailLevel) as
+      | QueryCodeResult
+      | CompactQueryCodeResult;
   } finally {
     closeEngineContext(context);
   }
 }
 
 export async function getContextBundle(
+  input: ContextBundleOptions & { detailLevel: "compact" | "auto" },
+): Promise<CompactContextBundle>;
+export async function getContextBundle(
+  input: ContextBundleOptions & { detailLevel?: undefined | "full" },
+): Promise<ContextBundle>;
+export async function getContextBundle(
   input: ContextBundleOptions,
-): Promise<ContextBundle> {
+): Promise<ContextBundle | CompactContextBundle>;
+export async function getContextBundle(
+  input: ContextBundleOptions,
+): Promise<ContextBundle | CompactContextBundle> {
   const context = await createEngineContext(input);
 
   try {
-    return getContextBundleFromContext(context, input);
+    const result = getContextBundleFromContext(context, input);
+    return shapeToolResult("get_context_bundle", result, input.detailLevel) as
+      | ContextBundle
+      | CompactContextBundle;
   } finally {
     closeEngineContext(context);
   }
 }
 
 
-export async function getRankedContext(input: {
-  repoRoot: string;
-  query: string;
-  tokenBudget?: number;
-  includeDependencies?: boolean;
-  includeImporters?: boolean;
-  includeReferences?: boolean;
-  relationDepth?: number;
-}): Promise<RankedContextResult> {
+export async function getRankedContext(
+  input: RankedContextOptions & { detailLevel: "compact" | "auto" },
+): Promise<CompactRankedContextResult>;
+export async function getRankedContext(
+  input: RankedContextOptions & { detailLevel?: undefined | "full" },
+): Promise<RankedContextResult>;
+export async function getRankedContext(
+  input: RankedContextOptions,
+): Promise<RankedContextResult | CompactRankedContextResult>;
+export async function getRankedContext(
+  input: RankedContextOptions,
+): Promise<RankedContextResult | CompactRankedContextResult> {
   const context = await createEngineContext(input);
 
   try {
-    return getRankedContextFromContext(context, input);
+    const result = getRankedContextFromContext(context, input);
+    return shapeToolResult("get_ranked_context", result, input.detailLevel) as
+      | RankedContextResult
+      | CompactRankedContextResult;
   } finally {
     closeEngineContext(context);
   }

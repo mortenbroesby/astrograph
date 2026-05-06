@@ -93,6 +93,7 @@ const commands: Record<string, CliHandler> = {
       filePath: requiredAny(args, ["file-path", "file"]),
       direction: optionalDependencyGraphDirection(args, "direction"),
       relationDepth: optionalNumber(args, "relation-depth"),
+      detailLevel: parseCliDetailLevel(args, "detail-level"),
     }),
   "get-context-bundle": async (args) =>
     COMMAND_REGISTRY.getContextBundle.execute(engine, {
@@ -104,6 +105,7 @@ const commands: Record<string, CliHandler> = {
       includeImporters: args["include-importers"] === "true",
       includeReferences: args["include-references"] === "true",
       relationDepth: optionalNumber(args, "relation-depth"),
+      detailLevel: parseCliDetailLevel(args, "detail-level"),
     }),
   "get-ranked-context": async (args) =>
     COMMAND_REGISTRY.getRankedContext.execute(engine, {
@@ -114,6 +116,7 @@ const commands: Record<string, CliHandler> = {
       includeImporters: args["include-importers"] === "true",
       includeReferences: args["include-references"] === "true",
       relationDepth: optionalNumber(args, "relation-depth"),
+      detailLevel: parseCliDetailLevel(args, "detail-level"),
     }),
   "get-file-content": async (args) =>
     COMMAND_REGISTRY.getFileContent.execute(engine, {
@@ -363,7 +366,6 @@ export async function handleCli(argv: string[]): Promise<string> {
     ? result
     : serializeToolResult(command, result, {
         pretty: true,
-        detailLevel: parseCliDetailLevel(args, "detail-level"),
       });
 }
 

@@ -21,7 +21,6 @@ import {
   buildToolFailureTokenEstimate,
   summarizeToolCompletion,
 } from "./tool-observability.ts";
-import { shapeToolResult, type DetailLevel } from "./serialization.ts";
 
 type EngineModule = typeof import("./index.ts");
 
@@ -37,12 +36,6 @@ function asTextResult(value: unknown) {
       },
     ],
   };
-}
-
-function optionalDetailLevel(value: unknown): DetailLevel | undefined {
-  return value === "full" || value === "compact" || value === "auto"
-    ? value
-    : undefined;
 }
 
 function normalizeUnknownToolEnvelope(toolName: string): McpErrorEnvelope {
@@ -180,6 +173,35 @@ function assertSymbolSummary(value: unknown): value is Record<string, unknown> {
   return true;
 }
 
+function assertCompactSymbolSummary(value: unknown): value is Record<string, unknown> {
+  assertIsObject(value);
+  if (!ensureString(value.id)) {
+    throw new Error("compact symbol output missing id");
+  }
+  if (!ensureString(value.stableId)) {
+    throw new Error("compact symbol output missing stableId");
+  }
+  if (!ensureString(value.name)) {
+    throw new Error("compact symbol output missing name");
+  }
+  if (!ensureString(value.kind)) {
+    throw new Error("compact symbol output missing kind");
+  }
+  if (!ensureString(value.filePath)) {
+    throw new Error("compact symbol output missing filePath");
+  }
+  if (!ensureNumber(value.startLine)) {
+    throw new Error("compact symbol output missing startLine");
+  }
+  if (!ensureNumber(value.endLine)) {
+    throw new Error("compact symbol output missing endLine");
+  }
+  if (!ensureBoolean(value.exported)) {
+    throw new Error("compact symbol output missing exported");
+  }
+  return true;
+}
+
 function validateSearchSymbolsOutput(result: unknown) {
   if (!Array.isArray(result)) {
     throw new Error("search_symbols output must be an array");
@@ -299,11 +321,15 @@ function validateContextBundleOutput(result: unknown) {
     if (!ensureString(item.reason)) {
       throw new Error("context bundle item missing reason");
     }
-    if (!ensureString(item.source)) {
-      throw new Error("context bundle item missing source");
-    }
     if (!ensureNumber(item.tokenCount)) {
       throw new Error("context bundle item missing tokenCount");
+    }
+    if (ensureNumber(result.itemCount)) {
+      assertCompactSymbolSummary(item.symbol);
+      continue;
+    }
+    if (!ensureString(item.source)) {
+      throw new Error("context bundle item missing source");
     }
     assertSymbolSummary(item.symbol);
   }
@@ -336,6 +362,10 @@ function validateRankedContextOutput(result: unknown) {
     }
     if (typeof candidate.selected !== "boolean") {
       throw new Error("get_ranked_context candidate must include selected");
+    }
+    if (ensureNumber((result.bundle as Record<string, unknown>).itemCount)) {
+      assertCompactSymbolSummary(candidate.symbol);
+      continue;
     }
     assertSymbolSummary(candidate.symbol);
   }
@@ -382,9 +412,15 @@ function validateDependencyGraphOutput(result: unknown) {
     throw new Error("get_dependency_graph output must include nodes and edges");
   }
   for (const node of result.nodes) {
-    assertIsObject(node);
-    if (!ensureString(node.filePath)) {
-      throw new Error("get_dependency_graph node must include filePath");
+    if (ensureNumber(result.nodeCount)) {
+      if (!ensureString(node)) {
+        throw new Error("get_dependency_graph compact node must be a string");
+      }
+    } else {
+      assertIsObject(node);
+      if (!ensureString(node.filePath)) {
+        throw new Error("get_dependency_graph node must include filePath");
+      }
     }
   }
   for (const edge of result.edges) {
@@ -504,10 +540,9 @@ export async function dispatchTool(
     const result = await tool.execute(engine, args);
     validateToolOutput(name, result);
     const completion = summarizeToolCompletion(name, result);
-    const shapedResult = shapeToolResult(name, result, optionalDetailLevel(args.detailLevel));
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,
-      data: shapedResult,
+      data: result,
       meta: {
         toolVersion: tool.toolVersion,
         tokenBudgetUsed: extractUsedTokenBudget(result, completion.tokenEstimate.returnedTokens),

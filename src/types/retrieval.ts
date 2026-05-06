@@ -115,6 +115,8 @@ export interface FindReferencesResult {
   references: ReferenceMatch[];
 }
 
+export type DetailLevel = "full" | "compact" | "auto";
+
 export type DependencyGraphDirection = "dependencies" | "importers" | "both";
 
 export interface DependencyGraphOptions {
@@ -122,6 +124,7 @@ export interface DependencyGraphOptions {
   filePath: string;
   relationDepth?: number;
   direction?: DependencyGraphDirection;
+  detailLevel?: DetailLevel;
 }
 
 export interface DependencyGraphNode {
@@ -139,6 +142,28 @@ export interface DependencyGraphResult {
   relationDepth: number;
   direction: DependencyGraphDirection;
   nodes: DependencyGraphNode[];
+  edges: DependencyGraphEdge[];
+}
+
+export interface CompactSymbolSummary {
+  id: string;
+  stableId: string;
+  name: string;
+  qualifiedName: string | null;
+  kind: SymbolKind;
+  filePath: string;
+  startLine: number;
+  endLine: number;
+  exported: boolean;
+}
+
+export interface CompactDependencyGraphResult {
+  rootFilePath: string;
+  relationDepth: number;
+  direction: DependencyGraphDirection;
+  nodeCount: number;
+  edgeCount: number;
+  nodes: string[];
   edges: DependencyGraphEdge[];
 }
 
@@ -268,6 +293,7 @@ export interface QueryCodeOptions {
   includeImporters?: boolean;
   includeReferences?: boolean;
   relationDepth?: number;
+  detailLevel?: DetailLevel;
 }
 
 export type QueryCodeMatchReason =
@@ -301,6 +327,24 @@ export interface QueryCodeDiscoverResult {
   textMatchResults: QueryCodeTextMatch[];
 }
 
+export interface CompactQueryCodeSymbolMatch {
+  symbol: CompactSymbolSummary;
+  reasons: QueryCodeMatchReason[];
+  depth: number;
+}
+
+export interface CompactQueryCodeDiscoverResult {
+  intent: "discover";
+  query: string;
+  symbolMatchCount: number;
+  textMatchCount: number;
+  graphMatchCount: number;
+  symbolMatches: CompactSymbolSummary[];
+  textMatches: SearchTextMatch[];
+  matches: CompactQueryCodeSymbolMatch[];
+  textMatchResults: QueryCodeTextMatch[];
+}
+
 export interface QueryCodeSourceResult {
   intent: "source";
   fileContent: FileContentResult | null;
@@ -328,6 +372,13 @@ export interface ContextBundleItem {
   tokenCount: number;
 }
 
+export interface CompactContextBundleItem {
+  role: ContextBundleItemRole;
+  reason: string;
+  tokenCount: number;
+  symbol: CompactSymbolSummary;
+}
+
 export interface ContextBundle {
   repoRoot: string;
   query: string | null;
@@ -347,6 +398,18 @@ export interface ContextBundleOptions {
   includeImporters?: boolean;
   includeReferences?: boolean;
   relationDepth?: number;
+  detailLevel?: DetailLevel;
+}
+
+export interface CompactContextBundle {
+  repoRoot: string;
+  query: string | null;
+  tokenBudget: number;
+  estimatedTokens: number;
+  usedTokens: number;
+  truncated: boolean;
+  itemCount: number;
+  items: CompactContextBundleItem[];
 }
 
 export interface RankedContextCandidate {
@@ -366,3 +429,43 @@ export interface RankedContextResult {
   candidates: RankedContextCandidate[];
   bundle: ContextBundle;
 }
+
+export interface RankedContextOptions {
+  repoRoot: string;
+  query: string;
+  tokenBudget?: number;
+  includeDependencies?: boolean;
+  includeImporters?: boolean;
+  includeReferences?: boolean;
+  relationDepth?: number;
+  detailLevel?: DetailLevel;
+}
+
+export interface CompactRankedContextCandidate {
+  rank: number;
+  score: number;
+  reason: string;
+  selected: boolean;
+  symbol: CompactSymbolSummary;
+}
+
+export interface CompactRankedContextResult {
+  repoRoot: string;
+  query: string;
+  tokenBudget: number;
+  candidateCount: number;
+  selectedSeedIds: string[];
+  candidates: CompactRankedContextCandidate[];
+  bundle: CompactContextBundle;
+}
+
+export interface CompactQueryCodeAssembleResult {
+  intent: "assemble";
+  bundle: CompactContextBundle;
+  ranked: CompactRankedContextResult | null;
+}
+
+export type CompactQueryCodeResult =
+  | CompactQueryCodeDiscoverResult
+  | QueryCodeSourceResult
+  | CompactQueryCodeAssembleResult;

@@ -1,6 +1,7 @@
 import fastJson from "fast-json-stringify";
 import type {
   ContextBundle,
+  DetailLevel,
   DependencyGraphResult,
   DiagnosticsResult,
   FindFilesMatch,
@@ -19,8 +20,6 @@ interface SerializeOptions {
   pretty?: boolean;
   detailLevel?: DetailLevel;
 }
-
-export type DetailLevel = "full" | "compact" | "auto";
 
 const nullableStringSchema = { type: ["string", "null"] } as const;
 const nullableNumberSchema = { type: ["number", "null"] } as const;

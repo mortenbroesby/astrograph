@@ -34,6 +34,14 @@ function optionalDependencyGraphDirection(
     : undefined;
 }
 
+function optionalDetailLevel(
+  value: unknown,
+): "full" | "compact" | "auto" | undefined {
+  return value === "full" || value === "compact" || value === "auto"
+    ? value
+    : undefined;
+}
+
 export const MCP_SERVER_NAME = "astrograph";
 export const MCP_SERVER_VERSION = ASTROGRAPH_PACKAGE_VERSION;
 
@@ -460,6 +468,7 @@ export const MCP_TOOL_DEFINITIONS = [
         filePath: requireString(args, "filePath"),
         relationDepth: optionalNumber(args, "relationDepth"),
         direction: optionalDependencyGraphDirection(args.direction),
+        detailLevel: optionalDetailLevel(args.detailLevel),
       };
       validateDependencyGraphOptions(input);
       return COMMAND_REGISTRY.getDependencyGraph.execute(engine, input);
@@ -490,6 +499,7 @@ export const MCP_TOOL_DEFINITIONS = [
         includeImporters: optionalBoolean(args, "includeImporters"),
         includeReferences: optionalBoolean(args, "includeReferences"),
         relationDepth: optionalNumber(args, "relationDepth"),
+        detailLevel: optionalDetailLevel(args.detailLevel),
       };
       const normalized = validateContextBundleOptions(input);
       return COMMAND_REGISTRY.getContextBundle.execute(engine, {
@@ -521,6 +531,7 @@ export const MCP_TOOL_DEFINITIONS = [
         includeImporters: optionalBoolean(args, "includeImporters"),
         includeReferences: optionalBoolean(args, "includeReferences"),
         relationDepth: optionalNumber(args, "relationDepth"),
+        detailLevel: optionalDetailLevel(args.detailLevel),
       };
       validateRankedContextOptions(input);
       return COMMAND_REGISTRY.getRankedContext.execute(engine, input);

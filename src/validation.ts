@@ -287,13 +287,27 @@ export function validateFindReferencesOptions(input: {
   }
 }
 
+export function validateDetailLevel(input: {
+  detailLevel?: "full" | "compact" | "auto";
+}): void {
+  if (
+    input.detailLevel !== undefined
+    && input.detailLevel !== "full"
+    && input.detailLevel !== "compact"
+    && input.detailLevel !== "auto"
+  ) {
+    throw new Error(`Unsupported detailLevel: ${String(input.detailLevel)}`);
+  }
+}
+
 export function validateDependencyGraphOptions(
-  input: Pick<DependencyGraphOptions, "filePath" | "relationDepth">,
+  input: Pick<DependencyGraphOptions, "filePath" | "relationDepth" | "detailLevel">,
 ): void {
   trimRequiredString(input.filePath, "get_dependency_graph requires a non-empty filePath");
   if (input.relationDepth !== undefined) {
     requirePositiveNumber(input.relationDepth, "relationDepth");
   }
+  validateDetailLevel(input);
 }
 
 export function validateProjectStatusOptions(
@@ -321,21 +335,24 @@ export function normalizeContextBundleSeeds(
 }
 
 export function validateContextBundleOptions(
-  input: Pick<ContextBundleOptions, "query" | "symbolIds" | "tokenBudget">,
+  input: Pick<ContextBundleOptions, "query" | "symbolIds" | "tokenBudget" | "detailLevel">,
 ): Pick<ContextBundleOptions, "query" | "symbolIds"> {
   if (input.tokenBudget !== undefined) {
     requirePositiveNumber(input.tokenBudget, "tokenBudget");
   }
+  validateDetailLevel(input);
 
   return normalizeContextBundleSeeds(input);
 }
 
 export function validateRankedContextOptions(input: {
   tokenBudget?: number;
+  detailLevel?: "full" | "compact" | "auto";
 }): void {
   if (input.tokenBudget !== undefined) {
     requirePositiveNumber(input.tokenBudget, "tokenBudget");
   }
+  validateDetailLevel(input);
 }
 
 export function validateSymbolSourceOptions(input: {
@@ -443,6 +460,7 @@ export function parseQueryCodeCliInput(args: Record<string, string>): QueryCodeO
     includeImporters: args["include-importers"] === "true",
     includeReferences: args["include-references"] === "true",
     relationDepth: parseCliOptionalNumber(args, "relation-depth"),
+    detailLevel: parseCliDetailLevel(args, "detail-level"),
   };
 
   const parsed = queryCodeOptionsSchema.safeParse(rawInput);
