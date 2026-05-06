@@ -9,7 +9,9 @@ import {
 } from "./command-registry.ts";
 import type { SupportedLanguage, SymbolKind } from "./types.ts";
 import {
+  validateDependencyGraphOptions,
   validateContextBundleOptions,
+  validateFindImportersOptions,
   validateFindFilesOptions,
   validateFileSummaryOptions,
   validateProjectStatusOptions,
@@ -19,8 +21,17 @@ import {
   validateSymbolSourceOptions,
 } from "./validation.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
+import type { DependencyGraphDirection } from "./types/retrieval.ts";
 
 type EngineModule = typeof import("./index.ts");
+
+function optionalDependencyGraphDirection(
+  value: unknown,
+): DependencyGraphDirection | undefined {
+  return value === "dependencies" || value === "importers" || value === "both"
+    ? value
+    : undefined;
+}
 
 export const MCP_SERVER_NAME = "astrograph";
 export const MCP_SERVER_VERSION = ASTROGRAPH_PACKAGE_VERSION;
@@ -367,6 +378,25 @@ export const MCP_TOOL_DEFINITIONS = [
     },
   },
   {
+    name: COMMAND_REGISTRY.findImporters.mcpToolName,
+    description: COMMAND_REGISTRY.findImporters.description,
+    toolVersion: "1",
+    inputSchema: {
+      repoRoot: stringSchema("Repository root path"),
+      filePath: stringSchema("Path relative to the repository root"),
+      limit: numberSchema("Optional maximum number of importer results").optional(),
+    },
+    execute: async (engine, args) => {
+      const input = {
+        repoRoot: requireString(args, "repoRoot"),
+        filePath: requireString(args, "filePath"),
+        limit: optionalNumber(args, "limit"),
+      };
+      validateFindImportersOptions(input);
+      return COMMAND_REGISTRY.findImporters.execute(engine, input);
+    },
+  },
+  {
     name: COMMAND_REGISTRY.getSymbolSource.mcpToolName,
     description: COMMAND_REGISTRY.getSymbolSource.description,
     toolVersion: "1",
@@ -387,6 +417,27 @@ export const MCP_TOOL_DEFINITIONS = [
       };
       validateSymbolSourceOptions(input);
       return COMMAND_REGISTRY.getSymbolSource.execute(engine, input);
+    },
+  },
+  {
+    name: COMMAND_REGISTRY.getDependencyGraph.mcpToolName,
+    description: COMMAND_REGISTRY.getDependencyGraph.description,
+    toolVersion: "1",
+    inputSchema: {
+      repoRoot: stringSchema("Repository root path"),
+      filePath: stringSchema("Path relative to the repository root"),
+      relationDepth: numberSchema("Optional bounded graph expansion depth").optional(),
+      direction: zod.enum(["dependencies", "importers", "both"]).describe("Graph traversal direction").optional(),
+    },
+    execute: async (engine, args) => {
+      const input = {
+        repoRoot: requireString(args, "repoRoot"),
+        filePath: requireString(args, "filePath"),
+        relationDepth: optionalNumber(args, "relationDepth"),
+        direction: optionalDependencyGraphDirection(args.direction),
+      };
+      validateDependencyGraphOptions(input);
+      return COMMAND_REGISTRY.getDependencyGraph.execute(engine, input);
     },
   },
   {

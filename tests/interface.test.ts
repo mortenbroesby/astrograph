@@ -192,6 +192,38 @@ describe("ai-context-engine interfaces", () => {
     expect(JSON.parse(filteredTextStdout)[0]).toMatchObject({
       filePath: "src/strings.ts",
     });
+    const importersStdout = await handleCli([
+      "find-importers",
+      "--repo",
+      repoRoot,
+      "--file-path",
+      "src/strings.ts",
+    ]);
+    expect(JSON.parse(importersStdout)).toMatchObject({
+      filePath: "src/strings.ts",
+      importers: [
+        expect.objectContaining({
+          filePath: "src/math.ts",
+          source: "./strings.js",
+        }),
+      ],
+    });
+    const graphStdout = await handleCli([
+      "get-dependency-graph",
+      "--repo",
+      repoRoot,
+      "--file-path",
+      "src/math.ts",
+      "--direction",
+      "dependencies",
+      "--relation-depth",
+      "1",
+    ]);
+    expect(JSON.parse(graphStdout)).toMatchObject({
+      rootFilePath: "src/math.ts",
+      direction: "dependencies",
+      relationDepth: 1,
+    });
     const queryCodeDiscoverStdout = await handleCli([
       "query-code",
       "--repo",
@@ -513,7 +545,9 @@ export function circumference(radius: number): string {
       expect(tools.map((tool) => tool.name)).not.toContain("query_code");
       expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
         "search_symbols",
+        "find_importers",
         "get_symbol_source",
+        "get_dependency_graph",
         "get_context_bundle",
         "get_ranked_context",
       ]));
@@ -642,7 +676,9 @@ export function circumference(radius: number): string {
               toolAvailability: expect.objectContaining({
                 graph: expect.arrayContaining([
                   "search_symbols",
+                  "find_importers",
                   "get_symbol_source",
+                  "get_dependency_graph",
                   "get_context_bundle",
                   "get_ranked_context",
                 ]),
@@ -656,7 +692,9 @@ export function circumference(radius: number): string {
               toolAvailability: expect.objectContaining({
                 graph: expect.arrayContaining([
                   "search_symbols",
+                  "find_importers",
                   "get_symbol_source",
+                  "get_dependency_graph",
                   "get_context_bundle",
                   "get_ranked_context",
                 ]),

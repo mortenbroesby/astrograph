@@ -175,7 +175,9 @@ export type EngineToolName =
   | "get_file_outline"
   | "suggest_initial_queries"
   | "search_symbols"
+  | "find_importers"
   | "get_symbol_source"
+  | "get_dependency_graph"
   | "get_context_bundle"
   | "get_ranked_context"
   | "diagnostics";

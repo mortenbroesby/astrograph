@@ -1,7 +1,9 @@
 import type {
   ContextBundleOptions,
+  DependencyGraphOptions,
   DiagnosticsOptions,
   FileSummaryOptions,
+  FindImportersOptions,
   FindFilesOptions,
   ProjectStatusOptions,
   QueryCodeOptions,
@@ -159,6 +161,14 @@ export const COMMAND_REGISTRY = {
     ],
     execute: (engine, input: SearchSymbolsOptions) => engine.searchSymbols(input),
   },
+  findImporters: {
+    id: "find_importers",
+    cliCommand: "find-importers",
+    mcpToolName: "find_importers",
+    description: "Return indexed files that directly import a target file with import evidence.",
+    normalizedOptions: ["repoRoot", "filePath", "limit"],
+    execute: (engine, input: FindImportersOptions) => engine.findImporters(input),
+  },
   queryCode: {
     id: "query_code",
     cliCommand: "query-code",
@@ -194,6 +204,14 @@ export const COMMAND_REGISTRY = {
     normalizedOptions: ["repoRoot", "symbolId", "symbolIds", "contextLines", "verify"],
     execute: (engine, input: SymbolSourceInput): Promise<SymbolSourceResult> =>
       engine.getSymbolSource(input),
+  },
+  getDependencyGraph: {
+    id: "get_dependency_graph",
+    cliCommand: "get-dependency-graph",
+    mcpToolName: "get_dependency_graph",
+    description: "Return a bounded file-level dependency graph around one indexed file.",
+    normalizedOptions: ["repoRoot", "filePath", "relationDepth", "direction"],
+    execute: (engine, input: DependencyGraphOptions) => engine.getDependencyGraph(input),
   },
   getContextBundle: {
     id: "get_context_bundle",

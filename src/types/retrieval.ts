@@ -81,6 +81,50 @@ export interface SearchTextOptions {
   limit?: number;
 }
 
+export interface FindImportersOptions {
+  repoRoot: string;
+  filePath: string;
+  limit?: number;
+}
+
+export interface ImporterMatch {
+  filePath: string;
+  source: string;
+  importedSymbols: string[];
+}
+
+export interface FindImportersResult {
+  filePath: string;
+  importers: ImporterMatch[];
+}
+
+export type DependencyGraphDirection = "dependencies" | "importers" | "both";
+
+export interface DependencyGraphOptions {
+  repoRoot: string;
+  filePath: string;
+  relationDepth?: number;
+  direction?: DependencyGraphDirection;
+}
+
+export interface DependencyGraphNode {
+  filePath: string;
+}
+
+export interface DependencyGraphEdge {
+  fromFilePath: string;
+  toFilePath: string;
+  source: string;
+}
+
+export interface DependencyGraphResult {
+  rootFilePath: string;
+  relationDepth: number;
+  direction: DependencyGraphDirection;
+  nodes: DependencyGraphNode[];
+  edges: DependencyGraphEdge[];
+}
+
 export interface FileContentResult {
   filePath: string;
   content: string;

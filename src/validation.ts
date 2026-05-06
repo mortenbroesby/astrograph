@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getSupportedLanguages } from "./language-registry.ts";
 import type {
   ContextBundleOptions,
+  DependencyGraphOptions,
+  FindImportersOptions,
   FindFilesOptions,
   FileSummaryOptions,
   ProjectStatusOptions,
@@ -263,6 +265,24 @@ export function validateFileSummaryOptions(
   input: Pick<FileSummaryOptions, "filePath">,
 ): void {
   trimRequiredString(input.filePath, "get_file_summary requires a non-empty filePath");
+}
+
+export function validateFindImportersOptions(
+  input: Pick<FindImportersOptions, "filePath" | "limit">,
+): void {
+  trimRequiredString(input.filePath, "find_importers requires a non-empty filePath");
+  if (input.limit !== undefined) {
+    requirePositiveNumber(input.limit, "limit");
+  }
+}
+
+export function validateDependencyGraphOptions(
+  input: Pick<DependencyGraphOptions, "filePath" | "relationDepth">,
+): void {
+  trimRequiredString(input.filePath, "get_dependency_graph requires a non-empty filePath");
+  if (input.relationDepth !== undefined) {
+    requirePositiveNumber(input.relationDepth, "relationDepth");
+  }
 }
 
 export function validateProjectStatusOptions(

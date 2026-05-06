@@ -109,6 +109,8 @@ import { subscribeRepo } from "./watch-backend.ts";
 import { buildDiagnosticsResult } from "./diagnostics.ts";
 import {
   validateFindFilesOptions,
+  validateFindImportersOptions,
+  validateDependencyGraphOptions,
   validateFileSummaryOptions,
   validateProjectStatusOptions,
   validateSearchTextOptions,
@@ -120,8 +122,14 @@ import type {
   DoctorResult,
   ContextBundle,
   ContextBundleOptions,
+  DependencyGraphDirection,
+  DependencyGraphEdge,
+  DependencyGraphOptions,
+  DependencyGraphResult,
   FindFilesMatch,
   FindFilesOptions,
+  FindImportersOptions,
+  FindImportersResult,
   FileContentResult,
   FileOutline,
   FileSummaryOptions,
@@ -1265,6 +1273,75 @@ function loadDirectImporterPaths(
   ).map((row) => row.importer_path);
 }
 
+function loadDirectImporterEntries(
+  db: IndexBackendConnection,
+  targetPath: string,
+): Array<{ filePath: string; source: string; importedSymbols: string[] }> {
+  return typedAll<{ importer_path: string; source: string; specifiers: string }>(
+    db.prepare(
+      `
+        SELECT
+          file_dependencies.importer_path AS importer_path,
+          file_dependencies.source AS source,
+          imports.specifiers AS specifiers
+        FROM file_dependencies
+        INNER JOIN files ON files.id = file_dependencies.importer_file_id
+        INNER JOIN imports ON imports.file_id = files.id AND imports.source = file_dependencies.source
+        WHERE file_dependencies.target_path = ?
+        ORDER BY file_dependencies.importer_path ASC, file_dependencies.source ASC
+      `,
+    ),
+    targetPath,
+  ).map((row) => {
+    let importedSymbols: string[] = [];
+    try {
+      const parsed = JSON.parse(row.specifiers) as Array<{ importedName?: string }> | string[];
+      importedSymbols = Array.isArray(parsed)
+        ? parsed
+            .map((entry) =>
+              typeof entry === "string" ? entry : (entry.importedName ?? "").trim(),
+            )
+            .filter(Boolean)
+        : [];
+    } catch {
+      importedSymbols = [];
+    }
+
+    return {
+      filePath: row.importer_path,
+      source: row.source,
+      importedSymbols,
+    };
+  });
+}
+
+function loadDirectDependencyEdges(
+  db: IndexBackendConnection,
+  importerPath: string,
+): DependencyGraphEdge[] {
+  return typedAll<{ target_path: string; source: string }>(
+    db.prepare(
+      `
+        SELECT target_path, source
+        FROM file_dependencies
+        WHERE importer_path = ?
+        ORDER BY target_path ASC, source ASC
+      `,
+    ),
+    importerPath,
+  ).map((row) => ({
+    fromFilePath: importerPath,
+    toFilePath: row.target_path,
+    source: row.source,
+  }));
+}
+
+function normalizeGraphDirection(
+  value: DependencyGraphDirection | undefined,
+): DependencyGraphDirection {
+  return value ?? "both";
+}
+
 async function shouldUseLiveTextSearchFallback(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
@@ -2116,6 +2193,99 @@ export async function searchText(
 
   try {
     return searchTextInContext(context, input);
+  } finally {
+    closeEngineContext(context);
+  }
+}
+
+export async function findImporters(
+  input: FindImportersOptions,
+): Promise<FindImportersResult> {
+  validateFindImportersOptions(input);
+  const context = await createEngineContext(input);
+
+  try {
+    const importers = loadDirectImporterEntries(context.db, input.filePath)
+      .slice(0, input.limit ?? Number.POSITIVE_INFINITY);
+
+    return {
+      filePath: input.filePath,
+      importers,
+    };
+  } finally {
+    closeEngineContext(context);
+  }
+}
+
+export async function getDependencyGraph(
+  input: DependencyGraphOptions,
+): Promise<DependencyGraphResult> {
+  validateDependencyGraphOptions(input);
+  const context = await createEngineContext(input);
+
+  try {
+    const relationDepth = Math.min(3, Math.max(1, input.relationDepth ?? 1));
+    const direction = normalizeGraphDirection(input.direction);
+    const nodes = new Set<string>([input.filePath]);
+    const edges = new Map<string, DependencyGraphEdge>();
+    let frontier = [input.filePath];
+    const visited = new Set<string>(frontier);
+
+    for (let depth = 0; depth < relationDepth; depth += 1) {
+      const nextFrontier: string[] = [];
+
+      for (const filePath of frontier) {
+        const directEdges: DependencyGraphEdge[] = [];
+
+        if (direction === "dependencies" || direction === "both") {
+          directEdges.push(...loadDirectDependencyEdges(context.db, filePath));
+        }
+
+        if (direction === "importers" || direction === "both") {
+          for (const importerPath of loadDirectImporterPaths(context.db, filePath)) {
+            directEdges.push({
+              fromFilePath: importerPath,
+              toFilePath: filePath,
+              source: filePath,
+            });
+          }
+        }
+
+        for (const edge of directEdges) {
+          const edgeKey = `${edge.fromFilePath}\0${edge.toFilePath}\0${edge.source}`;
+          edges.set(edgeKey, edge);
+          nodes.add(edge.fromFilePath);
+          nodes.add(edge.toFilePath);
+
+          const neighbor =
+            edge.fromFilePath === filePath ? edge.toFilePath : edge.fromFilePath;
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            nextFrontier.push(neighbor);
+          }
+        }
+      }
+
+      frontier = nextFrontier;
+      if (frontier.length === 0) {
+        break;
+      }
+    }
+
+    return {
+      rootFilePath: input.filePath,
+      relationDepth,
+      direction,
+      nodes: [...nodes].sort((left, right) => left.localeCompare(right)).map((filePath) => ({
+        filePath,
+      })),
+      edges: [...edges.values()].sort(
+        (left, right) =>
+          left.fromFilePath.localeCompare(right.fromFilePath)
+          || left.toFilePath.localeCompare(right.toFilePath)
+          || left.source.localeCompare(right.source),
+      ),
+    };
   } finally {
     closeEngineContext(context);
   }

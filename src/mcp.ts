@@ -182,6 +182,26 @@ function validateSearchSymbolsOutput(result: unknown) {
   }
 }
 
+function validateFindImportersOutput(result: unknown) {
+  assertIsObject(result);
+  if (!ensureString(result.filePath)) {
+    throw new Error("find_importers output must include filePath");
+  }
+  if (!Array.isArray(result.importers)) {
+    throw new Error("find_importers output must include importers");
+  }
+  for (const importer of result.importers) {
+    assertIsObject(importer);
+    if (!ensureString(importer.filePath) || !ensureString(importer.source)) {
+      throw new Error("find_importers importer must include filePath and source");
+    }
+    if (!Array.isArray(importer.importedSymbols)) {
+      throw new Error("find_importers importer must include importedSymbols");
+    }
+    ensureArrayOfStrings(importer.importedSymbols, "find_importers importedSymbols");
+  }
+}
+
 function validateSymbolSourceOutput(result: unknown) {
   assertIsObject(result);
   if (!ensureNumber(result.requestedContextLines)) {
@@ -321,13 +341,53 @@ function validateRankedContextOutput(result: unknown) {
   }
 }
 
+function validateDependencyGraphOutput(result: unknown) {
+  assertIsObject(result);
+  if (!ensureString(result.rootFilePath)) {
+    throw new Error("get_dependency_graph output must include rootFilePath");
+  }
+  if (!ensureNumber(result.relationDepth)) {
+    throw new Error("get_dependency_graph output must include relationDepth");
+  }
+  if (!ensureString(result.direction)) {
+    throw new Error("get_dependency_graph output must include direction");
+  }
+  if (!Array.isArray(result.nodes) || !Array.isArray(result.edges)) {
+    throw new Error("get_dependency_graph output must include nodes and edges");
+  }
+  for (const node of result.nodes) {
+    assertIsObject(node);
+    if (!ensureString(node.filePath)) {
+      throw new Error("get_dependency_graph node must include filePath");
+    }
+  }
+  for (const edge of result.edges) {
+    assertIsObject(edge);
+    if (
+      !ensureString(edge.fromFilePath)
+      || !ensureString(edge.toFilePath)
+      || !ensureString(edge.source)
+    ) {
+      throw new Error("get_dependency_graph edge must include fromFilePath, toFilePath, and source");
+    }
+  }
+}
+
 function validateToolOutput(name: string, result: unknown) {
   if (name === "search_symbols") {
     validateSearchSymbolsOutput(result);
     return;
   }
+  if (name === "find_importers") {
+    validateFindImportersOutput(result);
+    return;
+  }
   if (name === "get_symbol_source") {
     validateSymbolSourceOutput(result);
+    return;
+  }
+  if (name === "get_dependency_graph") {
+    validateDependencyGraphOutput(result);
     return;
   }
   if (name === "get_context_bundle") {

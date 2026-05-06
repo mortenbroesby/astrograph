@@ -13,6 +13,7 @@ import {
 import { COMMAND_REGISTRY } from "./command-registry.ts";
 import * as engine from "./index.ts";
 import { getLogger } from "./logger.ts";
+import type { DependencyGraphDirection } from "./types/retrieval.ts";
 
 type StopReason = "timeout" | "signal" | "closed";
 
@@ -70,8 +71,20 @@ const commands: Record<string, CliHandler> = {
       filePattern: optional(args, "file-pattern"),
       limit: optionalNumber(args, "limit"),
     }),
+  "find-importers": async (args) =>
+    COMMAND_REGISTRY.findImporters.execute(engine, {
+      repoRoot: required(args, "repo"),
+      filePath: requiredAny(args, ["file-path", "file"]),
+    }),
   "query-code": async (args) =>
     COMMAND_REGISTRY.queryCode.execute(engine, parseQueryCodeCliInput(args)),
+  "get-dependency-graph": async (args) =>
+    COMMAND_REGISTRY.getDependencyGraph.execute(engine, {
+      repoRoot: required(args, "repo"),
+      filePath: requiredAny(args, ["file-path", "file"]),
+      direction: optionalDependencyGraphDirection(args, "direction"),
+      relationDepth: optionalNumber(args, "relation-depth"),
+    }),
   "get-context-bundle": async (args) =>
     COMMAND_REGISTRY.getContextBundle.execute(engine, {
       repoRoot: required(args, "repo"),
@@ -133,6 +146,19 @@ function optional(args: Record<string, string>, key: string): string | undefined
   return value && value.length > 0 ? value : undefined;
 }
 
+function requiredAny(
+  args: Record<string, string>,
+  keys: string[],
+): string {
+  for (const key of keys) {
+    const value = optional(args, key);
+    if (value) {
+      return value;
+    }
+  }
+  throw new Error(`Missing required argument --${keys[0]}`);
+}
+
 function optionalList(
   args: Record<string, string>,
   key: string,
@@ -146,6 +172,17 @@ function optionalNumber(
   key: string,
 ): number | undefined {
   return parseCliOptionalNumber(args, key);
+}
+
+function optionalDependencyGraphDirection(
+  args: Record<string, string>,
+  key: string,
+): DependencyGraphDirection | undefined {
+  const value = optional(args, key);
+  if (value === "dependencies" || value === "importers" || value === "both") {
+    return value;
+  }
+  return undefined;
 }
 
 function optionalSummaryStrategy(

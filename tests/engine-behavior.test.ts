@@ -13,7 +13,9 @@ import {
   ASTROGRAPH_VERSION_PARTS,
   diagnostics,
   doctor,
+  findImporters,
   getContextBundle,
+  getDependencyGraph,
   getFileContent,
   getFileOutline,
   getFileTree,
@@ -593,6 +595,54 @@ module.exports = {
     expect(textMatches[0]).toMatchObject({
       filePath: "src/strings.ts",
     });
+  });
+
+  it("returns importer evidence and a bounded file-level dependency graph", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await indexFolder({ repoRoot });
+
+    const importers = await findImporters({
+      repoRoot,
+      filePath: "src/strings.ts",
+    });
+    expect(importers).toMatchObject({
+      filePath: "src/strings.ts",
+      importers: [
+        {
+          filePath: "src/math.ts",
+          source: "./strings.js",
+          importedSymbols: ["formatLabel"],
+        },
+      ],
+    });
+
+    const graph = await getDependencyGraph({
+      repoRoot,
+      filePath: "src/math.ts",
+      direction: "dependencies",
+      relationDepth: 1,
+    });
+    expect(graph).toMatchObject({
+      rootFilePath: "src/math.ts",
+      direction: "dependencies",
+      relationDepth: 1,
+    });
+    expect(graph.nodes).toEqual(
+      expect.arrayContaining([
+        { filePath: "src/math.ts" },
+        { filePath: "src/strings.ts" },
+      ]),
+    );
+    expect(graph.edges).toEqual(
+      expect.arrayContaining([
+        {
+          fromFilePath: "src/math.ts",
+          toFilePath: "src/strings.ts",
+          source: "./strings.js",
+        },
+      ]),
+    );
   });
 
   it("falls back to live-disk text search when the index is missing", async () => {
