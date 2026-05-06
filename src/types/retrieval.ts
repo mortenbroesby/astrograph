@@ -98,6 +98,23 @@ export interface FindImportersResult {
   importers: ImporterMatch[];
 }
 
+export interface FindReferencesOptions {
+  repoRoot: string;
+  symbolId: string;
+  limit?: number;
+}
+
+export interface ReferenceMatch {
+  symbol: SymbolSummary;
+  source: string;
+  importedSymbols: string[];
+}
+
+export interface FindReferencesResult {
+  symbol: SymbolSummary;
+  references: ReferenceMatch[];
+}
+
 export type DependencyGraphDirection = "dependencies" | "importers" | "both";
 
 export interface DependencyGraphOptions {

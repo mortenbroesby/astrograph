@@ -208,6 +208,34 @@ describe("ai-context-engine interfaces", () => {
         }),
       ],
     });
+    const symbolSearchStdout = await handleCli([
+      "search-symbols",
+      "--repo",
+      repoRoot,
+      "--query",
+      "formatLabel",
+    ]);
+    const [formatLabel] = JSON.parse(symbolSearchStdout) as Array<{ stableId: string }>;
+    const referencesStdout = await handleCli([
+      "find-references",
+      "--repo",
+      repoRoot,
+      "--symbol-id",
+      formatLabel.stableId,
+    ]);
+    expect(JSON.parse(referencesStdout)).toMatchObject({
+      symbol: expect.objectContaining({
+        name: "formatLabel",
+      }),
+      references: [
+        expect.objectContaining({
+          symbol: expect.objectContaining({
+            name: "area",
+          }),
+          source: "./strings.js",
+        }),
+      ],
+    });
     const graphStdout = await handleCli([
       "get-dependency-graph",
       "--repo",
@@ -546,6 +574,7 @@ export function circumference(radius: number): string {
       expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
         "search_symbols",
         "find_importers",
+        "find_references",
         "get_symbol_source",
         "get_dependency_graph",
         "get_context_bundle",
@@ -677,6 +706,7 @@ export function circumference(radius: number): string {
                 graph: expect.arrayContaining([
                   "search_symbols",
                   "find_importers",
+                  "find_references",
                   "get_symbol_source",
                   "get_dependency_graph",
                   "get_context_bundle",
@@ -693,6 +723,7 @@ export function circumference(radius: number): string {
                 graph: expect.arrayContaining([
                   "search_symbols",
                   "find_importers",
+                  "find_references",
                   "get_symbol_source",
                   "get_dependency_graph",
                   "get_context_bundle",

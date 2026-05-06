@@ -14,6 +14,7 @@ import {
   diagnostics,
   doctor,
   findImporters,
+  findReferences,
   getContextBundle,
   getDependencyGraph,
   getFileContent,
@@ -643,6 +644,38 @@ module.exports = {
         },
       ]),
     );
+  });
+
+  it("returns exact symbol reference matches with import evidence", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await indexFolder({ repoRoot });
+
+    const [formatLabel] = await searchSymbols({
+      repoRoot,
+      query: "formatLabel",
+    });
+    expect(formatLabel?.name).toBe("formatLabel");
+
+    const result = await findReferences({
+      repoRoot,
+      symbolId: formatLabel!.stableId,
+    });
+
+    expect(result.symbol).toMatchObject({
+      name: "formatLabel",
+      filePath: "src/strings.ts",
+    });
+    expect(result.references).toEqual([
+      expect.objectContaining({
+        symbol: expect.objectContaining({
+          name: "area",
+          filePath: "src/math.ts",
+        }),
+        source: "./strings.js",
+        importedSymbols: ["formatLabel"],
+      }),
+    ]);
   });
 
   it("falls back to live-disk text search when the index is missing", async () => {

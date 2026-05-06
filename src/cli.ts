@@ -75,6 +75,13 @@ const commands: Record<string, CliHandler> = {
     COMMAND_REGISTRY.findImporters.execute(engine, {
       repoRoot: required(args, "repo"),
       filePath: requiredAny(args, ["file-path", "file"]),
+      limit: optionalNumber(args, "limit"),
+    }),
+  "find-references": async (args) =>
+    COMMAND_REGISTRY.findReferences.execute(engine, {
+      repoRoot: required(args, "repo"),
+      symbolId: requiredAny(args, ["symbol-id", "symbol"]),
+      limit: optionalNumber(args, "limit"),
     }),
   "query-code": async (args) =>
     COMMAND_REGISTRY.queryCode.execute(engine, parseQueryCodeCliInput(args)),

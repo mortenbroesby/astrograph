@@ -202,6 +202,25 @@ function validateFindImportersOutput(result: unknown) {
   }
 }
 
+function validateFindReferencesOutput(result: unknown) {
+  assertIsObject(result);
+  assertSymbolSummary(result.symbol);
+  if (!Array.isArray(result.references)) {
+    throw new Error("find_references output must include references");
+  }
+  for (const reference of result.references) {
+    assertIsObject(reference);
+    assertSymbolSummary(reference.symbol);
+    if (!ensureString(reference.source)) {
+      throw new Error("find_references reference must include source");
+    }
+    if (!Array.isArray(reference.importedSymbols)) {
+      throw new Error("find_references reference must include importedSymbols");
+    }
+    ensureArrayOfStrings(reference.importedSymbols, "find_references importedSymbols");
+  }
+}
+
 function validateSymbolSourceOutput(result: unknown) {
   assertIsObject(result);
   if (!ensureNumber(result.requestedContextLines)) {
@@ -380,6 +399,10 @@ function validateToolOutput(name: string, result: unknown) {
   }
   if (name === "find_importers") {
     validateFindImportersOutput(result);
+    return;
+  }
+  if (name === "find_references") {
+    validateFindReferencesOutput(result);
     return;
   }
   if (name === "get_symbol_source") {

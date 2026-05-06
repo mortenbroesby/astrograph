@@ -4,6 +4,7 @@ import type {
   DiagnosticsOptions,
   FileSummaryOptions,
   FindImportersOptions,
+  FindReferencesOptions,
   FindFilesOptions,
   ProjectStatusOptions,
   QueryCodeOptions,
@@ -168,6 +169,14 @@ export const COMMAND_REGISTRY = {
     description: "Return indexed files that directly import a target file with import evidence.",
     normalizedOptions: ["repoRoot", "filePath", "limit"],
     execute: (engine, input: FindImportersOptions) => engine.findImporters(input),
+  },
+  findReferences: {
+    id: "find_references",
+    cliCommand: "find-references",
+    mcpToolName: "find_references",
+    description: "Return indexed files that explicitly import a target symbol by name.",
+    normalizedOptions: ["repoRoot", "symbolId", "limit"],
+    execute: (engine, input: FindReferencesOptions) => engine.findReferences(input),
   },
   queryCode: {
     id: "query_code",

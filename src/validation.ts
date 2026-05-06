@@ -276,6 +276,16 @@ export function validateFindImportersOptions(
   }
 }
 
+export function validateFindReferencesOptions(input: {
+  symbolId: string;
+  limit?: number;
+}): void {
+  trimRequiredString(input.symbolId, "find_references requires a non-empty symbolId");
+  if (input.limit !== undefined) {
+    requirePositiveNumber(input.limit, "limit");
+  }
+}
+
 export function validateDependencyGraphOptions(
   input: Pick<DependencyGraphOptions, "filePath" | "relationDepth">,
 ): void {

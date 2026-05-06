@@ -110,6 +110,7 @@ import { buildDiagnosticsResult } from "./diagnostics.ts";
 import {
   validateFindFilesOptions,
   validateFindImportersOptions,
+  validateFindReferencesOptions,
   validateDependencyGraphOptions,
   validateFileSummaryOptions,
   validateProjectStatusOptions,
@@ -130,6 +131,8 @@ import type {
   FindFilesOptions,
   FindImportersOptions,
   FindImportersResult,
+  FindReferencesOptions,
+  FindReferencesResult,
   FileContentResult,
   FileOutline,
   FileSummaryOptions,
@@ -1336,6 +1339,57 @@ function loadDirectDependencyEdges(
   }));
 }
 
+function loadSymbolRowById(
+  db: IndexBackendConnection,
+  symbolId: string,
+): DbSymbolRow | undefined {
+  return typedGet<DbSymbolRow>(
+    db.prepare(
+      `
+        SELECT
+          id, stable_id, name, qualified_name, kind, file_path, signature, summary,
+          summary_source,
+          start_line, end_line, start_byte, end_byte, exported
+        FROM symbols
+        WHERE
+          id = ?
+          OR stable_id = ?
+          OR stable_id = (
+            SELECT stable_id
+            FROM symbol_aliases
+            WHERE alias_id = ?
+            LIMIT 1
+          )
+        LIMIT 1
+      `,
+    ),
+    symbolId,
+    symbolId,
+    symbolId,
+  );
+}
+
+function loadRepresentativeSymbolRow(
+  db: IndexBackendConnection,
+  filePath: string,
+): DbSymbolRow | undefined {
+  return typedGet<DbSymbolRow>(
+    db.prepare(
+      `
+        SELECT
+          id, stable_id, name, qualified_name, kind, file_path, signature, summary,
+          summary_source,
+          start_line, end_line, start_byte, end_byte, exported
+        FROM symbols
+        WHERE file_path = ?
+        ORDER BY exported DESC, kind = 'class' DESC, kind = 'function' DESC, start_line ASC
+        LIMIT 1
+      `,
+    ),
+    filePath,
+  );
+}
+
 function normalizeGraphDirection(
   value: DependencyGraphDirection | undefined,
 ): DependencyGraphDirection {
@@ -2211,6 +2265,47 @@ export async function findImporters(
     return {
       filePath: input.filePath,
       importers,
+    };
+  } finally {
+    closeEngineContext(context);
+  }
+}
+
+export async function findReferences(
+  input: FindReferencesOptions,
+): Promise<FindReferencesResult> {
+  validateFindReferencesOptions(input);
+  const context = await createEngineContext(input);
+
+  try {
+    const seedRow = loadSymbolRowById(context.db, input.symbolId);
+    if (!seedRow) {
+      throw new Error(`Unknown symbolId: ${input.symbolId}`);
+    }
+
+    const references: FindReferencesResult["references"] = [];
+    for (const importer of loadDirectImporterEntries(context.db, seedRow.file_path)) {
+      if (!importer.importedSymbols.includes(seedRow.name)) {
+        continue;
+      }
+
+      const symbolRow = loadRepresentativeSymbolRow(context.db, importer.filePath);
+      if (!symbolRow) {
+        continue;
+      }
+      references.push({
+        symbol: mapSymbolRow(symbolRow),
+        source: importer.source,
+        importedSymbols: importer.importedSymbols,
+      });
+      if (references.length >= (input.limit ?? Number.POSITIVE_INFINITY)) {
+        break;
+      }
+    }
+
+    return {
+      symbol: mapSymbolRow(seedRow),
+      references,
     };
   } finally {
     closeEngineContext(context);

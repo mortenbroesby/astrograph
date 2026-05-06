@@ -176,6 +176,7 @@ export type EngineToolName =
   | "suggest_initial_queries"
   | "search_symbols"
   | "find_importers"
+  | "find_references"
   | "get_symbol_source"
   | "get_dependency_graph"
   | "get_context_bundle"

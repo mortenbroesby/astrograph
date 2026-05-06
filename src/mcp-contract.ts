@@ -12,6 +12,7 @@ import {
   validateDependencyGraphOptions,
   validateContextBundleOptions,
   validateFindImportersOptions,
+  validateFindReferencesOptions,
   validateFindFilesOptions,
   validateFileSummaryOptions,
   validateProjectStatusOptions,
@@ -394,6 +395,25 @@ export const MCP_TOOL_DEFINITIONS = [
       };
       validateFindImportersOptions(input);
       return COMMAND_REGISTRY.findImporters.execute(engine, input);
+    },
+  },
+  {
+    name: COMMAND_REGISTRY.findReferences.mcpToolName,
+    description: COMMAND_REGISTRY.findReferences.description,
+    toolVersion: "1",
+    inputSchema: {
+      repoRoot: stringSchema("Repository root path"),
+      symbolId: stringSchema("Indexed symbol id or stable id"),
+      limit: numberSchema("Optional maximum number of reference results").optional(),
+    },
+    execute: async (engine, args) => {
+      const input = {
+        repoRoot: requireString(args, "repoRoot"),
+        symbolId: requireString(args, "symbolId"),
+        limit: optionalNumber(args, "limit"),
+      };
+      validateFindReferencesOptions(input);
+      return COMMAND_REGISTRY.findReferences.execute(engine, input);
     },
   },
   {
