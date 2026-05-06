@@ -12,7 +12,7 @@ referenced `zyncbase/specs` setup:
 
 For general agent tasks, use the repo-local commands in `.agents/commands/` and shared guidance in `.agents/references/`.
 
-Before creating or changing specs, use the repo-local skills in `.agents/skills/`:
+Before creating or changing specs, use the repo-local skills in `.skills/`:
 
 - `spec-authoring`
 - `adr-authoring`
@@ -28,7 +28,7 @@ release workflow in `docs/reference/release.md`, and performance workflow in
 
 ## Release Workflow
 
-Use `.agents/skills/release-decision/SKILL.md` before deciding whether a change
+Use `.skills/release-decision/SKILL.md` before deciding whether a change
 needs an npm release. The CI manual dispatch exposes `release_mode=plan` for a
 dry run and `release_mode=apply` for the guarded main-only flow that commits the
 version update and pushes the release tag.

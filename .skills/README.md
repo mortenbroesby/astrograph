@@ -14,10 +14,25 @@ Target command surface:
 - `pnpm skills:search`
 - `pnpm skills:read <skill-name>`
 
-Current migration status:
+Current status:
 
-- `STORY-1` defines the architecture and boundaries
-- `STORY-2` moved the checked-in repo-owned skill tree here and updated the
-  canonical scripts and checks to treat `.skills/` as the source of truth
-- legacy runtime skill adapters and the old `.agents/skills/` tree are removed
-- external downloaded skills stay out of this checked-in directory
+- `.skills/` is the canonical source of truth for checked-in repo-owned skills
+- Astrograph-specific skills live here alongside the shared skill surface
+- legacy `.agents/skills/` content is retired from the tracked repo layout
+- vendored external references should be explicit and rare
+
+## Astrograph-Specific Skills
+
+These repo-local skills are maintained here alongside the shared skill surface:
+
+- `spec-authoring`
+- `adr-authoring`
+- `implementation-plan-authoring`
+- `spec-maintenance`
+- `release-decision`
+- `grill-me`
+
+## Vendored References
+
+- `excalidraw/`
+  Preserved upstream reference material for Excalidraw-oriented agent work.
