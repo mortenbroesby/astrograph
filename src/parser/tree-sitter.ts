@@ -6,6 +6,7 @@ import { getLanguageSupport } from "../language-registry.ts";
 import type { SummarySource, SummaryStrategy, SupportedLanguage, SymbolKind } from "../types.ts";
 import {
   buildParsedFile,
+  buildStableSymbolId,
   buildSymbolId,
   nodeText,
   normalizeWhitespace,
@@ -135,6 +136,7 @@ function createSymbol(
 
   return {
     id: buildSymbolId(relativePath, kind, qualifiedName, offset.byte + node.startIndex),
+    stableId: buildStableSymbolId(relativePath, kind, qualifiedName),
     name,
     qualifiedName,
     kind,

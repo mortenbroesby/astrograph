@@ -11,6 +11,7 @@ import type {
 export interface DbSymbolRow {
   file_id?: number;
   id: string;
+  stable_id: string;
   name: string;
   qualified_name: string | null;
   kind: SymbolSummary["kind"];
@@ -42,6 +43,7 @@ export interface TrackedFileRow {
 export function mapSymbolRow(row: DbSymbolRow): SymbolSummary {
   return {
     id: row.id,
+    stableId: row.stable_id,
     name: row.name,
     qualifiedName: row.qualified_name,
     kind: row.kind,

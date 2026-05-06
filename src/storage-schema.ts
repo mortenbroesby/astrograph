@@ -112,6 +112,22 @@ const SCHEMA_MIGRATIONS: SchemaMigration[] = [
       }
     },
   },
+  {
+    toVersion: 5,
+    run(db) {
+      if (!hasTableColumn(db, "symbols", "stable_id")) {
+        db.exec("ALTER TABLE symbols ADD COLUMN stable_id TEXT");
+        db.exec("UPDATE symbols SET stable_id = id WHERE stable_id IS NULL");
+      }
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS symbol_aliases (
+          alias_id TEXT PRIMARY KEY,
+          stable_id TEXT NOT NULL
+        );
+      `);
+      db.exec("CREATE INDEX IF NOT EXISTS idx_symbols_stable_id ON symbols(stable_id)");
+    },
+  },
 ];
 
 function runSchemaMigrations(db: IndexBackendConnection) {
@@ -159,6 +175,7 @@ export function initializeDatabase(db: IndexBackendConnection) {
     );
     CREATE TABLE IF NOT EXISTS symbols (
       id TEXT PRIMARY KEY,
+      stable_id TEXT NOT NULL,
       file_id INTEGER NOT NULL,
       file_path TEXT NOT NULL,
       name TEXT NOT NULL,
@@ -173,6 +190,10 @@ export function initializeDatabase(db: IndexBackendConnection) {
       end_byte INTEGER NOT NULL,
       exported INTEGER NOT NULL,
       FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
+    );
+    CREATE TABLE IF NOT EXISTS symbol_aliases (
+      alias_id TEXT PRIMARY KEY,
+      stable_id TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS imports (
       file_id INTEGER NOT NULL,
@@ -211,6 +232,7 @@ export function initializeDatabase(db: IndexBackendConnection) {
       tokenize = 'unicode61'
     );
     CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
+    CREATE INDEX IF NOT EXISTS idx_symbols_stable_id ON symbols(stable_id);
     CREATE INDEX IF NOT EXISTS idx_symbols_file_path ON symbols(file_path);
   `);
   runSchemaMigrations(db);

@@ -18,12 +18,12 @@ export interface FileAnalysisTaskOutput {
 
 function hashSymbolSignatures(
   symbols: Array<{
-    id: string;
+    stableId: string;
     signature: string;
   }>,
 ): string {
   return hashString(
-    JSON.stringify(symbols.map((symbol) => [symbol.id, symbol.signature])),
+    JSON.stringify(symbols.map((symbol) => [symbol.stableId, symbol.signature])),
     "symbol_signature",
   );
 }

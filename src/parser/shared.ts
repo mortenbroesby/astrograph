@@ -16,6 +16,7 @@ export interface ParsedImport {
 
 export interface ParsedSymbol {
   id: string;
+  stableId: string;
   name: string;
   qualifiedName: string | null;
   kind: SymbolKind;
@@ -89,6 +90,28 @@ export function buildSymbolId(
   return sha256(`${relativePath}:${kind}:${name}:${startByte}`).slice(0, 16);
 }
 
+export function buildStableSymbolId(
+  relativePath: string,
+  kind: SymbolKind,
+  qualifiedName: string,
+): string {
+  return `${relativePath}:${kind}:${qualifiedName}`;
+}
+
+function withStableSymbolIds(symbols: ParsedSymbol[]): ParsedSymbol[] {
+  const counts = new Map<string, number>();
+
+  return symbols.map((symbol) => {
+    const count = (counts.get(symbol.stableId) ?? 0) + 1;
+    counts.set(symbol.stableId, count);
+
+    return {
+      ...symbol,
+      stableId: count === 1 ? symbol.stableId : `${symbol.stableId}#${count}`,
+    };
+  });
+}
+
 export function buildParsedFile(input: {
   language: SupportedLanguage;
   content: string;
@@ -102,7 +125,7 @@ export function buildParsedFile(input: {
     language: input.language,
     contentHash: hashString(input.content, "content_fingerprint"),
     integrityHash: hashString(input.content, "integrity"),
-    symbols: input.symbols,
+    symbols: withStableSymbolIds(input.symbols),
     imports: input.imports,
     backend: input.backend,
     fallbackUsed: input.fallbackUsed,

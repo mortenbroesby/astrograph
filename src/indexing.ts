@@ -66,6 +66,25 @@ function clearFileSearchRows(
   db.prepare("DELETE FROM content_search WHERE file_id = ?").run(fileId);
 }
 
+function persistSymbolAliases(
+  db: IndexBackendConnection,
+  fileId: number,
+) {
+  const rows = typedAll<{ id: string; stable_id: string }>(
+    db.prepare("SELECT id, stable_id FROM symbols WHERE file_id = ?"),
+    fileId,
+  );
+  const insertAlias = db.prepare(`
+    INSERT INTO symbol_aliases (alias_id, stable_id)
+    VALUES (?, ?)
+    ON CONFLICT(alias_id) DO UPDATE SET stable_id = excluded.stable_id
+  `);
+
+  for (const row of rows) {
+    insertAlias.run(row.id, row.stable_id);
+  }
+}
+
 export function persistFileIndexResult(
   db: IndexBackendConnection,
   analyzed: AnalyzedFileIndexResult,
@@ -114,6 +133,7 @@ export function persistFileIndexResult(
   const { existing, file, reparsed, symbolSignatureHash, importHash } = analyzed;
 
   if (existing) {
+    persistSymbolAliases(db, existing.id);
     clearFileSearchRows(db, existing.id);
     db.prepare("DELETE FROM imports WHERE file_id = ?").run(existing.id);
     db.prepare("DELETE FROM symbols WHERE file_id = ?").run(existing.id);
@@ -187,10 +207,10 @@ export function persistFileIndexResult(
   ).run(fileRow.id, file.relativePath, file.content);
   const insertSymbol = db.prepare(`
     INSERT INTO symbols (
-      id, file_id, file_path, name, qualified_name, kind, signature,
+      id, stable_id, file_id, file_path, name, qualified_name, kind, signature,
       summary, summary_source, start_line, end_line, start_byte, end_byte, exported
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const insertSymbolSearch = db.prepare(`
     INSERT INTO symbol_search (
@@ -201,6 +221,7 @@ export function persistFileIndexResult(
   for (const symbol of reparsed.symbols) {
     insertSymbol.run(
       symbol.id,
+      symbol.stableId,
       fileRow.id,
       file.relativePath,
       symbol.name,
@@ -254,6 +275,7 @@ export function removeFileIndex(
   if (!fileRow) {
     return false;
   }
+  persistSymbolAliases(db, fileRow.id);
   clearFileSearchRows(db, fileRow.id);
   const result = db.prepare("DELETE FROM files WHERE path = ?").run(filePath);
   return Number(result.changes ?? 0) > 0;

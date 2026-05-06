@@ -31,6 +31,7 @@ export interface FileTreeEntry {
 
 export interface SymbolSummary {
   id: string;
+  stableId: string;
   name: string;
   qualifiedName: string | null;
   kind: SymbolKind;

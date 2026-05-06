@@ -444,7 +444,7 @@ function loadSymbolRows(
     db.prepare(
       `
         SELECT
-          symbols.id, symbols.name, symbols.qualified_name, symbols.kind,
+          symbols.id, symbols.stable_id, symbols.name, symbols.qualified_name, symbols.kind,
           symbols.file_path, symbols.signature, symbols.summary,
           symbols.summary_source,
           symbols.start_line, symbols.end_line, symbols.start_byte,
@@ -469,7 +469,7 @@ function loadSymbolSourceRow(
     db.prepare(
       `
         SELECT
-          symbols.id, symbols.name, symbols.qualified_name, symbols.kind, symbols.file_path,
+          symbols.id, symbols.stable_id, symbols.name, symbols.qualified_name, symbols.kind, symbols.file_path,
           symbols.signature, symbols.summary, symbols.summary_source,
           symbols.start_line, symbols.end_line, symbols.start_byte, symbols.end_byte,
           symbols.exported,
@@ -477,9 +477,19 @@ function loadSymbolSourceRow(
         FROM symbols
         INNER JOIN files ON files.id = symbols.file_id
         INNER JOIN content_blobs ON content_blobs.file_id = files.id
-        WHERE symbols.id = ?
+        WHERE
+          symbols.id = ?
+          OR symbols.stable_id = ?
+          OR symbols.stable_id = (
+            SELECT stable_id
+            FROM symbol_aliases
+            WHERE alias_id = ?
+            LIMIT 1
+          )
       `,
     ),
+    symbolId,
+    symbolId,
     symbolId,
   );
 }
