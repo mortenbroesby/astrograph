@@ -246,7 +246,7 @@ describe("ai-context-engine behavior", () => {
 
     expect(result).toMatchObject({
       repoRoot: resolvedRepoRoot,
-      schemaVersion: 5,
+      schemaVersion: 6,
       indexStatus: "not-indexed",
       freshness: {
         indexedFiles: 0,
@@ -326,7 +326,7 @@ describe("ai-context-engine behavior", () => {
     expect(health).toMatchObject({
       engineVersion: ASTROGRAPH_PACKAGE_VERSION,
       engineVersionParts: ASTROGRAPH_VERSION_PARTS,
-      schemaVersion: 5,
+      schemaVersion: 6,
       summaryStrategy: "doc-comments-first",
       summarySources: {
         "doc-comment": 4,
@@ -494,7 +494,7 @@ module.exports = {
       path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
     );
     expect(health.storageVersion).toBe(1);
-    expect(health.schemaVersion).toBe(5);
+    expect(health.schemaVersion).toBe(6);
   });
 
   it("migrates legacy Astrograph schema state before serving diagnostics", async () => {
@@ -523,7 +523,7 @@ module.exports = {
     legacyDb.close();
 
     const health = await diagnostics({ repoRoot });
-    expect(health.schemaVersion).toBe(5);
+    expect(health.schemaVersion).toBe(6);
 
     const migratedDb = new Database(paths.databasePath, { readonly: true });
     const fileColumns = migratedDb
@@ -534,6 +534,9 @@ module.exports = {
       .get() as { name: string } | undefined;
     const artifactTable = migratedDb
       .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'analysis_artifacts'")
+      .get() as { name: string } | undefined;
+    const checkoutTable = migratedDb
+      .prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'checkouts'")
       .get() as { name: string } | undefined;
     const schemaVersionRow = migratedDb
       .prepare("SELECT value FROM meta WHERE key = 'schemaVersion'")
@@ -551,7 +554,8 @@ module.exports = {
     );
     expect(dependencyTable?.name).toBe("file_dependencies");
     expect(artifactTable?.name).toBe("analysis_artifacts");
-    expect(schemaVersionRow?.value).toBe("5");
+    expect(checkoutTable?.name).toBe("checkouts");
+    expect(schemaVersionRow?.value).toBe("6");
   });
 
   it("resets incompatible storage versions before serving diagnostics", async () => {
@@ -569,7 +573,7 @@ module.exports = {
 
     const health = await diagnostics({ repoRoot });
 
-    expect(health.schemaVersion).toBe(5);
+    expect(health.schemaVersion).toBe(6);
     await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
       .resolves.toContain('"version": 1');

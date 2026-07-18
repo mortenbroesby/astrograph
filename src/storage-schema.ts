@@ -72,6 +72,37 @@ function createAnalysisArtifactsSchema(db: IndexBackendConnection) {
   `);
 }
 
+function createCheckoutMappingsSchema(db: IndexBackendConnection) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS checkouts (
+      checkout_id TEXT PRIMARY KEY,
+      canonical_root TEXT NOT NULL UNIQUE,
+      git_mode TEXT NOT NULL,
+      repository_id TEXT,
+      head_oid TEXT,
+      branch_ref TEXT,
+      worktree_path TEXT,
+      git_diagnostic TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS checkout_path_mappings (
+      checkout_id TEXT NOT NULL,
+      relative_path TEXT NOT NULL,
+      artifact_key TEXT NOT NULL,
+      observed_content_hash TEXT NOT NULL,
+      observed_size_bytes INTEGER,
+      observed_mtime_ms INTEGER,
+      observed_at TEXT NOT NULL,
+      PRIMARY KEY(checkout_id, relative_path),
+      FOREIGN KEY(checkout_id) REFERENCES checkouts(checkout_id) ON DELETE CASCADE,
+      FOREIGN KEY(artifact_key) REFERENCES analysis_artifacts(artifact_key)
+    );
+    CREATE INDEX IF NOT EXISTS idx_checkout_path_mappings_artifact_key
+      ON checkout_path_mappings(artifact_key);
+  `);
+}
+
 const SCHEMA_MIGRATIONS: SchemaMigration[] = [
   {
     toVersion: 1,
@@ -138,6 +169,12 @@ const SCHEMA_MIGRATIONS: SchemaMigration[] = [
     toVersion: 5,
     run(db) {
       createAnalysisArtifactsSchema(db);
+    },
+  },
+  {
+    toVersion: 6,
+    run(db) {
+      createCheckoutMappingsSchema(db);
     },
   },
 ];

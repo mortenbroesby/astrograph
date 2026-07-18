@@ -101,7 +101,26 @@ passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
 
 ## Story 5: Checkout Mapping Lifecycle
 
-**Status:** Blocked by Stories 2–4.
+**Goal:** Persist distinct checkout and checkout-path mappings that can point to
+the same immutable artifact without using branch metadata as identity.
+
+- [x] Run baseline: `pnpm type-lint` and focused incremental-cache/Git tests.
+- [x] Add a schema migration for checkout records and per-checkout path mappings
+  with canonical root plus a generated persistent checkout ID.
+- [x] Implement private registration/upsert and lookup helpers that update Git
+  observations but never use them to find a checkout or artifact.
+- [x] Record normalized relative path, artifact key, content hash, size, mtime,
+  and observation time per checkout-path mapping.
+- [x] Add focused storage tests proving one artifact can have two independent
+  worktree mappings and repeated registration preserves a checkout ID.
+- [x] Run focused tests, `pnpm type-lint`, `pnpm check:version-bump`, and
+  `git diff --check`.
+- [x] Commit the Story 5 implementation as
+  `feat: persist checkout artifact mappings`.
+
+**Evidence:** Focused checkout mapping, cache, Git, engine, contract, and
+interface Vitest commands passed on 2026-07-18; `pnpm type-lint`,
+`pnpm check:version-bump`, and `git diff --check` passed.
 
 ## Story 6: Artifact Reuse During Indexing
 
