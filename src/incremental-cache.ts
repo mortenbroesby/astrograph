@@ -36,6 +36,14 @@ export interface SerializedAnalysisArtifactPayload {
   import_facts_json: string;
 }
 
+function hasJsonSerializableOwnProperty(
+  value: object,
+  field: keyof AnalysisArtifactPayload,
+): boolean {
+  return Object.hasOwn(value, field)
+    && JSON.stringify((value as Record<string, unknown>)[field]) !== undefined;
+}
+
 function requireFingerprintString(
   field: string,
   value: string,
@@ -88,6 +96,37 @@ export function buildAnalysisArtifactKey(
   });
 
   return `sha256:${createHash("sha256").update(canonical).digest("hex")}`;
+}
+
+export function isCompleteAnalysisArtifactRecord(
+  value: unknown,
+): value is AnalysisArtifactRecord {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+
+  const candidate = value as Record<string, unknown>;
+  const stringFields = [
+    "artifactKey",
+    "contentHash",
+    "language",
+    "parserVersion",
+    "summaryStrategy",
+    "extractionConfigFingerprint",
+    "dependencyAnalysisVersion",
+    "createdAt",
+  ];
+  if (stringFields.some((field) => typeof candidate[field] !== "string"
+    || candidate[field].trim().length === 0)) {
+    return false;
+  }
+
+  return Number.isSafeInteger(candidate.storageSchemaVersion)
+    && (candidate.storageSchemaVersion as number) > 0
+    && hasJsonSerializableOwnProperty(candidate, "parseOutput")
+    && hasJsonSerializableOwnProperty(candidate, "summaries")
+    && hasJsonSerializableOwnProperty(candidate, "symbols")
+    && hasJsonSerializableOwnProperty(candidate, "importFacts");
 }
 
 function serializePayloadField(name: string, value: unknown): string {

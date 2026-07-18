@@ -90,7 +90,7 @@ describe("ai-context-engine contract", () => {
     expect(config.paths.databasePath).toContain(".astrograph/index.sqlite");
     expect(config.fileProcessingConcurrency).toBeGreaterThanOrEqual(2);
     expect(ENGINE_STORAGE_VERSION).toBe(1);
-    expect(ENGINE_SCHEMA_VERSION).toBe(4);
+    expect(ENGINE_SCHEMA_VERSION).toBe(5);
   });
 
   it("advertises the required engine tools", () => {

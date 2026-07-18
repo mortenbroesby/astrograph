@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAnalysisArtifactKey,
+  isCompleteAnalysisArtifactRecord,
   serializeAnalysisArtifactPayload,
 } from "../src/incremental-cache.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -142,5 +143,27 @@ describe("incremental analysis artifact storage", () => {
 
     expect(buildAnalysisArtifactKey(mainBranchInput))
       .toBe(buildAnalysisArtifactKey(featureBranchInput));
+  });
+
+  it("does not treat incomplete artifact metadata as reusable", () => {
+    const completeRecord = {
+      artifactKey: buildAnalysisArtifactKey(fingerprintInput),
+      ...fingerprintInput,
+      createdAt: "2026-07-18T00:00:00.000Z",
+      parseOutput: { parser: "oxc" },
+      summaries: [],
+      symbols: [],
+      importFacts: [],
+    };
+
+    expect(isCompleteAnalysisArtifactRecord(completeRecord)).toBe(true);
+    expect(isCompleteAnalysisArtifactRecord({
+      ...completeRecord,
+      dependencyAnalysisVersion: "",
+    })).toBe(false);
+    expect(isCompleteAnalysisArtifactRecord({
+      ...completeRecord,
+      importFacts: undefined,
+    })).toBe(false);
   });
 });

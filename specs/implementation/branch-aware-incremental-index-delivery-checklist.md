@@ -54,7 +54,26 @@ checkout and branch metadata.
 
 ## Story 3: Storage Migration Safety
 
-**Status:** Blocked by Story 1.
+**Goal:** Make the artifact schema an explicit schema-version migration and
+preserve the guarded reset/fallback path for incompatible metadata.
+
+- [x] Run baseline: `pnpm type-lint` and
+  `pnpm exec vitest run tests/engine-behavior.test.ts tests/incremental-cache.test.ts`.
+- [x] Raise the internal schema version and add an idempotent migration that
+  creates the private `analysis_artifacts` table and its index.
+- [x] Keep new databases and legacy databases on the same final schema version.
+- [x] Extend legacy-schema coverage to verify the version, artifact table, and
+  existing schema fields after diagnostics opens the database.
+- [x] Add a focused test that incomplete artifact metadata cannot be used as a
+  reusable record boundary; later indexing must therefore fall back to normal
+  analysis until Story 6 integrates reuse.
+- [x] Run focused tests, `pnpm type-lint`, `pnpm check:version-bump`, and
+  `git diff --check`.
+- [x] Commit the Story 3 implementation as
+  `feat: migrate immutable analysis artifact storage`.
+
+**Evidence:** Baseline and focused Vitest commands passed on 2026-07-18;
+`pnpm type-lint`, `pnpm check:version-bump`, and `git diff --check` passed.
 
 ## Story 4: Optional Git Checkout Discovery
 
