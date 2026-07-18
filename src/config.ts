@@ -1,10 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { readFile, realpath } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
 import { z } from "zod";
 
+import { probeGitCheckout } from "./git-checkout.ts";
 import { getSupportedLanguages } from "./language-registry.ts";
 import type {
   EngineConfig,
@@ -245,21 +246,7 @@ export function resolveEnginePaths(repoRoot: string): EnginePaths {
 
 export async function resolveEngineRepoRoot(repoRoot: string): Promise<string> {
   const absoluteRepoRoot = path.resolve(repoRoot);
-  const resolvedRepoRoot = await realpath(absoluteRepoRoot).catch(
-    () => absoluteRepoRoot,
-  );
-
-  try {
-    const worktreeRoot = execFileSync("git", ["rev-parse", "--show-toplevel"], {
-      cwd: resolvedRepoRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
-
-    return await realpath(worktreeRoot).catch(() => worktreeRoot);
-  } catch {
-    return resolvedRepoRoot;
-  }
+  return (await probeGitCheckout({ repoRoot: absoluteRepoRoot })).repoRoot;
 }
 
 function createDefaultResolvedRepoEngineConfig(

@@ -77,7 +77,27 @@ preserve the guarded reset/fallback path for incompatible metadata.
 
 ## Story 4: Optional Git Checkout Discovery
 
-**Status:** Blocked by Story 1 planning sequence.
+**Goal:** Probe Git checkout state with bounded, non-mutating commands while
+leaving ordinary filesystem indexing fully independent of Git.
+
+- [x] Run baseline: `pnpm type-lint` and
+  `pnpm exec vitest run tests/engine-behavior.test.ts`.
+- [x] Create `src/git-checkout.ts` with an injectable, bounded `execFile` probe
+  for worktree root, HEAD OID, and symbolic branch ref; use `shell: false`.
+- [x] Classify named branch, detached HEAD, linked worktree, non-Git, and
+  unavailable-Git states without throwing for any fallback state.
+- [x] Keep Git metadata out of artifact keys and existing repository-root
+  identity; do not alter indexing behavior in this story.
+- [x] Add `tests/git-checkout.test.ts` with deterministic fake command runners
+  for every state and timeout/error fallback.
+- [x] Run focused tests, `pnpm type-lint`, `pnpm check:version-bump`, and
+  `git diff --check`.
+- [x] Commit the Story 4 implementation as
+  `feat: probe optional Git checkout metadata`.
+
+**Evidence:** Focused Git, engine behavior, and interface Vitest commands
+passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
+`git diff --check` passed.
 
 ## Story 5: Checkout Mapping Lifecycle
 
