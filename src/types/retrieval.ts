@@ -57,6 +57,12 @@ export interface SearchSymbolsOptions {
   limit?: number;
 }
 
+/** Public bounded-response envelope for CLI and MCP symbol discovery. */
+export interface SearchSymbolsResult {
+  items: SymbolSummary[];
+  truncated: boolean;
+}
+
 export interface SearchTextMatch {
   filePath: string;
   line: number;

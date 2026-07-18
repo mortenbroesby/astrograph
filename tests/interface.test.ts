@@ -175,8 +175,8 @@ describe("ai-context-engine interfaces", () => {
       "--limit",
       "1",
     ]);
-    expect(JSON.parse(filteredStdout)).toHaveLength(1);
-    expect(JSON.parse(filteredStdout)[0]).toMatchObject({
+    expect(JSON.parse(filteredStdout).items).toHaveLength(1);
+    expect(JSON.parse(filteredStdout).items[0]).toMatchObject({
       name: "Greeter",
       kind: "class",
     });
@@ -215,7 +215,7 @@ describe("ai-context-engine interfaces", () => {
     expect(JSON.parse(queryCodeDiscoverStdout).textMatches[0]).toMatchObject({
       filePath: "src/strings.ts",
     });
-    const greeterId = JSON.parse(filteredStdout)[0].id as string;
+    const greeterId = JSON.parse(filteredStdout).items[0].id as string;
 
     const greetStdout = await handleCli([
       "search-symbols",
@@ -228,7 +228,7 @@ describe("ai-context-engine interfaces", () => {
       "--limit",
       "1",
     ]);
-    const greetId = JSON.parse(greetStdout)[0].id as string;
+    const greetId = JSON.parse(greetStdout).items[0].id as string;
 
     const rankedContextStdout = await handleCli([
       "get-ranked-context",
@@ -531,17 +531,20 @@ export function circumference(radius: number): string {
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
           tokenBudgetUsed: expect.any(Number),
         },
-        data: expect.arrayContaining([
-          expect.objectContaining({
-            name: "Greeter",
-            kind: "class",
-            filePath: "src/strings.ts",
-            summarySource: "signature",
-          }),
-        ]),
+        data: {
+          truncated: false,
+          items: expect.arrayContaining([
+            expect.objectContaining({
+              name: "Greeter",
+              kind: "class",
+              filePath: "src/strings.ts",
+              summarySource: "signature",
+            }),
+          ]),
+        },
       });
-      expect(discoverPayload.data).toHaveLength(1);
-      expect(discoverPayload.data).toEqual(
+      expect(discoverPayload.data.items).toHaveLength(1);
+      expect(discoverPayload.data.items).toEqual(
         expect.not.arrayContaining([
           expect.objectContaining({
             textMatches: expect.anything(),
@@ -562,18 +565,18 @@ export function circumference(radius: number): string {
           tokenBudgetUsed: expect.any(Number),
         },
       });
-      const filteredDiscover = filteredSearchPayload.data;
+      const filteredDiscover = filteredSearchPayload.data.items;
       expect(filteredDiscover.every((entry: { filePath: string }) =>
         entry.filePath.endsWith(".ts"),
       )).toBe(true);
-      const greeterToolId = discoverPayload.data[0].id as string;
+      const greeterToolId = discoverPayload.data.items[0].id as string;
 
       const greetPayload = parseMcpToolResult(
         greetResult as {
           content: Array<{ type: string; text: string }>;
         },
       );
-      const greetToolId = greetPayload.data[0].id as string;
+      const greetToolId = greetPayload.data.items[0].id as string;
 
       const findFilesPayload = parseMcpToolResult(
         findFilesResult as {
@@ -730,11 +733,14 @@ export function circumference(radius: number): string {
       const parsedSearchSymbols = JSON.parse(searchSymbolsContent);
       expect(parsedSearchSymbols).toMatchObject({
         ok: true,
-        data: expect.arrayContaining([
+        data: {
+          items: expect.arrayContaining([
           expect.objectContaining({
             name: "Greeter",
           }),
-        ]),
+          ]),
+          truncated: false,
+        },
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
@@ -1183,7 +1189,7 @@ export class Greeter {
         data: null,
         error: {
           code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
-          message: expect.stringContaining("symbol output"),
+          message: expect.stringContaining("Invalid MCP output"),
         },
         meta: {
           toolVersion: "1",
@@ -1293,4 +1299,45 @@ export class Greeter {
       storageBackend: "sqlite",
     });
   }, 15_000);
+
+  it("marks bounded broad MCP symbol results as truncated", async () => {
+    const repoRoot = await createFixtureRepo();
+    await writeFile(
+      path.join(repoRoot, "src", "many-symbols.ts"),
+      Array.from(
+        { length: 12 },
+        (_, index) => `export function matchingSymbol${index}() { return ${index}; }`,
+      ).join("\n"),
+    );
+    await indexFolder({ repoRoot });
+
+    await expect(
+      dispatchTool("search_symbols", {
+        repoRoot,
+        query: "matchingSymbol",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      data: {
+        items: expect.arrayContaining([
+          expect.objectContaining({ name: "matchingSymbol0" }),
+        ]),
+        truncated: true,
+      },
+    });
+
+    const cliOutput = await handleCli([
+      "search-symbols",
+      "--repo",
+      repoRoot,
+      "--query",
+      "matchingSymbol",
+    ]);
+    expect(JSON.parse(cliOutput)).toMatchObject({
+      items: expect.arrayContaining([
+        expect.objectContaining({ name: "matchingSymbol0" }),
+      ]),
+      truncated: true,
+    });
+  });
 });

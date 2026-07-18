@@ -174,10 +174,14 @@ function assertSymbolSummary(value: unknown): value is Record<string, unknown> {
 }
 
 function validateSearchSymbolsOutput(result: unknown) {
-  if (!Array.isArray(result)) {
-    throw new Error("search_symbols output must be an array");
+  assertIsObject(result);
+  if (!Array.isArray(result.items)) {
+    throw new Error("search_symbols output must include items");
   }
-  for (const symbol of result) {
+  if (!ensureBoolean(result.truncated)) {
+    throw new Error("search_symbols output must include truncated");
+  }
+  for (const symbol of result.items) {
     assertSymbolSummary(symbol);
   }
 }

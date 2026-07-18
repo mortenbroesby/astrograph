@@ -103,6 +103,7 @@ import {
   queryCodeInContext,
   resolveQueryCodeIntent,
   searchSymbolsInContext,
+  searchSymbolsResultInContext,
   searchTextInContext,
 } from "./retrieval.ts";
 import { subscribeRepo } from "./watch-backend.ts";
@@ -137,6 +138,7 @@ import type {
   RankedContextResult,
   RepoOutline,
   SearchSymbolsOptions,
+  SearchSymbolsResult,
   SearchTextOptions,
   SearchTextMatch,
   SymbolSourceResult,
@@ -2088,6 +2090,19 @@ export async function searchSymbols(
 
   try {
     return searchSymbolsInContext(context, input);
+  } finally {
+    closeEngineContext(context);
+  }
+}
+
+export async function searchSymbolsResult(
+  input: SearchSymbolsOptions,
+): Promise<SearchSymbolsResult> {
+  validateSearchSymbolsOptions(input);
+  const context = await createEngineContext(input);
+
+  try {
+    return searchSymbolsResultInContext(context, input);
   } finally {
     closeEngineContext(context);
   }

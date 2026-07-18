@@ -200,8 +200,9 @@ describe("cli boundaries", () => {
       ]),
     );
 
-    expect(searchResult).toHaveLength(1);
-    expect(searchResult[0]).toMatchObject({
+    expect(searchResult).toMatchObject({ truncated: false });
+    expect(searchResult.items).toHaveLength(1);
+    expect(searchResult.items[0]).toMatchObject({
       id: symbol!.id,
       kind: "class",
     });

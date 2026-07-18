@@ -181,7 +181,7 @@ describe("ai-context-engine contract", () => {
         data: null,
         error: {
           code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
-          message: expect.stringContaining("symbol output"),
+          message: expect.stringContaining("Invalid MCP output"),
         },
         meta: {
           toolVersion: "1",

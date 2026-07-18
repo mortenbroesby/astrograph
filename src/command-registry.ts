@@ -157,7 +157,7 @@ export const COMMAND_REGISTRY = {
       "filePattern",
       "limit",
     ],
-    execute: (engine, input: SearchSymbolsOptions) => engine.searchSymbols(input),
+    execute: (engine, input: SearchSymbolsOptions) => engine.searchSymbolsResult(input),
   },
   queryCode: {
     id: "query_code",

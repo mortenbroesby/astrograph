@@ -38,7 +38,7 @@ the repository spec system.
 - [x] Verify the planning artifact with `git diff --check` and
   `find specs .skills -type f -name '*.md' -print`.
 
-## Story 2: Bound broad-query result responses
+## Story 2: Bound broad-query result responses — Complete
 
 **Goal:** Broad retrieval returns a deterministic bounded summary or
 refine-first response rather than an oversized default payload.
@@ -47,13 +47,14 @@ refine-first response rather than an oversized default payload.
 `src/mcp-contract.ts`, `src/mcp.ts`, `src/cli.ts`, `tests/interface.test.ts`,
 and `tests/engine-behavior.test.ts`.
 
-- [ ] Define the threshold inputs and bounded-result modes without changing
+- [x] Define the threshold inputs and bounded-result modes without changing
   ranking logic.
-- [ ] Add the smallest response-shaping implementation that distinguishes
-  normal, grouped, and refine-first results.
-- [ ] Add focused fixtures for broad and narrow requests, including deterministic
+- [x] Apply the default symbol-result cap through the existing response path
+  and expose stable `items`/`truncated` state without altering ranking or the
+  explicit `limit`/repository override rules.
+- [x] Add focused fixtures for broad and narrow requests, including deterministic
   ordering and payload limits.
-- [ ] Verify with `pnpm exec vitest run tests/interface.test.ts
+- [x] Verify with `pnpm exec vitest run tests/interface.test.ts
   tests/engine-behavior.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 

@@ -42,6 +42,7 @@ import type {
   RankedContextCandidate,
   RankedContextResult,
   RankingWeights,
+  SearchSymbolsResult,
   SearchSymbolsOptions,
   SearchTextMatch,
   SearchTextOptions,
@@ -912,6 +913,13 @@ export function searchSymbolsInContext(
   context: RetrievalContext,
   input: SearchSymbolsOptions,
 ): SymbolSummary[] {
+  return searchSymbolsResultInContext(context, input).items;
+}
+
+export function searchSymbolsResultInContext(
+  context: RetrievalContext,
+  input: SearchSymbolsOptions,
+): SearchSymbolsResult {
   const resultLimit = Math.min(
     input.limit ?? context.config.maxSymbolResults,
     context.config.maxSymbolResults,
@@ -924,15 +932,18 @@ export function searchSymbolsInContext(
   });
   const normalizedQuery = normalizeQuery(input.query);
 
-  return rows
+  const matches = rows
     .map((row) => ({
       row,
       score: scoreSymbolRow(row, normalizedQuery, context.config.rankingWeights),
     }))
     .filter((entry) => entry.score > 0)
-    .sort(sortRankedSymbolEntries)
-    .slice(0, resultLimit)
-    .map((entry) => mapSymbolRow(entry.row));
+    .sort(sortRankedSymbolEntries);
+
+  return {
+    items: matches.slice(0, resultLimit).map((entry) => mapSymbolRow(entry.row)),
+    truncated: matches.length > resultLimit,
+  };
 }
 
 export function searchTextInContext(

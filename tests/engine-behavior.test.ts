@@ -24,6 +24,7 @@ import {
   indexFile,
   queryCode,
   searchSymbols,
+  searchSymbolsResult,
   searchText,
   suggestInitialQueries,
   watchFolder,
@@ -769,6 +770,38 @@ export class Greeter {
       throw new Error("Expected discover result");
     }
     expect(discoverResult.textMatches).toHaveLength(2);
+  });
+
+  it("bounds broad indexed symbol queries by the default result limit", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await writeFile(
+      path.join(repoRoot, "src", "many-symbols.ts"),
+      Array.from(
+        { length: 12 },
+        (_, index) => `export function matchingSymbol${index}() { return ${index}; }`,
+      ).join("\n"),
+    );
+
+    await indexFolder({ repoRoot });
+
+    const symbolResult = await searchSymbolsResult({
+      repoRoot,
+      query: "matchingSymbol",
+    });
+
+    expect(symbolResult.truncated).toBe(true);
+    expect(symbolResult.items).toHaveLength(8);
+    expect(symbolResult.items.map((symbol) => symbol.name)).toEqual([
+      "matchingSymbol0",
+      "matchingSymbol1",
+      "matchingSymbol2",
+      "matchingSymbol3",
+      "matchingSymbol4",
+      "matchingSymbol5",
+      "matchingSymbol6",
+      "matchingSymbol7",
+    ]);
   });
 
   it("skips oversized files during indexed discovery when maxFileBytes is configured", async () => {
