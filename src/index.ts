@@ -116,6 +116,7 @@ export type {
   RankedContextResult,
   RepoOutline,
   SearchSymbolsOptions,
+  SearchSymbolsRefinementHint,
   SearchSymbolsResult,
   SearchTextOptions,
   SearchTextMatch,

@@ -181,6 +181,22 @@ function validateSearchSymbolsOutput(result: unknown) {
   if (!ensureBoolean(result.truncated)) {
     throw new Error("search_symbols output must include truncated");
   }
+  if (!Array.isArray(result.refinementHints)) {
+    throw new Error("search_symbols output must include refinementHints");
+  }
+  for (const hint of result.refinementHints) {
+    assertIsObject(hint);
+    if (
+      hint.field !== "limit"
+      && hint.field !== "filePattern"
+      && hint.field !== "kind"
+    ) {
+      throw new Error("search_symbols refinement hint has invalid field");
+    }
+    if (typeof hint.value !== "string" && !ensureNumber(hint.value)) {
+      throw new Error("search_symbols refinement hint has invalid value");
+    }
+  }
   for (const symbol of result.items) {
     assertSymbolSummary(symbol);
   }

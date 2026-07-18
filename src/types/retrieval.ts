@@ -58,9 +58,15 @@ export interface SearchSymbolsOptions {
 }
 
 /** Public bounded-response envelope for CLI and MCP symbol discovery. */
+export interface SearchSymbolsRefinementHint {
+  field: "limit" | "filePattern" | "kind";
+  value: number | string;
+}
+
 export interface SearchSymbolsResult {
   items: SymbolSummary[];
   truncated: boolean;
+  refinementHints: SearchSymbolsRefinementHint[];
 }
 
 export interface SearchTextMatch {

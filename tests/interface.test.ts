@@ -1323,6 +1323,11 @@ export class Greeter {
           expect.objectContaining({ name: "matchingSymbol0" }),
         ]),
         truncated: true,
+        refinementHints: [
+          { field: "limit", value: 4 },
+          { field: "filePattern", value: "src/**" },
+          { field: "kind", value: "function" },
+        ],
       },
     });
 
@@ -1338,6 +1343,11 @@ export class Greeter {
         expect.objectContaining({ name: "matchingSymbol0" }),
       ]),
       truncated: true,
+      refinementHints: [
+        { field: "limit", value: 4 },
+        { field: "filePattern", value: "src/**" },
+        { field: "kind", value: "function" },
+      ],
     });
   });
 });

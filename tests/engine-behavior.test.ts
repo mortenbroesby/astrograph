@@ -791,6 +791,11 @@ export class Greeter {
     });
 
     expect(symbolResult.truncated).toBe(true);
+    expect(symbolResult.refinementHints).toEqual([
+      { field: "limit", value: 4 },
+      { field: "filePattern", value: "src/**" },
+      { field: "kind", value: "function" },
+    ]);
     expect(symbolResult.items).toHaveLength(8);
     expect(symbolResult.items.map((symbol) => symbol.name)).toEqual([
       "matchingSymbol0",
@@ -802,6 +807,16 @@ export class Greeter {
       "matchingSymbol6",
       "matchingSymbol7",
     ]);
+  });
+
+  it("omits refinement hints when symbol results are not truncated", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+
+    const symbolResult = await searchSymbolsResult({ repoRoot, query: "Greeter" });
+
+    expect(symbolResult.truncated).toBe(false);
+    expect(symbolResult.refinementHints).toEqual([]);
   });
 
   it("skips oversized files during indexed discovery when maxFileBytes is configured", async () => {

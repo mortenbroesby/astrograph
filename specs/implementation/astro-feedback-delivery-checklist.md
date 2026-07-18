@@ -58,19 +58,19 @@ and `tests/engine-behavior.test.ts`.
   tests/engine-behavior.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
-## Story 3: Add broad-query next-step hints
+## Story 3: Add broad-query next-step hints — Complete
 
 **Goal:** A refine-first response gives an agent a concrete, stable way to
 narrow the next request.
 
 **Depends on:** Story 2.
 
-- [ ] Define a response field and ordering rules for file pattern, kind,
+- [x] Define a response field and ordering rules for file pattern, kind,
   directory, or follow-up-query hints.
-- [ ] Derive hints only from supported filters and observed result evidence.
-- [ ] Serialize matching hints through MCP and CLI JSON without affecting
+- [x] Derive hints only from supported filters and observed result evidence.
+- [x] Serialize matching hints through MCP and CLI JSON without affecting
   adequately narrow queries.
-- [ ] Add contract tests and verify with `pnpm exec vitest run
+- [x] Add contract tests and verify with `pnpm exec vitest run
   tests/interface.test.ts tests/engine-contract.test.ts`, `pnpm type-lint`,
   and `pnpm check:version-bump`.
 

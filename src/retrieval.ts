@@ -42,6 +42,7 @@ import type {
   RankedContextCandidate,
   RankedContextResult,
   RankingWeights,
+  SearchSymbolsRefinementHint,
   SearchSymbolsResult,
   SearchSymbolsOptions,
   SearchTextMatch,
@@ -916,6 +917,49 @@ export function searchSymbolsInContext(
   return searchSymbolsResultInContext(context, input).items;
 }
 
+function mostCommonValue(values: string[]): string | undefined {
+  const counts = new Map<string, number>();
+  for (const value of values) {
+    counts.set(value, (counts.get(value) ?? 0) + 1);
+  }
+
+  return [...counts.entries()]
+    .sort(([leftValue, leftCount], [rightValue, rightCount]) =>
+      rightCount - leftCount || leftValue.localeCompare(rightValue),
+    )[0]?.[0];
+}
+
+function buildSearchSymbolsRefinementHints(
+  input: SearchSymbolsOptions,
+  items: SymbolSummary[],
+  truncated: boolean,
+): SearchSymbolsRefinementHint[] {
+  if (!truncated) {
+    return [];
+  }
+
+  const hints: SearchSymbolsRefinementHint[] = [
+    { field: "limit", value: Math.max(1, Math.floor(items.length / 2)) },
+  ];
+  if (!input.filePattern) {
+    const directory = mostCommonValue(
+      items
+        .map((item) => path.posix.dirname(item.filePath))
+        .filter((directory) => directory !== "."),
+    );
+    if (directory) {
+      hints.push({ field: "filePattern", value: `${directory}/**` });
+    }
+  }
+  if (!input.kind) {
+    const kind = mostCommonValue(items.map((item) => item.kind));
+    if (kind) {
+      hints.push({ field: "kind", value: kind });
+    }
+  }
+  return hints;
+}
+
 export function searchSymbolsResultInContext(
   context: RetrievalContext,
   input: SearchSymbolsOptions,
@@ -940,10 +984,9 @@ export function searchSymbolsResultInContext(
     .filter((entry) => entry.score > 0)
     .sort(sortRankedSymbolEntries);
 
-  return {
-    items: matches.slice(0, resultLimit).map((entry) => mapSymbolRow(entry.row)),
-    truncated: matches.length > resultLimit,
-  };
+  const items = matches.slice(0, resultLimit).map((entry) => mapSymbolRow(entry.row));
+  const truncated = matches.length > resultLimit;
+  return { items, truncated, refinementHints: buildSearchSymbolsRefinementHints(input, items, truncated) };
 }
 
 export function searchTextInContext(
