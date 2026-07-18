@@ -152,7 +152,27 @@ commands passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
 
 ## Story 7: Checkout-Local Dependency Edge Refresh
 
-**Status:** Blocked by Story 6.
+**Goal:** Rebuild dependency edges from current checkout-local file rows after
+reuse, path changes, or changed import/export facts; never store path-resolved
+edges inside an immutable artifact.
+
+- [x] Run baseline: focused engine, watch, cache, and checkout-mapping tests.
+- [x] Define private checkout dependency ownership and migrate existing
+  dependency rows without changing public retrieval contracts.
+- [x] Rebuild checkout-local edges after folder, single-file, and watch refresh
+  using artifact import facts resolved against current checkout paths.
+- [x] Refresh direct importers when a target file changes, moves, or loses an
+  export; remove obsolete dependency edges on deletion or rename.
+- [x] Add fixtures for rename reuse, changed relative target, and changed export
+  that prove the resulting graph and freshness status are current.
+- [x] Run focused tests, `pnpm type-lint`, `pnpm check:version-bump`, and
+  `git diff --check`.
+- [x] Commit the Story 7 implementation as
+  `feat: refresh checkout dependency edges`.
+
+**Evidence:** Focused engine, watch, cache, and checkout-mapping Vitest
+commands passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
+`git diff --check` passed. Version advanced to `0.4.0-alpha.76` before push.
 
 ## Story 8: Freshness Diagnostics and End-to-End Invalidation Proof
 
@@ -160,5 +180,20 @@ commands passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
 
 ## Story 9: Main Merge and Release
 
-**Status:** Blocked by Story 8 and a successful CI run for the merged `main`
-commit.
+**Goal:** Release from the GitHub cloud only after the exact `main` merge has
+passed CI, with a version that is newer than the release baseline and committed
+back to `main` before publication.
+
+- [ ] Immediately before each story push, run `pnpm release:apply` when the
+  release decision requires it, then run `pnpm check:version-bump`; include the
+  resulting version files in that story's commit.
+- [ ] After Story 8 is merged to `main`, verify the CI run for that exact merge
+  commit succeeds.
+- [ ] Dispatch the `CI` workflow with `release_mode=apply` from `main`.
+- [ ] The cloud release agent runs `release:apply`, verifies the version policy,
+  commits the incremented version to `main`, and pushes the matching tag before
+  the tag-triggered npm publish workflow runs.
+- [ ] Verify the version commit, tag, npm publication, and Actions run URLs;
+  record them here before declaring the epic complete.
+
+**Evidence:** Pending Story 8 completion and successful main CI.

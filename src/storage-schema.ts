@@ -103,6 +103,21 @@ function createCheckoutMappingsSchema(db: IndexBackendConnection) {
   `);
 }
 
+function createCheckoutDependencySchema(db: IndexBackendConnection) {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS checkout_dependencies (
+      checkout_id TEXT NOT NULL,
+      importer_path TEXT NOT NULL,
+      target_path TEXT NOT NULL,
+      source TEXT NOT NULL,
+      PRIMARY KEY(checkout_id, importer_path, target_path, source),
+      FOREIGN KEY(checkout_id) REFERENCES checkouts(checkout_id) ON DELETE CASCADE
+    );
+    CREATE INDEX IF NOT EXISTS idx_checkout_dependencies_target
+      ON checkout_dependencies(checkout_id, target_path);
+  `);
+}
+
 const SCHEMA_MIGRATIONS: SchemaMigration[] = [
   {
     toVersion: 1,
@@ -175,6 +190,12 @@ const SCHEMA_MIGRATIONS: SchemaMigration[] = [
     toVersion: 6,
     run(db) {
       createCheckoutMappingsSchema(db);
+    },
+  },
+  {
+    toVersion: 7,
+    run(db) {
+      createCheckoutDependencySchema(db);
     },
   },
 ];

@@ -28,6 +28,7 @@ import {
   resolveEngineRepoRoot,
 } from "./config.ts";
 import {
+  getCheckoutByCanonicalRoot,
   registerCheckout,
   upsertCheckoutPathMapping,
 } from "./checkout-mapping.ts";
@@ -1319,6 +1320,26 @@ function rebuildFileDependencies(db: IndexBackendConnection) {
   }
 }
 
+function rebuildCheckoutDependencies(
+  db: IndexBackendConnection,
+  repoRoot: string,
+) {
+  rebuildFileDependencies(db);
+  const checkout = getCheckoutByCanonicalRoot(db, repoRoot);
+  if (!checkout) {
+    return;
+  }
+  db.prepare("DELETE FROM checkout_dependencies WHERE checkout_id = ?")
+    .run(checkout.checkoutId);
+  db.prepare(`
+    INSERT OR IGNORE INTO checkout_dependencies (
+      checkout_id, importer_path, target_path, source
+    )
+    SELECT ?, importer_path, target_path, source
+    FROM file_dependencies
+  `).run(checkout.checkoutId);
+}
+
 function loadDirectImporterPaths(
   db: IndexBackendConnection,
   targetPath: string,
@@ -1428,7 +1449,7 @@ async function indexFolderDirect(input: {
       indexedAt,
       summaryStrategy: config.summaryStrategy,
       discoveredFiles: supportedFiles.length,
-      rebuildFileDependencies,
+      rebuildFileDependencies: (refreshDb) => rebuildCheckoutDependencies(refreshDb, repoRoot),
       loadDependencyGraphHealth,
       writeSidecars,
     });
@@ -1576,7 +1597,7 @@ async function indexFileDirect(input: {
       refreshFilePath: refreshIndexedFilePath,
       finalizeIndex: (refreshInput) => finalizeIndex({
         ...refreshInput,
-        rebuildFileDependencies,
+        rebuildFileDependencies: (refreshDb) => rebuildCheckoutDependencies(refreshDb, repoRoot),
         loadDependencyGraphHealth,
         writeSidecars,
       }),
@@ -1771,7 +1792,7 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
           refreshFilePath: refreshIndexedFilePath,
           finalizeIndex: (refreshInput) => finalizeIndex({
             ...refreshInput,
-            rebuildFileDependencies,
+            rebuildFileDependencies: (refreshDb) => rebuildCheckoutDependencies(refreshDb, repoRoot),
             loadDependencyGraphHealth,
             writeSidecars,
           }),

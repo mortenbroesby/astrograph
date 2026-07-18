@@ -417,7 +417,7 @@ export function circumference(radius: number): string {
       storageDir: path.join(canonicalRepoRoot, ".astrograph"),
       databasePath: path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
       storageVersion: 1,
-      schemaVersion: 6,
+      schemaVersion: 7,
       indexedFiles: 2,
       currentFiles: 2,
       readiness: {
@@ -888,7 +888,7 @@ export function circumference(radius: number): string {
           engineVersion: ASTROGRAPH_PACKAGE_VERSION,
           storageDir: path.join(canonicalRepoRoot, ".astrograph"),
           storageVersion: 1,
-          schemaVersion: 6,
+          schemaVersion: 7,
           readiness: {
             stage: "not-ready",
           },

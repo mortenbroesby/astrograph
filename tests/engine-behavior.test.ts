@@ -246,7 +246,7 @@ describe("ai-context-engine behavior", () => {
 
     expect(result).toMatchObject({
       repoRoot: resolvedRepoRoot,
-      schemaVersion: 6,
+      schemaVersion: 7,
       indexStatus: "not-indexed",
       freshness: {
         indexedFiles: 0,
@@ -326,7 +326,7 @@ describe("ai-context-engine behavior", () => {
     expect(health).toMatchObject({
       engineVersion: ASTROGRAPH_PACKAGE_VERSION,
       engineVersionParts: ASTROGRAPH_VERSION_PARTS,
-      schemaVersion: 6,
+      schemaVersion: 7,
       summaryStrategy: "doc-comments-first",
       summarySources: {
         "doc-comment": 4,
@@ -494,7 +494,7 @@ module.exports = {
       path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
     );
     expect(health.storageVersion).toBe(1);
-    expect(health.schemaVersion).toBe(6);
+    expect(health.schemaVersion).toBe(7);
   });
 
   it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
@@ -583,7 +583,7 @@ module.exports = {
     expect(dependencyTable?.name).toBe("file_dependencies");
     expect(artifactTable?.name).toBe("analysis_artifacts");
     expect(checkoutTable?.name).toBe("checkouts");
-    expect(schemaVersionRow?.value).toBe("6");
+    expect(schemaVersionRow?.value).toBe("7");
   });
 
   it("resets incompatible storage versions before serving diagnostics", async () => {
@@ -601,7 +601,7 @@ module.exports = {
 
     const health = await diagnostics({ repoRoot });
 
-    expect(health.schemaVersion).toBe(6);
+    expect(health.schemaVersion).toBe(7);
     await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
       .resolves.toContain('"version": 1');
@@ -1522,6 +1522,17 @@ export function circleArea(radius: number): number {
         ORDER BY target_path ASC, source ASC
       `,
     ).all("src/duplicate-imports.ts");
+    const checkoutRows = db.prepare(
+      `
+        SELECT checkout_dependencies.importer_path,
+          checkout_dependencies.target_path, checkout_dependencies.source
+        FROM checkout_dependencies
+        INNER JOIN checkouts ON checkouts.checkout_id = checkout_dependencies.checkout_id
+        WHERE checkouts.canonical_root = ?
+          AND checkout_dependencies.importer_path = ?
+        ORDER BY checkout_dependencies.target_path ASC, checkout_dependencies.source ASC
+      `,
+    ).all(repoRoot, "src/duplicate-imports.ts");
     db.close();
 
     expect(rows).toEqual([
@@ -1531,6 +1542,7 @@ export function circleArea(radius: number): number {
         source: "./math.js",
       },
     ]);
+    expect(checkoutRows).toEqual(rows);
   });
 
   it("rejects invalid search and retrieval boundaries at the library layer", async () => {
@@ -2583,6 +2595,27 @@ export function perimeter(radius: number): string {
       name: "perimeter",
       filePath: "src/math-renamed.ts",
     });
+
+    const paths = resolveEnginePaths(repoRoot);
+    const db = new Database(paths.databasePath, { readonly: true });
+    const checkoutEdges = db.prepare(`
+      SELECT checkout_dependencies.importer_path, checkout_dependencies.target_path
+      FROM checkout_dependencies
+      INNER JOIN checkouts ON checkouts.checkout_id = checkout_dependencies.checkout_id
+      WHERE checkouts.canonical_root = ?
+      ORDER BY checkout_dependencies.importer_path ASC, checkout_dependencies.target_path ASC
+    `).all(repoRoot);
+    db.close();
+
+    expect(checkoutEdges).toEqual(expect.arrayContaining([
+      {
+        importer_path: "src/math-renamed.ts",
+        target_path: "src/strings.ts",
+      },
+    ]));
+    expect(checkoutEdges).not.toEqual(expect.arrayContaining([
+      expect.objectContaining({ importer_path: "src/math.ts" }),
+    ]));
   });
 
   it("supports debounced watch mode with changed-file fast refresh", async () => {
