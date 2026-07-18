@@ -23,6 +23,10 @@ Start by locating the symbol:
 npx astrograph cli search-symbols --repo /absolute/path/to/repo --query diagnostics
 ```
 
+The result is bounded. If `truncated` is true, use its `refinementHints` to
+narrow by path, kind, or limit; `tokenSavings` shows the exact savings versus
+all ranked symbol items before the cap.
+
 Then inspect the exact source:
 
 ```bash
@@ -86,6 +90,11 @@ If the repository may be stale, verify first:
 npx astrograph cli diagnostics --repo /absolute/path/to/repo --scan-freshness
 ```
 
+Read `retrievalHealth` before escalating. `safe` permits all retrieval;
+`degraded` names the operations that remain safe (for example, unresolved
+imports can limit graph expansion without invalidating direct symbol/source
+retrieval); `unsafe` gives the recovery action to take first.
+
 If something looks wrong:
 
 ```bash
@@ -97,6 +106,8 @@ npx astrograph cli doctor --repo /absolute/path/to/repo
 - use outlines before large source reads
 - prefer exact symbol retrieval over file dumping
 - treat diagnostics as part of retrieval discipline, not an afterthought
+- use configured ranking path presets only as an opt-in tie-breaker; generic
+  ranking remains the fallback
 - escalate gradually instead of loading a large bundle first
 
 ## Bad Habits

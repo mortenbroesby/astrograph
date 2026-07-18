@@ -92,6 +92,29 @@ Find symbols:
 npx astrograph cli search-symbols --repo /repo --query diagnostics
 ```
 
+`search-symbols` returns a bounded JSON envelope rather than a bare array:
+
+```json
+{
+  "items": [],
+  "truncated": false,
+  "refinementHints": [],
+  "tokenSavings": {
+    "unit": "tokens",
+    "tokenizer": "cl100k_base",
+    "baseline": "all_ranked_symbol_items"
+  }
+}
+```
+
+When `truncated` is true, apply the deterministic `refinementHints` (a lower
+`limit`, `filePattern`, or `kind`) before fetching more source. `tokenSavings`
+compares returned symbol items with all ranked matches before the result cap.
+
+`query-code` is a CLI and TypeScript-library convenience workflow. It is
+intentionally not an MCP tool; MCP clients should compose `search_symbols`,
+`get_symbol_source`, `get_context_bundle`, and `get_ranked_context` instead.
+
 Inspect file shape:
 
 ```bash
@@ -104,6 +127,11 @@ Check health and readiness:
 npx astrograph cli diagnostics --repo /repo --scan-freshness
 npx astrograph cli doctor --repo /repo
 ```
+
+`diagnostics`, `get-project-status`, and `doctor --json` include
+`retrievalHealth`. Treat `safe` as fully usable, `degraded` as limited to its
+listed `safeOperations`, and `unsafe` as requiring the included recovery action
+before trusting retrieval. The formatted doctor report prints the same guidance.
 
 ## Git Refresh
 
@@ -154,7 +182,7 @@ export default defineConfig({
     maxFilesDiscovered: 100000,
     maxFileBytes: 250000,
     maxSymbolsPerFile: 2000,
-    maxSymbolResults: 20,
+    maxSymbolResults: 8,
     maxTextResults: 100,
     maxChildProcessOutputBytes: 1000000,
     maxLiveSearchMatches: 100,

@@ -163,7 +163,7 @@ including the recommended recovery action.
   tests/watch-backend.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
-## Story 9: Align MCP and CLI documentation
+## Story 9: Align MCP and CLI documentation — Complete
 
 **Goal:** Public docs accurately distinguish the implemented MCP and CLI
 workflows and examples.
@@ -171,13 +171,13 @@ workflows and examples.
 **Depends on:** Stories 2 through 8; audit may begin earlier, but final wording
 waits for settled contracts.
 
-- [ ] Inventory documented MCP tools, CLI commands, arguments, and response
+- [x] Inventory documented MCP tools, CLI commands, arguments, and response
   examples against shipped registrations.
-- [ ] Document intentional surface differences and the new bounded-query,
+- [x] Document intentional surface differences and the new bounded-query,
   ranking, telemetry, and health workflows.
-- [ ] Record any needed public-contract change as a new story rather than
+- [x] Record any needed public-contract change as a new story rather than
   silently changing implementation.
-- [ ] Verify with `pnpm exec vitest run tests/interface.test.ts
+- [x] Verify with `pnpm exec vitest run tests/interface.test.ts
   tests/engine-contract.test.ts`, `pnpm type-lint`, and `git diff --check`.
 
 ## Story 10: Design branch-aware incremental index mapping
