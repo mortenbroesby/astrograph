@@ -40,6 +40,50 @@ function loadMetaHealthReasons(
   return staleReasons;
 }
 
+function loadCheckoutMappingHealthReasons(
+  db: IndexBackendConnection,
+  repoRoot: string,
+): string[] {
+  const indexedFileCount = countRows(db, "SELECT COUNT(*) AS count FROM files");
+  if (indexedFileCount === 0) {
+    return [];
+  }
+
+  const checkout = typedGet<{ checkout_id: string }>(
+    db.prepare("SELECT checkout_id FROM checkouts WHERE canonical_root = ?"),
+    repoRoot,
+  );
+  if (!checkout) {
+    return ["checkout mapping missing"];
+  }
+
+  const unmappedFiles = typedGet<{ count: number }>(
+    db.prepare(`SELECT COUNT(*) AS count
+     FROM files
+     LEFT JOIN checkout_path_mappings
+       ON checkout_path_mappings.checkout_id = ?
+       AND checkout_path_mappings.relative_path = files.path
+     WHERE checkout_path_mappings.relative_path IS NULL`),
+    checkout.checkout_id,
+  )?.count ?? 0;
+  if (unmappedFiles > 0) {
+    return ["checkout path mappings incomplete"];
+  }
+
+  const missingEdges = typedGet<{ count: number }>(
+    db.prepare(`SELECT COUNT(*) AS count
+     FROM file_dependencies
+     LEFT JOIN checkout_dependencies
+       ON checkout_dependencies.checkout_id = ?
+       AND checkout_dependencies.importer_path = file_dependencies.importer_path
+       AND checkout_dependencies.target_path = file_dependencies.target_path
+       AND checkout_dependencies.source = file_dependencies.source
+     WHERE checkout_dependencies.checkout_id IS NULL`),
+    checkout.checkout_id,
+  )?.count ?? 0;
+  return missingEdges > 0 ? ["checkout dependency mappings incomplete"] : [];
+}
+
 export function loadIndexedSnapshot(db: IndexBackendConnection): SnapshotEntry[] {
   return typedAll<SnapshotEntry>(
     db.prepare(
@@ -180,6 +224,7 @@ export async function buildDiagnosticsResult(
     indexedAt !== null ? Math.max(0, Date.now() - Date.parse(indexedAt)) : null;
   const staleReasons: string[] = [
     ...loadMetaHealthReasons(metaHealthStatus),
+    ...loadCheckoutMappingHealthReasons(input.db, input.repoRoot),
     ...(input.dependencyGraph.brokenRelativeImportCount > 0
       ? ["unresolved relative imports"]
       : []),

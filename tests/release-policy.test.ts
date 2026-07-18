@@ -120,7 +120,7 @@ describe("release policy", () => {
     );
   });
 
-  it("keeps an already-current publish target stable", () => {
+  it("advances an already-current publish target for every publish decision", () => {
     const base = {
       major: 0,
       minor: 3,
@@ -135,7 +135,7 @@ describe("release policy", () => {
     };
 
     expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
-      "0.4.0-alpha.73",
+      "0.4.0-alpha.74",
     );
   });
 
@@ -173,7 +173,7 @@ describe("release policy", () => {
     };
 
     expect(targetAstrographPublishVersion(base, current, "patch")).toBe(
-      "0.4.0-alpha.72",
+      "0.4.0-alpha.73",
     );
   });
 
@@ -211,7 +211,7 @@ describe("release policy", () => {
     };
 
     expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
-      "1.0.0-alpha.72",
+      "1.0.0-alpha.73",
     );
   });
 });

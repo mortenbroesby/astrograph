@@ -176,7 +176,27 @@ commands passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
 
 ## Story 8: Freshness Diagnostics and End-to-End Invalidation Proof
 
-**Status:** Blocked by Stories 6–7.
+**Goal:** Refuse `fresh` when checkout mappings or checkout-local dependency
+edges are absent or incomplete, and prove every reuse/fallback boundary.
+
+- [x] Run baseline: focused engine, watch, cache, Git, and mapping tests plus
+  `pnpm type-lint`.
+- [x] Add private checkout-mapping health validation to diagnostics and include
+  its reason in stale status without changing public retrieval payload shapes.
+- [x] Verify safe non-Git and Git-unavailable fallback remains indexable while
+  corrupt/missing mapping data forces ordinary reindexing before `fresh`.
+- [x] Add end-to-end fixtures for shared content, changed same-name branch,
+  rename, config change, changed export, detached/non-Git fallback, corrupt
+  mapping, and storage mismatch.
+- [x] Run focused tests, full `pnpm test`, `pnpm type-lint`,
+  `pnpm check:version-bump`, `pnpm release:plan`, and `git diff --check`.
+- [x] Apply required version increment immediately before the Story 8 push,
+  commit it to `main`, and record the release-plan outcome.
+
+**Evidence:** Focused cache, mapping, Git, engine, watch, release-policy, and
+full-suite Vitest runs passed on 2026-07-19; `pnpm type-lint`,
+`pnpm check:version-bump`, and `git diff --check` passed. `release:plan`
+selected minor `0.4.0-alpha.77`, which `release:apply` wrote before push.
 
 ## Story 9: Main Merge and Release
 

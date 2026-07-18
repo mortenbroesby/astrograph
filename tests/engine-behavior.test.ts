@@ -525,6 +525,24 @@ module.exports = {
       .toBe(true);
   });
 
+  it("does not report fresh when checkout mappings are incomplete", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await indexFolder({ repoRoot });
+    const paths = resolveEnginePaths(repoRoot);
+    const db = new Database(paths.databasePath);
+    db.prepare(`
+      DELETE FROM checkout_path_mappings
+      WHERE relative_path = 'src/math.ts'
+    `).run();
+    db.close();
+
+    const health = await diagnostics({ repoRoot });
+
+    expect(health.staleStatus).toBe("stale");
+    expect(health.staleReasons).toContain("checkout path mappings incomplete");
+  });
+
   it("migrates legacy Astrograph schema state before serving diagnostics", async () => {
     const repoRoot = await createFixtureRepo();
     const paths = resolveEnginePaths(repoRoot);

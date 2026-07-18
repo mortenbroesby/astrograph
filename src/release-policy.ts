@@ -163,10 +163,6 @@ export function targetAstrographPublishVersion(
   const nextIncrement = Math.max(previous.increment, current.increment) + 1;
 
   if (compareAstrographSemanticVersion(current, next) >= 0) {
-    if (current.increment > previous.increment) {
-      return formatAstrographVersion(current);
-    }
-
     return formatAstrographVersion({
       ...current,
       increment: nextIncrement,
