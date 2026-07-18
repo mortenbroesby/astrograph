@@ -215,6 +215,31 @@ function validateSearchSymbolsOutput(result: unknown) {
   }
 }
 
+function validateRetrievalHealthOutput(result: unknown) {
+  assertIsObject(result);
+  assertIsObject(result.retrievalHealth);
+  const health = result.retrievalHealth;
+  if (health.status !== "safe" && health.status !== "degraded" && health.status !== "unsafe") {
+    throw new Error("retrievalHealth output has an invalid status");
+  }
+  if (!Array.isArray(health.affectedCapabilities) || !Array.isArray(health.safeOperations)) {
+    throw new Error("retrievalHealth output must include capability arrays");
+  }
+  for (const operation of [...health.affectedCapabilities, ...health.safeOperations]) {
+    if (
+      operation !== "discovery"
+      && operation !== "exact_source"
+      && operation !== "ranked_context"
+      && operation !== "dependency_graph"
+    ) {
+      throw new Error("retrievalHealth output has an invalid operation");
+    }
+  }
+  if (!ensureString(health.recommendedAction)) {
+    throw new Error("retrievalHealth output must include a recommendedAction");
+  }
+}
+
 function validateSymbolSourceOutput(result: unknown) {
   assertIsObject(result);
   if (!ensureNumber(result.requestedContextLines)) {
@@ -357,6 +382,10 @@ function validateRankedContextOutput(result: unknown) {
 function validateToolOutput(name: string, result: unknown) {
   if (name === "search_symbols") {
     validateSearchSymbolsOutput(result);
+    return;
+  }
+  if (name === "get_project_status" || name === "diagnostics") {
+    validateRetrievalHealthOutput(result);
     return;
   }
   if (name === "get_symbol_source") {

@@ -367,6 +367,7 @@ export async function buildDoctorResult(
     observability,
     privacy,
     watch: input.diagnostics.watch,
+    retrievalHealth: input.diagnostics.retrievalHealth,
     warnings: [],
     suggestedActions: [],
   };

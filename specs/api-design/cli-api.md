@@ -17,6 +17,9 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - CLI behavior should stay aligned with library and MCP behavior.
 - `search-symbols` emits the same bounded symbol envelope as MCP, including
   exact `tokenSavings` for the returned `items` relative to all ranked items.
+- `diagnostics`, `get-project-status`, and JSON `doctor` expose `retrievalHealth`
+  with a safety class, affected and safe operation lists, and one recovery
+  action. The human `doctor` report renders the same safety guidance.
 
 ## Verification
 

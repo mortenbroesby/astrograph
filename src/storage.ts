@@ -2295,6 +2295,7 @@ export async function getProjectStatus(
       : input.repoRoot,
     summary: `Astrograph is ${readinessSummary}${lifecycleSuffix} with freshness ${diagnosticsResult.staleStatus}`,
     readiness: diagnosticsResult.readiness,
+    retrievalHealth: diagnosticsResult.retrievalHealth,
     freshness: {
       staleStatus: diagnosticsResult.staleStatus,
       staleReasons: diagnosticsResult.staleReasons,

@@ -34,6 +34,14 @@ exact retrieval, bounded assembly, and health reporting.
 - Results must be bounded by config limits or explicit options.
 - Diagnostic and readiness state must distinguish `fresh`, `stale`, and `unknown`.
 - Source-returning tools should support exact source verification where applicable.
+- `get_project_status`, `diagnostics`, and CLI `doctor` expose the same
+  `retrievalHealth` guidance object. Its `status` is `safe`, `degraded`, or
+  `unsafe`; `affectedCapabilities` and `safeOperations` use the bounded
+  operation vocabulary `discovery`, `exact_source`, `ranked_context`, and
+  `dependency_graph`; and `recommendedAction` gives one recovery step. A
+  dependency-only unresolved-import state is `degraded`: direct discovery and
+  source retrieval remain usable, while graph expansion should wait for repair
+  and reindexing.
 - Every MCP v1 tool registration includes contract metadata:
 
 ```ts

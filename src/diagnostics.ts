@@ -2,6 +2,7 @@ import { ASTROGRAPH_PACKAGE_VERSION, ASTROGRAPH_VERSION_PARTS } from "./version.
 import { loadFilesystemSnapshot, snapshotHash } from "./filesystem-scan.ts";
 import type { SnapshotEntry } from "./filesystem-scan.ts";
 import { getLanguageRegistrySnapshot } from "./language-registry.ts";
+import { classifyRetrievalHealth } from "./retrieval-health.ts";
 import { createDefaultWatchDiagnostics } from "./repo-meta.ts";
 import { ENGINE_STORAGE_VERSION } from "./config.ts";
 import type { RepoMetaHealth, RepoMetaHealthStatus } from "./repo-meta.ts";
@@ -230,7 +231,7 @@ export async function buildDiagnosticsResult(
     indexedFiles,
   });
 
-  return {
+  const result = {
     engineVersion: ASTROGRAPH_PACKAGE_VERSION,
     engineVersionParts: ASTROGRAPH_VERSION_PARTS,
     storageDir: input.storageDir,
@@ -265,5 +266,10 @@ export async function buildDiagnosticsResult(
       byFallbackExtension: languageRegistry.byFallbackExtension,
     },
     watch: meta?.watch ?? createDefaultWatchDiagnostics(),
+  } satisfies Omit<DiagnosticsResult, "retrievalHealth">;
+
+  return {
+    ...result,
+    retrievalHealth: classifyRetrievalHealth(result),
   };
 }

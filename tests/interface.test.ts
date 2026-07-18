@@ -139,6 +139,10 @@ describe("ai-context-engine interfaces", () => {
         deepIndexedFiles: 2,
         pendingDeepIndexedFiles: 0,
       },
+      retrievalHealth: {
+        status: "safe",
+        safeOperations: ["discovery", "exact_source", "ranked_context", "dependency_graph"],
+      },
       languageRegistry: {
         byLanguage: expect.arrayContaining([
           expect.objectContaining({
@@ -631,6 +635,10 @@ export function circumference(radius: number): string {
         },
         freshness: {
           staleStatus: "fresh",
+        },
+        retrievalHealth: {
+          status: "safe",
+          safeOperations: ["discovery", "exact_source", "ranked_context", "dependency_graph"],
         },
         supportTiers: {
           discovery: {

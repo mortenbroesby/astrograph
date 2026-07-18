@@ -66,6 +66,21 @@ export interface DoctorDependencyGraphHealth {
   sampleImporterPaths: string[];
 }
 
+export type RetrievalHealthStatus = "safe" | "degraded" | "unsafe";
+export type RetrievalOperation =
+  | "discovery"
+  | "exact_source"
+  | "ranked_context"
+  | "dependency_graph";
+
+/** Agent-facing safety classification derived from index freshness and graph health. */
+export interface RetrievalHealth {
+  status: RetrievalHealthStatus;
+  affectedCapabilities: RetrievalOperation[];
+  safeOperations: RetrievalOperation[];
+  recommendedAction: string;
+}
+
 export interface DiagnosticsResult {
   engineVersion: string;
   engineVersionParts: AstrographVersionParts;
@@ -92,6 +107,7 @@ export interface DiagnosticsResult {
   currentSnapshotHash: string | null;
   staleReasons: string[];
   readiness: ReadinessStatus;
+  retrievalHealth: RetrievalHealth;
   parser: ParserHealthDiagnostics;
   dependencyGraph: DoctorDependencyGraphHealth;
   languageRegistry: {
@@ -110,6 +126,7 @@ export interface ProjectStatusResult {
   repoRoot: string;
   summary: string;
   readiness: ReadinessStatus;
+  retrievalHealth: RetrievalHealth;
   freshness: {
     staleStatus: StaleStatus;
     staleReasons: string[];
@@ -171,6 +188,7 @@ export interface DoctorResult {
   observability: DoctorObservabilityHealth;
   privacy: DoctorPrivacyHealth;
   watch: WatchDiagnostics;
+  retrievalHealth: RetrievalHealth;
   warnings: string[];
   suggestedActions: string[];
 }

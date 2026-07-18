@@ -146,19 +146,19 @@ or savings estimate.
   `pnpm exec vitest run tests/interface.test.ts tests/serialization.test.ts`,
   `pnpm type-lint`, and `pnpm check:version-bump`.
 
-## Story 8: Classify degraded retrieval health
+## Story 8: Classify degraded retrieval health — Complete
 
 **Goal:** Agents can distinguish safe, degraded, and unsafe retrieval states,
 including the recommended recovery action.
 
 **Depends on:** Story 2 response conventions.
 
-- [ ] Enumerate freshness and unresolved-import safety states from current
+- [x] Enumerate freshness and unresolved-import safety states from current
   diagnostics.
-- [ ] Map each state to affected capabilities, safe operations, and one
+- [x] Map each state to affected capabilities, safe operations, and one
   actionable follow-up.
-- [ ] Align MCP and CLI representation without automatically repairing state.
-- [ ] Add fixtures for every safety class; verify with `pnpm exec vitest run
+- [x] Align MCP and CLI representation without automatically repairing state.
+- [x] Add fixtures for every safety class; verify with `pnpm exec vitest run
   tests/interface.test.ts tests/engine-behavior.test.ts
   tests/watch-backend.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.

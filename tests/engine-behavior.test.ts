@@ -263,6 +263,11 @@ describe("ai-context-engine behavior", () => {
         brokenRelativeSymbolImportCount: 0,
         affectedImporterCount: 0,
       },
+      retrievalHealth: {
+        status: "unsafe",
+        safeOperations: [],
+        recommendedAction: expect.stringContaining("index-folder"),
+      },
       observability: {
         enabled: false,
         status: "disabled",
@@ -2288,6 +2293,12 @@ export function renderBroken(): string {
     });
     expect(health.staleStatus).toBe("stale");
     expect(health.staleReasons).toContain("unresolved relative imports");
+    expect(health.retrievalHealth).toEqual({
+      status: "degraded",
+      affectedCapabilities: ["dependency_graph"],
+      safeOperations: ["discovery", "exact_source", "ranked_context"],
+      recommendedAction: "Fix the unresolved relative imports, then reindex before using dependency or importer expansion.",
+    });
   });
 
   it("can refresh a single file without a full rebuild", async () => {
@@ -2914,6 +2925,11 @@ export function renderValue(value: number): string {
     expect(initialHealth.indexedAt).not.toBeNull();
     expect(initialHealth.indexAgeMs).not.toBeNull();
     expect(initialHealth.currentSnapshotHash).toBe(initialHealth.indexedSnapshotHash);
+    expect(initialHealth.retrievalHealth).toMatchObject({
+      status: "safe",
+      affectedCapabilities: [],
+      safeOperations: ["discovery", "exact_source", "ranked_context", "dependency_graph"],
+    });
 
     await writeFile(
       path.join(repoRoot, "src", "math.ts"),
@@ -2942,6 +2958,11 @@ export function area(radius: number): string {
       staleHealth.indexedSnapshotHash,
     );
     expect(staleHealth.staleReasons).toContain("content drift");
+    expect(staleHealth.retrievalHealth).toMatchObject({
+      status: "unsafe",
+      safeOperations: [],
+      recommendedAction: expect.stringContaining("index-folder"),
+    });
   });
 
   it("rejects file paths that escape the repository root", async () => {

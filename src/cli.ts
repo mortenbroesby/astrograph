@@ -346,6 +346,8 @@ function formatDoctorReport(result: Awaited<ReturnType<typeof engine.doctor>>): 
     `Storage: ${result.storageDir}`,
     `Database: ${result.databasePath}`,
     `Index: ${result.indexStatus} (${result.freshness.status}, ${result.freshness.mode})`,
+    `Retrieval: ${result.retrievalHealth.status}; safe operations: ${result.retrievalHealth.safeOperations.join(", ") || "none"}`,
+    `Recovery: ${result.retrievalHealth.recommendedAction}`,
     `Schema: v${result.storageVersion} (${result.storageBackend}/${result.storageMode})`,
     `Freshness: indexed ${result.freshness.indexedFiles} file(s), current ${result.freshness.currentFiles}, symbols ${result.freshness.indexedSymbols}, imports ${result.freshness.indexedImports}`,
     `Drift: missing ${result.freshness.missingFiles}, changed ${result.freshness.changedFiles}, extra ${result.freshness.extraFiles}`,
