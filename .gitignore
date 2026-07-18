@@ -11,3 +11,4 @@ tests/.ai-context-engine/
 *.log
 .DS_Store
 .ralph/
+.memory/

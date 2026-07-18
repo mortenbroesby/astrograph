@@ -14,4 +14,8 @@ approval_mode = "approve"
 
 [mcp_servers.astrograph.tools.get_file_outline]
 approval_mode = "approve"
+
+[mcp_servers.github]
+url = "https://api.githubcopilot.com/mcp/"
+bearer_token_env_var = "GITHUB_PAT_TOKEN"
 # END ASTROGRAPH
