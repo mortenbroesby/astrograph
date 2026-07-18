@@ -42,6 +42,7 @@ import type {
   RankedContextCandidate,
   RankedContextResult,
   RankingWeights,
+  RankingPathPresetCategory,
   SearchSymbolsRefinementHint,
   SearchSymbolsResult,
   SearchSymbolsOptions,
@@ -158,6 +159,47 @@ const GENERATION_INTENT_TERMS = new Set(["generated", "generate", "generation"])
 const GENERATOR_EVIDENCE = /(?:generate|generator|codegen|scaffold|template|emit)/i;
 const GENERATOR_PATH_EVIDENCE = /(?:^|\/)(?:tools?|scripts?|cli|generators?|codegen)(?:\/|$)/i;
 const TEST_PATH_EVIDENCE = /(?:^|\/)(?:tests?|__tests__|spec)(?:\/|$)|\.(?:test|spec)\.[^/]+$/i;
+const PRESET_CATEGORY_BOOST = 90;
+const PRESET_INTENT_TERMS: Record<RankingPathPresetCategory, readonly string[]> = {
+  generationCode: ["generated", "generate", "generation", "generator", "codegen", "scaffold", "template", "emit"],
+  appCode: ["app", "application", "ui", "page", "screen", "route"],
+  sharedRuntime: ["runtime", "shared", "core", "platform", "infrastructure"],
+};
+
+interface RankingPathPresetMatcher {
+  category: RankingPathPresetCategory;
+  matches(filePath: string): boolean;
+}
+
+function createRankingPathPresetMatchers(
+  presets: EngineConfig["rankingPathPresets"],
+): RankingPathPresetMatcher[] {
+  return (Object.keys(PRESET_INTENT_TERMS) as RankingPathPresetCategory[])
+    .filter((category) => presets[category].length > 0)
+    .map((category) => ({
+      category,
+      matches: createPathMatcher({ include: presets[category] }).matches,
+    }));
+}
+
+function rankingPathPresetAdjustment(
+  row: DbSymbolRow,
+  tokens: string[],
+  matchers: RankingPathPresetMatcher[],
+): number {
+  return matchers.some((matcher) =>
+    PRESET_INTENT_TERMS[matcher.category].some((term) => tokens.includes(term))
+    && matcher.matches(row.file_path)
+  )
+    ? PRESET_CATEGORY_BOOST
+    : 0;
+}
+
+function hasRankingPathPresetIntent(tokens: string[]): boolean {
+  return Object.values(PRESET_INTENT_TERMS).some((terms) =>
+    terms.some((term) => tokens.includes(term))
+  );
+}
 
 function generationIntentAdjustment(row: DbSymbolRow, tokens: string[]): number {
   if (!tokens.some((token) => GENERATION_INTENT_TERMS.has(token))) {
@@ -182,6 +224,7 @@ function scoreSymbolRow(
   row: DbSymbolRow,
   query: string,
   weights: RankingWeights,
+  rankingPathPresetMatchers: RankingPathPresetMatcher[] = [],
 ): number {
   const normalized = normalizeQuery(query);
   if (!normalized) {
@@ -237,6 +280,7 @@ function scoreSymbolRow(
   }
 
   score += generationIntentAdjustment(row, tokens);
+  score += rankingPathPresetAdjustment(row, tokens, rankingPathPresetMatchers);
 
   if (score > 0 && row.exported) {
     score += weights.exportedBonus;
@@ -257,9 +301,11 @@ function loadSymbolRows(
   const whereClauses: string[] = [];
   const params: IndexBackendValue[] = [];
   const ftsQuery = buildFtsMatchQuery(input.query ?? "");
-  const hasGenerationIntent = queryTokens(input.query ?? "").some((token) =>
+  const tokens = queryTokens(input.query ?? "");
+  const hasGenerationIntent = tokens.some((token) =>
     GENERATION_INTENT_TERMS.has(token),
   );
+  const hasPresetIntent = hasRankingPathPresetIntent(tokens);
   let candidateIds: string[] | null = null;
 
   if (input.kind) {
@@ -274,7 +320,7 @@ function loadSymbolRows(
 
   const queryTerms = uniqueQueryTerms(input.query ?? "");
 
-  if (ftsQuery && !hasGenerationIntent) {
+  if (ftsQuery && !hasGenerationIntent && !hasPresetIntent) {
     const ftsParams: IndexBackendValue[] = [ftsQuery, ...params];
 
     const ftsRows = typedAll<{ symbol_id: string }>(
@@ -694,10 +740,16 @@ function resolveRankedSeedCandidates(
     return [];
   }
 
+  const rankingPathPresetMatchers = createRankingPathPresetMatchers(context.config.rankingPathPresets);
   return loadSymbolRows(context.db, { query: input.query })
     .map((row) => ({
       row,
-      score: scoreSymbolRow(row, input.query ?? "", context.config.rankingWeights),
+      score: scoreSymbolRow(
+        row,
+        input.query ?? "",
+        context.config.rankingWeights,
+        rankingPathPresetMatchers,
+      ),
     }))
     .filter((entry) => entry.score > 0)
     .sort(sortRankedSymbolEntries)
@@ -1004,11 +1056,17 @@ export function searchSymbolsResultInContext(
     filePattern: input.filePattern,
   });
   const normalizedQuery = normalizeQuery(input.query);
+  const rankingPathPresetMatchers = createRankingPathPresetMatchers(context.config.rankingPathPresets);
 
   const matches = rows
     .map((row) => ({
       row,
-      score: scoreSymbolRow(row, normalizedQuery, context.config.rankingWeights),
+      score: scoreSymbolRow(
+        row,
+        normalizedQuery,
+        context.config.rankingWeights,
+        rankingPathPresetMatchers,
+      ),
     }))
     .filter((entry) => entry.score > 0)
     .sort(sortRankedSymbolEntries);

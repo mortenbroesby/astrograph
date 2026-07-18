@@ -116,17 +116,17 @@ code, app code, and shared runtime.
   tests/engine-contract.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
-## Story 6: Apply repo-aware presets to ranking
+## Story 6: Apply repo-aware presets to ranking — Complete
 
 **Goal:** Matching configured categories boost intent-aware ranking while absent
 or nonmatching presets preserve generic fallback.
 
 **Depends on:** Stories 4 and 5.
 
-- [ ] Thread validated preset data into the ranking inputs.
-- [ ] Apply the smallest category boost only when query intent matches.
-- [ ] Cover matching, missing, conflicting, and nonmatching preset fixtures.
-- [ ] Verify with `pnpm exec vitest run tests/engine-behavior.test.ts
+- [x] Thread validated preset data into the ranking inputs.
+- [x] Apply the smallest category boost only when query intent matches.
+- [x] Cover matching, missing, conflicting, and nonmatching preset fixtures.
+- [x] Verify with `pnpm exec vitest run tests/engine-behavior.test.ts
   tests/path-matcher.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 

@@ -100,9 +100,11 @@ Available fields:
 
 Controls deterministic retrieval weights.
 
-`pathPresets` is optional repository context for intent-aware ranking. It does
-not change ranking until the corresponding ranking feature is enabled. Use only
-the bounded category vocabulary and explicit glob patterns:
+`pathPresets` is optional repository context for intent-aware ranking. A
+configured category receives a small boost only when the query includes its
+corresponding intent and the result matches its explicit glob pattern; generic
+ranking remains the fallback. Use only the bounded category vocabulary and
+explicit glob patterns:
 
 ```ts
 ranking: {

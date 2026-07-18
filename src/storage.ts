@@ -575,6 +575,7 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     indexInclude: repoConfig.performance.include,
     indexExclude: repoConfig.performance.exclude,
     rankingWeights: repoConfig.ranking,
+    rankingPathPresets: repoConfig.ranking.pathPresets,
     fileProcessingConcurrency: repoConfig.performance.fileProcessingConcurrency,
     workerPoolEnabled: repoConfig.performance.workerPool.enabled,
     workerPoolMaxWorkers: repoConfig.performance.workerPool.maxWorkers,

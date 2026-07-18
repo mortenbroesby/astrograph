@@ -10,6 +10,7 @@ import type {
   EngineConfig,
   EnginePaths,
   RepoPerformanceConfig,
+  RankingPathPresets,
   RankingPathPresetCategory,
   RepoRankingConfig,
   RepoEngineConfig,
@@ -499,6 +500,7 @@ export function createDefaultEngineConfig(input: {
   indexInclude?: string[];
   indexExclude?: string[];
   rankingWeights?: RankingWeights;
+  rankingPathPresets?: RankingPathPresets;
   fileProcessingConcurrency?: number;
   workerPoolEnabled?: boolean;
   workerPoolMaxWorkers?: number;
@@ -535,6 +537,12 @@ export function createDefaultEngineConfig(input: {
       input.maxChildProcessOutputBytes ?? DEFAULT_MAX_CHILD_PROCESS_OUTPUT_BYTES,
     maxLiveSearchMatches: input.maxLiveSearchMatches ?? DEFAULT_MAX_LIVE_SEARCH_MATCHES,
     rankingWeights: input.rankingWeights ?? { ...DEFAULT_RANKING_WEIGHTS },
+    rankingPathPresets: Object.fromEntries(
+      RANKING_PATH_PRESET_CATEGORIES.map((category) => [
+        category,
+        [...(input.rankingPathPresets?.[category] ?? [])],
+      ]),
+    ) as Record<RankingPathPresetCategory, string[]>,
     paths: resolveEnginePaths(input.repoRoot),
   };
 }

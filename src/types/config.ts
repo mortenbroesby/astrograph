@@ -60,6 +60,7 @@ export interface EngineConfig {
   maxChildProcessOutputBytes: number;
   maxLiveSearchMatches: number;
   rankingWeights: RankingWeights;
+  rankingPathPresets: Record<RankingPathPresetCategory, string[]>;
   paths: EnginePaths;
 }
 

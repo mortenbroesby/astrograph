@@ -843,6 +843,68 @@ export class Greeter {
     expect(matches[0]?.name).toBe("generateApiHooks");
   });
 
+  it("applies matching repo path presets without replacing generic ranking", async () => {
+    const createPresetFixture = async (pathPresets: Record<string, string[]>) => {
+      const repoRoot = await createFixtureRepo();
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ ranking: { pathPresets } }),
+      );
+      await writeFile(
+        path.join(repoRoot, "src", "app-widget.ts"),
+        "export function appWidgetUsage() { return []; }\n",
+      );
+      await mkdir(path.join(repoRoot, "z-app"), { recursive: true });
+      await writeFile(
+        path.join(repoRoot, "z-app", "widget.ts"),
+        "export function resolveWidget() { return []; }\n",
+      );
+      await indexFolder({ repoRoot });
+      return repoRoot;
+    };
+
+    const noPresetRepo = await createPresetFixture({});
+    const matchingPresetRepo = await createPresetFixture({ appCode: ["z-app/**"] });
+    const nonmatchingPresetRepo = await createPresetFixture({ generationCode: ["z-app/**"] });
+
+    await expect(searchSymbols({ repoRoot: noPresetRepo, query: "app widget" })).resolves
+      .toHaveProperty("0.name", "appWidgetUsage");
+    await expect(searchSymbols({ repoRoot: matchingPresetRepo, query: "app widget" })).resolves
+      .toHaveProperty("0.name", "resolveWidget");
+    await expect(searchSymbols({ repoRoot: nonmatchingPresetRepo, query: "app widget" })).resolves
+      .toHaveProperty("0.name", "appWidgetUsage");
+  });
+
+  it("does not multiply overlapping preset category boosts", async () => {
+    const repoRoot = await createFixtureRepo();
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({
+        ranking: {
+          pathPresets: {
+            appCode: ["z-product/**"],
+            sharedRuntime: ["z-product/**"],
+          },
+        },
+      }),
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "app-runtime-widget.ts"),
+      "export function appRuntimeWidgetUsage() { return []; }\n",
+    );
+    await mkdir(path.join(repoRoot, "z-product"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, "z-product", "widget.ts"),
+      "export function resolveWidget() { return []; }\n",
+    );
+    await indexFolder({ repoRoot });
+
+    const matches = await searchSymbols({ repoRoot, query: "app runtime widget" });
+
+    expect(matches[0]?.name).toBe("appRuntimeWidgetUsage");
+    expect(matches.map((match) => match.name)).toContain("resolveWidget");
+  });
+
   it("skips oversized files during indexed discovery when maxFileBytes is configured", async () => {
     const repoRoot = await createFixtureRepo();
 
