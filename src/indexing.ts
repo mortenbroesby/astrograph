@@ -40,6 +40,7 @@ export type AnalyzedFileIndexResult =
     reparsed: FileAnalysisTaskOutput["parsed"];
     symbolSignatureHash: string;
     importHash: string;
+    artifactKey: string;
   }
   | {
     kind: "reindexed";
@@ -48,6 +49,7 @@ export type AnalyzedFileIndexResult =
     reparsed: FileAnalysisTaskOutput["parsed"];
     symbolSignatureHash: string;
     importHash: string;
+    artifactKey: string;
   };
 
 function persistedSymbolCount(db: IndexBackendConnection, fileId: number): number {

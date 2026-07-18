@@ -22,10 +22,25 @@ import {
 
 import {
   createDefaultEngineConfig,
+  ENGINE_SCHEMA_VERSION,
   ENGINE_STORAGE_VERSION,
   loadRepoEngineConfig,
   resolveEngineRepoRoot,
 } from "./config.ts";
+import {
+  registerCheckout,
+  upsertCheckoutPathMapping,
+} from "./checkout-mapping.ts";
+import { probeGitCheckout } from "./git-checkout.ts";
+import { hashString } from "./hash.ts";
+import {
+  ANALYSIS_DEPENDENCY_VERSION,
+  ANALYSIS_PARSER_VERSION,
+  buildAnalysisArtifactKey,
+  buildIndexingExtractionConfigFingerprint,
+  loadAnalysisArtifact,
+  storeAnalysisArtifact,
+} from "./incremental-cache.ts";
 import { emitEngineEvent } from "./event-sink.ts";
 import { analyzeFileContent } from "./file-analysis.ts";
 import type { FileAnalysisTaskInput, FileAnalysisTaskOutput } from "./file-analysis.ts";
@@ -918,6 +933,7 @@ function getIndexTestDelayMs(): number {
 }
 
 async function analyzeFileIndexResult(input: {
+  db: IndexBackendConnection;
   repoRoot: string;
   filePath: string;
   summaryStrategy?: SummaryStrategy;
@@ -944,7 +960,20 @@ async function analyzeFileIndexResult(input: {
   }
 
   const file = await readRepoFile(input.repoRoot, input.filePath);
-  const analysis = input.workerPool?.enabled
+  const fingerprint = {
+    contentHash: hashString(file.content, "content_fingerprint"),
+    language: file.language,
+    parserVersion: ANALYSIS_PARSER_VERSION,
+    summaryStrategy: input.summaryStrategy ?? "doc-comments-first",
+    extractionConfigFingerprint: buildIndexingExtractionConfigFingerprint(
+      input.summaryStrategy,
+    ),
+    dependencyAnalysisVersion: ANALYSIS_DEPENDENCY_VERSION,
+    storageSchemaVersion: ENGINE_SCHEMA_VERSION,
+  };
+  const artifactKey = buildAnalysisArtifactKey(fingerprint);
+  const cachedAnalysis = loadAnalysisArtifact(input.db, artifactKey);
+  const analysis = cachedAnalysis ?? (input.workerPool?.enabled
     ? await getFileAnalysisPool(input.workerPool.maxWorkers).run({
         relativePath: file.relativePath,
         language: file.language,
@@ -956,7 +985,14 @@ async function analyzeFileIndexResult(input: {
         language: file.language,
         content: file.content,
         summaryStrategy: input.summaryStrategy,
-      });
+      }));
+  if (!cachedAnalysis) {
+    storeAnalysisArtifact({
+      db: input.db,
+      fingerprint,
+      analysis,
+    });
+  }
   const reparsed = analysis.parsed;
   const { symbolSignatureHash, importHash } = analysis;
 
@@ -976,6 +1012,7 @@ async function analyzeFileIndexResult(input: {
       reparsed,
       symbolSignatureHash,
       importHash,
+      artifactKey,
     };
   }
 
@@ -986,6 +1023,7 @@ async function analyzeFileIndexResult(input: {
     reparsed,
     symbolSignatureHash,
     importHash,
+    artifactKey,
   };
 }
 
@@ -993,6 +1031,36 @@ function matchesFilePattern(filePath: string, pattern?: string): boolean {
   return createPathMatcher({ include: pattern ? [pattern] : undefined }).matches(
     filePath,
   );
+}
+
+async function persistCheckoutArtifactMapping(
+  db: IndexBackendConnection,
+  repoRoot: string,
+  analyzed: AnalyzedFileIndexResult,
+) {
+  if (analyzed.kind !== "content-unchanged" && analyzed.kind !== "reindexed") {
+    return;
+  }
+
+  const gitCheckout = await probeGitCheckout({ repoRoot });
+  const checkout = registerCheckout(db, {
+    canonicalRoot: repoRoot,
+    gitMode: gitCheckout.mode,
+    repositoryId: null,
+    headOid: gitCheckout.headOid,
+    branchRef: gitCheckout.branchRef,
+    worktreePath: gitCheckout.mode === "filesystem" ? null : gitCheckout.repoRoot,
+    gitDiagnostic: gitCheckout.diagnostic,
+  });
+  upsertCheckoutPathMapping(db, {
+    checkoutId: checkout.checkoutId,
+    relativePath: analyzed.file.relativePath,
+    artifactKey: analyzed.artifactKey,
+    observedContentHash: analyzed.reparsed.contentHash,
+    observedSizeBytes: analyzed.file.size,
+    observedMtimeMs: Math.trunc(analyzed.file.mtimeMs),
+    observedAt: new Date().toISOString(),
+  });
 }
 
 async function collectRepoFiles(
@@ -1283,7 +1351,7 @@ async function indexFolderDirect(input: {
 }): Promise<IndexSummary> {
   const config = await ensureStorage(input.repoRoot, input.summaryStrategy);
   const db = openDatabase(config.paths.databasePath);
-  const repoRoot = config.repoRoot;
+    const repoRoot = config.repoRoot;
 
   try {
     const meta = await readRepoMeta(config.paths.repoMetaPath);
@@ -1328,6 +1396,7 @@ async function indexFolderDirect(input: {
           await delay(testDelayMs);
         }
         return analyzeFileIndexResult({
+          db,
           repoRoot,
           filePath,
           summaryStrategy: config.summaryStrategy,
@@ -1345,6 +1414,7 @@ async function indexFolderDirect(input: {
 
     for (const analyzed of analyzedFiles) {
       const result = persistFileIndexResult(db, analyzed);
+      await persistCheckoutArtifactMapping(db, repoRoot, analyzed);
       if (result.indexed) {
         indexedFiles += 1;
         indexedSymbols += result.symbolCount;
@@ -1393,6 +1463,7 @@ async function upsertFileIndex(db: IndexBackendConnection, input: {
   ).get(input.filePath) as TrackedFileRow | undefined;
 
   const analyzed = await analyzeFileIndexResult({
+    db,
     repoRoot: input.repoRoot,
     filePath: input.filePath,
     summaryStrategy: input.summaryStrategy,
@@ -1401,7 +1472,9 @@ async function upsertFileIndex(db: IndexBackendConnection, input: {
     maxSymbolsPerFile: input.maxSymbolsPerFile,
     workerPool: input.workerPool,
   });
-  return persistFileIndexResult(db, analyzed);
+  const result = persistFileIndexResult(db, analyzed);
+  await persistCheckoutArtifactMapping(db, input.repoRoot, analyzed);
+  return result;
 }
 
 async function refreshIndexedFilePath(db: IndexBackendConnection, input: {

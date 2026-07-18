@@ -497,6 +497,34 @@ module.exports = {
     expect(health.schemaVersion).toBe(6);
   });
 
+  it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await indexFolder({ repoRoot });
+
+    const paths = resolveEnginePaths(repoRoot);
+    const db = new Database(paths.databasePath, { readonly: true });
+    const artifactCount = db.prepare(
+      "SELECT COUNT(*) AS count FROM analysis_artifacts",
+    ).get() as { count: number };
+    const mappings = db.prepare(`
+      SELECT checkout_path_mappings.relative_path, checkout_path_mappings.artifact_key
+      FROM checkout_path_mappings
+      INNER JOIN checkouts ON checkouts.checkout_id = checkout_path_mappings.checkout_id
+      WHERE checkouts.canonical_root = ?
+      ORDER BY checkout_path_mappings.relative_path ASC
+    `).all(repoRoot) as Array<{ relative_path: string; artifact_key: string }>;
+    db.close();
+
+    expect(artifactCount.count).toBeGreaterThan(0);
+    expect(mappings).toEqual(expect.arrayContaining([
+      expect.objectContaining({ relative_path: "src/math.ts" }),
+      expect.objectContaining({ relative_path: "src/strings.ts" }),
+    ]));
+    expect(mappings.every((mapping) => mapping.artifact_key.startsWith("sha256:")))
+      .toBe(true);
+  });
+
   it("migrates legacy Astrograph schema state before serving diagnostics", async () => {
     const repoRoot = await createFixtureRepo();
     const paths = resolveEnginePaths(repoRoot);

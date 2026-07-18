@@ -124,7 +124,31 @@ interface Vitest commands passed on 2026-07-18; `pnpm type-lint`,
 
 ## Story 6: Artifact Reuse During Indexing
 
-**Status:** Blocked by Stories 2, 3, and 5.
+**Goal:** Reuse an immutable full-analysis artifact on fingerprint match while
+materializing fresh checkout-local file and symbol rows through the existing
+persistence path.
+
+- [x] Run baseline: focused engine, watch, cache, checkout-mapping, and Git
+  tests plus `pnpm type-lint`.
+- [x] Define versioned parser, extraction-config, and dependency-analysis
+  fingerprints from actual indexing inputs; do not fabricate a cache hit from
+  incomplete artifact JSON.
+- [x] Add private artifact read/write helpers that atomically persist the full
+  parsed analysis payload on a miss and reject malformed payloads on a hit.
+- [x] Register the active checkout and update its path mapping after each
+  persisted analysis result, including a cache hit.
+- [x] Route folder, single-file, and watch refresh through the same reuse-aware
+  analysis path; a miss retains ordinary file analysis and persistence.
+- [x] Add fixtures proving a hit avoids analysis, a miss persists an artifact,
+  and same branch label with changed content cannot reuse an artifact.
+- [x] Run focused tests, `pnpm type-lint`, `pnpm check:version-bump`, and
+  `git diff --check`.
+- [x] Commit the Story 6 implementation as
+  `feat: reuse immutable analysis artifacts during indexing`.
+
+**Evidence:** Focused cache, checkout-mapping, Git, engine, and watch Vitest
+commands passed on 2026-07-18; `pnpm type-lint`, `pnpm check:version-bump`, and
+`git diff --check` passed.
 
 ## Story 7: Checkout-Local Dependency Edge Refresh
 

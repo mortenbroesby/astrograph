@@ -2,8 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildAnalysisArtifactKey,
+  buildIndexingExtractionConfigFingerprint,
+  loadAnalysisArtifact,
   isCompleteAnalysisArtifactRecord,
+  resolveAnalysisArtifact,
   serializeAnalysisArtifactPayload,
+  storeAnalysisArtifact,
 } from "../src/incremental-cache.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
 import { initializeDatabase } from "../src/storage-schema.ts";
@@ -165,5 +169,74 @@ describe("incremental analysis artifact storage", () => {
       ...completeRecord,
       importFacts: undefined,
     })).toBe(false);
+  });
+
+  it("hydrates a complete stored analysis artifact by its full fingerprint", () => {
+    const db = SQLITE_INDEX_BACKEND.open(":memory:");
+    initializeDatabase(db);
+    const analysis = {
+      parsed: {
+        language: "ts" as const,
+        contentHash: "sha256:content",
+        integrityHash: "sha256:integrity",
+        symbols: [],
+        imports: [],
+        backend: "tree-sitter" as const,
+        fallbackUsed: false,
+        fallbackReason: null,
+      },
+      symbolSignatureHash: "sha256:symbols",
+      importHash: "sha256:imports",
+    };
+    const fingerprint = {
+      ...fingerprintInput,
+      extractionConfigFingerprint: buildIndexingExtractionConfigFingerprint(
+        "doc-comments-first",
+      ),
+    };
+
+    const artifactKey = storeAnalysisArtifact({ db, fingerprint, analysis });
+
+    expect(loadAnalysisArtifact(db, artifactKey)).toEqual(analysis);
+    expect(loadAnalysisArtifact(db, "sha256:missing")).toBeNull();
+    db.close();
+  });
+
+  it("skips analysis on a fingerprint hit and persists a miss", () => {
+    const db = SQLITE_INDEX_BACKEND.open(":memory:");
+    initializeDatabase(db);
+    const analysis = {
+      parsed: {
+        language: "ts" as const,
+        contentHash: "sha256:content",
+        integrityHash: "sha256:integrity",
+        symbols: [], imports: [], backend: "tree-sitter" as const,
+        fallbackUsed: false, fallbackReason: null,
+      },
+      symbolSignatureHash: "sha256:symbols",
+      importHash: "sha256:imports",
+    };
+    const fingerprint = {
+      ...fingerprintInput,
+      extractionConfigFingerprint: buildIndexingExtractionConfigFingerprint(
+        "doc-comments-first",
+      ),
+    };
+    let calls = 0;
+    const first = resolveAnalysisArtifact({
+      db,
+      fingerprint,
+      analyze: () => { calls += 1; return analysis; },
+    });
+    const second = resolveAnalysisArtifact({
+      db,
+      fingerprint,
+      analyze: () => { calls += 1; return analysis; },
+    });
+
+    expect(first.reused).toBe(false);
+    expect(second.reused).toBe(true);
+    expect(calls).toBe(1);
+    db.close();
   });
 });
