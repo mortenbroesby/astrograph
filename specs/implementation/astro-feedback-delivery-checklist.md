@@ -201,7 +201,7 @@ ranking, telemetry, and documentation parity work.
 
 ## Final Verification
 
-- [ ] Run `pnpm test` after all source stories are complete.
-- [ ] Run `pnpm release:plan` and follow its release decision before publishing.
-- [ ] Mark every checklist item and Ralph story complete only with recorded
+- [x] Run `pnpm test` after all source stories are complete.
+- [x] Run `pnpm release:plan` and follow its release decision before publishing.
+- [x] Mark every checklist item and Ralph story complete only with recorded
   passing evidence.

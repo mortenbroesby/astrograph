@@ -51,6 +51,16 @@ const watchDiagnosticsSchema = {
   },
 } as const;
 
+const retrievalHealthSchema = {
+  type: "object",
+  properties: {
+    status: { type: "string" },
+    affectedCapabilities: { type: "array", items: { type: "string" } },
+    safeOperations: { type: "array", items: { type: "string" } },
+    recommendedAction: { type: "string" },
+  },
+} as const;
+
 const readinessSchema = {
   type: "object",
   properties: {
@@ -198,6 +208,7 @@ const diagnosticsSchema = {
       },
     },
     watch: watchDiagnosticsSchema,
+    retrievalHealth: retrievalHealthSchema,
   },
 } as const;
 
@@ -354,6 +365,7 @@ const projectStatusSchema = {
       },
     },
     watch: watchDiagnosticsSchema,
+    retrievalHealth: retrievalHealthSchema,
   },
 } as const;
 
