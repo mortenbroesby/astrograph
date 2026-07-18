@@ -25,6 +25,8 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 
 Implementation specs, refactor plans, and internal subsystem ownership.
 
+- [Astrograph Feedback Consolidation Epic](./implementation/astro-feedback-epic.md) - Consolidated milestone roadmap derived from `.memory/astro-feedback.md`.
+- [Astrograph Feedback Delivery Checklist](./implementation/astro-feedback-delivery-checklist.md) - Work-in-progress execution checklist for the feedback epic.
 - [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
@@ -75,6 +77,7 @@ Reusable starting points for agent-created docs.
 
 **Goal:** Keep refactors task-sized, test-first, and reviewable.
 
+- [x] Add consolidated feedback epic for retrieval-quality roadmap planning.
 - [x] Move storage refactor plan into `specs/implementation/`.
 - [x] Split future plans by subsystem.
 - [ ] Require baseline verification and commit checkpoints in each plan.

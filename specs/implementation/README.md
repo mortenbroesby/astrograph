@@ -4,6 +4,8 @@ This directory contains internal implementation plans and subsystem specs.
 
 ## Current Plans
 
+- [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) - Consolidated milestone roadmap for ranking, result discipline, explainability, repo-aware presets, and MCP/CLI parity based on `.memory/astro-feedback.md`.
+- [Astrograph Feedback Delivery Checklist](./astro-feedback-delivery-checklist.md) - Work-in-progress story breakdown, handoff note, and implementation checklist for the feedback epic.
 - [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.
