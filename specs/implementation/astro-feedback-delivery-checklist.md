@@ -130,19 +130,19 @@ or nonmatching presets preserve generic fallback.
   tests/path-matcher.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
-## Story 7: Expose token-savings metadata
+## Story 7: Expose token-savings metadata — Complete
 
 **Goal:** Retrieval reports returned size and a documented comparable baseline
 or savings estimate.
 
 **Depends on:** Stories 2 and 3 establish the relevant response shapes.
 
-- [ ] Define units, baseline, unavailable-state behavior, and stable metadata
+- [x] Define units, baseline, unavailable-state behavior, and stable metadata
   field names.
-- [ ] Compute metrics beside result construction rather than in presentation
+- [x] Compute metrics beside result construction rather than in presentation
   code.
-- [ ] Serialize identical values through MCP and CLI JSON.
-- [ ] Add arithmetic and envelope regression tests; verify with
+- [x] Serialize identical values through MCP and CLI JSON.
+- [x] Add arithmetic and envelope regression tests; verify with
   `pnpm exec vitest run tests/interface.test.ts tests/serialization.test.ts`,
   `pnpm type-lint`, and `pnpm check:version-bump`.
 

@@ -184,6 +184,19 @@ function validateSearchSymbolsOutput(result: unknown) {
   if (!Array.isArray(result.refinementHints)) {
     throw new Error("search_symbols output must include refinementHints");
   }
+  assertIsObject(result.tokenSavings);
+  if (
+    result.tokenSavings.unit !== "tokens"
+    || result.tokenSavings.tokenizer !== "cl100k_base"
+    || result.tokenSavings.baseline !== "all_ranked_symbol_items"
+  ) {
+    throw new Error("search_symbols tokenSavings has an invalid unit, tokenizer, or baseline");
+  }
+  for (const field of ["baselineTokens", "returnedTokens", "savedTokens", "savedPercent"] as const) {
+    if (!ensureNumber(result.tokenSavings[field])) {
+      throw new Error(`search_symbols tokenSavings must include ${field}`);
+    }
+  }
   for (const hint of result.refinementHints) {
     assertIsObject(hint);
     if (

@@ -11,6 +11,7 @@ import {
   getFileTree,
   getRepoOutline,
   indexFolder,
+  searchSymbolsResult,
   searchText,
 } from "../src/index.ts";
 import { serializeToolResult } from "../src/serialization.ts";
@@ -30,6 +31,7 @@ describe("machine result serialization", () => {
     const diagnosticsResult = await diagnostics({ repoRoot });
     const findFilesResult = await findFiles({ repoRoot, query: "strings" });
     const searchTextResult = await searchText({ repoRoot, query: "Hello", limit: 1 });
+    const searchSymbolsResultValue = await searchSymbolsResult({ repoRoot, query: "Greeter" });
     const fileSummaryResult = await getFileSummary({
       repoRoot,
       filePath: "README.md",
@@ -50,6 +52,9 @@ describe("machine result serialization", () => {
     );
     expect(JSON.parse(serializeToolResult("search_text", searchTextResult))).toEqual(
       searchTextResult,
+    );
+    expect(JSON.parse(serializeToolResult("search_symbols", searchSymbolsResultValue))).toEqual(
+      searchSymbolsResultValue,
     );
     expect(JSON.parse(serializeToolResult("get_file_summary", fileSummaryResult))).toEqual(
       fileSummaryResult,

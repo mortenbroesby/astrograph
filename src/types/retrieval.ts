@@ -63,10 +63,22 @@ export interface SearchSymbolsRefinementHint {
   value: number | string;
 }
 
+/** Exact token savings for the symbol-item payload relative to all ranked items. */
+export interface SearchSymbolsTokenSavings {
+  unit: "tokens";
+  tokenizer: "cl100k_base";
+  baseline: "all_ranked_symbol_items";
+  baselineTokens: number;
+  returnedTokens: number;
+  savedTokens: number;
+  savedPercent: number;
+}
+
 export interface SearchSymbolsResult {
   items: SymbolSummary[];
   truncated: boolean;
   refinementHints: SearchSymbolsRefinementHint[];
+  tokenSavings: SearchSymbolsTokenSavings;
 }
 
 export interface SearchTextMatch {

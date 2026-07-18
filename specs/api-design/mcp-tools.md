@@ -103,12 +103,33 @@ Request:
 Success `data`:
 
 ```ts
-SymbolSummary[]
+{
+  items: SymbolSummary[],
+  truncated: boolean,
+  refinementHints: Array<{ field: "limit" | "filePattern" | "kind", value: number | string }>,
+  tokenSavings: {
+    unit: "tokens",
+    tokenizer: "cl100k_base",
+    baseline: "all_ranked_symbol_items",
+    baselineTokens: number,
+    returnedTokens: number,
+    savedTokens: number,
+    savedPercent: number,
+  },
+}
 ```
 
 Where `SymbolSummary` is the public summary shape with `id`, `name`,
 `qualifiedName`, `kind`, `filePath`, `signature`, `summary`, `summarySource`,
 `startLine`, `endLine`, and `exported`.
+
+`tokenSavings` measures the exact serialized JSON token count of the returned
+`items` against every ranked symbol item before the response limit. It does not
+estimate prompt framing or MCP-envelope overhead. An untruncated response has
+equal baseline and returned counts, with zero savings. `tests/interface.test.ts`
+and `tests/serialization.test.ts` verify the MCP and CLI JSON contract.
+The field is always present for successful `search_symbols` responses; there is
+no unavailable state because the metric is computed during result construction.
 
 ### `get_symbol_source`
 

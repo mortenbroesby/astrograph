@@ -1311,12 +1311,11 @@ export class Greeter {
     );
     await indexFolder({ repoRoot });
 
-    await expect(
-      dispatchTool("search_symbols", {
-        repoRoot,
-        query: "matchingSymbol",
-      }),
-    ).resolves.toMatchObject({
+    const mcpResponse = await dispatchTool("search_symbols", {
+      repoRoot,
+      query: "matchingSymbol",
+    });
+    expect(mcpResponse).toMatchObject({
       ok: true,
       data: {
         items: expect.arrayContaining([
@@ -1328,6 +1327,11 @@ export class Greeter {
           { field: "filePattern", value: "src/**" },
           { field: "kind", value: "function" },
         ],
+        tokenSavings: {
+          unit: "tokens",
+          tokenizer: "cl100k_base",
+          baseline: "all_ranked_symbol_items",
+        },
       },
     });
 
@@ -1338,7 +1342,8 @@ export class Greeter {
       "--query",
       "matchingSymbol",
     ]);
-    expect(JSON.parse(cliOutput)).toMatchObject({
+    const cliResult = JSON.parse(cliOutput);
+    expect(cliResult).toMatchObject({
       items: expect.arrayContaining([
         expect.objectContaining({ name: "matchingSymbol0" }),
       ]),
@@ -1349,5 +1354,17 @@ export class Greeter {
         { field: "kind", value: "function" },
       ],
     });
+    const tokenSavings = (mcpResponse as { data: { tokenSavings: {
+      baselineTokens: number;
+      returnedTokens: number;
+      savedTokens: number;
+      savedPercent: number;
+    } } }).data.tokenSavings;
+    expect(tokenSavings.baselineTokens).toBeGreaterThan(tokenSavings.returnedTokens);
+    expect(tokenSavings.savedTokens).toBe(tokenSavings.baselineTokens - tokenSavings.returnedTokens);
+    expect(tokenSavings.savedPercent).toBe(
+      Math.round((tokenSavings.savedTokens / tokenSavings.baselineTokens) * 100),
+    );
+    expect(cliResult.tokenSavings).toEqual(tokenSavings);
   });
 });

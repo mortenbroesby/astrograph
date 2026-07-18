@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 
 import { createPathMatcher } from "./path-matcher.ts";
 import { hashString } from "./hash.ts";
+import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 import type {
   IndexBackendConnection,
   IndexBackendValue,
@@ -1041,6 +1042,25 @@ function buildSearchSymbolsRefinementHints(
   return hints;
 }
 
+function buildSearchSymbolsTokenSavings(
+  allItems: SymbolSummary[],
+  items: SymbolSummary[],
+): SearchSymbolsResult["tokenSavings"] {
+  const baselineTokens = countTokens(JSON.stringify(allItems));
+  const returnedTokens = countTokens(JSON.stringify(items));
+  const savedTokens = Math.max(0, baselineTokens - returnedTokens);
+
+  return {
+    unit: "tokens",
+    tokenizer: BENCHMARK_TOKENIZER,
+    baseline: "all_ranked_symbol_items",
+    baselineTokens,
+    returnedTokens,
+    savedTokens,
+    savedPercent: baselineTokens === 0 ? 0 : Math.round((savedTokens / baselineTokens) * 100),
+  };
+}
+
 export function searchSymbolsResultInContext(
   context: RetrievalContext,
   input: SearchSymbolsOptions,
@@ -1071,9 +1091,15 @@ export function searchSymbolsResultInContext(
     .filter((entry) => entry.score > 0)
     .sort(sortRankedSymbolEntries);
 
-  const items = matches.slice(0, resultLimit).map((entry) => mapSymbolRow(entry.row));
+  const allItems = matches.map((entry) => mapSymbolRow(entry.row));
+  const items = allItems.slice(0, resultLimit);
   const truncated = matches.length > resultLimit;
-  return { items, truncated, refinementHints: buildSearchSymbolsRefinementHints(input, items, truncated) };
+  return {
+    items,
+    truncated,
+    refinementHints: buildSearchSymbolsRefinementHints(input, items, truncated),
+    tokenSavings: buildSearchSymbolsTokenSavings(allItems, items),
+  };
 }
 
 export function searchTextInContext(
