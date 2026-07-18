@@ -288,6 +288,8 @@ making branch identity and invalidation explicit and safe.
   changes; do not key cache reuse on branch name alone.
 - Treat Git commands and worktree metadata as optional, bounded inputs with
   clear timeouts and no shell interpolation.
+- Execute the resulting work through the story-sized
+  [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md).
 
 ## Cross-Milestone Dependencies
 

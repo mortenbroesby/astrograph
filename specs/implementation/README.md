@@ -7,6 +7,8 @@ This directory contains internal implementation plans and subsystem specs.
 - [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) - Consolidated milestone roadmap for ranking, result discipline, explainability, repo-aware presets, and MCP/CLI parity based on `.memory/astro-feedback.md`.
 - [Astrograph Feedback Delivery Checklist](./astro-feedback-delivery-checklist.md) - Work-in-progress story breakdown, handoff note, and implementation checklist for the feedback epic.
 - [Branch-Aware Incremental Index Mapping Plan](./branch-aware-incremental-index-plan.md) - Design-only plan for safe content-addressed analysis reuse across Git branches and worktrees.
+- [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md) - Story-sized execution roadmap for safe branch and worktree analysis reuse.
+- [Branch-Aware Incremental Index Delivery Checklist](./branch-aware-incremental-index-delivery-checklist.md) - Work-in-progress task breakdown and verification evidence for the branch-aware epic.
 - [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.

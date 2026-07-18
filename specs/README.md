@@ -27,6 +27,8 @@ Implementation specs, refactor plans, and internal subsystem ownership.
 
 - [Astrograph Feedback Consolidation Epic](./implementation/astro-feedback-epic.md) - Consolidated milestone roadmap derived from `.memory/astro-feedback.md`.
 - [Astrograph Feedback Delivery Checklist](./implementation/astro-feedback-delivery-checklist.md) - Work-in-progress execution checklist for the feedback epic.
+- [Branch-Aware Incremental Index Epic](./implementation/branch-aware-incremental-index-epic.md) - Story-sized execution roadmap for safe branch and worktree analysis reuse.
+- [Branch-Aware Incremental Index Delivery Checklist](./implementation/branch-aware-incremental-index-delivery-checklist.md) - Work-in-progress task breakdown and verification evidence for the branch-aware epic.
 - [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.

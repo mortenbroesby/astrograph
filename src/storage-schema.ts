@@ -193,6 +193,21 @@ export function initializeDatabase(db: IndexBackendConnection) {
       content TEXT NOT NULL,
       FOREIGN KEY(file_id) REFERENCES files(id) ON DELETE CASCADE
     );
+    CREATE TABLE IF NOT EXISTS analysis_artifacts (
+      artifact_key TEXT PRIMARY KEY,
+      content_hash TEXT NOT NULL,
+      language TEXT NOT NULL,
+      parser_version TEXT NOT NULL,
+      summary_strategy TEXT NOT NULL,
+      extraction_config_fingerprint TEXT NOT NULL,
+      dependency_analysis_version TEXT NOT NULL,
+      storage_schema_version INTEGER NOT NULL,
+      parse_output_json TEXT NOT NULL,
+      summaries_json TEXT NOT NULL,
+      symbols_json TEXT NOT NULL,
+      import_facts_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
     CREATE VIRTUAL TABLE IF NOT EXISTS symbol_search USING fts5(
       symbol_id UNINDEXED,
       file_id UNINDEXED,
@@ -212,6 +227,8 @@ export function initializeDatabase(db: IndexBackendConnection) {
     );
     CREATE INDEX IF NOT EXISTS idx_symbols_name ON symbols(name);
     CREATE INDEX IF NOT EXISTS idx_symbols_file_path ON symbols(file_path);
+    CREATE INDEX IF NOT EXISTS idx_analysis_artifacts_content_hash
+      ON analysis_artifacts(content_hash);
   `);
   runSchemaMigrations(db);
 }

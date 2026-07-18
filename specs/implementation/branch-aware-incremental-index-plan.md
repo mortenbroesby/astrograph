@@ -12,6 +12,9 @@ indexing or a source of cache identity.
 **Tech Stack:** TypeScript, SQLite, Node Git child processes, existing hash and
 filesystem-scan helpers, and Vitest fixtures.
 
+**Execution roadmap:** [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md)
+breaks this design into independently deliverable stories.
+
 ---
 
 ## Non-Goals
