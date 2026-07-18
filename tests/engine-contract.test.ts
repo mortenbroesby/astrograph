@@ -406,6 +406,7 @@ describe("ai-context-engine contract", () => {
         "  ranking: {",
         "    exactName: 0,",
         "    filePathContains: 2000,",
+        '    pathPresets: { generationCode: ["tools/**"] },',
         "  },",
         "  observability: {",
         "    enabled: true,",
@@ -450,6 +451,11 @@ describe("ai-context-engine contract", () => {
       exactName: 0,
       filePathContains: 2000,
       exportedBonus: DEFAULT_RANKING_WEIGHTS.exportedBonus,
+      pathPresets: {
+        generationCode: ["tools/**"],
+        appCode: [],
+        sharedRuntime: [],
+      },
     });
     expect(config.observability).toMatchObject({
       enabled: true,
@@ -504,6 +510,27 @@ describe("ai-context-engine contract", () => {
     );
   });
 
+  it("rejects unknown ranking path preset categories", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-config-"));
+    tempDirs.push(repoRoot);
+
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.ts"),
+      [
+        "export default {",
+        "  ranking: {",
+        '    pathPresets: { unknownCategory: ["src/**"] },',
+        "  },",
+        "};",
+        "",
+      ].join("\n"),
+    );
+
+    await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
+      /Invalid astrograph\.config\.ts/i,
+    );
+  });
+
   it("normalizes auto and bounded performance config values", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-config-"));
     tempDirs.push(repoRoot);
@@ -532,6 +559,11 @@ describe("ai-context-engine contract", () => {
     expect(autoConfig.ranking).toEqual({
       ...DEFAULT_RANKING_WEIGHTS,
       exportedBonus: 5,
+      pathPresets: {
+        generationCode: [],
+        appCode: [],
+        sharedRuntime: [],
+      },
     });
     expect(autoConfig.performance.workerPool).toEqual({
       enabled: false,

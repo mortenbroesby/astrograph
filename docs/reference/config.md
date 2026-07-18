@@ -39,7 +39,7 @@ export default defineConfig({
     maxFilesDiscovered: 100000,
     maxFileBytes: 250000,
     maxSymbolsPerFile: 2000,
-    maxSymbolResults: 20,
+    maxSymbolResults: 8,
     maxTextResults: 100,
     maxChildProcessOutputBytes: 1000000,
     maxLiveSearchMatches: 100,
@@ -100,6 +100,23 @@ Available fields:
 
 Controls deterministic retrieval weights.
 
+`pathPresets` is optional repository context for intent-aware ranking. It does
+not change ranking until the corresponding ranking feature is enabled. Use only
+the bounded category vocabulary and explicit glob patterns:
+
+```ts
+ranking: {
+  pathPresets: {
+    generationCode: ["tools/**", "scripts/generate-*.ts"],
+    appCode: ["src/app/**"],
+    sharedRuntime: ["src/runtime/**"],
+  },
+},
+```
+
+Available categories are `generationCode`, `appCode`, and `sharedRuntime`.
+Each accepts at most 32 nonempty patterns; unknown categories are rejected.
+
 Available fields:
 
 - `exactName`
@@ -114,6 +131,7 @@ Available fields:
 - `exactWord`
 - `tokenMatch`
 - `exportedBonus`
+- `pathPresets`
 
 ### `watch`
 

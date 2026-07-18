@@ -10,6 +10,7 @@ import type {
   EngineConfig,
   EnginePaths,
   RepoPerformanceConfig,
+  RankingPathPresetCategory,
   RepoRankingConfig,
   RepoEngineConfig,
   ResolvedRepoEngineConfig,
@@ -18,7 +19,10 @@ import type {
   SymbolKind,
   SummaryStrategy,
 } from "./types.ts";
-import { SUMMARY_STRATEGIES as SUMMARY_STRATEGY_VALUES } from "./types.ts";
+import {
+  RANKING_PATH_PRESET_CATEGORIES,
+  SUMMARY_STRATEGIES as SUMMARY_STRATEGY_VALUES,
+} from "./types.ts";
 
 export const ENGINE_STORAGE_DIRNAME = ".astrograph";
 export const ENGINE_STORAGE_VERSION = 1;
@@ -131,6 +135,11 @@ const repoRankingConfigSchema = z.object({
   exactWord: z.number().finite().nonnegative().optional(),
   tokenMatch: z.number().finite().nonnegative().optional(),
   exportedBonus: z.number().finite().nonnegative().optional(),
+  pathPresets: z.object({
+    generationCode: z.array(z.string().min(1)).max(32).optional(),
+    appCode: z.array(z.string().min(1)).max(32).optional(),
+    sharedRuntime: z.array(z.string().min(1)).max(32).optional(),
+  }).strict().optional(),
 });
 
 const repoLimitsConfigSchema = z.object({
@@ -209,6 +218,17 @@ function resolveRankingWeights(
   };
 }
 
+function resolveRankingPathPresets(
+  value: RepoRankingConfig | undefined,
+): Record<RankingPathPresetCategory, string[]> {
+  return Object.fromEntries(
+    RANKING_PATH_PRESET_CATEGORIES.map((category) => [
+      category,
+      [...(value?.pathPresets?.[category] ?? [])],
+    ]),
+  ) as Record<RankingPathPresetCategory, string[]>;
+}
+
 export function resolveEnginePaths(repoRoot: string): EnginePaths {
   const storageDir = path.join(repoRoot, ENGINE_STORAGE_DIRNAME);
 
@@ -267,7 +287,7 @@ function createDefaultResolvedRepoEngineConfig(
         maxWorkers: defaultWorkerPoolMaxWorkers(),
       },
     },
-    ranking: { ...DEFAULT_RANKING_WEIGHTS },
+    ranking: { ...DEFAULT_RANKING_WEIGHTS, pathPresets: resolveRankingPathPresets(undefined) },
     watch: {
       backend: "auto",
       debounceMs: DEFAULT_WATCH_DEBOUNCE_MS,
@@ -313,7 +333,7 @@ function resolveEngineConfigFromParsed(
         maxWorkers: normalizeWorkerPoolMaxWorkers(data.performance?.workerPool?.maxWorkers),
       },
     },
-    ranking: resolveRankingWeights(data.ranking),
+    ranking: { ...resolveRankingWeights(data.ranking), pathPresets: resolveRankingPathPresets(data.ranking) },
     watch: {
       backend: data.watch?.backend ?? defaults.watch.backend,
       debounceMs: data.watch?.debounceMs ?? defaults.watch.debounceMs,

@@ -23,6 +23,14 @@ export interface RankingWeights {
   exportedBonus: number;
 }
 
+export const RANKING_PATH_PRESET_CATEGORIES = [
+  "generationCode",
+  "appCode",
+  "sharedRuntime",
+] as const;
+export type RankingPathPresetCategory = (typeof RANKING_PATH_PRESET_CATEGORIES)[number];
+export type RankingPathPresets = Partial<Record<RankingPathPresetCategory, string[]>>;
+
 export interface EnginePaths {
   storageDir: string;
   databasePath: string;
@@ -93,6 +101,7 @@ export interface RepoRankingConfig {
   exactWord?: number;
   tokenMatch?: number;
   exportedBonus?: number;
+  pathPresets?: RankingPathPresets;
 }
 
 export interface RepoEngineConfig {
@@ -138,7 +147,9 @@ export interface ResolvedWatchConfig {
   debounceMs: number;
 }
 
-export interface ResolvedRankingConfig extends RankingWeights {}
+export interface ResolvedRankingConfig extends RankingWeights {
+  pathPresets: Record<RankingPathPresetCategory, string[]>;
+}
 
 export interface ResolvedLimitsConfig {
   maxFilesDiscovered: number;

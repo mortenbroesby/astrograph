@@ -102,18 +102,18 @@ over downstream usage and tests.
   tests/engine-contract.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
-## Story 5: Add repo-aware ranking preset configuration
+## Story 5: Add repo-aware ranking preset configuration — Complete
 
 **Goal:** Repositories can opt into validated path categories such as generation
 code, app code, and shared runtime.
 
 **Depends on:** Story 4 establishes the generic ranking baseline.
 
-- [ ] Define the bounded preset vocabulary and configuration type.
-- [ ] Parse and validate path mappings with actionable errors and safe defaults.
-- [ ] Document the opt-in schema without activating it in ranking yet.
-- [ ] Add config and path-matcher tests; verify with `pnpm exec vitest run
-  tests/interface.test.ts tests/path-matcher.test.ts`, `pnpm type-lint`, and
+- [x] Define the bounded preset vocabulary and configuration type.
+- [x] Parse and validate path mappings with actionable errors and safe defaults.
+- [x] Document the opt-in schema without activating it in ranking yet.
+- [x] Add configuration contract tests; verify with `pnpm exec vitest run
+  tests/engine-contract.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
 ## Story 6: Apply repo-aware presets to ranking
