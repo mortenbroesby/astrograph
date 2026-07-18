@@ -30,7 +30,27 @@ the public CLI, MCP, or library contracts.
 
 ## Story 2: Fingerprint Contract
 
-**Status:** Blocked by Story 1.
+**Goal:** Define a deterministic, complete artifact identity that excludes
+checkout and branch metadata.
+
+- [x] Run baseline: `pnpm type-lint` and
+  `pnpm exec vitest run tests/incremental-cache.test.ts`.
+- [x] Add a typed fingerprint input containing the content hash, language,
+  parser version, summary strategy, extraction-config fingerprint,
+  dependency-analysis version, and storage-schema version.
+- [x] Validate that every string field is non-empty and the schema version is a
+  positive integer before building a key.
+- [x] Build the key from a canonical ordered representation of only those
+  identity fields; do not accept branch name, worktree path, or Git OID.
+- [x] Extend `tests/incremental-cache.test.ts` for determinism, rejection of
+  incomplete input, every-field invalidation, and ignored branch metadata.
+- [x] Run focused tests, `pnpm type-lint`, `pnpm check:version-bump`, and
+  `git diff --check`.
+- [x] Commit the Story 2 implementation as
+  `feat: add analysis artifact fingerprint contract`.
+
+**Evidence:** Baseline and focused Vitest commands passed on 2026-07-18;
+`pnpm type-lint`, `pnpm check:version-bump`, and `git diff --check` passed.
 
 ## Story 3: Storage Migration Safety
 

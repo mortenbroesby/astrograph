@@ -1,3 +1,15 @@
+import { createHash } from "node:crypto";
+
+export interface AnalysisArtifactFingerprintInput {
+  contentHash: string;
+  language: string;
+  parserVersion: string;
+  summaryStrategy: string;
+  extractionConfigFingerprint: string;
+  dependencyAnalysisVersion: string;
+  storageSchemaVersion: number;
+}
+
 export interface AnalysisArtifactPayload {
   parseOutput: unknown;
   summaries: unknown;
@@ -22,6 +34,60 @@ export interface SerializedAnalysisArtifactPayload {
   summaries_json: string;
   symbols_json: string;
   import_facts_json: string;
+}
+
+function requireFingerprintString(
+  field: string,
+  value: string,
+): string {
+  if (value.trim().length === 0) {
+    throw new Error(`Analysis artifact fingerprint field ${field} must be non-empty.`);
+  }
+  return value;
+}
+
+function normalizeFingerprintInput(
+  input: AnalysisArtifactFingerprintInput,
+): AnalysisArtifactFingerprintInput {
+  if (!Number.isSafeInteger(input.storageSchemaVersion)
+    || input.storageSchemaVersion <= 0) {
+    throw new Error(
+      "Analysis artifact fingerprint field storageSchemaVersion must be a positive integer.",
+    );
+  }
+
+  return {
+    contentHash: requireFingerprintString("contentHash", input.contentHash),
+    language: requireFingerprintString("language", input.language),
+    parserVersion: requireFingerprintString("parserVersion", input.parserVersion),
+    summaryStrategy: requireFingerprintString("summaryStrategy", input.summaryStrategy),
+    extractionConfigFingerprint: requireFingerprintString(
+      "extractionConfigFingerprint",
+      input.extractionConfigFingerprint,
+    ),
+    dependencyAnalysisVersion: requireFingerprintString(
+      "dependencyAnalysisVersion",
+      input.dependencyAnalysisVersion,
+    ),
+    storageSchemaVersion: input.storageSchemaVersion,
+  };
+}
+
+export function buildAnalysisArtifactKey(
+  input: AnalysisArtifactFingerprintInput,
+): string {
+  const fingerprint = normalizeFingerprintInput(input);
+  const canonical = JSON.stringify({
+    contentHash: fingerprint.contentHash,
+    language: fingerprint.language,
+    parserVersion: fingerprint.parserVersion,
+    summaryStrategy: fingerprint.summaryStrategy,
+    extractionConfigFingerprint: fingerprint.extractionConfigFingerprint,
+    dependencyAnalysisVersion: fingerprint.dependencyAnalysisVersion,
+    storageSchemaVersion: fingerprint.storageSchemaVersion,
+  });
+
+  return `sha256:${createHash("sha256").update(canonical).digest("hex")}`;
 }
 
 function serializePayloadField(name: string, value: unknown): string {
