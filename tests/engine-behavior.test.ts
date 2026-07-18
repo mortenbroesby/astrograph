@@ -819,6 +819,30 @@ export class Greeter {
     expect(symbolResult.refinementHints).toEqual([]);
   });
 
+  it("ranks generator implementations above generated-code usage tests", async () => {
+    const repoRoot = await createFixtureRepo();
+    await writeFile(
+      path.join(repoRoot, "src", "api-hooks-generator.ts"),
+      "export function generateApiHooks() { return []; }\n",
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "api-hooks.test.ts"),
+      "export function generatedApiHooksUsageTest() { return []; }\n",
+    );
+    await indexFolder({ repoRoot });
+
+    const matches = await searchSymbols({
+      repoRoot,
+      query: "generated api hooks",
+    });
+
+    expect(matches.map((match) => match.name)).toEqual(expect.arrayContaining([
+      "generateApiHooks",
+      "generatedApiHooksUsageTest",
+    ]));
+    expect(matches[0]?.name).toBe("generateApiHooks");
+  });
+
   it("skips oversized files during indexed discovery when maxFileBytes is configured", async () => {
     const repoRoot = await createFixtureRepo();
 

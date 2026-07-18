@@ -154,6 +154,30 @@ function rowText(row: DbSymbolRow): string {
     .toLowerCase();
 }
 
+const GENERATION_INTENT_TERMS = new Set(["generated", "generate", "generation"]);
+const GENERATOR_EVIDENCE = /(?:generate|generator|codegen|scaffold|template|emit)/i;
+const GENERATOR_PATH_EVIDENCE = /(?:^|\/)(?:tools?|scripts?|cli|generators?|codegen)(?:\/|$)/i;
+const TEST_PATH_EVIDENCE = /(?:^|\/)(?:tests?|__tests__|spec)(?:\/|$)|\.(?:test|spec)\.[^/]+$/i;
+
+function generationIntentAdjustment(row: DbSymbolRow, tokens: string[]): number {
+  if (!tokens.some((token) => GENERATION_INTENT_TERMS.has(token))) {
+    return 0;
+  }
+
+  const generatorText = [row.name, row.qualified_name ?? "", row.file_path].join(" ");
+  let adjustment = 0;
+  if (GENERATOR_EVIDENCE.test(generatorText)) {
+    adjustment += 360;
+  }
+  if (GENERATOR_PATH_EVIDENCE.test(row.file_path)) {
+    adjustment += 120;
+  }
+  if (TEST_PATH_EVIDENCE.test(row.file_path)) {
+    adjustment -= 80;
+  }
+  return adjustment;
+}
+
 function scoreSymbolRow(
   row: DbSymbolRow,
   query: string,
@@ -212,6 +236,8 @@ function scoreSymbolRow(
     }
   }
 
+  score += generationIntentAdjustment(row, tokens);
+
   if (score > 0 && row.exported) {
     score += weights.exportedBonus;
   }
@@ -231,6 +257,9 @@ function loadSymbolRows(
   const whereClauses: string[] = [];
   const params: IndexBackendValue[] = [];
   const ftsQuery = buildFtsMatchQuery(input.query ?? "");
+  const hasGenerationIntent = queryTokens(input.query ?? "").some((token) =>
+    GENERATION_INTENT_TERMS.has(token),
+  );
   let candidateIds: string[] | null = null;
 
   if (input.kind) {
@@ -245,7 +274,7 @@ function loadSymbolRows(
 
   const queryTerms = uniqueQueryTerms(input.query ?? "");
 
-  if (ftsQuery) {
+  if (ftsQuery && !hasGenerationIntent) {
     const ftsParams: IndexBackendValue[] = [ftsQuery, ...params];
 
     const ftsRows = typedAll<{ symbol_id: string }>(

@@ -74,19 +74,19 @@ narrow the next request.
   tests/interface.test.ts tests/engine-contract.test.ts`, `pnpm type-lint`,
   and `pnpm check:version-bump`.
 
-## Story 4: Implement generic intent-aware ranking
+## Story 4: Implement generic intent-aware ranking — Complete
 
 **Goal:** Intent-heavy queries favor likely generator or implementation code
 over downstream usage and tests.
 
 **Depends on:** Story 2 for broad-query benchmark evaluation.
 
-- [ ] Identify generic filename, path-shape, and symbol-name evidence in the
+- [x] Identify generic filename, path-shape, and symbol-name evidence in the
   existing ranking pipeline.
-- [ ] Add explicit deterministic scoring for representative generation intent.
-- [ ] Add fixture and benchmark cases that prove generator candidates outrank
+- [x] Add explicit deterministic scoring for representative generation intent.
+- [x] Add a fixture case that proves generator candidates outrank
   app-level false positives without repository-specific hardcoding.
-- [ ] Verify with `pnpm exec vitest run tests/engine-behavior.test.ts
+- [x] Verify with `pnpm exec vitest run tests/engine-behavior.test.ts
   tests/engine-contract.test.ts`, `pnpm type-lint`, and
   `pnpm check:version-bump`.
 
