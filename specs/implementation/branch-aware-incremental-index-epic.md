@@ -26,6 +26,10 @@ changes. A branch name, worktree path, or commit message is never an artifact
 key. Each story is independently mergeable and must pass its verification before
 the next dependent story begins.
 
+Windows compatibility is planned separately in the
+[Windows Platform Support Epic](./windows-platform-support-epic.md). Stories
+that introduce filesystem or Git behavior must not add POSIX-shell assumptions.
+
 Source-changing stories run `pnpm check:version-bump` before commit. The final
 implementation story runs `pnpm release:plan` before the release workflow.
 
