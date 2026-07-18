@@ -237,6 +237,42 @@ experience around the affected retrieval workflows.
 - Keep docs, tests, and public examples moving together when contract-adjacent
   behavior changes.
 
+### Milestone 6: Branch-Aware Incremental Index Mapping
+
+**Purpose:** Reuse valid index work across Git-style branch changes while
+making branch identity and invalidation explicit and safe.
+
+**Themes covered:**
+
+- branch-aware incremental cache/index mapping
+
+**Target behavior:**
+
+- Astrograph can identify the current Git branch or detached-HEAD state when
+  available, without making Git a requirement for ordinary indexing.
+- Incremental refresh can reuse content-addressed analysis for unchanged files
+  across branch changes while invalidating mappings whose path, content, config,
+  or dependency assumptions no longer hold.
+- Diagnostics make the active branch mapping, reuse decision, and fallback to a
+  full refresh visible to agents.
+
+**Acceptance criteria:**
+
+- The storage model distinguishes reusable content analysis from the
+  branch/worktree mapping that references it.
+- Switching branches with unchanged content reuses safe cached analysis; a
+  changed file, config, or incompatible mapping triggers the correct refresh.
+- Detached HEAD, non-Git repositories, and unavailable Git metadata degrade to
+  the current safe indexing behavior without failure.
+- Fixture tests cover branch switch, content change, and fallback behavior.
+
+**Follow-on implementation expectations:**
+
+- Design the storage and invalidation contract in a dedicated plan before code
+  changes; do not key cache reuse on branch name alone.
+- Treat Git commands and worktree metadata as optional, bounded inputs with
+  clear timeouts and no shell interpolation.
+
 ## Cross-Milestone Dependencies
 
 - Milestone 1 should land before large ranking work so broad-query handling
@@ -247,6 +283,8 @@ experience around the affected retrieval workflows.
   conventions already used by the MCP surface.
 - Milestone 5 can begin earlier for audit work, but final parity updates should
   happen after the preceding milestones settle.
+- Milestone 6 is independent of ranking work, but should build on the existing
+  storage and freshness contracts rather than introduce a second index store.
 
 ## Definition of Done
 

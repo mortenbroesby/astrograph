@@ -168,6 +168,25 @@ waits for settled contracts.
 - [ ] Verify with `pnpm exec vitest run tests/interface.test.ts
   tests/engine-contract.test.ts`, `pnpm type-lint`, and `git diff --check`.
 
+## Story 10: Design branch-aware incremental index mapping
+
+**Goal:** Safely reuse unchanged analysis across Git-style branch changes while
+keeping branch/worktree mappings and invalidation observable.
+
+**Depends on:** Story 2’s bounded response contract; otherwise independent of
+ranking, telemetry, and documentation parity work.
+
+- [ ] Write a storage/invalidation plan that separates content-addressed cached
+  analysis from branch or worktree mappings; branch names alone must never be
+  cache keys.
+- [ ] Define optional Git metadata behavior for named branches, detached HEAD,
+  non-Git repositories, and unavailable Git commands.
+- [ ] Specify invalidation for changed content, changed config, path moves,
+  dependency-graph changes, and incompatible storage versions.
+- [ ] Add fixture scenarios for safe reuse, required refresh, and fallback;
+  verify the eventual implementation with focused storage/freshness tests,
+  `pnpm type-lint`, and `pnpm check:version-bump`.
+
 ## Final Verification
 
 - [ ] Run `pnpm test` after all source stories are complete.
