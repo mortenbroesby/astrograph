@@ -38,6 +38,22 @@ ranking, explainability, and docs parity should be treated as one roadmap so
 that each improvement builds on the previous one instead of creating overlapping
 partially-finished behaviors.
 
+## Urgent Deployment Remediation
+
+**Priority:** Critical — investigate and restore the deployment pipeline before
+continuing feature delivery.
+
+**Trigger:** GitHub Actions run `29658897396`, job `88117980537` reported a
+deployment failure.
+
+**Acceptance criteria:**
+
+- Capture the failing workflow, job, failing step, and relevant log excerpt.
+- Make the smallest deployment-specific correction; do not broaden workflow
+  triggers, runners, caches, or permissions without explicit approval.
+- Verify the corrected workflow through a successful GitHub Actions run and
+  record the run URL in the Ralph progress log.
+
 ## Scope and Non-Goals
 
 This epic covers:

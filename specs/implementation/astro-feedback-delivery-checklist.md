@@ -29,6 +29,18 @@ the repository spec system.
 - [ ] Update this checklist and `.ralph/astro-feedback/prd.json` only after all
   listed verification passes.
 
+## Urgent Story: Restore deployment workflow — Critical
+
+**Trigger:** [GitHub Actions run 29658897396, job 88117980537](https://github.com/mortenbroesby/astrograph/actions/runs/29658897396/job/88117980537).
+
+- [ ] Authenticate `gh` with repository and workflow scopes, then capture the
+  failing workflow, job, step, and log excerpt.
+- [ ] Read `.agents/rules/github-actions-cost.md` before editing any workflow.
+- [ ] Implement only the smallest deployment-specific fix, preserving scoped
+  triggers, caching, PR concurrency, and the fast/optional check split.
+- [ ] Verify a successful follow-up Actions run and record its URL in the Ralph
+  progress log before marking this story complete.
+
 ## Story 1: Create the delivery backlog — Complete
 
 - [x] Extract one independently testable delivery story per feedback concern.
