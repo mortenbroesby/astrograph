@@ -47,6 +47,12 @@ If you are new to Astrograph, read these in order:
 - [Release Reference](./reference/release.md)
   How Astrograph versions, plans, and publishes npm releases.
 
+## Reviews
+
+- [Staff Engineer Review — July 2026](./reviews/staff-engineering-review-2026-07.md)
+  Evidence-based architectural and engineering assessment with a proportionate
+  Now/Next/Later roadmap.
+
 ## Reading Strategy
 
 - Start with the getting-started pages if you are evaluating Astrograph.
