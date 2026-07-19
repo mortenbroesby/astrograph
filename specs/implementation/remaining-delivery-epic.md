@@ -1,7 +1,7 @@
 # Remaining Delivery Epic
 
-> **Status:** Planned — do not start implementation, create a branch, open a
-> pull request, or trigger a release from this epic until explicitly asked.
+> **Status:** In progress — only Story 1 is active on its own epic branch.
+> Stories 2–8 remain planned and must not begin until explicitly selected.
 >
 > **Supersedes open delivery work in:**
 > [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
@@ -60,6 +60,9 @@ merged, `release`-labelled PR; it must never prevent the review or Windows
 stories from progressing.
 
 ## Story 1: Staff Engineer Design and Engineering Review
+
+**Active delivery checklist:**
+[Staff Engineer Review Delivery Checklist](./staff-engineering-review-delivery-checklist.md)
 
 **Goal:** Review Astrograph as a Staff Engineer and identify only the few
 evidence-supported improvements with the highest payoff for long-term quality,
