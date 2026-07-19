@@ -7,6 +7,8 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
+import { packageManagerInvocation } from "../package-manager.ts";
+
 const execFile = promisify(execFileCallback);
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -19,7 +21,8 @@ async function run(
   args: readonly string[],
   cwd: string,
 ): Promise<{ stdout: string; stderr: string }> {
-  const result = await execFile(command, [...args], {
+  const invocation = packageManagerInvocation(command, args);
+  const result = await execFile(invocation.command, invocation.args, {
     cwd,
     env: {
       ...process.env,
