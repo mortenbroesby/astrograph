@@ -47,6 +47,11 @@ If you are new to Astrograph, read these in order:
 - [Release Reference](./reference/release.md)
   How Astrograph versions, plans, and publishes npm releases.
 
+## Reviews
+
+- [Windows Compatibility Audit — July 2026](./reviews/windows-compatibility-audit-2026-07.md)
+  Evidence map and story handoff for Windows Node terminals and Git Bash.
+
 ## Reading Strategy
 
 - Start with the getting-started pages if you are evaluating Astrograph.

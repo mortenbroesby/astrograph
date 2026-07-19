@@ -25,7 +25,8 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 
 Implementation specs, refactor plans, and internal subsystem ownership.
 
-- [Remaining Delivery Epic](./implementation/remaining-delivery-epic.md) - The sole open epic-level tracker for release publication evidence and Windows support; deliberately not started.
+- [Remaining Delivery Epic](./implementation/remaining-delivery-epic.md) - The sole open epic-level tracker; Stories 1 and 2 are active while release publication evidence and later Windows support remain planned.
+- [Windows Compatibility Audit Delivery Checklist](./implementation/windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit.
 - [Astrograph Feedback Consolidation Epic](./implementation/astro-feedback-epic.md) - Closed record of completed feedback work.
 - [Astrograph Feedback Delivery Checklist](./implementation/astro-feedback-delivery-checklist.md) - Closed evidence record for the feedback epic.
 - [Branch-Aware Incremental Index Epic](./implementation/branch-aware-incremental-index-epic.md) - Closed implementation record for branch and worktree analysis reuse.
