@@ -5,6 +5,10 @@ import {
   nextAstrographReleaseVersion,
   targetAstrographPublishVersion,
 } from "../src/release-policy.ts";
+import {
+  compareAstrographVersions,
+  decideAstrographReleaseTransaction,
+} from "../src/release-transaction.ts";
 
 const previous = {
   major: 0,
@@ -213,5 +217,52 @@ describe("release policy", () => {
     expect(targetAstrographPublishVersion(base, current, "minor")).toBe(
       "1.0.0-alpha.73",
     );
+  });
+
+  it("orders alpha versions by semantic core and then increment", () => {
+    expect(compareAstrographVersions("0.4.0-alpha.105", "0.3.9-alpha.999")).toBeGreaterThan(0);
+    expect(compareAstrographVersions("0.4.0-alpha.105", "0.4.0-alpha.106")).toBeLessThan(0);
+  });
+
+  it("accepts an ordinary candidate newer than main and npm", () => {
+    expect(decideAstrographReleaseTransaction({
+      candidateVersion: "0.4.0-alpha.106",
+      mainVersion: "0.4.0-alpha.105",
+      registry: { status: "available", version: "0.3.2-alpha.75" },
+      tagAlreadyExists: false,
+    })).toMatchObject({ action: "apply", versionAlreadyCurrent: false });
+  });
+
+  it("accepts an already-bumped main version without another increment", () => {
+    expect(decideAstrographReleaseTransaction({
+      candidateVersion: "0.4.0-alpha.106",
+      mainVersion: "0.4.0-alpha.106",
+      registry: { status: "available", version: "0.3.2-alpha.75" },
+      tagAlreadyExists: false,
+    })).toMatchObject({ action: "apply", versionAlreadyCurrent: true });
+  });
+
+  it("treats an existing matching tag as an idempotent no-op", () => {
+    expect(decideAstrographReleaseTransaction({
+      candidateVersion: "0.4.0-alpha.106",
+      mainVersion: "0.4.0-alpha.106",
+      registry: { status: "available", version: "0.3.2-alpha.75" },
+      tagAlreadyExists: true,
+    })).toMatchObject({ action: "no-op", versionAlreadyCurrent: true });
+  });
+
+  it.each([
+    ["newer main", "0.4.0-alpha.106", "0.4.0-alpha.107", { status: "available", version: "0.3.2-alpha.75" }],
+    ["equal npm", "0.4.0-alpha.106", "0.4.0-alpha.105", { status: "available", version: "0.4.0-alpha.106" }],
+    ["newer npm", "0.4.0-alpha.106", "0.4.0-alpha.105", { status: "available", version: "0.4.0-alpha.107" }],
+    ["unavailable npm", "0.4.0-alpha.106", "0.4.0-alpha.105", { status: "unavailable", reason: "network unavailable" }],
+    ["unavailable main", "0.4.0-alpha.106", null, { status: "available", version: "0.3.2-alpha.75" }],
+  ] as const)("rejects %s state", (_name, candidateVersion, mainVersion, registry) => {
+    expect(decideAstrographReleaseTransaction({
+      candidateVersion,
+      mainVersion,
+      registry,
+      tagAlreadyExists: false,
+    }).action).toBe("reject");
   });
 });

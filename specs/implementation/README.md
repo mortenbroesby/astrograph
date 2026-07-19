@@ -4,7 +4,8 @@ This directory contains internal implementation plans and subsystem specs.
 
 ## Current Plans
 
-- [Remaining Delivery Epic](./remaining-delivery-epic.md) - The sole open epic-level tracker; Story 7 is active while release publication evidence remains planned.
+- [Release Publication Evidence Delivery Checklist](./release-publication-evidence-delivery-checklist.md) - Active final-story checklist for idempotent version planning, gated cloud release, and npm publication evidence.
+- [Remaining Delivery Epic](./remaining-delivery-epic.md) - The sole open epic-level tracker; final Story 8 is active for release publication evidence.
 - [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md) - Planned roadmap for structural retrieval, lexical ranking, bounded task context, compact transport, onboarding, freshness, optional semantics, and honest benchmarks.
 - [Staff Engineer Review Delivery Checklist](./staff-engineering-review-delivery-checklist.md) - Active child-task checklist for the evidence-based Staff Engineer review; recommendations do not authorize implementation.
 - [Windows Compatibility Audit Delivery Checklist](./windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit; remediation remains in later stories.

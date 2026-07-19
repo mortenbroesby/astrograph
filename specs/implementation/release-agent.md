@@ -9,10 +9,10 @@ using the existing policy, and pushes the matching release tag.
 ## Architecture
 
 - `src/release-policy.ts` owns pure release classification.
-- `src/scripts/release-agent.ts` gathers Git history, applies the policy, and
-  optionally edits version-bearing files.
-- `CI` workflow manual dispatch runs fast and expensive gates before invoking
-  the release agent.
+- `src/scripts/release-agent.ts` gathers Git history and npm metadata, applies
+  the pure transaction decision, and optionally edits version-bearing files.
+- `CI` workflow manual dispatch runs the same fast and Windows gates before
+  invoking the release agent.
 - `release.yml` remains tag-only and handles npm publishing.
 
 ## Decision Boundaries
@@ -48,11 +48,12 @@ For an apply-mode release in GitHub Actions:
 1. Dispatch `CI` on `main` with `release_mode=plan`.
 2. Confirm the reported release kind and target version.
 3. Dispatch `CI` on `main` with `release_mode=apply`.
-4. Confirm the workflow commits any required version update.
-5. Confirm the matching tag push triggers `release.yml`.
+4. Confirm the plan reports accepted `origin/main` and npm state, then the
+   workflow commits any required version update without duplicating a valid one.
+5. Confirm the matching tag push triggers `release.yml` and npm publication.
 
 ## Cost Guardrails
 
 The release agent is attached to the existing `CI` workflow instead of adding a
-new workflow. Apply mode is manual-only, main-only, and reuses existing fast and
-expensive gates so ordinary PR and push checks do not gain another always-on job.
+new workflow. It waits for existing fast and Windows gates and performs no test
+suite itself; ordinary PR and push checks do not gain another always-on job.

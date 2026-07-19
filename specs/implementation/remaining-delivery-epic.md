@@ -1,7 +1,6 @@
 # Remaining Delivery Epic
 
-> **Status:** In progress — Story 7 is active on its own epic branch.
-> Story 8 remains planned and must not begin until explicitly selected.
+> **Status:** In progress — Story 8 is active on its own epic branch.
 >
 > **Supersedes open delivery work in:**
 > [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
@@ -236,7 +235,7 @@ a second implementation.
 
 - [ ] Story 1 has an evidence-based Staff Engineer review and a proportionate
   Now/Next/Later roadmap.
-- [ ] Stories 2–7 have complete child-task checklists and passing Windows CI
+- [x] Stories 2–7 have complete child-task checklists and passing Windows CI
   evidence.
 - [ ] Story 8 has recorded release publication evidence.
 - [ ] The original epics remain closed historical records and this document is
