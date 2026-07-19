@@ -49,18 +49,35 @@ pnpm release:apply
 
 ## Agentic Release Flow
 
-1. Merge release-worthy work to `main`.
-2. Open the `CI` workflow in GitHub Actions and run `workflow_dispatch`.
-3. Keep `release_mode=plan` to inspect the decision without side effects.
-4. Re-run on `main` with `release_mode=apply` when the plan is correct.
-5. The workflow runs the required gates, then the release agent:
+1. Add the `release` label to a release-worthy pull request, then merge it to
+   `main`.
+2. The path-scoped `CI` workflow completes its required checks.
+3. After a successful `main` CI run, the release agent automatically runs in
+   apply mode only when the pushed commit is associated with that merged,
+   labelled pull request. It does not run for direct pushes, unlabelled PRs,
+   pull requests, or failed CI.
+4. The release agent:
    - decides `none`, `increment`, `patch`, `minor`, or `major`
    - updates the alpha version only for publishable patch, minor, or major releases
    - commits the version change to `main` when needed
    - pushes `v<package.version>`
-6. The tag push triggers `release.yml`, which publishes to npm.
+5. The tag push triggers `release.yml`, which publishes to npm.
 
-Apply mode is intentionally manual and restricted to `main`.
+The version-only release commit reruns CI, but its `Release <version>` commit
+message is explicitly excluded from automatic release-agent runs. This prevents
+a release loop even if CI observes the commit before its tag is visible.
+
+The release agent performs no install, build, lint, or test steps. It relies on
+the successful CI gate and only decides the release, commits the version, and
+pushes its tag.
+
+This is a permanent, opt-in GitHub Actions cost: at most one additional
+`ubuntu-latest` job with a three-minute timeout per labelled, merged release
+PR. The label and successful CI gate keep ordinary merges and direct pushes
+from consuming release-runner minutes.
+
+`workflow_dispatch` remains available for a non-mutating `release_mode=plan`
+inspection or a guarded `release_mode=apply` retry on `main`.
 
 ## Manual Release Flow
 
