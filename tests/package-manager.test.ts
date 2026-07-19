@@ -16,4 +16,9 @@ describe("package-manager invocation", () => {
     expect(invocation.args[3]).toMatch(/^pnpm /u);
     expect(invocation.args[3]).toContain('"C:\\tmp\\package with spaces.tgz"');
   });
+
+  it("keeps ordinary Windows shim arguments bare for batch-file compatibility", () => {
+    const invocation = packageManagerInvocation("pnpm", ["pack", "--pack-destination", "C:\\tmp\\pack"], "win32");
+    expect(invocation.args[3]).toBe("pnpm pack --pack-destination C:\\tmp\\pack");
+  });
 });

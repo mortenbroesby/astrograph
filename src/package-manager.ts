@@ -6,6 +6,9 @@ export interface PackageManagerInvocation {
 }
 
 function quoteForWindowsCmd(value: string): string {
+  if (value.length > 0 && !/[\s"^&|<>()]/u.test(value)) {
+    return value;
+  }
   return `"${value.replace(/(["^&|<>()])/g, "^$1")}"`;
 }
 
@@ -19,8 +22,9 @@ export function packageManagerInvocation(
   }
 
   // `cmd.exe` resolves a bare `.cmd` shim such as `pnpm` or `npm` through
-  // PATH. Quoting that command token turns it into a literal name on Windows;
-  // quote only the arguments, where whitespace and metacharacters matter.
+  // PATH. Quoting that command token turns it into a literal name on Windows.
+  // The batch shim also needs ordinary arguments bare, while paths and CMD
+  // metacharacters still need quoting.
   const commandLine = [command, ...args]
     .map((value, index) => (index === 0 ? value : quoteForWindowsCmd(value)))
     .join(" ");
