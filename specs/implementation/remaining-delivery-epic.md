@@ -175,11 +175,45 @@ branch-aware index and Node 22 work.
 CI; verify the release-only job creates the version commit and tag; then verify
 the tag-triggered trusted npm publication.
 
+**Version automation requirement:** Establish one idempotent version
+plan/apply mechanism for local use, merged-PR release CI, and manual release
+CI. It must make the same decision in every environment, update every
+version-coupled test or fixture deliberately, and expose its proposed change
+before it writes.
+
+**Required version sanity checks:**
+
+- Detect whether the merged commit already contains a valid version increment;
+  do not create a conflicting second increment.
+- Compare the candidate against the current `main` version and the latest
+  published npm version using an explicit, documented source-of-truth and
+  failure policy for unavailable registry data.
+- Reject duplicate, stale, non-monotonic, or conflicting versions before any
+  commit, tag, or publication.
+- Run `pnpm check:version-bump` after every prospective or applied update, and
+  add focused release-policy tests for already-bumped, conflicting-main,
+  conflicting-npm, and ordinary-increment paths.
+- Keep `pnpm release:plan` side-effect free and make `pnpm release:apply` the
+  only local command that writes the version and its required coupled updates.
+
+**Delivery shape:** A release-labelled PR merge invokes the shared check and
+apply flow after required CI succeeds; it commits any necessary version update
+to `main`, verifies it, pushes the matching tag, and relies on the existing
+tag-triggered trusted publisher. Manual release uses that same flow rather than
+a second implementation.
+
 **Acceptance criteria:**
 
 - The release runs only for a merged `main` PR carrying the `release` label.
 - The cloud release increments the version and pushes its version commit and
   matching tag without rerunning a test suite in the release-only job.
+- Local, merged-PR, and manual-release paths share the same version decision,
+  update, and sanity-check implementation.
+- A version already validly bumped on `main` is accepted without a duplicate
+  increment; any version that conflicts with `main` or npm is rejected with an
+  actionable diagnostic.
+- Release-policy tests prove the version decision and coupled-update behavior
+  before the workflow is relied on for publication.
 - The npm registry, Git tag, release commit, and GitHub Actions URLs are
   recorded in the active delivery evidence before this story is closed.
 
