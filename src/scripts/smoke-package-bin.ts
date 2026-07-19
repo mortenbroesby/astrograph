@@ -164,7 +164,15 @@ async function main(): Promise<void> {
       throw new Error(`Expected astrograph init --agents to write code exploration policy: ${installResult.stdout}`);
     }
   } finally {
-    await rm(tempRoot, { recursive: true, force: true });
+    // Windows can retain a short-lived handle from the final pnpm child while
+    // it exits. Node's bounded retry is preferable to treating a successful
+    // package smoke as failed because temporary cleanup raced that handle.
+    await rm(tempRoot, {
+      recursive: true,
+      force: true,
+      maxRetries: 4,
+      retryDelay: 150,
+    });
   }
 }
 
