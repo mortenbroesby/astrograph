@@ -20,6 +20,7 @@ import { parseAstrographVersion } from "../version.ts";
 interface ReleaseAgentOptions {
   apply: boolean;
   base: string;
+  forcePatch: boolean;
 }
 
 interface ReleaseDecision {
@@ -52,12 +53,15 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
   const options: ReleaseAgentOptions = {
     apply: false,
     base: "",
+    forcePatch: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === "--apply") {
       options.apply = true;
+    } else if (arg === "--force-patch") {
+      options.forcePatch = true;
     } else if (arg === "--base") {
       options.base = argv[index + 1] ?? "";
       index += 1;
@@ -219,7 +223,14 @@ function main(): void {
   const currentParts = parseAstrographVersion(currentVersion);
   const commits = readCommitsSince(baseRef);
   const changedFiles = readChangedFilesSince(baseRef);
-  const releaseDecision = decideAstrographRelease({ commits, changedFiles });
+  const detectedReleaseDecision = decideAstrographRelease({ commits, changedFiles });
+  const releaseDecision = options.forcePatch
+    ? {
+      ...detectedReleaseDecision,
+      kind: "patch" as const,
+      reason: "Manual release apply requested a fresh patch version.",
+    }
+    : detectedReleaseDecision;
   const shouldPublish = isReleasePublishKind(releaseDecision.kind);
   let targetVersion = currentVersion;
   if (shouldPublish) {
