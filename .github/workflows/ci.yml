@@ -88,6 +88,12 @@ jobs:
           git reset --soft "origin/${{ github.base_ref }}"
           pnpm check:version-bump
 
+      - name: Version policy on main
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git reset --soft "${{ github.event.before }}"
+          pnpm check:version-bump
+
   release_agent:
     name: Release agent
     runs-on: ubuntu-latest
