@@ -77,7 +77,10 @@ PR. The label and successful CI gate keep ordinary merges and direct pushes
 from consuming release-runner minutes.
 
 `workflow_dispatch` remains available for a non-mutating `release_mode=plan`
-inspection or a guarded `release_mode=apply` retry on `main`.
+inspection or a guarded `release_mode=apply` retry on `main`. Both modes first
+run the same `Fast required checks` job as a merged `main` change; the
+three-minute release agent runs only after that gate succeeds and still
+performs no install, build, lint, or test work itself.
 
 ## Manual Release Flow
 
