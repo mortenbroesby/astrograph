@@ -262,8 +262,11 @@ function emitUpdateSuggestion(currentVersion: string): void {
   process.stderr.write(
     `A newer Astrograph version is available: ${latest.raw} (current: ${currentVersion}).\n` +
     `To update, run: ${suggestion}\n` +
-    `If you see stale behavior after update, clear local state and rebuild index:\n` +
-    `  rm -rf .astrograph\n  astrograph init --yes\n`,
+      `If you see stale behavior after update, clear local state and rebuild index:\n` +
+      `  Git Bash: rm -rf .astrograph\n` +
+      `  PowerShell: Remove-Item -Recurse -Force .astrograph\n` +
+      `  cmd.exe: rmdir /s /q .astrograph\n` +
+      `  astrograph init --yes\n`,
   );
 }
 
