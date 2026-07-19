@@ -21,20 +21,29 @@ async function run(
   args: readonly string[],
   cwd: string,
 ): Promise<{ stdout: string; stderr: string }> {
-  const invocation = packageManagerInvocation(command, args);
-  const result = await execFile(invocation.command, invocation.args, {
-    cwd,
-    env: {
-      ...process.env,
-      CI: "1",
-    },
-    timeout: 120_000,
-    maxBuffer: 10 * 1024 * 1024,
-  });
-  return {
-    stdout: result.stdout.toString(),
-    stderr: result.stderr.toString(),
-  };
+  const displayCommand = [command, ...args].map((value) => JSON.stringify(value)).join(" ");
+  console.error(`package smoke: ${displayCommand}`);
+  const invocation = command === "pnpm" || command === "npm"
+    ? packageManagerInvocation(command, args)
+    : { command, args: [...args] };
+  try {
+    const result = await execFile(invocation.command, invocation.args, {
+      cwd,
+      env: {
+        ...process.env,
+        CI: "1",
+      },
+      timeout: 60_000,
+      maxBuffer: 10 * 1024 * 1024,
+    });
+    return {
+      stdout: result.stdout.toString(),
+      stderr: result.stderr.toString(),
+    };
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Package smoke command failed (${displayCommand}): ${detail}`, { cause: error });
+  }
 }
 
 async function main(): Promise<void> {

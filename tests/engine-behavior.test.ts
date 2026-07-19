@@ -29,7 +29,7 @@ import {
   suggestInitialQueries,
   watchFolder,
 } from "../src/index.ts";
-import { resolveEnginePaths } from "../src/config.ts";
+import { ENGINE_SCHEMA_VERSION, resolveEnginePaths } from "../src/config.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 const packageRoot = path.resolve(
@@ -512,6 +512,7 @@ module.exports = {
 
     await indexFolder({ repoRoot });
 
+    const canonicalRepoRoot = await realpath(repoRoot);
     const paths = resolveEnginePaths(repoRoot);
     const db = new Database(paths.databasePath, { readonly: true });
     const artifactCount = db.prepare(
@@ -523,7 +524,7 @@ module.exports = {
       INNER JOIN checkouts ON checkouts.checkout_id = checkout_path_mappings.checkout_id
       WHERE checkouts.canonical_root = ?
       ORDER BY checkout_path_mappings.relative_path ASC
-    `).all(repoRoot) as Array<{ relative_path: string; artifact_key: string }>;
+    `).all(canonicalRepoRoot) as Array<{ relative_path: string; artifact_key: string }>;
     db.close();
 
     expect(artifactCount.count).toBeGreaterThan(0);
@@ -579,7 +580,7 @@ module.exports = {
     legacyDb.close();
 
     const health = await diagnostics({ repoRoot });
-    expect(health.schemaVersion).toBe(6);
+    expect(health.schemaVersion).toBe(ENGINE_SCHEMA_VERSION);
 
     const migratedDb = new Database(paths.databasePath, { readonly: true });
     const fileColumns = migratedDb
@@ -1548,6 +1549,7 @@ export function circleArea(radius: number): number {
 
     await indexFolder({ repoRoot });
 
+    const canonicalRepoRoot = await realpath(repoRoot);
     const paths = resolveEnginePaths(repoRoot);
     const db = new Database(paths.databasePath, { readonly: true });
     const rows = db.prepare(
@@ -1568,7 +1570,7 @@ export function circleArea(radius: number): number {
           AND checkout_dependencies.importer_path = ?
         ORDER BY checkout_dependencies.target_path ASC, checkout_dependencies.source ASC
       `,
-    ).all(repoRoot, "src/duplicate-imports.ts");
+    ).all(canonicalRepoRoot, "src/duplicate-imports.ts");
     db.close();
 
     expect(rows).toEqual([
@@ -2632,6 +2634,7 @@ export function perimeter(radius: number): string {
       filePath: "src/math-renamed.ts",
     });
 
+    const canonicalRepoRoot = await realpath(repoRoot);
     const paths = resolveEnginePaths(repoRoot);
     const db = new Database(paths.databasePath, { readonly: true });
     const checkoutEdges = db.prepare(`
@@ -2640,7 +2643,7 @@ export function perimeter(radius: number): string {
       INNER JOIN checkouts ON checkouts.checkout_id = checkout_dependencies.checkout_id
       WHERE checkouts.canonical_root = ?
       ORDER BY checkout_dependencies.importer_path ASC, checkout_dependencies.target_path ASC
-    `).all(repoRoot);
+    `).all(canonicalRepoRoot);
     db.close();
 
     expect(checkoutEdges).toEqual(expect.arrayContaining([

@@ -13,6 +13,12 @@ describe("package-manager invocation", () => {
     const invocation = packageManagerInvocation("pnpm", ["add", "C:\\tmp\\package with spaces.tgz"], "win32");
     expect(path.win32.basename(invocation.command)).toBe("cmd.exe");
     expect(invocation.args.slice(0, 3)).toEqual(["/d", "/s", "/c"]);
+    expect(invocation.args[3]).toMatch(/^pnpm /u);
     expect(invocation.args[3]).toContain('"C:\\tmp\\package with spaces.tgz"');
+  });
+
+  it("keeps ordinary Windows shim arguments bare for batch-file compatibility", () => {
+    const invocation = packageManagerInvocation("pnpm", ["pack", "--pack-destination", "C:\\tmp\\pack"], "win32");
+    expect(invocation.args[3]).toBe("pnpm pack --pack-destination C:\\tmp\\pack");
   });
 });

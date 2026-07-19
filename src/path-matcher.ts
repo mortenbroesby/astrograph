@@ -9,8 +9,12 @@ export interface PathMatcher {
   matches(relativePath: string): boolean;
 }
 
-function normalizePathForMatch(value: string): string {
+export function normalizeRepoRelativePath(value: string): string {
   return value.replaceAll("\\", "/").replace(/^\.\//u, "");
+}
+
+function normalizePathForMatch(value: string): string {
+  return normalizeRepoRelativePath(value);
 }
 
 function normalizePatterns(patterns?: string[]): string[] {

@@ -1,7 +1,7 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 
-import { createPathMatcher } from "./path-matcher.ts";
+import { createPathMatcher, normalizeRepoRelativePath as normalizePortableRelativePath } from "./path-matcher.ts";
 import { hashString } from "./hash.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 import type {
@@ -78,10 +78,10 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
   }
 
   const absolutePath = path.resolve(repoRoot, normalizedPath);
-  const relativePath = path.relative(repoRoot, absolutePath);
+  const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
   if (
     relativePath === ".." ||
-    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath.startsWith("../") ||
     path.isAbsolute(relativePath)
   ) {
     throw new Error(`File path escapes repository root: ${filePath}`);

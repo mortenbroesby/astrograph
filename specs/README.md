@@ -25,13 +25,14 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 
 Implementation specs, refactor plans, and internal subsystem ownership.
 
-- [Remaining Delivery Epic](./implementation/remaining-delivery-epic.md) - The sole open epic-level tracker; Story 4 is active while release publication evidence and later Windows support remain planned.
+- [Remaining Delivery Epic](./implementation/remaining-delivery-epic.md) - The sole open epic-level tracker; Story 7 is active while release publication evidence remains planned.
 - [Precision Retrieval and Agent Experience Epic](./implementation/precision-retrieval-agent-experience-epic.md) - Planned, evidence-led roadmap inspired by precise structural retrieval and strong agent onboarding patterns.
 - [Staff Engineer Review Delivery Checklist](./implementation/staff-engineering-review-delivery-checklist.md) - Active child-task checklist for the evidence-based Staff Engineer review.
 - [Windows Compatibility Audit Delivery Checklist](./implementation/windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit.
 - [Windows Filesystem and Storage Portability Delivery Checklist](./implementation/windows-filesystem-storage-portability-delivery-checklist.md) - Active child-task checklist for portable repository identity and storage lifecycle coverage.
 - [Windows Git Discovery and Fallback Delivery Checklist](./implementation/windows-git-discovery-fallback-delivery-checklist.md) - Active child-task checklist for bounded, optional Git enrichment on Windows.
 - [Windows CLI, MCP, and Package Invocation Delivery Checklist](./implementation/windows-cli-mcp-package-invocation-delivery-checklist.md) - Active child-task checklist for Windows package-manager shims and package smoke coverage.
+- [Windows CI, Documentation, and Release Gate Delivery Checklist](./implementation/windows-ci-documentation-release-gate-delivery-checklist.md) - Active child-task checklist for native Windows CI, terminal guidance, and release-gate evidence.
 - [Astrograph Feedback Consolidation Epic](./implementation/astro-feedback-epic.md) - Closed record of completed feedback work.
 - [Astrograph Feedback Delivery Checklist](./implementation/astro-feedback-delivery-checklist.md) - Closed evidence record for the feedback epic.
 - [Branch-Aware Incremental Index Epic](./implementation/branch-aware-incremental-index-epic.md) - Closed implementation record for branch and worktree analysis reuse.

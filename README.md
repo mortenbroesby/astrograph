@@ -213,6 +213,10 @@ already usable today.
 
 - Node target: `>=22.12.0` (Node 22 LTS or newer; Node 24 is supported)
 - Entry command: `astrograph`
+- Supported terminals on Windows: PowerShell, `cmd.exe`, and Git Bash.
+- Git is optional for ordinary indexing and retrieval. When Git is unavailable
+  or the folder is not a Git checkout, Astrograph uses a safe filesystem
+  fallback; Git metadata only enriches checkout identity and refresh behavior.
 
 ## ⚖️ License
 

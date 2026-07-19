@@ -58,9 +58,21 @@ npx astrograph cli watch --repo /absolute/path/to/repo
 
 Fix:
 
+Run the reset command for your terminal, then run `astrograph init --yes`:
+
 ```bash
+# Git Bash
 rm -rf .astrograph
-npx astrograph cli index-folder --repo /absolute/path/to/repo
+```
+
+```powershell
+# PowerShell
+Remove-Item -Recurse -Force .astrograph
+```
+
+```bat
+:: cmd.exe
+rmdir /s /q .astrograph
 ```
 
 ### Problem: parser health is incomplete on older indexed files

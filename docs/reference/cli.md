@@ -56,9 +56,21 @@ npm install astrograph@latest
 
 If you need to clear local state and rebuild after a major contract change:
 
+Use the command for your terminal, then run `astrograph init --yes`.
+
 ```bash
+# Git Bash
 rm -rf .astrograph
-npx astrograph cli index-folder --repo /absolute/path/to/repo
+```
+
+```powershell
+# PowerShell
+Remove-Item -Recurse -Force .astrograph
+```
+
+```bat
+:: cmd.exe
+rmdir /s /q .astrograph
 ```
 
 ## Retrieval and Health Commands

@@ -14,6 +14,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { isMainModule } from "../entrypoint.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
@@ -262,8 +263,11 @@ function emitUpdateSuggestion(currentVersion: string): void {
   process.stderr.write(
     `A newer Astrograph version is available: ${latest.raw} (current: ${currentVersion}).\n` +
     `To update, run: ${suggestion}\n` +
-    `If you see stale behavior after update, clear local state and rebuild index:\n` +
-    `  rm -rf .astrograph\n  astrograph init --yes\n`,
+      `If you see stale behavior after update, clear local state and rebuild index:\n` +
+      `  Git Bash: rm -rf .astrograph\n` +
+      `  PowerShell: Remove-Item -Recurse -Force .astrograph\n` +
+      `  cmd.exe: rmdir /s /q .astrograph\n` +
+      `  astrograph init --yes\n`,
   );
 }
 
@@ -1061,7 +1065,7 @@ async function main(): Promise<void> {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     usage();
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

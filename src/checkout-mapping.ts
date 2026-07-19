@@ -3,6 +3,7 @@ import path from "node:path";
 
 import type { GitCheckoutMode } from "./git-checkout.ts";
 import type { IndexBackendConnection } from "./index-backend.ts";
+import { normalizeRepoRelativePath } from "./path-matcher.ts";
 import { typedGet } from "./storage-queries.ts";
 
 export interface CheckoutRecord {
@@ -42,7 +43,7 @@ function normalizeRelativePath(relativePath: string): string {
     || normalized.startsWith(`..${path.sep}`)) {
     throw new Error("Checkout mapping path must be repository-relative.");
   }
-  return normalized;
+  return normalizeRepoRelativePath(normalized);
 }
 
 function mapCheckoutRow(row: {

@@ -79,7 +79,7 @@ import {
   supportedLanguageForFile,
   supportTierForFile,
 } from "./language-registry.ts";
-import { createPathMatcher } from "./path-matcher.ts";
+import { createPathMatcher, normalizeRepoRelativePath as normalizePortableRelativePath } from "./path-matcher.ts";
 import {
   normalizeRepoReadiness,
   summarizeReadiness,
@@ -750,10 +750,10 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
   }
 
   const absolutePath = path.resolve(repoRoot, normalizedPath);
-  const relativePath = path.relative(repoRoot, absolutePath);
+  const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
   if (
     relativePath === ".." ||
-    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath.startsWith("../") ||
     path.isAbsolute(relativePath)
   ) {
     throw new Error(`File path escapes repository root: ${filePath}`);
@@ -768,11 +768,11 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
 async function assertInsideRepoRoot(repoRoot: string, absolutePath: string) {
   const resolvedRepoRoot = await realpath(repoRoot);
   const resolvedPath = await realpath(absolutePath);
-  const relativePath = path.relative(resolvedRepoRoot, resolvedPath);
+  const relativePath = normalizePortableRelativePath(path.relative(resolvedRepoRoot, resolvedPath));
 
   if (
     relativePath === ".." ||
-    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath.startsWith("../") ||
     path.isAbsolute(relativePath)
   ) {
     throw new Error(`File path escapes repository root: ${absolutePath}`);
@@ -1096,8 +1096,8 @@ async function collectRepoFiles(
     }
 
     const absolutePath = path.join(currentDir, entry.name);
-    const relativePath = path.relative(repoRoot, absolutePath);
-    if (relativePath.startsWith(`..${path.sep}`) || relativePath === "..") {
+    const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
+    if (relativePath.startsWith("../") || relativePath === "..") {
       continue;
     }
     if (isGitIgnored(repoRoot, relativePath)) {
@@ -1270,7 +1270,9 @@ function resolveImportedFilePaths(
     path.join(withoutExtension, "index.jsx"),
   ];
 
-  for (const candidate of [...new Set(candidates)]) {
+  for (const candidate of new Set(
+    candidates.map((entry) => normalizePortableRelativePath(entry)),
+  )) {
     const row = typedGet<{ path: string }>(
       db.prepare("SELECT path FROM files WHERE path = ?"),
       candidate,
