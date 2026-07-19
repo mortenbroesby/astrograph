@@ -30,6 +30,7 @@ Implementation specs, refactor plans, and internal subsystem ownership.
 - [Windows Compatibility Audit Delivery Checklist](./implementation/windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit.
 - [Windows Filesystem and Storage Portability Delivery Checklist](./implementation/windows-filesystem-storage-portability-delivery-checklist.md) - Active child-task checklist for portable repository identity and storage lifecycle coverage.
 - [Windows Git Discovery and Fallback Delivery Checklist](./implementation/windows-git-discovery-fallback-delivery-checklist.md) - Active child-task checklist for bounded, optional Git enrichment on Windows.
+- [Windows CLI, MCP, and Package Invocation Delivery Checklist](./implementation/windows-cli-mcp-package-invocation-delivery-checklist.md) - Active child-task checklist for Windows package-manager shims and package smoke coverage.
 - [Astrograph Feedback Consolidation Epic](./implementation/astro-feedback-epic.md) - Closed record of completed feedback work.
 - [Astrograph Feedback Delivery Checklist](./implementation/astro-feedback-delivery-checklist.md) - Closed evidence record for the feedback epic.
 - [Branch-Aware Incremental Index Epic](./implementation/branch-aware-incremental-index-epic.md) - Closed implementation record for branch and worktree analysis reuse.

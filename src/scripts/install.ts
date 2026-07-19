@@ -14,6 +14,8 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { packageManagerInvocation } from "../package-manager.ts";
+
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
 const AGENTS_POLICY_BEGIN = "<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->";
@@ -232,9 +234,10 @@ function isVersionNewer(
 
 function resolveLatestAstrographVersion(): ParsedSemVer | null {
   try {
+    const invocation = packageManagerInvocation("npm", ["view", PACKAGE_NAME, "version"]);
     const latest = execFileSync(
-      "npm",
-      ["view", PACKAGE_NAME, "version"],
+      invocation.command,
+      invocation.args,
       {
         encoding: "utf8",
         stdio: ["ignore", "pipe", "ignore"],
