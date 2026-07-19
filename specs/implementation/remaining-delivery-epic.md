@@ -169,6 +169,9 @@ visible to users before any release claims Windows support.
 - A scoped Windows job preserves the existing Actions cost guardrails.
 - Windows type checks, platform tests, and packed-package smoke pass for the
   exact merged commit.
+- The Windows job runs `pnpm exec vitest run tests/filesystem-scan.test.ts
+  tests/engine-behavior.test.ts`, preserving Story 3's spaced-root and SQLite
+  sidecar-reset assertions on the native filesystem.
 - README and release docs state supported terminals, prerequisites, and the
   Git-optional fallback.
 

@@ -41,12 +41,12 @@ platform-specific branch.
 - Modify: `tests/fixture-repo.ts`
 - Modify: `tests/engine-behavior.test.ts`
 
-- [ ] Add an explicit fixture-directory prefix option without changing existing
+- [x] Add an explicit fixture-directory prefix option without changing existing
   fixture callers.
-- [ ] Index a Git worktree whose root contains spaces; assert diagnostics and
+- [x] Index a Git worktree whose root contains spaces; assert diagnostics and
   SQLite checkout identity use that canonical root and the `.astrograph`
   sidecar paths are constructed with `path.join`.
-- [ ] Run `pnpm exec vitest run tests/engine-behavior.test.ts`.
+- [x] Run `pnpm exec vitest run tests/engine-behavior.test.ts`.
 
 Expected: a space-containing root indexes and resolves identically to existing
 fixtures; no shell quoting is involved.
@@ -57,12 +57,13 @@ fixtures; no shell quoting is involved.
 
 - Modify: `tests/engine-behavior.test.ts`
 
-- [ ] Seed an incompatible storage-version directory in a spaced repository
+- [x] Seed an incompatible storage-version directory in a spaced repository
   root with ordinary stale data plus `index.sqlite-wal` and `index.sqlite-shm`.
-- [ ] Invoke diagnostics to trigger the existing version reset.
-- [ ] Assert the stale files and SQLite sidecars are absent and the new storage
-  version file is present.
-- [ ] Run `pnpm exec vitest run tests/engine-behavior.test.ts`.
+- [x] Invoke diagnostics to trigger the existing version reset.
+- [x] Assert the stale files are absent, stale SQLite sidecar contents are
+  replaced by the new database lifecycle, and the new storage version file is
+  present.
+- [x] Run `pnpm exec vitest run tests/engine-behavior.test.ts`.
 
 Expected: cleanup uses the existing Node `rm` lifecycle and is independent of
 terminal shell syntax.
@@ -74,10 +75,10 @@ terminal shell syntax.
 - Update: `specs/implementation/remaining-delivery-epic.md`
 - Update: this checklist
 
-- [ ] Give Story 7 the exact command:
+- [x] Give Story 7 the exact command:
   `pnpm exec vitest run tests/filesystem-scan.test.ts tests/engine-behavior.test.ts`
   on `windows-latest`.
-- [ ] Require the Windows job to preserve the fixture-with-spaces and
+- [x] Require the Windows job to preserve the fixture-with-spaces and
   storage-sidecar assertions, thereby exercising host-native drive-letter and
   case behavior.
 
@@ -86,9 +87,9 @@ story remains independently executable now.
 
 ## Verification and Commit Checkpoint
 
-- [ ] Run `git diff --check`.
-- [ ] Run `pnpm type-lint`.
-- [ ] Run `pnpm check:version-bump` after the planned version increment.
-- [ ] Commit with `test: cover portable storage lifecycle`.
+- [x] Run `git diff --check`.
+- [x] Run `pnpm type-lint`.
+- [x] Run `pnpm check:version-bump` after the planned version increment.
+- [x] Commit with `test: cover portable storage lifecycle`.
 - [ ] Push the epic branch, open a PR, record automated review, and merge only
   after required CI succeeds.

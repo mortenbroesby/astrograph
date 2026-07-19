@@ -469,8 +469,10 @@ module.exports = {
     );
   });
 
-  it("anchors indexing and diagnostics to the enclosing git worktree root", async () => {
-    const repoRoot = await createFixtureRepo();
+  it("anchors indexing and diagnostics to a spaced enclosing git worktree root", async () => {
+    const repoRoot = await createFixtureRepo({
+      directoryPrefix: "astrograph worktree with spaces-",
+    });
     const canonicalRepoRoot = await realpath(repoRoot);
     const nestedRepoRoot = path.join(repoRoot, "src");
 
@@ -495,6 +497,14 @@ module.exports = {
     );
     expect(health.storageVersion).toBe(1);
     expect(health.schemaVersion).toBe(7);
+
+    const db = new Database(health.databasePath, { readonly: true });
+    const checkout = db.prepare(
+      "SELECT canonical_root FROM checkouts",
+    ).get() as { canonical_root: string } | undefined;
+    db.close();
+
+    expect(checkout?.canonical_root).toBe(canonicalRepoRoot);
   });
 
   it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
@@ -605,7 +615,9 @@ module.exports = {
   });
 
   it("resets incompatible storage versions before serving diagnostics", async () => {
-    const repoRoot = await createFixtureRepo();
+    const repoRoot = await createFixtureRepo({
+      directoryPrefix: "astrograph storage reset with spaces-",
+    });
     const paths = resolveEnginePaths(repoRoot);
     const fs = await import("node:fs/promises");
 
@@ -615,12 +627,18 @@ module.exports = {
       JSON.stringify({ version: 0, updatedAt: "2026-07-18T00:00:00.000Z" }),
     );
     const stalePath = path.join(paths.storageDir, "stale-artifact.json");
+    const staleWalPath = `${paths.databasePath}-wal`;
+    const staleShmPath = `${paths.databasePath}-shm`;
     await fs.writeFile(stalePath, "stale");
+    await fs.writeFile(staleWalPath, "stale wal");
+    await fs.writeFile(staleShmPath, "stale shm");
 
     const health = await diagnostics({ repoRoot });
 
     expect(health.schemaVersion).toBe(7);
     await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(fs.readFile(staleWalPath, "utf8")).resolves.not.toBe("stale wal");
+    await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
       .resolves.toContain('"version": 1');
   });
