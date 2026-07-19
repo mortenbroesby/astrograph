@@ -29,7 +29,7 @@ import {
   suggestInitialQueries,
   watchFolder,
 } from "../src/index.ts";
-import { resolveEnginePaths } from "../src/config.ts";
+import { ENGINE_SCHEMA_VERSION, resolveEnginePaths } from "../src/config.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 const packageRoot = path.resolve(
@@ -579,7 +579,7 @@ module.exports = {
     legacyDb.close();
 
     const health = await diagnostics({ repoRoot });
-    expect(health.schemaVersion).toBe(6);
+    expect(health.schemaVersion).toBe(ENGINE_SCHEMA_VERSION);
 
     const migratedDb = new Database(paths.databasePath, { readonly: true });
     const fileColumns = migratedDb

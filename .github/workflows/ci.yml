@@ -138,7 +138,7 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm type-lint
-      - run: pnpm exec vitest run tests/filesystem-scan.test.ts tests/engine-behavior.test.ts tests/git-checkout.test.ts tests/watch-backend.test.ts tests/watch-boundary.test.ts
+      - run: pnpm exec vitest run --no-file-parallelism tests/filesystem-scan.test.ts tests/engine-behavior.test.ts tests/git-checkout.test.ts tests/watch-backend.test.ts tests/watch-boundary.test.ts
       - run: pnpm test:package-bin
 
   release_agent:

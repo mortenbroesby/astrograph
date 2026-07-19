@@ -1270,7 +1270,9 @@ function resolveImportedFilePaths(
     path.join(withoutExtension, "index.jsx"),
   ];
 
-  for (const candidate of [...new Set(candidates)]) {
+  for (const candidate of new Set(
+    candidates.map((entry) => normalizePortableRelativePath(entry)),
+  )) {
     const row = typedGet<{ path: string }>(
       db.prepare("SELECT path FROM files WHERE path = ?"),
       candidate,

@@ -29,6 +29,9 @@ PowerShell, cmd.exe, and Git Bash.
   concurrency cancellation, dependency caching, and the fast/release split.
 - [x] Add a Windows job with type checks, filesystem/Git/watch suites, and
   packed-package smoke; keep the release-only job test-free.
+- [x] Run the native filesystem suite without file-level parallelism: the
+  stateful watcher proof receives deterministic scheduling while retaining the
+  exact required test set.
 - [x] Document reset commands for Git Bash, PowerShell, and cmd.exe.
 - [x] State supported Windows terminals, Node prerequisite, and Git-optional
   filesystem fallback in the README and release reference.
@@ -46,6 +49,8 @@ PowerShell, cmd.exe, and Git Bash.
   checkout mapping boundaries before values become SQLite keys or API paths.
 - [x] Preserve traversal rejection after canonicalization by checking the
   canonical `../` prefix at every normalized boundary.
+- [x] Canonicalize import-resolution candidates before SQLite lookup so
+  Windows dependency edges use the same keys as indexed files.
 - [x] Run `pnpm exec vitest run tests/filesystem-scan.test.ts
   tests/engine-behavior.test.ts tests/git-checkout.test.ts`.
 
