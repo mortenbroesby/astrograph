@@ -87,6 +87,11 @@ focused release tests.
 - [ ] Commit, push, PR, automated review, and CI-gated merge.
 - [ ] Use a release-labelled merged PR and record CI apply URL, release commit,
   tag, publish workflow URL, npm version URL, and registry version.
+- [x] Investigate first cloud attempt: CI release agent created
+  `Release 0.4.0-alpha.108` and `v0.4.0-alpha.108`, but no Release workflow
+  appeared because default-token tag pushes do not emit downstream workflows.
+- [ ] Dispatch the existing Release workflow explicitly after the release tag;
+  prove the next labelled merge produces a publish run and npm version.
 - [ ] If external publishing blocks, record owner, exact error, and retry
   condition here while continuing independent work.
 
