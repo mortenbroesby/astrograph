@@ -16,6 +16,25 @@ alwaysApply: true
 - Larger staged code/config changes must include a vault note under
   `vault/02 Repositories/`; `pnpm knowledge:check` enforces this before commit.
 
+## Epic Delivery
+
+For epic-level work, use a pull request as the integration gate:
+
+1. Work on an epic branch; do not push epic implementation commits directly to
+   `main`.
+2. Open a PR when the epic's stories, acceptance checks, and documentation are
+   ready for integration.
+3. Run an automated review of the PR diff before merging, using the configured
+   GitHub reviewer or the repository's `/review` workflow. Address blocking
+   findings, rerun the review after material changes, and record any accepted
+   non-blocking follow-ups in the PR.
+4. Merge only after required CI checks and the automated review pass. Use the
+   repository's configured merge method and let the merged-PR release gate
+   decide whether to publish.
+
+Small fixes and documentation-only changes may still follow the normal current
+branch workflow unless the user asks for a PR.
+
 ## Code Navigation
 
 - Use Astrograph as the default code retrieval path.
