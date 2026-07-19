@@ -1,7 +1,7 @@
 # Remaining Delivery Epic
 
-> **Status:** In progress — Story 3 is active on its own epic branch.
-> Stories 4–8 remain planned and must not begin until explicitly selected.
+> **Status:** In progress — Story 4 is active on its own epic branch.
+> Stories 5–8 remain planned and must not begin until explicitly selected.
 >
 > **Supersedes open delivery work in:**
 > [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
@@ -172,6 +172,9 @@ visible to users before any release claims Windows support.
 - The Windows job runs `pnpm exec vitest run tests/filesystem-scan.test.ts
   tests/engine-behavior.test.ts`, preserving Story 3's spaced-root and SQLite
   sidecar-reset assertions on the native filesystem.
+- The Windows job runs `pnpm exec vitest run tests/git-checkout.test.ts`,
+  covering Windows Git/Git Bash named-branch, detached-HEAD, linked-worktree,
+  unavailable-Git, and non-Git fallback behavior.
 - README and release docs state supported terminals, prerequisites, and the
   Git-optional fallback.
 
