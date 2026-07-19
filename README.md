@@ -211,7 +211,7 @@ already usable today.
 
 ## 📦 Install Details
 
-- Node target: `>=24`
+- Node target: `>=22.12.0` (Node 22 LTS or newer; Node 24 is supported)
 - Entry command: `astrograph`
 
 ## ⚖️ License

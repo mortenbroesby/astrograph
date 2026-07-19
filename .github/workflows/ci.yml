@@ -73,7 +73,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
           cache: pnpm
 
       - name: Install
@@ -84,6 +84,15 @@ jobs:
 
       - name: Type lint
         run: pnpm type-lint
+
+      - name: Node runtime script smoke
+        run: node --experimental-strip-types ./src/scripts/release-agent.ts --base HEAD
+
+      - name: Node package smoke
+        run: pnpm test:package-bin
+
+      - name: MCP stdio smoke
+        run: pnpm exec vitest run tests/interface.test.ts -t "boots the SDK-backed MCP stdio server"
 
       - name: Version policy
         if: github.event_name == 'pull_request'
@@ -142,7 +151,7 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
 
       - name: Decide release
         id: release

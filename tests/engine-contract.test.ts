@@ -323,7 +323,7 @@ describe("ai-context-engine contract", () => {
       url: "https://github.com/mortenbroesby/astrograph/issues",
     });
     expect(packageJson.engines).toEqual({
-      node: ">=24",
+      node: ">=22.12.0",
     });
   });
 
