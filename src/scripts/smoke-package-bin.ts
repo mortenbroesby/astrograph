@@ -21,7 +21,9 @@ async function run(
   args: readonly string[],
   cwd: string,
 ): Promise<{ stdout: string; stderr: string }> {
-  const invocation = packageManagerInvocation(command, args);
+  const invocation = command === "pnpm" || command === "npm"
+    ? packageManagerInvocation(command, args)
+    : { command, args: [...args] };
   const result = await execFile(invocation.command, invocation.args, {
     cwd,
     env: {

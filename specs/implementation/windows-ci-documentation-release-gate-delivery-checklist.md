@@ -53,6 +53,8 @@ PowerShell, cmd.exe, and Git Bash.
   Windows dependency edges use the same keys as indexed files.
 - [x] Query checkout-map evidence through the canonical resolved repository
   root rather than a caller-supplied fixture spelling.
+- [x] Keep the Windows package-manager shim limited to `pnpm`/`npm`; package
+  smoke invokes Git directly with its safe argument array.
 - [x] Run `pnpm exec vitest run tests/filesystem-scan.test.ts
   tests/engine-behavior.test.ts tests/git-checkout.test.ts`.
 
