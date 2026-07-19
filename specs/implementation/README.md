@@ -4,14 +4,15 @@ This directory contains internal implementation plans and subsystem specs.
 
 ## Current Plans
 
-- [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) - Consolidated milestone roadmap for ranking, result discipline, explainability, repo-aware presets, and MCP/CLI parity based on `.memory/astro-feedback.md`.
-- [Astrograph Feedback Delivery Checklist](./astro-feedback-delivery-checklist.md) - Work-in-progress story breakdown, handoff note, and implementation checklist for the feedback epic.
+- [Remaining Delivery Epic](./remaining-delivery-epic.md) - The sole open epic-level tracker for release publication evidence and Windows support; deliberately not started.
+- [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) - Closed record of completed ranking, result discipline, explainability, repo-aware presets, and MCP/CLI parity work.
+- [Astrograph Feedback Delivery Checklist](./astro-feedback-delivery-checklist.md) - Closed evidence record for the feedback epic.
 - [Branch-Aware Incremental Index Mapping Plan](./branch-aware-incremental-index-plan.md) - Design-only plan for safe content-addressed analysis reuse across Git branches and worktrees.
-- [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md) - Story-sized execution roadmap for safe branch and worktree analysis reuse.
-- [Branch-Aware Incremental Index Delivery Checklist](./branch-aware-incremental-index-delivery-checklist.md) - Work-in-progress task breakdown and verification evidence for the branch-aware epic.
-- [Windows Platform Support Epic](./windows-platform-support-epic.md) - Roadmap for native Windows Node.js terminal and Git Bash support.
-- [Node 22 Compatibility Epic](./node-22-compatibility-epic.md) - Lower the runtime entry barrier by making Node 22 LTS the tested minimum.
-- [Node 22 Compatibility Delivery Checklist](./node-22-compatibility-delivery-checklist.md) - Work-in-progress baseline, child tasks, and evidence for Node 22 support.
+- [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md) - Closed implementation record for safe branch and worktree analysis reuse.
+- [Branch-Aware Incremental Index Delivery Checklist](./branch-aware-incremental-index-delivery-checklist.md) - Closed verification evidence for the branch-aware epic.
+- [Windows Platform Support Epic](./windows-platform-support-epic.md) - Closed source roadmap; its unstarted work is in the Remaining Delivery Epic.
+- [Node 22 Compatibility Epic](./node-22-compatibility-epic.md) - Closed record of the Node 22 minimum-runtime work.
+- [Node 22 Compatibility Delivery Checklist](./node-22-compatibility-delivery-checklist.md) - Closed Node 22 compatibility evidence.
 - [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./spec-system.md) - Maintain this specs tree and the repo-local agent skills.
 - [GitHub Actions Cost Policy](./github-actions-cost-policy.md) - Keep CI inside free Actions usage.

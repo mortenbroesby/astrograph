@@ -1,6 +1,8 @@
 # Branch-Aware Incremental Index Epic
 
-> **Status:** Planned — release delivery is unblocked; no story has started.
+> **Status:** Closed — implementation Stories 1–8 are complete. The remaining
+> release-publication evidence is consolidated in the
+> [Remaining Delivery Epic](./remaining-delivery-epic.md).
 >
 > **Design contract:** [Branch-Aware Incremental Index Mapping Plan](./branch-aware-incremental-index-plan.md)
 

@@ -5,6 +5,10 @@
 > **Document purpose:** Turn the current raw Astrograph feedback note into one
 > consolidated implementation epic with milestone sequencing, acceptance
 > criteria, and execution guidance for future agent-driven work.
+>
+> **Status:** Closed — all feature stories are complete. Any remaining release
+> publication evidence is consolidated in the
+> [Remaining Delivery Epic](./remaining-delivery-epic.md).
 
 **Goal:** Convert the current feedback themes into one dependency-ordered epic
 that improves retrieval quality, result discipline, explainability, and public

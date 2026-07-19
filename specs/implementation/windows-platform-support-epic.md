@@ -1,7 +1,8 @@
 # Windows Platform Support Epic
 
-> **Status:** Planned — do not begin until an implementation story is expanded
-> into a checked delivery plan.
+> **Status:** Closed and consolidated — this unstarted roadmap moved to the
+> [Remaining Delivery Epic](./remaining-delivery-epic.md). Do not begin work
+> from this document.
 
 **Goal:** Make Astrograph reliably usable on supported Windows systems from a
 standard Node.js terminal and Git Bash, with equivalent indexing, refresh,

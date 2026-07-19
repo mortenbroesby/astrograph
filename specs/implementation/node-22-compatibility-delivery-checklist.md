@@ -2,7 +2,9 @@
 
 > **Epic:** [Node 22 Compatibility Epic](./node-22-compatibility-epic.md)
 >
-> **Status:** Story 1 complete on 2026-07-19.
+> **Status:** Closed — Story 1 completed on 2026-07-19. Its shared
+> release-publication follow-up moved to the
+> [Remaining Delivery Epic](./remaining-delivery-epic.md).
 
 ## Story 1: Node 22 LTS Compatibility Contract
 

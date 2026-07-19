@@ -1,9 +1,9 @@
 # Astrograph Feedback Epic Delivery Checklist
 
-> **Status:** Work in progress. This is the execution companion to
-> [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md). Future
-> agents must update this checklist and the matching `.ralph/astro-feedback/`
-> story state only after the story's focused verification passes.
+> **Status:** Closed — all completed feedback work and its evidence remain here
+> as a historical record. Any unresolved release-publication work moved to the
+> [Remaining Delivery Epic](./remaining-delivery-epic.md); do not resume this
+> checklist.
 
 **Goal:** Deliver the feedback epic as small, independently verifiable changes
 without conflating retrieval contracts, ranking, configuration, health, and

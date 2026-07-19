@@ -1,7 +1,9 @@
 # Branch-Aware Incremental Index Delivery Checklist
 
-> **Work in progress:** This checklist records execution evidence for the
+> **Status:** Closed — this checklist preserves implementation evidence for the
 > [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md).
+> Outstanding release-publication evidence moved to the
+> [Remaining Delivery Epic](./remaining-delivery-epic.md).
 > Do not start a later story until its dependencies and all tasks in the prior
 > story are checked.
 
