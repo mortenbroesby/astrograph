@@ -72,6 +72,10 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
     }
   }
 
+  if (options.forcePatch && !options.apply) {
+    throw new Error("--force-patch requires --apply.");
+  }
+
   return options;
 }
 
