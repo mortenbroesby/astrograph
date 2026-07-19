@@ -1,8 +1,8 @@
 # Release Publication Evidence Delivery Checklist
 
 > **Status:** In progress — Story 8 of the [Remaining Delivery Epic](./remaining-delivery-epic.md).
-> This final executable story is complete only when a release-labelled PR has
-> created a release commit, matching tag, trusted npm publication, and recorded evidence.
+> The guarded manual cloud-release path is verified; automatic release from a
+> release-labelled merged PR remains the final proof obligation.
 
 **Goal:** Make local, merged-PR, and manual release paths use one idempotent,
 conflict-aware version decision and apply flow; then prove the opt-in cloud
@@ -80,26 +80,39 @@ focused release tests.
 
 ## Task 5: Verify, merge, and collect publication evidence
 
-- [ ] Run focused release tests, `pnpm type-lint`, `pnpm release:plan`,
+- [x] Run focused release tests, `pnpm type-lint`, `pnpm release:plan`,
   `pnpm check:version-bump`, and `git diff --check`.
-- [ ] Immediately before push, run `pnpm release:apply` if this source story
+- [x] Immediately before push, run `pnpm release:apply` if this source story
   needs an increment, then rerun `pnpm check:version-bump`.
-- [ ] Commit, push, PR, automated review, and CI-gated merge.
+- [x] Commit, push, PR, automated review, and CI-gated merge.
 - [ ] Use a release-labelled merged PR and record CI apply URL, release commit,
   tag, publish workflow URL, npm version URL, and registry version.
 - [x] Investigate first cloud attempt: CI release agent created
   `Release 0.4.0-alpha.108` and `v0.4.0-alpha.108`, but no Release workflow
   appeared because default-token tag pushes do not emit downstream workflows.
-- [ ] Dispatch the existing Release workflow explicitly after the release tag;
-  prove the next labelled merge produces a publish run and npm version.
+- [x] Dispatch the existing Release workflow explicitly after the release tag;
+  prove the guarded manual CI path produces a publish run and npm version.
 - [ ] If external publishing blocks, record owner, exact error, and retry
   condition here while continuing independent work.
 
+### Manual cloud-release evidence — 2026-07-19
+
+- Guarded CI apply: [run 29694923849](https://github.com/mortenbroesby/astrograph/actions/runs/29694923849)
+  passed its fast and Windows gates, then created the release transaction.
+- Release commit and tag: [`62ab48e` / `v0.4.2-alpha.112`](https://github.com/mortenbroesby/astrograph/tree/v0.4.2-alpha.112).
+- Trusted publisher: [Release run 29695081376](https://github.com/mortenbroesby/astrograph/actions/runs/29695081376)
+  succeeded from the matching tag using Node 24/npm 11.
+- Registry proof: [`astrograph@0.4.2-alpha.112`](https://www.npmjs.com/package/astrograph/v/0.4.2-alpha.112)
+  is available and is the `latest` dist-tag; the registry source is
+  [`https://registry.npmjs.org/astrograph/0.4.2-alpha.112`](https://registry.npmjs.org/astrograph/0.4.2-alpha.112).
+- This is manual-dispatch evidence, not the required release-labelled-PR proof;
+  do not close Story 8 until that automatic path has succeeded.
+
 ## Completion Evidence
 
-- [ ] One shared plan/apply implementation proves normal, no-op, conflict, and
+- [x] One shared plan/apply implementation proves normal, no-op, conflict, and
   unavailable-registry behavior with focused tests.
-- [ ] Merge and manual CI use it after required gates, without tests in the
+- [x] Merge and manual CI use it after required gates, without tests in the
   release-only job.
 - [ ] A release-labelled merged PR has a version commit, matching tag,
   successful trusted npm publication, and recorded URLs.
