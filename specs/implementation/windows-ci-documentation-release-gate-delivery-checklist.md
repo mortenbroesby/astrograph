@@ -51,6 +51,8 @@ PowerShell, cmd.exe, and Git Bash.
   canonical `../` prefix at every normalized boundary.
 - [x] Canonicalize import-resolution candidates before SQLite lookup so
   Windows dependency edges use the same keys as indexed files.
+- [x] Query checkout-map evidence through the canonical resolved repository
+  root rather than a caller-supplied fixture spelling.
 - [x] Run `pnpm exec vitest run tests/filesystem-scan.test.ts
   tests/engine-behavior.test.ts tests/git-checkout.test.ts`.
 
