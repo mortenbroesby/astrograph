@@ -108,6 +108,21 @@ focused release tests.
 - This is manual-dispatch evidence, not the required release-labelled-PR proof;
   do not close Story 8 until that automatic path has succeeded.
 
+## Task 6: Prove the automatic labelled-PR path
+
+**Files:** `src/scripts/release-agent.ts`,
+`tests/release-agent.test.ts`, `.github/workflows/ci.yml`, and this checklist.
+
+- [x] Add a focused regression test proving `--force-patch` is rejected unless
+  it is paired with `--apply`; the test failed before the guard and passed after
+  the minimal implementation.
+- [x] Preserve `CI` as the only workflow caller of `--force-patch`; its manual
+  apply mode already supplies `--apply` after the normal fast and Windows gates.
+- [ ] Apply the `release` label to this release-worthy PR before its
+  CI-gated merge; this is the explicit opt-in for the automatic cloud release.
+- [ ] Record the merged-PR CI URL, release commit, matching tag, publisher URL,
+  and npm registry version; then close Story 8 and the Remaining Delivery Epic.
+
 ## Completion Evidence
 
 - [x] One shared plan/apply implementation proves normal, no-op, conflict, and
