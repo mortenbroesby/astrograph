@@ -1,7 +1,7 @@
 # Remaining Delivery Epic
 
-> **Status:** In progress — Story 2 is active on its own epic branch.
-> Stories 3–8 remain planned and must not begin until explicitly selected.
+> **Status:** In progress — Story 3 is active on its own epic branch.
+> Stories 4–8 remain planned and must not begin until explicitly selected.
 >
 > **Supersedes open delivery work in:**
 > [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
