@@ -32,7 +32,9 @@ jobs:
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          # npm trusted publishing requires npm 11.5.1+, supplied by Node 24.
+          # This does not change Astrograph's supported consumer runtime (Node 22+).
+          node-version: 24
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
