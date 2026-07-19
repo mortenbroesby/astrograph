@@ -39,7 +39,7 @@ describe("Git checkout probing", () => {
 
     expect(result).toEqual({
       mode: "git-branch",
-      repoRoot: "/repo",
+      repoRoot: path.resolve("/repo"),
       headOid: "abc123",
       branchRef: "main",
       diagnostic: null,

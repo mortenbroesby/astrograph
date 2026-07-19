@@ -14,6 +14,7 @@ import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
+import { isMainModule } from "../entrypoint.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
@@ -1064,7 +1065,7 @@ async function main(): Promise<void> {
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((error) => {
     usage();
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

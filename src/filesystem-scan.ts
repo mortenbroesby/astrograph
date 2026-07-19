@@ -6,7 +6,7 @@ import { fdir } from "fdir";
 import { createDefaultEngineConfig } from "./config.ts";
 import { hashString } from "./hash.ts";
 import { supportedLanguageForFile } from "./language-registry.ts";
-import { createPathMatcher } from "./path-matcher.ts";
+import { createPathMatcher, normalizeRepoRelativePath } from "./path-matcher.ts";
 import type { SupportedLanguage } from "./types.ts";
 
 export interface SnapshotEntry {
@@ -136,7 +136,7 @@ export async function scanSupportedFileCandidates(
 ): Promise<SupportedFileCandidate[]> {
   const results = await discoverSourceFiles({
     repoRoot: rootDir,
-    startRelativePath: path.relative(rootDir, currentDir),
+    startRelativePath: normalizeRepoRelativePath(path.relative(rootDir, currentDir)),
     respectGitIgnore: false,
   });
   return results.map(({ absolutePath, relativePath }) => ({
@@ -171,7 +171,9 @@ export async function discoverSourceFiles(options: {
 
   const discoveredFiles = await Promise.all(
     crawledPaths.map(async (absolutePath) => {
-      const relativePath = path.relative(options.repoRoot, absolutePath);
+      const relativePath = normalizeRepoRelativePath(
+        path.relative(options.repoRoot, absolutePath),
+      );
       if (relativePath.startsWith(`..${path.sep}`) || relativePath === "..") {
         return null;
       }
@@ -250,7 +252,7 @@ export async function scanDirectoryStateSnapshot(
   const currentStat = await stat(currentDir);
   const results: DirectoryStateEntry[] = [
     {
-      path: path.relative(rootDir, currentDir),
+      path: normalizeRepoRelativePath(path.relative(rootDir, currentDir)),
       mtimeMs: currentStat.mtimeMs,
     },
   ];
@@ -364,7 +366,7 @@ export function compactDirectoryRescanPaths(paths: string[]): string[] {
     .filter((candidate, index, allPaths) =>
       !allPaths.slice(0, index).some((parent) =>
         candidate !== parent &&
-        candidate.startsWith(parent === "" ? "" : `${parent}${path.sep}`),
+        candidate.startsWith(parent === "" ? "" : `${parent}/`),
       )
     );
 }
@@ -383,7 +385,7 @@ export async function listSupportedFiles(
   });
   const discoveredFiles = await discoverSourceFiles({
     repoRoot: rootDir,
-    startRelativePath: path.relative(rootDir, currentDir),
+    startRelativePath: normalizeRepoRelativePath(path.relative(rootDir, currentDir)),
     respectGitIgnore: config.respectGitIgnore,
     include: config.indexInclude,
     exclude: config.indexExclude,

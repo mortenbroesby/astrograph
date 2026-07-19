@@ -1,7 +1,7 @@
 # Remaining Delivery Epic
 
-> **Status:** In progress — Story 6 is active on its own epic branch.
-> Stories 7–8 remain planned and must not begin until explicitly selected.
+> **Status:** In progress — Story 7 is active on its own epic branch.
+> Story 8 remains planned and must not begin until explicitly selected.
 >
 > **Supersedes open delivery work in:**
 > [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
@@ -160,6 +160,9 @@ rename, delete, and failed-probe events.
 - Failed watch or Git probes safely fall back to ordinary refresh.
 
 ## Story 7: Windows CI, Documentation, and Release Gate
+
+**Active delivery checklist:**
+[Windows CI, Documentation, and Release Gate Delivery Checklist](./windows-ci-documentation-release-gate-delivery-checklist.md)
 
 **Goal:** Make the supported Windows experience continuously verifiable and
 visible to users before any release claims Windows support.

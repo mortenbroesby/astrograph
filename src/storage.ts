@@ -79,7 +79,7 @@ import {
   supportedLanguageForFile,
   supportTierForFile,
 } from "./language-registry.ts";
-import { createPathMatcher } from "./path-matcher.ts";
+import { createPathMatcher, normalizeRepoRelativePath as normalizePortableRelativePath } from "./path-matcher.ts";
 import {
   normalizeRepoReadiness,
   summarizeReadiness,
@@ -750,7 +750,7 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
   }
 
   const absolutePath = path.resolve(repoRoot, normalizedPath);
-  const relativePath = path.relative(repoRoot, absolutePath);
+  const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
   if (
     relativePath === ".." ||
     relativePath.startsWith(`..${path.sep}`) ||
@@ -768,7 +768,7 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
 async function assertInsideRepoRoot(repoRoot: string, absolutePath: string) {
   const resolvedRepoRoot = await realpath(repoRoot);
   const resolvedPath = await realpath(absolutePath);
-  const relativePath = path.relative(resolvedRepoRoot, resolvedPath);
+  const relativePath = normalizePortableRelativePath(path.relative(resolvedRepoRoot, resolvedPath));
 
   if (
     relativePath === ".." ||
@@ -1096,7 +1096,7 @@ async function collectRepoFiles(
     }
 
     const absolutePath = path.join(currentDir, entry.name);
-    const relativePath = path.relative(repoRoot, absolutePath);
+    const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
     if (relativePath.startsWith(`..${path.sep}`) || relativePath === "..") {
       continue;
     }

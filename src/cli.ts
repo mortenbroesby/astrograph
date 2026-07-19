@@ -13,6 +13,7 @@ import {
 import { COMMAND_REGISTRY } from "./command-registry.ts";
 import * as engine from "./index.ts";
 import { getLogger } from "./logger.ts";
+import { isMainModule } from "./entrypoint.ts";
 
 type StopReason = "timeout" | "signal" | "closed";
 
@@ -380,7 +381,7 @@ async function main() {
   process.stdout.write(`${output}\n`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (isMainModule(import.meta.url)) {
   main().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`${message}\n`);

@@ -3,6 +3,7 @@ import path from "node:path";
 
 import { rgPath } from "@vscode/ripgrep";
 
+import { normalizeRepoRelativePath } from "./path-matcher.ts";
 import type { SearchTextMatch } from "./types.ts";
 
 export interface LiveSearchOptions {
@@ -18,7 +19,7 @@ const DEFAULT_MAX_OUTPUT_BYTES = 256_000;
 
 function normalizeLiveMatchPath(repoRoot: string, candidatePath: string): string | null {
   const absolutePath = path.resolve(repoRoot, candidatePath);
-  const relativePath = path.relative(repoRoot, absolutePath);
+  const relativePath = normalizeRepoRelativePath(path.relative(repoRoot, absolutePath));
 
   if (
     relativePath === ".."
