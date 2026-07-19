@@ -1,6 +1,6 @@
 import { execFile as execFileCallback } from "node:child_process";
 import { realpath } from "node:fs/promises";
-import path from "node:path";
+import path, { type PlatformPath } from "node:path";
 import { promisify } from "node:util";
 
 const execFile = promisify(execFileCallback);
@@ -51,8 +51,24 @@ function normalizeOutput(value: string): string {
   return value.trim();
 }
 
-function resolveGitPath(cwd: string, gitPath: string): string {
-  return path.resolve(cwd, normalizeOutput(gitPath));
+function resolveGitPath(
+  cwd: string,
+  gitPath: string,
+  pathApi: PlatformPath = path,
+): string {
+  return pathApi.resolve(cwd, normalizeOutput(gitPath));
+}
+
+export function gitPathsReferToSameLocation(
+  cwd: string,
+  left: string,
+  right: string,
+  pathApi: PlatformPath = path,
+): boolean {
+  return pathApi.relative(
+    resolveGitPath(cwd, left, pathApi),
+    resolveGitPath(cwd, right, pathApi),
+  ) === "";
 }
 
 const runGitCheckoutCommand: GitCheckoutCommandRunner = async (input) => {
@@ -114,8 +130,11 @@ export async function probeGitCheckout(input: {
       run(worktreeRoot, ["rev-parse", "--git-dir"]),
       run(worktreeRoot, ["rev-parse", "--git-common-dir"]),
     ]);
-    const linkedWorktree = resolveGitPath(worktreeRoot, gitDir)
-      !== resolveGitPath(worktreeRoot, commonGitDir);
+    const linkedWorktree = !gitPathsReferToSameLocation(
+      worktreeRoot,
+      gitDir,
+      commonGitDir,
+    );
 
     return {
       mode: linkedWorktree

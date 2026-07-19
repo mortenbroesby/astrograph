@@ -1,6 +1,8 @@
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
+  gitPathsReferToSameLocation,
   probeGitCheckout,
   type GitCheckoutCommandRunner,
 } from "../src/git-checkout.ts";
@@ -66,6 +68,21 @@ describe("Git checkout probing", () => {
       .resolves.toMatchObject({ mode: "git-detached", branchRef: null });
     await expect(probeGitCheckout({ repoRoot: "/repo", runner: worktree.runner }))
       .resolves.toMatchObject({ mode: "git-worktree", branchRef: "main" });
+  });
+
+  it("compares Windows Git directory paths with host-native case semantics", () => {
+    expect(gitPathsReferToSameLocation(
+      "C:\\Repos\\Astrograph",
+      ".git",
+      "c:\\repos\\astrograph\\.git",
+      path.win32,
+    )).toBe(true);
+    expect(gitPathsReferToSameLocation(
+      "C:\\Repos\\Astrograph",
+      ".git\\worktrees\\feature",
+      ".git",
+      path.win32,
+    )).toBe(false);
   });
 
   it("falls back for non-Git directories and unavailable Git", async () => {

@@ -4,10 +4,11 @@ This directory contains internal implementation plans and subsystem specs.
 
 ## Current Plans
 
-- [Remaining Delivery Epic](./remaining-delivery-epic.md) - The sole open epic-level tracker; Story 3 is active while release publication evidence and later Windows support remain planned.
+- [Remaining Delivery Epic](./remaining-delivery-epic.md) - The sole open epic-level tracker; Story 4 is active while release publication evidence and later Windows support remain planned.
 - [Staff Engineer Review Delivery Checklist](./staff-engineering-review-delivery-checklist.md) - Active child-task checklist for the evidence-based Staff Engineer review; recommendations do not authorize implementation.
 - [Windows Compatibility Audit Delivery Checklist](./windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit; remediation remains in later stories.
 - [Windows Filesystem and Storage Portability Delivery Checklist](./windows-filesystem-storage-portability-delivery-checklist.md) - Active child-task checklist for portable repository identity and storage lifecycle coverage.
+- [Windows Git Discovery and Fallback Delivery Checklist](./windows-git-discovery-fallback-delivery-checklist.md) - Active child-task checklist for bounded, optional Git enrichment on Windows.
 - [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) - Closed record of completed ranking, result discipline, explainability, repo-aware presets, and MCP/CLI parity work.
 - [Astrograph Feedback Delivery Checklist](./astro-feedback-delivery-checklist.md) - Closed evidence record for the feedback epic.
 - [Branch-Aware Incremental Index Mapping Plan](./branch-aware-incremental-index-plan.md) - Design-only plan for safe content-addressed analysis reuse across Git branches and worktrees.
