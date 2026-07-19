@@ -22,13 +22,16 @@ PowerShell, cmd.exe, and Git Bash.
 ## Task 1: Establish baseline and scope
 
 **Files:** `.github/workflows/ci.yml`, `docs/reference/cli.md`,
-`docs/guides/troubleshooting.md`, `src/scripts/install.ts`
+`docs/guides/troubleshooting.md`, `docs/reference/release.md`, `README.md`,
+`src/scripts/install.ts`
 
 - [x] Read `.agents/rules/github-actions-cost.md` and retain scoped triggers,
   concurrency cancellation, dependency caching, and the fast/release split.
 - [x] Add a Windows job with type checks, filesystem/Git/watch suites, and
   packed-package smoke; keep the release-only job test-free.
 - [x] Document reset commands for Git Bash, PowerShell, and cmd.exe.
+- [x] State supported Windows terminals, Node prerequisite, and Git-optional
+  filesystem fallback in the README and release reference.
 - [x] Run the initial native CI proof and record its failure evidence: forward
   slashes were not canonical and source CLI entrypoints emitted no worker JSON.
 

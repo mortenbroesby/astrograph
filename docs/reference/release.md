@@ -5,6 +5,15 @@ Astrograph uses GitHub Actions with npm trusted publishing.
 This page is about how Astrograph decides whether something should publish, how
 to dry-run that decision, and how the actual publish flow works.
 
+## Supported Release Environments
+
+Local development and package verification support Node 22 LTS or newer on
+macOS, Linux, and Windows. On Windows, use PowerShell, `cmd.exe`, or Git Bash;
+the packed-package smoke validates the published CLI and MCP entrypoints on a
+native Windows runner. Git is optional for normal indexing and retrieval: when
+Git is unavailable or a folder is not a checkout, Astrograph safely uses its
+filesystem fallback. Release automation itself runs on GitHub-hosted Linux.
+
 ## Release Model
 
 Astrograph separates version bookkeeping from npm publishing:
