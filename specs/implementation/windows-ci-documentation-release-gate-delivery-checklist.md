@@ -55,6 +55,8 @@ PowerShell, cmd.exe, and Git Bash.
   root rather than a caller-supplied fixture spelling.
 - [x] Keep the Windows package-manager shim limited to `pnpm`/`npm`; package
   smoke invokes Git directly with its safe argument array.
+- [x] Keep bare `pnpm`/`npm` shim names unquoted for `cmd.exe` PATH lookup,
+  while retaining escaped, quoted arguments.
 - [x] Run `pnpm exec vitest run tests/filesystem-scan.test.ts
   tests/engine-behavior.test.ts tests/git-checkout.test.ts`.
 
