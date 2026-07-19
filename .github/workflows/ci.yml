@@ -152,6 +152,7 @@ jobs:
       needs.fast.outputs.release_eligible == 'true' && !startsWith(github.event.head_commit.message, 'Release ')))
     permissions:
       contents: write
+      actions: write
     env:
       RELEASE_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.release_mode }}
       RELEASE_BASE: ${{ inputs.release_base || '' }}
@@ -197,3 +198,9 @@ jobs:
           fi
           git tag "${{ steps.release.outputs.target_tag }}"
           git push origin "${{ steps.release.outputs.target_tag }}"
+
+      - name: Trigger trusted npm publication
+        if: env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run Release --ref "${{ steps.release.outputs.target_tag }}"

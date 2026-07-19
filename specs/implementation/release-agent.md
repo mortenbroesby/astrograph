@@ -50,7 +50,8 @@ For an apply-mode release in GitHub Actions:
 3. Dispatch `CI` on `main` with `release_mode=apply`.
 4. Confirm the plan reports accepted `origin/main` and npm state, then the
    workflow commits any required version update without duplicating a valid one.
-5. Confirm the matching tag push triggers `release.yml` and npm publication.
+5. Confirm the matching tag is pushed and the release agent dispatches
+   `release.yml` at that tag; then confirm npm publication.
 
 ## Cost Guardrails
 

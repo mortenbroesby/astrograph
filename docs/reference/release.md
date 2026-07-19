@@ -74,7 +74,10 @@ pnpm release:apply
    - updates the alpha version only for publishable patch, minor, or major releases
    - commits the version change to `main` when needed
    - pushes `v<package.version>`
-5. The tag push triggers `release.yml`, which publishes to npm.
+5. The release agent pushes the matching tag, then explicitly dispatches the
+   existing `Release` workflow at that tag. This explicit dispatch is required
+   because tags created by the default Actions token do not start a second
+   workflow through the normal push trigger. `Release` publishes to npm.
 
 The version-only release commit reruns CI, but its `Release <version>` commit
 message is explicitly excluded from automatic release-agent runs. This prevents
@@ -84,11 +87,12 @@ The release agent performs no install, build, lint, or test steps. It relies on
 the successful CI gate and only decides the release, commits the version, and
 pushes its tag.
 
-This is a permanent, opt-in GitHub Actions cost: at most one existing
-`ubuntu-latest` release-agent job with a three-minute timeout per labelled,
-merged release PR. It adds no runner or trigger; it waits for the existing fast
-and Windows gates. The label and successful gates keep ordinary merges and
-direct pushes from consuming release-runner minutes.
+This is a permanent, opt-in GitHub Actions cost: one existing
+`ubuntu-latest` release-agent job with a three-minute timeout and one existing
+tag-publisher invocation per labelled, merged release PR. It adds no runner or
+broad trigger; it waits for the existing fast and Windows gates, then dispatches
+the pre-existing Release workflow. The label and successful gates keep ordinary
+merges and direct pushes from consuming release-runner minutes.
 
 `workflow_dispatch` remains available for a non-mutating `release_mode=plan`
 inspection or a guarded `release_mode=apply` retry on `main`. Both modes first
