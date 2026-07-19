@@ -9,9 +9,12 @@ import { clearStorageProcessCaches } from "../src/index.ts";
 const createdDirs: string[] = [];
 
 export async function createFixtureRepo(options: {
+  directoryPrefix?: string;
   includeIgnoredFile?: boolean;
 } = {}): Promise<string> {
-  const repoRoot = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-"));
+  const repoRoot = await mkdtemp(
+    path.join(os.tmpdir(), options.directoryPrefix ?? "ai-context-engine-"),
+  );
   createdDirs.push(repoRoot);
 
   await mkdir(path.join(repoRoot, "src"), { recursive: true });
