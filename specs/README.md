@@ -30,6 +30,7 @@ Implementation specs, refactor plans, and internal subsystem ownership.
 - [Branch-Aware Incremental Index Epic](./implementation/branch-aware-incremental-index-epic.md) - Story-sized execution roadmap for safe branch and worktree analysis reuse.
 - [Branch-Aware Incremental Index Delivery Checklist](./implementation/branch-aware-incremental-index-delivery-checklist.md) - Work-in-progress task breakdown and verification evidence for the branch-aware epic.
 - [Windows Platform Support Epic](./implementation/windows-platform-support-epic.md) - Roadmap for native Windows Node.js terminal and Git Bash support.
+- [Node 22 Compatibility Epic](./implementation/node-22-compatibility-epic.md) - Lower the runtime entry barrier by making Node 22 LTS the tested minimum.
 - [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
