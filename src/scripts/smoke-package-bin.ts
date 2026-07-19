@@ -100,6 +100,27 @@ async function main(): Promise<void> {
       throw new Error(`Unexpected packaged bin result: ${stdout}`);
     }
 
+    const { stdout: searchOutput } = await run(
+      "pnpm",
+      [
+        "exec",
+        "astrograph",
+        "cli",
+        "search-symbols",
+        "--repo",
+        fixtureRepo,
+        "--query",
+        "Greeter",
+      ],
+      installDir,
+    );
+    const searchResult = JSON.parse(searchOutput) as {
+      items?: Array<{ name?: string }>;
+    };
+    if (!searchResult.items?.some((item) => item.name === "Greeter")) {
+      throw new Error(`Expected packaged search result to include Greeter: ${searchOutput}`);
+    }
+
     const installResult = await run(
       "pnpm",
       [
