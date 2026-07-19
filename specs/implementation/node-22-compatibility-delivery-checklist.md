@@ -46,11 +46,10 @@ new CI matrix or job.
   now runs the release-agent plan through `--experimental-strip-types` on Node
   22; replace any flag/API incompatibility with a Node-22-compatible path and
   add focused regression coverage.
-- [ ] **1.5 Verify the packed user experience.** The fast CI job must run the
-  packed-bin smoke (tarball install, CLI fixture index and query, and MCP
-  setup) plus the focused MCP stdio initialize/tools/list/tools/call test under
-  Node 22. Capture the authoritative CI run and runtime version here after the
-  new packaged query assertion is merged.
+- [x] **1.5 Verify the packed user experience.** CI run `29680412981` passed
+  the Node 22 packed-bin smoke (tarball install, CLI fixture index and
+  `search-symbols` query, and MCP setup) plus the focused MCP stdio
+  initialize/tools/list/tools/call test.
 - [x] **1.6 Document the public contract.** Change README setup requirements
   and any installation/release guidance to name the precise supported Node 22
   range; note that Node 24 remains supported.
@@ -67,5 +66,5 @@ new CI matrix or job.
   minimum.
 - [x] A Node 22 CI run passes build, type lint, version policy, and release
   eligibility checks using the existing fast job.
-- [ ] A Node 22 packed-package smoke run covers CLI, MCP, indexing, and query.
+- [x] A Node 22 packed-package smoke run covers CLI, MCP, indexing, and query.
 - [x] Node 24 remains supported by the same configuration and tests.

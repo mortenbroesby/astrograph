@@ -1,8 +1,7 @@
 # Node 22 Compatibility Epic
 
-> **Status:** Work in progress — Story 1 awaits its final Node 22 packed-query
-> CI evidence. Start each later story by expanding its checklist with current
-> file-level evidence before changing implementation.
+> **Status:** Story 1 complete — start each later story by expanding its
+> checklist with current file-level evidence before changing implementation.
 
 **Goal:** Lower Astrograph's entry barrier by making Node.js 22 LTS the minimum
 supported runtime for installation, CLI use, MCP stdio, indexing, refresh, and
@@ -84,8 +83,8 @@ identified by the audit, Node-sensitive tests, `README.md`, and
 
 ## Epic Completion Checklist
 
-- [ ] Story 1 child tasks and acceptance criteria are evidenced in its delivery
+- [x] Story 1 child tasks and acceptance criteria are evidenced in its delivery
   checklist.
-- [ ] The successful merged `main` CI run uses Node 22.
+- [x] The successful merged `main` CI run uses Node 22.
 - [ ] A labelled release PR follows the opt-in cloud-release flow when the
   release decision requires publishing.
