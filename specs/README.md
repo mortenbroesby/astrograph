@@ -26,6 +26,7 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 Implementation specs, refactor plans, and internal subsystem ownership.
 
 - [Remaining Delivery Epic](./implementation/remaining-delivery-epic.md) - The sole open epic-level tracker; Story 4 is active while release publication evidence and later Windows support remain planned.
+- [Precision Retrieval and Agent Experience Epic](./implementation/precision-retrieval-agent-experience-epic.md) - Planned, evidence-led roadmap inspired by precise structural retrieval and strong agent onboarding patterns.
 - [Staff Engineer Review Delivery Checklist](./implementation/staff-engineering-review-delivery-checklist.md) - Active child-task checklist for the evidence-based Staff Engineer review.
 - [Windows Compatibility Audit Delivery Checklist](./implementation/windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit.
 - [Windows Filesystem and Storage Portability Delivery Checklist](./implementation/windows-filesystem-storage-portability-delivery-checklist.md) - Active child-task checklist for portable repository identity and storage lifecycle coverage.
