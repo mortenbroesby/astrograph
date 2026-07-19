@@ -156,6 +156,7 @@ jobs:
     env:
       RELEASE_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.release_mode }}
       RELEASE_BASE: ${{ inputs.release_base || '' }}
+      RELEASE_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply' && 'true' || 'false' }}
     steps:
       - name: Refuse apply mode outside main
         if: env.RELEASE_MODE == 'apply' && github.ref != 'refs/heads/main'
@@ -179,6 +180,9 @@ jobs:
           release_args=()
           if [ "$RELEASE_MODE" = "apply" ]; then
             release_args+=(--apply)
+          fi
+          if [ "$RELEASE_FORCE_PATCH" = "true" ]; then
+            release_args+=(--force-patch)
           fi
           if [ -n "$RELEASE_BASE" ]; then
             release_args+=(--base "$RELEASE_BASE")

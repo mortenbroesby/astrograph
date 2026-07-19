@@ -95,10 +95,12 @@ the pre-existing Release workflow. The label and successful gates keep ordinary
 merges and direct pushes from consuming release-runner minutes.
 
 `workflow_dispatch` remains available for a non-mutating `release_mode=plan`
-inspection or a guarded `release_mode=apply` retry on `main`. Both modes first
-run the same fast and Windows jobs as a merged `main` change; the three-minute
-release agent runs only after those gates succeed and performs no install,
-build, lint, or test work itself.
+inspection or a guarded `release_mode=apply` release on `main`. Apply mode
+always requests a fresh patch version, then validates it against `main` and npm
+before it can commit or tag anything. Both modes first run the same fast and
+Windows jobs as a merged `main` change; the three-minute release agent runs
+only after those gates succeed and performs no install, build, lint, or test
+work itself.
 
 ## Manual Release Flow
 
@@ -122,6 +124,13 @@ pnpm test:package-bin
 The tag publish workflow installs locked dependencies and runs `npm publish`
 with provenance. It deliberately does not repeat build, lint, or test gates;
 package lifecycle preparation remains npm's responsibility for the tarball.
+
+The publisher accepts only a tag matching the checked-out package version
+(`v<package.json version>`). New releases must therefore pass through the
+guarded CI release agent, which chooses the version, updates its version
+contract, commits it to `main`, and creates that tag. A manual `Release`
+dispatch is a retry only: select the existing matching tag when a prior
+publication did not reach npm; it never creates or bumps a version.
 
 After publish, verify:
 
