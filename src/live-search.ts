@@ -23,7 +23,7 @@ function normalizeLiveMatchPath(repoRoot: string, candidatePath: string): string
 
   if (
     relativePath === ".."
-    || relativePath.startsWith(`..${path.sep}`)
+    || relativePath.startsWith("../")
     || path.isAbsolute(relativePath)
   ) {
     return null;

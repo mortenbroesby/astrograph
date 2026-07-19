@@ -41,6 +41,8 @@ PowerShell, cmd.exe, and Git Bash.
   host-native absolute-path operations.
 - [x] Apply it at filesystem discovery, storage, retrieval, live-search, and
   checkout mapping boundaries before values become SQLite keys or API paths.
+- [x] Preserve traversal rejection after canonicalization by checking the
+  canonical `../` prefix at every normalized boundary.
 - [x] Run `pnpm exec vitest run tests/filesystem-scan.test.ts
   tests/engine-behavior.test.ts tests/git-checkout.test.ts`.
 

@@ -753,7 +753,7 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
   const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
   if (
     relativePath === ".." ||
-    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath.startsWith("../") ||
     path.isAbsolute(relativePath)
   ) {
     throw new Error(`File path escapes repository root: ${filePath}`);
@@ -772,7 +772,7 @@ async function assertInsideRepoRoot(repoRoot: string, absolutePath: string) {
 
   if (
     relativePath === ".." ||
-    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath.startsWith("../") ||
     path.isAbsolute(relativePath)
   ) {
     throw new Error(`File path escapes repository root: ${absolutePath}`);
@@ -1097,7 +1097,7 @@ async function collectRepoFiles(
 
     const absolutePath = path.join(currentDir, entry.name);
     const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
-    if (relativePath.startsWith(`..${path.sep}`) || relativePath === "..") {
+    if (relativePath.startsWith("../") || relativePath === "..") {
       continue;
     }
     if (isGitIgnored(repoRoot, relativePath)) {

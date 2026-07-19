@@ -81,7 +81,7 @@ function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
   const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
   if (
     relativePath === ".." ||
-    relativePath.startsWith(`..${path.sep}`) ||
+    relativePath.startsWith("../") ||
     path.isAbsolute(relativePath)
   ) {
     throw new Error(`File path escapes repository root: ${filePath}`);

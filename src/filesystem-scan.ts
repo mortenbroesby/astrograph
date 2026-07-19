@@ -174,7 +174,7 @@ export async function discoverSourceFiles(options: {
       const relativePath = normalizeRepoRelativePath(
         path.relative(options.repoRoot, absolutePath),
       );
-      if (relativePath.startsWith(`..${path.sep}`) || relativePath === "..") {
+      if (relativePath.startsWith("../") || relativePath === "..") {
         return null;
       }
 
