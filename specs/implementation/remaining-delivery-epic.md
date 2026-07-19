@@ -1,7 +1,7 @@
 # Remaining Delivery Epic
 
-> **Status:** In progress — only Story 1 is active on its own epic branch.
-> Stories 2–8 remain planned and must not begin until explicitly selected.
+> **Status:** In progress — Story 2 is active on its own epic branch.
+> Stories 3–8 remain planned and must not begin until explicitly selected.
 >
 > **Supersedes open delivery work in:**
 > [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
@@ -104,6 +104,9 @@ that cannot be supported by repository evidence.
   implementation work.
 
 ## Story 2: Windows Compatibility Audit
+
+**Active delivery checklist:**
+[Windows Compatibility Audit Delivery Checklist](./windows-compatibility-audit-delivery-checklist.md)
 
 **Goal:** Turn every Windows-sensitive path, process, storage, and shell
 assumption into an explicit, testable requirement before behavior changes.

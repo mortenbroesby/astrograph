@@ -52,6 +52,8 @@ If you are new to Astrograph, read these in order:
 - [Staff Engineer Review — July 2026](./reviews/staff-engineering-review-2026-07.md)
   Evidence-based architectural and engineering assessment with a proportionate
   Now/Next/Later roadmap.
+- [Windows Compatibility Audit — July 2026](./reviews/windows-compatibility-audit-2026-07.md)
+  Evidence map and story handoff for Windows Node terminals and Git Bash.
 
 ## Reading Strategy
 
