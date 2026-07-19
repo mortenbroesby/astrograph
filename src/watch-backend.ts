@@ -73,7 +73,7 @@ export function normalizeWatchAbsolutePath(
     return null;
   }
 
-  return relativePath;
+  return relativePath.replaceAll("\\", "/");
 }
 
 export function normalizeParcelWatchEvents(

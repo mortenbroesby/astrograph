@@ -54,6 +54,16 @@ describe("watch backend", () => {
     expect(normalizeWatchAbsolutePath(repoRoot, "/repo/src/strings.ts")).toBe("src/strings.ts");
   });
 
+  it("normalizes Windows-shaped events without indexing storage sidecars", () => {
+    const repoRoot = "C:\\repo";
+
+    expect(normalizeNodeFsWatchEvent(repoRoot, "change", "src\\math.ts")).toEqual([
+      { path: "src/math.ts", type: "update" },
+    ]);
+    expect(normalizeNodeFsWatchEvent(repoRoot, "change", ".astrograph\\index.sqlite-wal"))
+      .toEqual([]);
+  });
+
   it("subscribes with a native backend and closes cleanly", async () => {
     const repoRoot = await createFixtureRepo();
     const subscription = await subscribeRepo(repoRoot, () => {});
