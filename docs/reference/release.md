@@ -28,7 +28,11 @@ Astrograph separates version bookkeeping from npm publishing:
   Publishes breaking changes marked with `!` or `BREAKING CHANGE:`.
 
 The release agent compares commits and changed files since the latest merged
-`v*.*.*` tag.
+`v*.*.*` tag. For publishable decisions it also compares its candidate with
+`origin/main`, the matching Git tag, and npm's published version. A candidate
+that is stale, duplicate, or unverified against npm is rejected before it can
+commit or tag. A plan reports unavailable registry state without writing;
+apply fails safely until that source is available.
 
 Docs, specs, agent rules, and workflow-only changes do not publish. Runtime
 package changes under `src/`, publishable package scripts, package metadata, or
@@ -49,8 +53,8 @@ Plan locally without changing files:
 pnpm release:plan
 ```
 
-Apply locally, updating `package.json` and version contract tests when a
-release is needed:
+Apply locally, updating `package.json` and version contract tests only after
+the same `main` and npm conflict checks succeed:
 
 ```bash
 pnpm release:apply
@@ -60,7 +64,7 @@ pnpm release:apply
 
 1. Add the `release` label to a release-worthy pull request, then merge it to
    `main`.
-2. The path-scoped `CI` workflow completes its required checks.
+2. The path-scoped `CI` workflow completes its required fast and Windows checks.
 3. After a successful `main` CI run, the release agent automatically runs in
    apply mode only when the pushed commit is associated with that merged,
    labelled pull request. It does not run for direct pushes, unlabelled PRs,
@@ -80,22 +84,26 @@ The release agent performs no install, build, lint, or test steps. It relies on
 the successful CI gate and only decides the release, commits the version, and
 pushes its tag.
 
-This is a permanent, opt-in GitHub Actions cost: at most one additional
-`ubuntu-latest` job with a three-minute timeout per labelled, merged release
-PR. The label and successful CI gate keep ordinary merges and direct pushes
-from consuming release-runner minutes.
+This is a permanent, opt-in GitHub Actions cost: at most one existing
+`ubuntu-latest` release-agent job with a three-minute timeout per labelled,
+merged release PR. It adds no runner or trigger; it waits for the existing fast
+and Windows gates. The label and successful gates keep ordinary merges and
+direct pushes from consuming release-runner minutes.
 
 `workflow_dispatch` remains available for a non-mutating `release_mode=plan`
 inspection or a guarded `release_mode=apply` retry on `main`. Both modes first
-run the same `Fast required checks` job as a merged `main` change; the
-three-minute release agent runs only after that gate succeeds and still
-performs no install, build, lint, or test work itself.
+run the same fast and Windows jobs as a merged `main` change; the three-minute
+release agent runs only after those gates succeed and performs no install,
+build, lint, or test work itself.
 
 ## Manual Release Flow
 
-1. Bump `package.json` using the alpha version policy.
-2. Run `pnpm install --lockfile-only` if dependency metadata changed.
-3. Verify:
+1. Run `pnpm release:plan` and inspect its `mainVersion`, registry state,
+   candidate version, and transaction action.
+2. Run `pnpm release:apply` only from an up-to-date `main` checkout. It either
+   writes the declared coupled version updates or accepts an already-valid
+   candidate without a second increment.
+3. Verify the normal CI gate:
 
 ```bash
 pnpm build
@@ -104,17 +112,12 @@ pnpm test
 pnpm test:package-bin
 ```
 
-4. Merge to `main`.
-5. Create and push a tag matching the package version:
+4. Let the guarded CI release agent commit and tag the accepted candidate. Do
+   not create a competing manual tag.
 
-```bash
-git tag v0.1.0-alpha.56
-git push origin v0.1.0-alpha.56
-```
-
-The publish step uses `npm publish` because npm trusted publishing is
-authenticated through npm CLI OIDC support. The rest of the workflow still uses
-`pnpm` for install, build, and verification.
+The tag publish workflow installs locked dependencies and runs `npm publish`
+with provenance. It deliberately does not repeat build, lint, or test gates;
+package lifecycle preparation remains npm's responsibility for the tarball.
 
 After publish, verify:
 

@@ -145,10 +145,10 @@ jobs:
     name: Release agent
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: fast
+    needs: [fast, windows]
     if: >-
-      always() && ((github.event_name == 'workflow_dispatch' && needs.fast.result == 'success') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.fast.result == 'success' &&
+      always() && ((github.event_name == 'workflow_dispatch' && needs.fast.result == 'success' && needs.windows.result == 'success') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.fast.result == 'success' && needs.windows.result == 'success' &&
       needs.fast.outputs.release_eligible == 'true' && !startsWith(github.event.head_commit.message, 'Release ')))
     permissions:
       contents: write

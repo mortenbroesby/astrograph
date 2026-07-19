@@ -10,7 +10,12 @@ import {
   targetAstrographPublishVersion,
 } from "../release-policy.ts";
 import type { AstrographReleaseDecision, AstrographReleaseDecisionKind } from "../release-policy.ts";
-import { assessAstrographVersionBump, parseAstrographVersion } from "../version.ts";
+import {
+  decideAstrographReleaseTransaction,
+  type AstrographRegistryVersionState,
+  type AstrographReleaseTransactionAction,
+} from "../release-transaction.ts";
+import { parseAstrographVersion } from "../version.ts";
 
 interface ReleaseAgentOptions {
   apply: boolean;
@@ -30,6 +35,9 @@ interface ReleaseDecision {
   targetTag: string;
   tagAlreadyExists: boolean;
   versionAlreadyCurrent: boolean;
+  mainVersion: string | null;
+  registry: AstrographRegistryVersionState;
+  transactionAction: AstrographReleaseTransactionAction;
 }
 
 const packageRoot = path.resolve(
@@ -100,6 +108,40 @@ function findLatestReleaseTag(): string {
 function readPackageVersionAtRef(ref: string): string {
   const contents = git(["show", `${ref}:package.json`]);
   return readPackageVersion(contents, `${ref}:package.json`);
+}
+
+function readPackageVersionAtRefMaybe(ref: string): string | null {
+  try {
+    return readPackageVersionAtRef(ref);
+  } catch {
+    return null;
+  }
+}
+
+function readRegistryVersion(): AstrographRegistryVersionState {
+  try {
+    const output = execFileSync("npm", ["view", "astrograph", "version", "--json"], {
+      cwd: packageRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 15_000,
+    }).trim();
+    const parsed = JSON.parse(output) as unknown;
+    if (typeof parsed !== "string") {
+      throw new Error("npm returned a non-string version.");
+    }
+    parseAstrographVersion(parsed);
+    return { status: "available", version: parsed };
+  } catch (error) {
+    return {
+      status: "unavailable",
+      reason: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
+function headIsReleaseCommit(version: string): boolean {
+  return gitMaybe(["log", "-1", "--format=%s"]) === `Release ${version}`;
 }
 
 interface AstrographCommit {
@@ -187,31 +229,63 @@ function main(): void {
       releaseDecision.kind as Exclude<AstrographReleaseDecisionKind, "none" | "increment">,
     );
   }
+  if (shouldPublish && headIsReleaseCommit(currentVersion)) {
+    targetVersion = currentVersion;
+  }
   const targetTag = `v${targetVersion}`;
-  const currentAssessment = assessAstrographVersionBump(baseParts, currentParts);
-  const currentVersionAlreadyValid =
-    shouldPublish
-    && currentVersion === targetVersion
-    && currentAssessment.ok;
   const tagAlreadyExists = gitMaybe(["rev-parse", "-q", "--verify", `refs/tags/${targetTag}`])
     .length > 0;
+  const mainVersion = readPackageVersionAtRefMaybe("origin/main");
+  const registry = shouldPublish
+    ? readRegistryVersion()
+    : {
+      status: "unavailable" as const,
+      reason: "Registry lookup is not required for a non-publish decision.",
+    };
+  const transaction = shouldPublish
+    ? decideAstrographReleaseTransaction({
+      candidateVersion: targetVersion,
+      mainVersion,
+      registry,
+      tagAlreadyExists,
+    })
+    : {
+      action: "no-op" as const,
+      reason: "This change does not require an npm publication.",
+      versionAlreadyCurrent: false,
+    };
 
   const decision: ReleaseDecision = {
     apply: options.apply,
     baseRef,
     baseVersion,
     currentVersion,
-    shouldRelease: shouldPublish && !tagAlreadyExists,
+    shouldRelease: shouldPublish && transaction.action === "apply",
     releaseKind: releaseDecision.kind,
     reason: releaseDecision.reason,
     releaseFiles: releaseDecision.releaseFiles,
     targetVersion,
     targetTag,
     tagAlreadyExists,
-    versionAlreadyCurrent: currentVersionAlreadyValid,
+    versionAlreadyCurrent: transaction.versionAlreadyCurrent,
+    mainVersion,
+    registry,
+    transactionAction: transaction.action,
   };
 
-  if (options.apply && shouldPublish && !tagAlreadyExists && !currentVersionAlreadyValid) {
+  if (options.apply && shouldPublish && transaction.action === "reject") {
+    writeGithubOutput({
+      should_release: "false",
+      release_kind: String(decision.releaseKind),
+      target_version: decision.targetVersion,
+      target_tag: decision.targetTag,
+      tag_already_exists: decision.tagAlreadyExists ? "true" : "false",
+    });
+    printDecision(decision);
+    throw new Error(transaction.reason);
+  }
+
+  if (options.apply && shouldPublish && transaction.action === "apply" && !transaction.versionAlreadyCurrent) {
     writePackageVersion(targetVersion);
     writeEngineContractVersion(currentVersion, targetVersion);
     decision.currentVersion = targetVersion;

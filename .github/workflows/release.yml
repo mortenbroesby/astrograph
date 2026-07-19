@@ -39,14 +39,5 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
-      - name: Type lint
-        run: pnpm type-lint
-
-      - name: Test
-        run: pnpm test
-
       - name: Publish
         run: npm publish --provenance --access public --tag latest
