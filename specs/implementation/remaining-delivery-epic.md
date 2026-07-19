@@ -59,6 +59,47 @@ Release publication is intentionally Story 8 because it depends on an external
 merged, `release`-labelled PR; it must never prevent the review or Windows
 stories from progressing.
 
+## Story 1: Staff Engineer Design and Engineering Review
+
+**Goal:** Review Astrograph as a Staff Engineer and identify only the few
+evidence-supported improvements with the highest payoff for long-term quality,
+maintainability, confidence, and evolution.
+
+**Constraints:** Astrograph is early-stage and intentionally ships continuous
+alpha releases. Preserve that pace, prefer incremental improvements, and do
+not recommend rewrites or added process unless repository evidence shows a
+clear need.
+
+**Review lenses:** architecture, engineering confidence, simplicity, public
+surface, and evolution. Distinguish architectural issues from implementation
+details, future considerations, and personal preference. Reject hypotheses
+that cannot be supported by repository evidence.
+
+**Required report:**
+
+1. **Executive summary** with the three to five highest-leverage
+   improvements.
+2. **Key findings**. Each finding states the observation, repository evidence,
+   why it matters, recommended action, trade-offs, estimated effort (S/M/L),
+   and expected impact.
+3. **Architectural assessment** covering strengths, risks, simplification
+   opportunities, and long-term maintainability.
+4. **Confidence assessment** classifying the repository as safe to continue
+   shipping alpha, safe with caveats, or risky, with evidence-based reasoning.
+5. **Roadmap** grouped into Now, Next, and Later, with Later items deferred
+   until project growth justifies them.
+
+**Acceptance criteria:**
+
+- Recommendations are few, direct, proportionate, and specific to Astrograph;
+  none are generic best-practice filler or unsupported speculation.
+- Every proposed test, CI, release, validation, API, or documentation change
+  identifies the exact confidence or maintainability gap it closes.
+- The review protects the existing release cadence and calls out concrete
+  strengths to preserve.
+- The report is written for experienced engineers and does not begin
+  implementation work.
+
 ## Story 2: Windows Compatibility Audit
 
 **Goal:** Turn every Windows-sensitive path, process, storage, and shell
@@ -124,47 +165,6 @@ visible to users before any release claims Windows support.
   exact merged commit.
 - README and release docs state supported terminals, prerequisites, and the
   Git-optional fallback.
-
-## Story 1: Staff Engineer Design and Engineering Review
-
-**Goal:** Review Astrograph as a Staff Engineer and identify only the few
-evidence-supported improvements with the highest payoff for long-term quality,
-maintainability, confidence, and evolution.
-
-**Constraints:** Astrograph is early-stage and intentionally ships continuous
-alpha releases. Preserve that pace, prefer incremental improvements, and do
-not recommend rewrites or added process unless repository evidence shows a
-clear need.
-
-**Review lenses:** architecture, engineering confidence, simplicity, public
-surface, and evolution. Distinguish architectural issues from implementation
-details, future considerations, and personal preference. Reject hypotheses
-that cannot be supported by repository evidence.
-
-**Required report:**
-
-1. **Executive summary** with the three to five highest-leverage
-   improvements.
-2. **Key findings**. Each finding states the observation, repository evidence,
-   why it matters, recommended action, trade-offs, estimated effort (S/M/L),
-   and expected impact.
-3. **Architectural assessment** covering strengths, risks, simplification
-   opportunities, and long-term maintainability.
-4. **Confidence assessment** classifying the repository as safe to continue
-   shipping alpha, safe with caveats, or risky, with evidence-based reasoning.
-5. **Roadmap** grouped into Now, Next, and Later, with Later items deferred
-   until project growth justifies them.
-
-**Acceptance criteria:**
-
-- Recommendations are few, direct, proportionate, and specific to Astrograph;
-  none are generic best-practice filler or unsupported speculation.
-- Every proposed test, CI, release, validation, API, or documentation change
-  identifies the exact confidence or maintainability gap it closes.
-- The review protects the existing release cadence and calls out concrete
-  strengths to preserve.
-- The report is written for experienced engineers and does not begin
-  implementation work.
 
 ## Story 8: Release Publication Evidence
 
