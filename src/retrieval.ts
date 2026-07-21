@@ -308,6 +308,7 @@ function loadSymbolRows(
   );
   const hasPresetIntent = hasRankingPathPresetIntent(tokens);
   let candidateIds: string[] | null = null;
+  let bm25Scores: Map<string, number> | null = null;
 
   if (input.kind) {
     whereClauses.push("symbols.kind = ?");
@@ -324,15 +325,17 @@ function loadSymbolRows(
   if (ftsQuery && !hasGenerationIntent && !hasPresetIntent) {
     const ftsParams: IndexBackendValue[] = [ftsQuery, ...params];
 
-    const ftsRows = typedAll<{ symbol_id: string }>(
+    const ftsRows = typedAll<{ symbol_id: string; bm25_score: number }>(
       db.prepare(
         `
-          SELECT DISTINCT symbol_search.symbol_id
+          SELECT DISTINCT symbol_search.symbol_id,
+            bm25(symbol_search, 10.0, 7.0, 3.0, 2.0) AS bm25_score
           FROM symbol_search
           INNER JOIN symbols ON symbols.id = symbol_search.symbol_id
           INNER JOIN files ON files.id = symbols.file_id
           WHERE symbol_search MATCH ?
           ${whereClauses.length > 0 ? `AND ${whereClauses.join(" AND ")}` : ""}
+          ORDER BY bm25_score ASC, symbol_search.symbol_id ASC
           LIMIT 400
         `,
       ),
@@ -342,6 +345,9 @@ function loadSymbolRows(
     candidateIds = ftsRows
       .map((row) => row.symbol_id)
       .filter(Boolean);
+    bm25Scores = new Map(
+      ftsRows.map((row) => [row.symbol_id, row.bm25_score]),
+    );
   }
 
   if (queryTerms.length > 0) {
@@ -386,7 +392,13 @@ function loadSymbolRows(
   );
 
   return rows
-    .filter((row) => matchesFilePattern(row.file_path, input.filePattern));
+    .filter((row) => matchesFilePattern(row.file_path, input.filePattern))
+    .map((row) => ({
+      ...row,
+      ...(bm25Scores?.has(row.id)
+        ? { bm25_score: bm25Scores.get(row.id) }
+        : {}),
+    }));
 }
 
 function loadSymbolSourceRow(
@@ -401,7 +413,9 @@ function loadSymbolSourceRow(
           symbols.signature, symbols.summary, symbols.summary_source,
           symbols.start_line, symbols.end_line, symbols.start_byte, symbols.end_byte,
           symbols.exported,
-          files.content_hash, files.integrity_hash, content_blobs.content
+          files.content_hash, files.integrity_hash, files.parser_backend,
+          files.parser_fallback_used, files.parser_fallback_reason,
+          content_blobs.content
         FROM symbols
         INNER JOIN files ON files.id = symbols.file_id
         INNER JOIN content_blobs ON content_blobs.file_id = files.id
@@ -689,15 +703,36 @@ function buildSymbolSourceItem(
   const lines = row.content.split("\n");
   const startLine = Math.max(1, row.start_line - normalizedContextLines);
   const endLine = Math.min(lines.length, row.end_line + normalizedContextLines);
+  const source = lines.slice(startLine - 1, endLine).join("\n");
+  const prefix = startLine > 1 ? `${lines.slice(0, startLine - 1).join("\n")}\n` : "";
+  const startByte = Buffer.byteLength(prefix, "utf8");
+  const endByte = startByte + Buffer.byteLength(source, "utf8");
   return {
     symbol: mapSymbolRow(row),
-    source: lines.slice(startLine - 1, endLine).join("\n"),
+    source,
     verified: verify
       ? row.integrity_hash === hashString(row.content, "integrity")
         || sha256(row.content) === row.content_hash
       : false,
     startLine,
     endLine,
+    provenance: {
+      filePath: row.file_path,
+      sourceHash: hashString(source, "integrity"),
+      range: {
+        encoding: "utf8",
+        startByte,
+        endByte,
+        startLine,
+        endLine,
+      },
+      parser: {
+        backend: row.parser_backend,
+        fallbackUsed: row.parser_fallback_used === 1,
+        fallbackReason: row.parser_fallback_reason,
+      },
+      freshness: "indexed-snapshot",
+    },
   };
 }
 
@@ -711,7 +746,12 @@ function sortRankedSymbolEntries(
   left: { row: DbSymbolRow; score: number },
   right: { row: DbSymbolRow; score: number },
 ) {
+  const lexicalOrder =
+    left.row.bm25_score !== undefined && right.row.bm25_score !== undefined
+      ? left.row.bm25_score - right.row.bm25_score
+      : 0;
   return (
+    lexicalOrder ||
     right.score - left.score ||
     Number(right.row.exported) - Number(left.row.exported) ||
     left.row.file_path.localeCompare(right.row.file_path) ||

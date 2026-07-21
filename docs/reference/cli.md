@@ -163,6 +163,12 @@ compares returned symbol items with all ranked matches before the result cap.
 intentionally not an MCP tool; MCP clients should compose `search_symbols`,
 `get_symbol_source`, `get_context_bundle`, and `get_ranked_context` instead.
 
+`get-symbol-source` returns UTF-8 source provenance for every item: a
+SHA-256 hash of the returned source, zero-based/end-exclusive byte range,
+one-based line range, parser metadata, and `indexed-snapshot` freshness. Use
+`diagnostics --scan-freshness` when deciding whether disk content has changed
+since indexing.
+
 Inspect file shape:
 
 ```bash

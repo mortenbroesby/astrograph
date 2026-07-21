@@ -40,6 +40,8 @@ export interface SymbolSummary {
   summarySource: SummarySource;
   startLine: number;
   endLine: number;
+  startByte: number;
+  endByte: number;
   exported: boolean;
 }
 
@@ -188,6 +190,23 @@ export interface SymbolSourceItem {
   verified: boolean;
   startLine: number;
   endLine: number;
+  provenance: {
+    filePath: string;
+    sourceHash: string;
+    range: {
+      encoding: "utf8";
+      startByte: number;
+      endByte: number;
+      startLine: number;
+      endLine: number;
+    };
+    parser: {
+      backend: string | null;
+      fallbackUsed: boolean;
+      fallbackReason: string | null;
+    };
+    freshness: "indexed-snapshot";
+  };
 }
 
 export interface SymbolSourceResult {

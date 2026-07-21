@@ -1,6 +1,10 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Planned and deferred until the [Remaining Delivery Epic](./remaining-delivery-epic.md) has no executable work.
+> **Status:** Active — [Remaining Delivery](../planned/remaining-delivery-epic.md)
+> has no independent executable work:
+> its sole unchecked release-publication proof is externally blocked and may
+> not halt independent delivery. Story 1 is selected through the
+> [Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md).
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -22,6 +26,11 @@
 
 ## Story 1 — Provenance-First Symbol Contract
 
+**Status:** Complete — public source/symbol results expose UTF-8 byte
+ranges and `get_symbol_source` returns verifiable source provenance. See the
+[delivery checklist](./provenance-first-symbol-contract-delivery-checklist.md).
+Fast and Windows plan-mode CI passed for the exact source head.
+
 **Vision:** A symbol is a verifiable address into one exact source version.
 
 **Goal:** Define stable IDs, canonical relative paths, byte/line ranges, source hashes, parser provenance, and freshness on source/symbol results.
@@ -38,6 +47,9 @@
 **Acceptance evidence:** Consumers can independently verify every returned slice’s identity, range, hash, and freshness.
 
 ## Story 2 — Deterministic Lexical Ranking
+
+**Status:** Active — establish a judged fixture and deterministic BM25 ranking
+contract through the [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md).
 
 **Vision:** Natural-language and name queries find the right symbols without a network dependency.
 

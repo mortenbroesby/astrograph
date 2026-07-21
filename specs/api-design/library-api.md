@@ -18,6 +18,13 @@ The TypeScript API exports Astrograph's core operations for direct Node use.
 
 ## Verification
 
+`getSymbolSource` returns source items with a UTF-8 `provenance` envelope:
+canonical file path, SHA-256 source hash, zero-based/end-exclusive byte range,
+one-based line range, parser fallback metadata, and `indexed-snapshot`
+freshness. `SymbolSummary` includes the same symbol byte range. The snapshot
+freshness label does not claim that the current disk has been scanned; use
+diagnostics when a live freshness decision is required.
+
 Primary tests:
 
 - `tests/engine-behavior.test.ts`

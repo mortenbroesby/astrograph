@@ -96,3 +96,5 @@ diagnostic contracts.
 - [x] Check off evidence and update the epic. **Complete:** `cache
   status.checkout` is the selected, tested, documented contract. Merge it only
   after CI verifies the exact commit as closely as main's checks permit.
+  **CI evidence:** PR #24, run `29868619480`, passed both Fast required checks
+  and Windows compatibility for commit `f125105`.
