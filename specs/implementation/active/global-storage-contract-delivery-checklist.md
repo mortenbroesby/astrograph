@@ -3,8 +3,9 @@
 > **Epic:** [Global Install and Cache Epic](./global-install-and-cache-epic.md),
 > Story 1
 >
-> **Status:** Active — this checklist is the only authorized implementation
-> scope for the global Astrograph effort.
+> **Status:** Implemented — the storage-contract source change was committed as
+> `393ec20`. The epic remains active for the later acceptance work listed in
+> [Remaining Delivery Work](./global-install-and-cache-epic.md#remaining-delivery-work).
 
 **Goal:** Add a tested storage-location contract that can select isolated,
 user-private global storage for a canonical repository while preserving the

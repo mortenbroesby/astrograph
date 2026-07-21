@@ -1,8 +1,9 @@
 # Global Install and Cache Epic
 
-> **Status:** In progress — Stories 1–3 are implemented on the active branch;
-> Stories 4–5 and Story 7 verification/release proof are active. Story 6
-> remains explicitly deferred.
+> **Status:** In progress — the storage resolver, global Codex registration,
+> per-repository cache routing, conservative migration, and initial cache
+> controls are implemented. The remaining acceptance criteria below are still
+> active. Story 6 remains explicitly deferred.
 >
 > **Related contracts:** [CLI API](../../api-design/cli-api.md),
 > [MCP Tools](../../api-design/mcp-tools.md), and
@@ -47,6 +48,32 @@ baseline commands, focused tests, final checks, and a commit checkpoint.
 [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md).
 They are not authorized for implementation until their selection gates are met
 and an active checklist is created from that handoff.
+
+## Remaining Delivery Work
+
+The following work remains before this epic can move to `closed/`. This is the
+authoritative active queue; do not infer completion from the presence of a
+partial implementation.
+
+1. **Installer diagnostics (Story 2):** prove actionable failures for an
+   unsupported Node runtime, a missing `astrograph` command on `PATH`, and an
+   unwritable user configuration path without leaving partial registration.
+2. **Lifecycle completeness (Story 3):** trace lock, watch, doctor, and reset
+   behavior through global storage and add two-repository tests for events,
+   freshness, diagnostics, and mixed global/repo-local process caches.
+3. **Migration failure matrix (Story 4):** add partial-staging, corrupt-source,
+   stale-source, and retry tests. The source must remain intact for each failed
+   case; cross-device behavior must be documented as copy-and-validate.
+4. **Cache control hardening (Story 5):** add scoped prune with deterministic
+   LRU ordering, active-lock refusal, symlink/traversal rejection, and tests
+   for status/remove JSON and confirmation behavior.
+5. **Release proof (Story 7):** obtain an authoritative successful packed-bin
+   run covering the isolated clean-user flow, run the full suite, apply the
+   release-decision skill, and record the outcome. Update public contracts only
+   where their tests prove the behavior.
+
+Story 6, shared immutable artifacts, stays deferred until its evidence and ADR
+selection gate are met. It is not part of the remaining implementation work.
 
 ## Target User Experience
 
