@@ -1,4 +1,5 @@
-import { realpath } from "node:fs/promises";
+import { realpath, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -26,6 +27,23 @@ describe("cli boundaries", () => {
     await expect(handleCli(["cache-prune", "--max-bytes", "0"])).rejects.toThrow(
       /cache prune requires explicit --all scope/i,
     );
+  });
+
+  it("lets explicit CLI storage selection override repository configuration for one command", async () => {
+    const repoRoot = await createFixtureRepo();
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "global" }),
+    );
+    const result = JSON.parse(await handleCli([
+      "cache-status",
+      "--repo",
+      repoRoot,
+      "--storage-location",
+      "repo-local",
+    ]));
+    expect(result.storageLocation).toBe("repo-local");
+    expect(process.env.ASTROGRAPH_STORAGE_LOCATION).toBeUndefined();
   });
 
   it("rejects malformed CLI numeric and enum arguments", async () => {

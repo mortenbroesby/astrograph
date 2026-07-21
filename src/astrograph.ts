@@ -14,6 +14,7 @@ function usage() {
   [
     "Usage:",
     "  astrograph cli <args...>",
+    "  astrograph cli index-folder --repo /abs/repo [--storage-location repo-local|global]",
     "  astrograph cache status --repo /abs/repo",
     "  astrograph cache migrate --repo /abs/repo [--yes]",
     "  astrograph cache remove --repo /abs/repo [--yes]",

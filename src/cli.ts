@@ -12,6 +12,7 @@ import {
 } from "./validation.ts";
 import { COMMAND_REGISTRY } from "./command-registry.ts";
 import * as engine from "./index.ts";
+import { parseStorageLocation } from "./config.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
 
@@ -327,8 +328,19 @@ export async function handleCli(argv: string[]): Promise<string> {
     throw new Error(`Unknown command: ${command}`);
   }
 
-  const result = await handler(args);
-  return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const explicitStorageLocation = args["storage-location"];
+  if (explicitStorageLocation !== undefined) parseStorageLocation(explicitStorageLocation);
+  const previousStorageLocation = process.env.ASTROGRAPH_STORAGE_LOCATION;
+  if (explicitStorageLocation !== undefined) process.env.ASTROGRAPH_STORAGE_LOCATION = explicitStorageLocation;
+  try {
+    const result = await handler(args);
+    return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  } finally {
+    if (explicitStorageLocation !== undefined) {
+      if (previousStorageLocation === undefined) delete process.env.ASTROGRAPH_STORAGE_LOCATION;
+      else process.env.ASTROGRAPH_STORAGE_LOCATION = previousStorageLocation;
+    }
+  }
 }
 
 function formatAge(indexAgeMs: number | null): string {

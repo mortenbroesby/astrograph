@@ -494,7 +494,10 @@ export async function loadRepoEngineConfig(
         `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
       );
     }
-    return resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults);
+    return applyExplicitStorageLocation(
+      resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
+      options.environment,
+    );
   }
 
   const legacyContents = await readFile(legacyConfigPath, "utf8")
@@ -506,7 +509,7 @@ export async function loadRepoEngineConfig(
     });
 
   if (legacyContents === null) {
-    return defaults;
+    return applyExplicitStorageLocation(defaults, options.environment);
   }
 
   let parsedJson: unknown;
@@ -525,7 +528,19 @@ export async function loadRepoEngineConfig(
     );
   }
 
-  return resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults);
+  return applyExplicitStorageLocation(
+    resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults),
+    options.environment,
+  );
+}
+
+function applyExplicitStorageLocation(
+  config: ResolvedRepoEngineConfig,
+  environment?: StoragePathEnvironment,
+): ResolvedRepoEngineConfig {
+  const value = (environment?.env ?? process.env).ASTROGRAPH_STORAGE_LOCATION;
+  if (value === undefined || value === "") return config;
+  return { ...config, storageLocation: parseStorageLocation(value) };
 }
 
 export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
