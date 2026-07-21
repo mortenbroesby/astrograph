@@ -2,8 +2,8 @@
 
 > **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
 > Story 3 is complete locally and Story 4 has selected Precision Story 1.
-> Stories 5–6 remain dependent or externally blocked; Story 7 is the final
-> pre-v1 cleanup story.
+> Stories 5–8 remain dependent or planned; Story 9 is the final pre-v1 cleanup
+> story.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -51,6 +51,9 @@ before implementation.
 | 4 | Provenance-first retrieval and deterministic lexical ranking | Raises answer quality and trust for both agents and humans without network dependence. | Precision epic Stories 1–2 | A pinned judged corpus, baseline relevance/latency, and public-contract review. |
 | 5 | Token-budgeted context and compact transport | Converts better retrieval into lower-context, higher-signal agent handoffs. | Story 4 | Measured payload and relevance baselines proving an additive contract is warranted. |
 | 6 | Cross-platform confidence and release automation evidence | Broadens reliable adoption without diluting the user-value work above. | Existing Remaining Delivery Epic | Select and update the existing Windows/release checklist; do not duplicate it here. |
+| 7 | Pain-free global installation and repository usage | Makes the global install the normal one-time setup, with every repository using the global cache automatically. | Story 3 transparency | A clean-machine and multi-repository setup matrix proving no repo-local bootstrap is needed. |
+| 8 | Copilot CLI first-party global installation | Makes Copilot CLI a supported peer of Codex for global Astrograph-server installation and use. | Story 7 global workflow | A packed-package Copilot CLI matrix proving install, repair, and normal global use. |
+| 9 | Pre-v1 cache and codebase cleanup | Removes obsolete cache and compatibility debt once the intended global workflow is settled. | Stories 4–8 evidence gates | A bounded cache-lifecycle and code-smell inventory tied to exact files and tests. |
 
 ## Story 1: Global + Branch-Aware Immutable Artifact Reuse
 
@@ -209,7 +212,67 @@ release evidence.
 **Acceptance evidence:** The selected existing checklist—not this epic—records
 the native Windows and/or release CI proof for the exact merged commit.
 
-## Story 7: Pre-v1 Cache and Codebase Cleanup
+## Story 7: Pain-Free Global Installation and Repository Usage
+
+**Status:** Planned — select after the cache status contract is stable and
+before the final cleanup story.
+
+**Outcome:** A user installs Astrograph once globally and can index, query, and
+use it from any repository without repo-local initialization, copied config, or
+a manually chosen cache directory. The global root cache is the ordinary
+default; repository-local storage is an explicit advanced override only.
+
+**Scope:** Map the first-use path from package install through client setup,
+global cache-root creation, repository discovery, indexing, and diagnostics.
+Remove any required repo-local bootstrap from the default path. Make repeated
+global install/repair idempotent and ensure a repository is selected only from
+the command's working directory or explicit argument. Update the README,
+global-install guide, CLI reference, and troubleshooting docs so the supported
+workflow is clear, copyable, and consistent.
+
+**Selection gate:** Test a clean user home and at least two unrelated
+repositories, including a repository with no Astrograph files. Record every
+write location and confirm normal use creates only Astrograph-owned global
+state plus the existing repository index/cache mapping.
+
+**Acceptance evidence:** A packed-package end-to-end test installs/configures
+the supported client once, then indexes and queries both repositories without
+repository-local setup. `cache status` identifies the global root and selected
+checkout. Documentation contains one concise quick-start plus recovery steps;
+it does not instruct normal users to create repo-local configuration or cache
+directories.
+
+## Story 8: Copilot CLI First-Party Global Installation
+
+**Status:** Planned — select after the generic global workflow is proven so
+Copilot CLI follows the same root-cache and repository-discovery contract.
+
+**Outcome:** Copilot CLI is a first-party supported installation target at the
+same level as Codex. A user can install or repair the Copilot CLI integration
+once and use the global Astrograph server and cache from any repository without
+repo-local configuration.
+
+**Scope:** Add or complete the Copilot CLI client adapter, global-install,
+status, doctor, and repair paths with the same ownership markers, dry-run,
+idempotence, and diagnostics expected for Codex. Verify that normal Copilot
+CLI invocations discover the current repository while using the shared global
+Astrograph cache root. Keep client-specific configuration narrowly scoped;
+never overwrite unrelated Copilot configuration. Document Copilot CLI in the
+same quick-start, supported-client matrix, troubleshooting, and reference
+paths as Codex.
+
+**Selection gate:** Establish the current Copilot CLI configuration contract
+from its supported client format and create a disposable-home fixture that
+proves the integration can be installed, inspected, repaired, and removed
+without affecting unrelated client settings.
+
+**Acceptance evidence:** Packed-package tests exercise Codex and Copilot CLI
+through equivalent global-install, status/doctor, repair, and repository-use
+flows. Both clients use the same global cache-root semantics, each client shows
+its own actionable diagnostics, and the user-facing documentation presents
+both as supported first-party installations.
+
+## Story 9: Pre-v1 Cache and Codebase Cleanup
 
 **Status:** Planned — select only after the preceding retrieval and delivery
 stories have reached their evidence gates.
@@ -257,5 +320,5 @@ records each removal, its verification, and every intentionally deferred item.
   JSON behavior.
 - [ ] Measured user benefit, not a feature count, determines whether each
   candidate continues.
-- [ ] Story 7 removes or soft-deletes obsolete Astrograph caches and records a
+- [ ] Story 9 removes or soft-deletes obsolete Astrograph caches and records a
   bounded, evidence-backed cleanup inventory before v1.

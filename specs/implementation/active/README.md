@@ -7,7 +7,8 @@ with the epic, then use its linked checklist for the next executable task.
 
 1. [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
    Stories 1–2 are deferred and Story 3 is complete locally. Story 4 now
-   selects Precision Story 1; Stories 5–6 remain dependent/external.
+   selects Precision Story 1; Stories 5–8 remain dependent/planned and Story 9
+   is the final pre-v1 cleanup story.
 2. [Checkout and Cache Transparency Delivery Checklist](./global-checkout-cache-transparency-delivery-checklist.md)
    — completed local Story 3 evidence awaiting normal PR/CI review.
 3. [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
