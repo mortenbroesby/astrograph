@@ -2,8 +2,8 @@
 
 > **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 7
 >
-> **Status:** Active — prove the ordinary one-time Codex global-install path
-> across two repositories, then make only evidence-backed documentation changes.
+> **Status:** Complete — merged as PR #28 after exact-head Fast required
+> checks and Windows compatibility/package smoke passed.
 
 **Goal:** A user installs Astrograph for Codex once, then indexes and queries
 unconfigured repositories through the user-private global cache without any
@@ -73,8 +73,10 @@ and global storage contracts.
   case a 45-second timeout; the focused test then passed locally in 1.78
   seconds.
 
-- [ ] Re-run the Windows compatibility test matrix and package smoke on the
-  repaired exact PR head.
+- [x] Re-run the Windows compatibility test matrix and package smoke on the
+  repaired exact PR head. PR #28 commit `2e25325` passed Fast required checks
+  and Windows compatibility/package smoke in CI run `29874226582`.
 
-- [ ] Commit source/test/doc changes, push a PR, and merge only after the exact
+- [x] Commit source/test/doc changes, push a PR, and merge only after the exact
   head passes Fast required checks and Windows compatibility/package smoke.
+  Squash-merged as PR #28 at `b8f81b7`.

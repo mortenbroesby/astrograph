@@ -7,8 +7,8 @@ with the epic, then use its linked checklist for the next executable task.
 
 1. [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
    Stories 1–2 are deferred and Story 3 is complete locally. Story 4 now
-   selects Precision Story 1; Stories 5–8 remain dependent/planned and Story 9
-   is the final pre-v1 cleanup story.
+   selects Precision Story 1; Story 7 is complete, Story 8 is selected, and
+   Story 9 is the final pre-v1 cleanup story.
 2. [Checkout and Cache Transparency Delivery Checklist](./global-checkout-cache-transparency-delivery-checklist.md)
    — completed local Story 3 evidence awaiting normal PR/CI review.
 3. [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
@@ -18,9 +18,9 @@ with the epic, then use its linked checklist for the next executable task.
 5. [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md)
    — Story 2 evidence gate for replacing heuristic ranking with deterministic
    lexical scoring only where it improves a judged local corpus.
-6. [Pain-Free Global Install Delivery Checklist](./pain-free-global-install-delivery-checklist.md)
-   — Story 7 proves one-time global Codex setup works across unconfigured
-   repositories before extending first-party global client support.
+6. [Global Copilot CLI Delivery Checklist](./global-copilot-cli-delivery-checklist.md)
+   — Story 8 makes Copilot CLI a first-party global installation target with
+   the same global-cache workflow as Codex.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

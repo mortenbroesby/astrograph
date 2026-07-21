@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, readdir, rm, writeFile, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -61,12 +61,14 @@ async function main(): Promise<void> {
   const fixtureRepo = path.join(tempRoot, "fixture-repo");
   const secondFixtureRepo = path.join(tempRoot, "fixture-repo-two");
   const globalHome = path.join(tempRoot, "global-home");
+  const globalCopilotHome = path.join(tempRoot, "global-copilot-home");
   const globalCacheHome = path.join(tempRoot, "global-cache");
 
   try {
     await mkdir(packDir, { recursive: true });
     await mkdir(installDir, { recursive: true });
     await mkdir(globalHome, { recursive: true });
+    await mkdir(globalCopilotHome, { recursive: true });
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
     await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
@@ -223,6 +225,43 @@ async function main(): Promise<void> {
     }
     if (!globalInstalled.engineConfigPreview?.includes('"storageLocation": "global"')) {
       throw new Error(`Expected packaged global install to opt into global storage: ${globalInstall.stdout}`);
+    }
+
+    const globalCopilotInstall = await run(
+      "pnpm",
+      ["exec", "astrograph", "install", "--global", "--ide", "copilot-cli"],
+      installDir,
+      {
+        HOME: globalHome,
+        COPILOT_HOME: globalCopilotHome,
+        ASTROGRAPH_CACHE_HOME: globalCacheHome,
+        PATH: [path.join(installDir, "node_modules", ".bin"), process.env.PATH]
+          .filter((entry): entry is string => Boolean(entry))
+          .join(path.delimiter),
+      },
+    );
+    const globalCopilotInstalled = JSON.parse(globalCopilotInstall.stdout) as {
+      configPath?: string;
+      configPreview?: string;
+      engineConfigPreview?: string;
+    };
+    if (globalCopilotInstalled.configPath !== path.join(globalCopilotHome, "mcp-config.json")) {
+      throw new Error(`Expected packaged global install to use COPILOT_HOME: ${globalCopilotInstall.stdout}`);
+    }
+    if (!globalCopilotInstalled.configPreview?.includes('"astrograph"')) {
+      throw new Error(`Expected packaged global install to register Copilot CLI: ${globalCopilotInstall.stdout}`);
+    }
+    if (!globalCopilotInstalled.engineConfigPreview?.includes('"storageLocation": "global"')) {
+      throw new Error(`Expected packaged global Copilot install to opt into global storage: ${globalCopilotInstall.stdout}`);
+    }
+    const installedCopilotConfig = JSON.parse(
+      await readFile(path.join(globalCopilotHome, "mcp-config.json"), "utf8"),
+    ) as { mcpServers?: Record<string, { command?: string; args?: string[] }> };
+    if (
+      installedCopilotConfig.mcpServers?.astrograph?.command !== "astrograph"
+      || installedCopilotConfig.mcpServers.astrograph.args?.join(" ") !== "mcp"
+    ) {
+      throw new Error("Expected packaged global install to persist the Copilot CLI Astrograph server");
     }
 
     const globalEnvironment = { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome };
