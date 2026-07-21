@@ -1,9 +1,10 @@
 # Staff Engineer Review Delivery Checklist
 
-> **Epic:** [Remaining Delivery Epic](./remaining-delivery-epic.md), Story 1
+> **Epic:** [Remaining Delivery Epic](../planned/remaining-delivery-epic.md), Story 1
 >
-> **Status:** Ready for PR review — review and documentation only. This story
-> does not authorize implementation of its recommendations.
+> **Status:** Closed — merged as [PR #3](https://github.com/mortenbroesby/astrograph/pull/3)
+> with its required CI passing. This story does not authorize implementation of
+> its recommendations.
 
 **Goal:** Produce a short, evidence-based Staff Engineer review that identifies
 only the few improvements most likely to strengthen Astrograph's long-term
@@ -116,5 +117,5 @@ experienced engineers without initiating implementation.
 - [x] Decide release scope with `pnpm release:plan`; this documentation-only
   story should not publish a package.
 - [x] Update this checklist only after the report and evidence are complete.
-- [ ] Before push, apply the repository's required alpha version increment and
-  run `pnpm check:version-bump`.
+- [x] PR #3 was merged with the required CI passing; the release workflow, not
+  this documentation-only checklist, owns any package version increment.

@@ -2,7 +2,7 @@
 
 > **Story:** 6 of the Remaining Delivery Epic
 >
-> **Status:** In progress.
+> **Status:** Deferred.
 
 **Goal:** Preserve correct indexing and freshness after Windows create, edit,
 rename, delete, and failed-probe events.

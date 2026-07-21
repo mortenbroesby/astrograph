@@ -2,7 +2,7 @@
 
 > **Story:** 4 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
 >
-> **Status:** In progress — implement portable Git-path identity and fallback
+> **Status:** Deferred — implement portable Git-path identity and fallback
 > regression coverage here. Story 7 owns native `windows-latest` execution.
 
 **Goal:** Support Windows Git and Git Bash enrichment without making Git a

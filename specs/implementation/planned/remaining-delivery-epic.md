@@ -1,15 +1,17 @@
 # Remaining Delivery Epic
 
-> **Status:** In progress — Story 8 is active on its own epic branch.
+> **Status:** Planned — Story 1 is closed. Stories 2–8 remain planned and must
+> not begin until explicitly selected.
 >
-> **Supersedes open delivery work in:**
-> [Astrograph Feedback Consolidation](./astro-feedback-epic.md),
-> [Branch-Aware Incremental Index](./branch-aware-incremental-index-epic.md),
-> [Node 22 Compatibility](./node-22-compatibility-epic.md), and
-> [Windows Platform Support](./windows-platform-support-epic.md).
+> **Consolidates remaining delivery work from:**
+> [Astrograph Feedback Consolidation](../closed/astro-feedback-epic.md),
+> [Branch-Aware Incremental Index](../closed/branch-aware-incremental-index-epic.md),
+> [Node 22 Compatibility](../closed/node-22-compatibility-epic.md), and
+> [Windows Platform Support](../closed/windows-platform-support-epic.md).
 
-**Goal:** Keep every unfinished delivery obligation in one ordered epic while
-preserving the completed work and evidence in its original closed tracker.
+**Goal:** Keep the remaining delivery obligations from the completed feedback,
+branch-aware-index, Node 22, and Windows roadmaps in one ordered epic while
+preserving completed work and evidence in their closed records.
 
 **Architecture:** The completed branch-aware-index and Node 22 changes share
 one remaining release-publication obligation. Windows compatibility remains a
@@ -58,10 +60,10 @@ Release publication is intentionally Story 8 because it depends on an external
 merged, `release`-labelled PR; it must never prevent the review or Windows
 stories from progressing.
 
-## Story 1: Staff Engineer Design and Engineering Review
+## Story 1: Staff Engineer Design and Engineering Review — Complete
 
-**Active delivery checklist:**
-[Staff Engineer Review Delivery Checklist](./staff-engineering-review-delivery-checklist.md)
+**Closed delivery checklist:**
+[Staff Engineer Review Delivery Checklist](../closed/staff-engineering-review-delivery-checklist.md)
 
 **Goal:** Review Astrograph as a Staff Engineer and identify only the few
 evidence-supported improvements with the highest payoff for long-term quality,
@@ -233,10 +235,10 @@ a second implementation.
 
 ## Definition of Done
 
-- [ ] Story 1 has an evidence-based Staff Engineer review and a proportionate
+- [x] Story 1 has an evidence-based Staff Engineer review and a proportionate
   Now/Next/Later roadmap.
 - [x] Stories 2–7 have complete child-task checklists and passing Windows CI
   evidence.
 - [ ] Story 8 has recorded release publication evidence.
 - [ ] The original epics remain closed historical records and this document is
-  the only open epic-level tracker.
+  the only active tracker for their remaining delivery obligations.

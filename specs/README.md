@@ -23,28 +23,13 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 
 ### [Implementation](./implementation/README.md)
 
-Implementation specs, refactor plans, and internal subsystem ownership.
+Executable implementation queues, planned work, closed evidence, and internal
+subsystem references.
 
-- [Release Publication Evidence Delivery Checklist](./implementation/release-publication-evidence-delivery-checklist.md) - Active final-story checklist; guarded manual cloud publication is verified and automatic release-labelled-PR evidence remains.
-- [Remaining Delivery Epic](./implementation/remaining-delivery-epic.md) - The sole open epic-level tracker; final Story 8 remains active for automatic release-labelled-PR evidence.
-- [Precision Retrieval and Agent Experience Epic](./implementation/precision-retrieval-agent-experience-epic.md) - Planned, evidence-led roadmap inspired by precise structural retrieval and strong agent onboarding patterns.
-- [Staff Engineer Review Delivery Checklist](./implementation/staff-engineering-review-delivery-checklist.md) - Active child-task checklist for the evidence-based Staff Engineer review.
-- [Windows Compatibility Audit Delivery Checklist](./implementation/windows-compatibility-audit-delivery-checklist.md) - Active child-task checklist for the Windows platform audit.
-- [Windows Filesystem and Storage Portability Delivery Checklist](./implementation/windows-filesystem-storage-portability-delivery-checklist.md) - Active child-task checklist for portable repository identity and storage lifecycle coverage.
-- [Windows Git Discovery and Fallback Delivery Checklist](./implementation/windows-git-discovery-fallback-delivery-checklist.md) - Active child-task checklist for bounded, optional Git enrichment on Windows.
-- [Windows CLI, MCP, and Package Invocation Delivery Checklist](./implementation/windows-cli-mcp-package-invocation-delivery-checklist.md) - Active child-task checklist for Windows package-manager shims and package smoke coverage.
-- [Windows CI, Documentation, and Release Gate Delivery Checklist](./implementation/windows-ci-documentation-release-gate-delivery-checklist.md) - Active child-task checklist for native Windows CI, terminal guidance, and release-gate evidence.
-- [Astrograph Feedback Consolidation Epic](./implementation/astro-feedback-epic.md) - Closed record of completed feedback work.
-- [Astrograph Feedback Delivery Checklist](./implementation/astro-feedback-delivery-checklist.md) - Closed evidence record for the feedback epic.
-- [Branch-Aware Incremental Index Epic](./implementation/branch-aware-incremental-index-epic.md) - Closed implementation record for branch and worktree analysis reuse.
-- [Branch-Aware Incremental Index Delivery Checklist](./implementation/branch-aware-incremental-index-delivery-checklist.md) - Closed verification evidence for the branch-aware epic.
-- [Windows Platform Support Epic](./implementation/windows-platform-support-epic.md) - Closed source roadmap; its unstarted work is in the Remaining Delivery Epic.
-- [Node 22 Compatibility Epic](./implementation/node-22-compatibility-epic.md) - Closed record of the Node 22 minimum-runtime work.
-- [Node 22 Compatibility Delivery Checklist](./implementation/node-22-compatibility-delivery-checklist.md) - Closed Node 22 compatibility evidence.
-- [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
-- [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
-- [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
-- [MCP v1 Hard-Switch Plan](./implementation/mcp-v1-hard-switch-plan.md) - Remove MCP `query_code`, ship strict `ok`/`data`/`meta`/`error` envelopes with `toolVersion: "1"`, keep MCP cache behavior out of v1, and define the explicit `search_symbols`/`get_symbol_source`/`get_context_bundle`/`get_ranked_context` retrieval surface.
+- [Active Work](./implementation/active/README.md) - The selected delivery queue and its active checklist.
+- [Planned Work](./implementation/planned/README.md) - Approved work that is not yet selected for delivery.
+- [Closed Records](./implementation/closed/README.md) - Completed and superseded implementation evidence.
+- [Standing References](./implementation/README.md#standing-references) - Spec-system, CI cost, and release workflow guidance.
 
 ### [Templates](./templates/README.md)
 
@@ -57,44 +42,12 @@ Reusable starting points for agent-created docs.
 
 ---
 
-## Specification Roadmap
+## Spec-System Backlog
 
-### Phase 1: Spec System Bootstrap (In Progress)
-
-**Goal:** Make spec authoring predictable for agents.
-
-- [x] Create top-level `specs/` index.
-- [x] Add architecture, API design, implementation, and template sections.
-- [x] Add repo-local agent skills for specs, ADRs, and plans.
-- [ ] Backfill core subsystem specs from existing README and tests.
-
-### Phase 2: Architecture Baseline (Planned)
-
-**Goal:** Capture stable design rules before larger refactors.
-
-- [ ] Document storage/index ownership boundaries.
-- [ ] Record ADRs for SQLite-only local storage and MCP-first retrieval.
-- [ ] Document freshness/readiness lifecycle.
-- [ ] Document privacy and event-retention model.
-
-### Phase 3: API Contract Baseline (Planned)
-
-**Goal:** Make public surfaces explicit and testable.
-
-- [ ] Document MCP tools and result stability.
-- [ ] Document CLI command shapes and JSON output expectations.
-- [ ] Document TypeScript API stability levels.
-- [ ] Link contract tests to each public API spec.
-- [x] Complete and merge MCP v1 hard-switch plan.
-
-### Phase 4: Implementation Plans (Planned)
-
-**Goal:** Keep refactors task-sized, test-first, and reviewable.
-
-- [x] Add consolidated feedback epic for retrieval-quality roadmap planning.
-- [x] Move storage refactor plan into `specs/implementation/`.
-- [x] Split future plans by subsystem.
-- [ ] Require baseline verification and commit checkpoints in each plan.
+The completed bootstrap and historical milestones are preserved in Git history.
+The remaining documentation work is tracked in the planned
+[Spec System Backlog](./implementation/planned/spec-system-backlog.md), rather
+than duplicated in this index.
 
 ---
 

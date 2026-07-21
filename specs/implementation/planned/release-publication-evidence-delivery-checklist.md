@@ -1,6 +1,6 @@
 # Release Publication Evidence Delivery Checklist
 
-> **Status:** In progress — Story 8 of the [Remaining Delivery Epic](./remaining-delivery-epic.md).
+> **Status:** Deferred — Story 8 of the [Remaining Delivery Epic](./remaining-delivery-epic.md).
 > The guarded manual cloud-release path is verified; automatic release from a
 > release-labelled merged PR remains the final proof obligation.
 

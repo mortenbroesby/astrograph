@@ -2,7 +2,7 @@
 
 > **Story:** 7 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
 >
-> **Status:** In progress — native Windows CI found portable-path and ESM
+> **Status:** Deferred — native Windows CI found portable-path and ESM
 > entrypoint gaps; this checklist records their correction before merge.
 
 **Goal:** Make the supported Windows experience continuously verifiable and
