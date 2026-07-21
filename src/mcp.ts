@@ -168,6 +168,9 @@ function assertSymbolSummary(value: unknown): value is Record<string, unknown> {
   if (!ensureNumber(value.endLine)) {
     throw new Error("symbol output missing endLine");
   }
+  if (!ensureNumber(value.startByte) || !ensureNumber(value.endByte)) {
+    throw new Error("symbol output missing UTF-8 byte range");
+  }
   if (!ensureBoolean(value.exported)) {
     throw new Error("symbol output missing exported");
   }
@@ -259,6 +262,30 @@ function validateSymbolSourceOutput(result: unknown) {
     }
     if (!ensureBoolean(item.verified)) {
       throw new Error("get_symbol_source item must include verified");
+    }
+    assertIsObject(item.provenance);
+    if (!ensureString(item.provenance.filePath) || !ensureString(item.provenance.sourceHash)) {
+      throw new Error("get_symbol_source item must include source provenance identity");
+    }
+    assertIsObject(item.provenance.range);
+    if (
+      item.provenance.range.encoding !== "utf8"
+      || !ensureNumber(item.provenance.range.startByte)
+      || !ensureNumber(item.provenance.range.endByte)
+      || !ensureNumber(item.provenance.range.startLine)
+      || !ensureNumber(item.provenance.range.endLine)
+    ) {
+      throw new Error("get_symbol_source item has invalid source provenance range");
+    }
+    assertIsObject(item.provenance.parser);
+    if (
+      (item.provenance.parser.backend !== null && typeof item.provenance.parser.backend !== "string")
+      || !ensureBoolean(item.provenance.parser.fallbackUsed)
+      || (item.provenance.parser.fallbackReason !== null
+        && typeof item.provenance.parser.fallbackReason !== "string")
+      || item.provenance.freshness !== "indexed-snapshot"
+    ) {
+      throw new Error("get_symbol_source item has invalid source provenance metadata");
     }
     assertSymbolSummary(item.symbol);
   }

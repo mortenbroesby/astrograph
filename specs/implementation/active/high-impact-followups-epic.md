@@ -1,14 +1,14 @@
 # High-Impact Product Follow-Ups Epic
 
 > **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
-> Story 3 is complete locally and Story 4 is next for selection. Stories 4–6 may begin only with their own
-> active checklist.
+> Story 3 is complete locally and Story 4 has selected Precision Story 1.
+> Stories 5–6 remain dependent or externally blocked.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
 > and [Astrograph Feedback Consolidation Epic](../closed/astro-feedback-epic.md).
 > It complements—rather than replaces—the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md)
-> and [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md).
+> and [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Turn the largest completed platform investments into the next
 meaningful user outcomes: faster safe work across repositories and checkouts,
@@ -115,11 +115,12 @@ configuration byte-for-byte and packed-package tests cover the chosen clients.
 
 ## Story 3: Checkout and Cache Transparency
 
-**Status:** Complete locally — `cache status.checkout` now provides the
+**Status:** Complete — `cache status.checkout` now provides the
 persisted checkout identity that populated the selected cache. It is `null`
 before indexing and otherwise reports Git mode, repository/head/branch/worktree
 identity, diagnostic, and indexed time. See the
 [delivery checklist](./global-checkout-cache-transparency-delivery-checklist.md).
+PR #24's Fast and Windows CI checks passed for the exact completed head.
 
 **Outcome:** Users and agents can tell which repository/checkout is being used,
 whether results are fresh, and why a cache/artifact was reused or bypassed.
@@ -140,17 +141,16 @@ remain compatible through additive fields only.
 
 ## Story 4: Provenance-First Retrieval and Deterministic Lexical Ranking
 
-**Status:** Blocked — the [Precision Retrieval and Agent Experience
-Epic](../planned/precision-retrieval-agent-experience-epic.md) explicitly
-defers this work until the Remaining Delivery Epic has no executable work.
-Do not bypass that dependency by moving or copying its plan. Re-evaluate when
-the Remaining Delivery tracker closes or explicitly removes this prerequisite.
+**Status:** Active — the Remaining Delivery Epic's only unchecked release
+proof is externally blocked and its own policy permits independent work to
+continue. Precision Story 1 is selected through the
+[Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md).
 
 **Outcome:** Queries return smaller, verifiable, locally ranked source results
 before any optional semantic system is considered.
 
 **Scope:** Select and execute Stories 1–2 of the
-  [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md):
+  [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md):
 stable source/symbol provenance followed by deterministic lexical ranking.
 Do not begin semantic retrieval, remote embeddings, or a vector service in
 this story.

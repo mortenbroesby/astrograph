@@ -401,7 +401,9 @@ function loadSymbolSourceRow(
           symbols.signature, symbols.summary, symbols.summary_source,
           symbols.start_line, symbols.end_line, symbols.start_byte, symbols.end_byte,
           symbols.exported,
-          files.content_hash, files.integrity_hash, content_blobs.content
+          files.content_hash, files.integrity_hash, files.parser_backend,
+          files.parser_fallback_used, files.parser_fallback_reason,
+          content_blobs.content
         FROM symbols
         INNER JOIN files ON files.id = symbols.file_id
         INNER JOIN content_blobs ON content_blobs.file_id = files.id
@@ -689,15 +691,36 @@ function buildSymbolSourceItem(
   const lines = row.content.split("\n");
   const startLine = Math.max(1, row.start_line - normalizedContextLines);
   const endLine = Math.min(lines.length, row.end_line + normalizedContextLines);
+  const source = lines.slice(startLine - 1, endLine).join("\n");
+  const prefix = startLine > 1 ? `${lines.slice(0, startLine - 1).join("\n")}\n` : "";
+  const startByte = Buffer.byteLength(prefix, "utf8");
+  const endByte = startByte + Buffer.byteLength(source, "utf8");
   return {
     symbol: mapSymbolRow(row),
-    source: lines.slice(startLine - 1, endLine).join("\n"),
+    source,
     verified: verify
       ? row.integrity_hash === hashString(row.content, "integrity")
         || sha256(row.content) === row.content_hash
       : false,
     startLine,
     endLine,
+    provenance: {
+      filePath: row.file_path,
+      sourceHash: hashString(source, "integrity"),
+      range: {
+        encoding: "utf8",
+        startByte,
+        endByte,
+        startLine,
+        endLine,
+      },
+      parser: {
+        backend: row.parser_backend,
+        fallbackUsed: row.parser_fallback_used === 1,
+        fallbackReason: row.parser_fallback_reason,
+      },
+      freshness: "indexed-snapshot",
+    },
   };
 }
 

@@ -29,6 +29,9 @@ export interface DbFileContentRow extends DbSymbolRow {
   content_hash: string;
   integrity_hash: string | null;
   content: string;
+  parser_backend: string | null;
+  parser_fallback_used: number;
+  parser_fallback_reason: string | null;
 }
 
 export interface TrackedFileRow {
@@ -51,6 +54,8 @@ export function mapSymbolRow(row: DbSymbolRow): SymbolSummary {
     summarySource: row.summary_source,
     startLine: row.start_line,
     endLine: row.end_line,
+    startByte: row.start_byte,
+    endByte: row.end_byte,
     exported: Boolean(row.exported),
   };
 }

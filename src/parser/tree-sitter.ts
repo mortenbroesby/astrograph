@@ -65,6 +65,10 @@ function extractLeadingCommentSummary(
   return parseCommentSummary(comment);
 }
 
+function utf8ByteOffset(sourceText: string, stringOffset: number): number {
+  return Buffer.byteLength(sourceText.slice(0, stringOffset), "utf8");
+}
+
 function resolveSummary(input: {
   node: Parser.SyntaxNode;
   sourceText: string;
@@ -132,9 +136,12 @@ function createSymbol(
     summaryStrategy,
   });
   const qualifiedName = parentName ? `${parentName}.${name}` : name;
+  const symbolStartByte = offset.byte + utf8ByteOffset(sourceText, node.startIndex);
+  const rangeStartByte = offset.byte + utf8ByteOffset(sourceText, rangeNode.startIndex);
+  const rangeEndByte = offset.byte + utf8ByteOffset(sourceText, rangeNode.endIndex);
 
   return {
-    id: buildSymbolId(relativePath, kind, qualifiedName, offset.byte + node.startIndex),
+    id: buildSymbolId(relativePath, kind, qualifiedName, symbolStartByte),
     name,
     qualifiedName,
     kind,
@@ -143,8 +150,8 @@ function createSymbol(
     summarySource,
     startLine: offset.line + rangeNode.startPosition.row + 1,
     endLine: offset.line + rangeNode.endPosition.row + 1,
-    startByte: offset.byte + rangeNode.startIndex,
-    endByte: offset.byte + rangeNode.endIndex,
+    startByte: rangeStartByte,
+    endByte: rangeEndByte,
     exported,
   };
 }

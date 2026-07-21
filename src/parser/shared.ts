@@ -202,7 +202,7 @@ const CHUNK_OVERLAP_BYTES = 8_000;
 export function splitSourceIntoChunks(sourceText: string): SourceChunk[] {
   const lines = sourceText.split("\n");
 
-  if (sourceText.length <= MAX_PARSE_BYTES) {
+  if (Buffer.byteLength(sourceText, "utf8") <= MAX_PARSE_BYTES) {
     return [
       {
         content: sourceText,
@@ -218,7 +218,7 @@ export function splitSourceIntoChunks(sourceText: string): SourceChunk[] {
   let totalBytes = 0;
   for (let index = 0; index < lines.length; index += 1) {
     lineOffsets.push(totalBytes);
-    totalBytes += lines[index].length + (index < lines.length - 1 ? 1 : 0);
+    totalBytes += Buffer.byteLength(lines[index], "utf8") + (index < lines.length - 1 ? 1 : 0);
   }
 
   const bytesBetween = (startLine: number, endLine: number) => {

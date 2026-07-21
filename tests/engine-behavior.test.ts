@@ -2072,6 +2072,49 @@ export function circleArea(radius: number): number {
     );
   });
 
+  it("returns UTF-8 and CRLF-correct provenance for exact symbol source", async () => {
+    const repoRoot = await createFixtureRepo();
+    const content = [
+      "// π keeps UTF-8 offsets honest.",
+      "export function café(value: string) {",
+      "  return `héllo ${value}`;",
+      "}",
+      "",
+    ].join("\r\n");
+    await writeFile(path.join(repoRoot, "src", "provenance.ts"), content);
+    await indexFolder({ repoRoot });
+
+    const symbol = (await searchSymbols({ repoRoot, query: "café" }))[0]!;
+    const result = await getSymbolSource({ repoRoot, symbolId: symbol.id, verify: true });
+    const item = result.items[0]!;
+    const expectedStartByte = Buffer.byteLength("// π keeps UTF-8 offsets honest.\r\n", "utf8");
+
+    expect(item.source).toContain("function café");
+    expect(item.source).toContain("\r\n");
+    expect(item.verified).toBe(true);
+    expect(item.symbol).toMatchObject({
+      filePath: "src/provenance.ts",
+      startByte: expectedStartByte,
+    });
+    expect(item.provenance).toMatchObject({
+      filePath: "src/provenance.ts",
+      sourceHash: expect.stringMatching(/^sha256:/),
+      range: {
+        encoding: "utf8",
+        startByte: expectedStartByte,
+        endByte: expectedStartByte + Buffer.byteLength(item.source, "utf8"),
+        startLine: 2,
+        endLine: 4,
+      },
+      parser: {
+        backend: "tree-sitter",
+        fallbackUsed: false,
+        fallbackReason: null,
+      },
+      freshness: "indexed-snapshot",
+    });
+  });
+
   it("assembles bounded context bundles from persisted indexed content", async () => {
     const repoRoot = await createFixtureRepo();
 

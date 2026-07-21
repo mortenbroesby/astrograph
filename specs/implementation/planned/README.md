@@ -18,8 +18,6 @@ checklist, and then move it to `../active/` before implementation begins.
   [CLI/MCP/package](./windows-cli-mcp-package-invocation-delivery-checklist.md),
   [watch/refresh](./windows-watch-refresh-delivery-checklist.md), and
   [CI/docs/release](./windows-ci-documentation-release-gate-delivery-checklist.md).
-- [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
-  — planned after the remaining delivery work is complete.
 - [README and Docs Diagram Design](./2026-05-06-readme-diagrams-design.md) —
   the checked-in diagrams are embedded; the design pass still needs its
   verification criteria recorded as complete before it can be closed.

@@ -289,10 +289,15 @@ describe("ai-context-engine interfaces", () => {
       "--context-lines",
       "1",
     ]);
-    expect(JSON.parse(symbolSourceStdout)).toMatchObject({
-      requestedContextLines: 1,
+    const symbolSourceJson = JSON.parse(symbolSourceStdout);
+    expect(symbolSourceJson).toMatchObject({ requestedContextLines: 1 });
+    expect(symbolSourceJson.items).toHaveLength(2);
+    expect(symbolSourceJson.items[0]).toMatchObject({
+      provenance: {
+        range: { encoding: "utf8" },
+        freshness: "indexed-snapshot",
+      },
     });
-    expect(JSON.parse(symbolSourceStdout).items).toHaveLength(2);
     const queryCodeSourceStdout = await handleCli([
       "query-code",
       "--repo",
@@ -736,6 +741,12 @@ export function circumference(radius: number): string {
         },
       });
       expect(parsedSymbolSource.data.items).toHaveLength(2);
+      expect(parsedSymbolSource.data.items[0]).toMatchObject({
+        provenance: {
+          range: { encoding: "utf8" },
+          freshness: "indexed-snapshot",
+        },
+      });
 
       const searchSymbolsResponse = await dispatchTool("search_symbols", {
         repoRoot,

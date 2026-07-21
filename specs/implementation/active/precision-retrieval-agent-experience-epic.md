@@ -1,6 +1,10 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Planned and deferred until the [Remaining Delivery Epic](./remaining-delivery-epic.md) has no executable work.
+> **Status:** Active — [Remaining Delivery](../planned/remaining-delivery-epic.md)
+> has no independent executable work:
+> its sole unchecked release-publication proof is externally blocked and may
+> not halt independent delivery. Story 1 is selected through the
+> [Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md).
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
