@@ -715,6 +715,25 @@ describe("ai-context-engine contract", () => {
     await expect(readFile(path.join(staging, "partial"), "utf8")).resolves.toBe("incomplete");
   });
 
+  it("refuses an unverified local migration source without deleting it", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-unverified-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-unverified-root-"));
+    tempDirs.push(repoRoot, cacheHome);
+    await mkdir(path.join(repoRoot, "src"));
+    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const unverifiedMigration = true;\n");
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
+    await indexFolder({ repoRoot });
+    clearStorageProcessCaches();
+    const localPaths = resolveEnginePaths(repoRoot);
+    await writeFile(localPaths.repoMetaPath, JSON.stringify({ repoRoot: "/wrong-repository" }));
+    const environment = { platform: "linux" as const, env: { XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+
+    await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/not verified for repository/i);
+    await expect(readFile(localPaths.databasePath)).resolves.toBeDefined();
+    await expect(readFile(localPaths.repoMetaPath, "utf8")).resolves.toContain("wrong-repository");
+  });
+
   it("prunes global caches oldest-first only after explicit confirmation", async () => {
     const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-prune-"));
     tempDirs.push(cacheHome);
