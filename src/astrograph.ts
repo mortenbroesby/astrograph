@@ -17,6 +17,7 @@ function usage() {
     "  astrograph cache status --repo /abs/repo",
     "  astrograph cache migrate --repo /abs/repo [--yes]",
     "  astrograph cache remove --repo /abs/repo [--yes]",
+    "  astrograph cache prune --all --max-bytes <bytes> [--yes]",
     "  astrograph cli cache-status --repo /abs/repo",
     "  astrograph cli cache-migrate --repo /abs/repo [--yes]",
     "  astrograph cli cache-remove --repo /abs/repo [--yes]",
@@ -65,7 +66,7 @@ const nodeArgs = mode === "mcp" ? ["--no-warnings"] : [];
 const commandArgs = mode === "cache"
   ? [`cache-${args[0] ?? ""}`, ...args.slice(1)]
   : args;
-if (mode === "cache" && !["status", "migrate", "remove"].includes(args[0] ?? "")) {
+if (mode === "cache" && !["status", "migrate", "remove", "prune"].includes(args[0] ?? "")) {
   usage();
   process.exit(1);
 }

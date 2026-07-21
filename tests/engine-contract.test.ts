@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -27,6 +27,7 @@ import {
   indexFolder,
   loadRepoEngineConfig,
   migrateLocalCache,
+  pruneGlobalCaches,
   createDefaultEngineConfig,
   parseStorageLocation,
   parseAstrographVersion,
@@ -688,6 +689,39 @@ describe("ai-context-engine contract", () => {
     await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/incompatible storage version/i);
     await expect(readFile(source)).resolves.toBeDefined();
     await expect(readFile(destination.storageVersionPath, "utf8")).resolves.toContain(`"version":${ENGINE_STORAGE_VERSION - 1}`);
+  });
+
+  it("prunes global caches oldest-first only after explicit confirmation", async () => {
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-prune-"));
+    tempDirs.push(cacheHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CACHE_HOME: cacheHome },
+      homeDir: () => "/unused",
+    };
+    const reposRoot = path.join(resolveGlobalCacheRoot(environment), "repos");
+    const older = path.join(reposRoot, "a".repeat(64));
+    const newer = path.join(reposRoot, "b".repeat(64));
+    await mkdir(older, { recursive: true });
+    await mkdir(newer, { recursive: true });
+    await writeFile(path.join(older, "payload"), "a".repeat(20));
+    await writeFile(path.join(newer, "payload"), "b".repeat(30));
+    await utimes(older, new Date(1_000), new Date(1_000));
+    await utimes(newer, new Date(2_000), new Date(2_000));
+
+    const preview = await pruneGlobalCaches(30, true, environment);
+    expect(preview.dryRun).toBe(true);
+    expect(preview.candidates).toEqual([
+      expect.objectContaining({ storageDir: older, active: false, removed: false }),
+    ]);
+    await expect(stat(older)).resolves.toBeDefined();
+
+    const pruned = await pruneGlobalCaches(30, false, environment);
+    expect(pruned.candidates).toEqual([
+      expect.objectContaining({ storageDir: older, active: false, removed: true }),
+    ]);
+    await expect(stat(older)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(stat(newer)).resolves.toBeDefined();
   });
 
   it("rejects unknown ranking path preset categories", async () => {

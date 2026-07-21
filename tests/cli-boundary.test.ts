@@ -22,6 +22,12 @@ describe("cli boundaries", () => {
     });
   });
 
+  it("requires explicit all-cache scope before pruning", async () => {
+    await expect(handleCli(["cache-prune", "--max-bytes", "0"])).rejects.toThrow(
+      /cache prune requires explicit --all scope/i,
+    );
+  });
+
   it("rejects malformed CLI numeric and enum arguments", async () => {
     const repoRoot = await createFixtureRepo();
 

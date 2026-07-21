@@ -29,6 +29,7 @@ const BOOLEAN_FLAGS = new Set([
   "json",
   "yes",
   "dry-run",
+  "all",
 ]);
 
 const commands: Record<string, CliHandler> = {
@@ -124,6 +125,14 @@ const commands: Record<string, CliHandler> = {
   "cache-status": async (args) => engine.cacheStatus(required(args, "repo")),
   "cache-migrate": async (args) => engine.migrateLocalCache(required(args, "repo"), args.yes !== "true"),
   "cache-remove": async (args) => engine.removeGlobalCache(required(args, "repo"), args.yes !== "true"),
+  "cache-prune": async (args) => {
+    if (args.all !== "true") throw new Error("cache prune requires explicit --all scope.");
+    const maxBytes = Number(required(args, "max-bytes"));
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
+      throw new Error("--max-bytes must be a non-negative safe integer.");
+    }
+    return engine.pruneGlobalCaches(maxBytes, args.yes !== "true");
+  },
 };
 
 function required(args: Record<string, string>, key: string): string {
