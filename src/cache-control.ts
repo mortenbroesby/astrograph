@@ -86,6 +86,7 @@ async function cacheIsActive(storageDir: string): Promise<boolean> {
   if (!await lstat(databasePath).catch(() => null)) return false;
   const db = SQLITE_INDEX_BACKEND.open(databasePath);
   try {
+    db.exec("PRAGMA busy_timeout = 0");
     db.exec("BEGIN EXCLUSIVE");
     db.exec("ROLLBACK");
     return false;

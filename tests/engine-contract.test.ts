@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, stat, utimes, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, stat, symlink, utimes, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -28,6 +28,7 @@ import {
   loadRepoEngineConfig,
   migrateLocalCache,
   pruneGlobalCaches,
+  removeGlobalCache,
   createDefaultEngineConfig,
   parseStorageLocation,
   parseAstrographVersion,
@@ -44,6 +45,7 @@ import {
 import { MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { setupForAllIdes, setupForCodex, setupForIde, setupGlobalForCodex } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
+import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
 
 const tempDirs: string[] = [];
 
@@ -722,6 +724,47 @@ describe("ai-context-engine contract", () => {
     ]);
     await expect(stat(older)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(newer)).resolves.toBeDefined();
+  });
+
+  it("refuses global cache removal while SQLite holds an exclusive lock", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-lock-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-lock-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-lock-root-"));
+    tempDirs.push(repoRoot, configHome, cacheHome);
+    await mkdir(path.join(repoRoot, "src"));
+    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const lockProof = true;\n");
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
+    await indexFolder({ repoRoot });
+    clearStorageProcessCaches();
+    const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    await migrateLocalCache(repoRoot, false, environment);
+    const globalPath = resolveEnginePaths(repoRoot, { storageLocation: "global", environment }).databasePath;
+    const lock = SQLITE_INDEX_BACKEND.open(globalPath);
+    lock.exec("BEGIN EXCLUSIVE");
+    try {
+      await expect(removeGlobalCache(repoRoot, false, environment)).rejects.toThrow(/Refusing to remove an active global Astrograph cache/i);
+      await expect(stat(globalPath)).resolves.toBeDefined();
+    } finally {
+      lock.exec("ROLLBACK");
+      lock.close();
+    }
+  });
+
+  it("rejects a symlinked global cache target before removal", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-symlink-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-symlink-root-"));
+    const outside = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-symlink-outside-"));
+    tempDirs.push(repoRoot, cacheHome, outside);
+    const environment = { platform: "linux" as const, env: { XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    const target = resolveEnginePaths(repoRoot, { storageLocation: "global", environment }).storageDir;
+    await mkdir(path.dirname(target), { recursive: true });
+    await writeFile(path.join(outside, "outside.txt"), "do not remove");
+    await symlink(outside, target, "dir");
+
+    await expect(removeGlobalCache(repoRoot, false, environment)).rejects.toThrow(/Refusing symlinked cache path/i);
+    await expect(readFile(path.join(outside, "outside.txt"), "utf8")).resolves.toBe("do not remove");
   });
 
   it("rejects unknown ranking path preset categories", async () => {
