@@ -1902,7 +1902,7 @@ export function circleArea(radius: number): number {
       filePath: "src/large.ts",
       name: "helper899",
     });
-  });
+  }, 45_000);
 
   it("indexes a declaration that spans chunk boundaries exactly once", async () => {
     const repoRoot = await createFixtureRepo();

@@ -18,6 +18,9 @@ with the epic, then use its linked checklist for the next executable task.
 5. [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md)
    — Story 2 evidence gate for replacing heuristic ranking with deterministic
    lexical scoring only where it improves a judged local corpus.
+6. [Pain-Free Global Install Delivery Checklist](./pain-free-global-install-delivery-checklist.md)
+   — Story 7 proves one-time global Codex setup works across unconfigured
+   repositories before extending first-party global client support.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

@@ -35,6 +35,7 @@ import {
   resolveGlobalCacheRoot,
   resolveGlobalConfigPath,
   resolveEnginePaths,
+  searchSymbols,
 } from "../src/index.ts";
 import {
   COMMAND_REGISTRY,
@@ -961,6 +962,69 @@ describe("ai-context-engine contract", () => {
     expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
       storageLocation: "global",
     });
+  });
+
+  it("uses one global Codex setup across unconfigured repositories", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-cache-"));
+    const firstRepo = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-first-"));
+    const secondRepo = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-second-"));
+    tempDirs.push(homeDir, configHome, cacheHome, firstRepo, secondRepo);
+    const environment = {
+      platform: process.platform,
+      env: {
+        XDG_CONFIG_HOME: configHome,
+        ASTROGRAPH_CACHE_HOME: cacheHome,
+      },
+      homeDir: () => homeDir,
+    };
+    const previousHome = process.env.HOME;
+    const previousConfigHome = process.env.XDG_CONFIG_HOME;
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.HOME = homeDir;
+      process.env.XDG_CONFIG_HOME = configHome;
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await setupGlobalForCodex({ environment, executableAvailable: true });
+      await writeFile(path.join(firstRepo, "first.ts"), "export function firstGlobalFixture() { return true; }\n");
+      await writeFile(path.join(secondRepo, "second.ts"), "export function secondGlobalFixture() { return true; }\n");
+      clearStorageProcessCaches();
+
+      await indexFolder({ repoRoot: firstRepo });
+      await indexFolder({ repoRoot: secondRepo });
+      const [firstStatus, secondStatus, firstSymbols, secondSymbols] = await Promise.all([
+        cacheStatus(firstRepo),
+        cacheStatus(secondRepo),
+        searchSymbols({ repoRoot: firstRepo, query: "firstGlobalFixture" }),
+        searchSymbols({ repoRoot: secondRepo, query: "secondGlobalFixture" }),
+      ]);
+
+      expect(firstStatus.storageLocation).toBe("global");
+      expect(secondStatus.storageLocation).toBe("global");
+      expect(firstStatus.storageDir).not.toBe(secondStatus.storageDir);
+      expect(firstStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
+      expect(secondStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
+      expect(firstSymbols.map((symbol) => symbol.name)).toContain("firstGlobalFixture");
+      expect(secondSymbols.map((symbol) => symbol.name)).toContain("secondGlobalFixture");
+      await expect(stat(path.join(firstRepo, ".astrograph"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(secondRepo, ".astrograph"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(firstRepo, "astrograph.config.json"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(secondRepo, "astrograph.config.json"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(firstRepo, "astrograph.config.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(secondRepo, "astrograph.config.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(firstRepo, ".codex"))).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(stat(path.join(secondRepo, ".codex"))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      if (previousHome === undefined) delete process.env.HOME;
+      else process.env.HOME = previousHome;
+      if (previousConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = previousConfigHome;
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      clearStorageProcessCaches();
+    }
   });
 
   it("reports actionable global-install prerequisites before writing user configuration", async () => {

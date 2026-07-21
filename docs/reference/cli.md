@@ -18,7 +18,9 @@ invocation path in your environment.
   Writes MCP configuration for supported clients.
 - `astrograph install --global --ide codex`
   Registers one user-level Codex MCP server and enables per-repository global
-  cache storage. It does not modify a repository.
+  cache storage. It does not modify a repository: after installing once, open
+  any repository and index it or use the MCP tools directly. Normal global use
+  does not require `init`, repo-local config, or a chosen cache directory.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`
@@ -86,6 +88,10 @@ They are CLI-only; MCP has no destructive cache tools.
 and the persisted checkout that populated that cache. `checkout` is `null`
 until the repository has been indexed; otherwise it reports its Git mode,
 branch/head/worktree identity, diagnostic, and indexed time.
+
+For a globally installed Codex client, use these recovery commands before
+editing or deleting cache files manually. They operate on the selected
+repository's isolated global cache, not a shared cross-repository index.
 
 ```bash
 astrograph cache status --repo /repo
