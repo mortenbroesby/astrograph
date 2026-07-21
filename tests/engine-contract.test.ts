@@ -832,8 +832,8 @@ describe("ai-context-engine contract", () => {
     await mkdir(path.dirname(codexConfigPath), { recursive: true });
     await writeFile(codexConfigPath, "[mcp_servers.unrelated]\ncommand = \"keep\"\n");
 
-    const first = await setupGlobalForCodex({ environment });
-    const second = await setupGlobalForCodex({ environment });
+    const first = await setupGlobalForCodex({ environment, executableAvailable: true });
+    const second = await setupGlobalForCodex({ environment, executableAvailable: true });
 
     expect(first.configPath).toBe(codexConfigPath);
     expect(second.configPreview).toBe(first.configPreview);
@@ -843,6 +843,31 @@ describe("ai-context-engine contract", () => {
     expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
       storageLocation: "global",
     });
+  });
+
+  it("reports actionable global-install prerequisites before writing user configuration", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-config-"));
+    tempDirs.push(homeDir, configHome);
+    const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir };
+
+    await expect(setupGlobalForCodex({ environment, nodeVersion: "20.11.0", executableAvailable: true }))
+      .rejects.toThrow(/requires Node\.js >=22\.12\.0.*Install a supported Node/i);
+    await expect(setupGlobalForCodex({ environment, executableAvailable: false }))
+      .rejects.toThrow(/Cannot find `astrograph` on PATH.*npm install --global astrograph/i);
+    await expect(readFile(path.join(homeDir, ".codex", "config.toml"))).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("reports an unwritable global configuration location before registration is written", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-unwritable-"));
+    const configHomeFile = path.join(homeDir, "not-a-directory");
+    tempDirs.push(homeDir);
+    await writeFile(configHomeFile, "blocked");
+    const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHomeFile }, homeDir: () => homeDir };
+
+    await expect(setupGlobalForCodex({ environment, executableAvailable: true }))
+      .rejects.toThrow(/Cannot read user configuration.*not-a-directory/i);
+    await expect(readFile(path.join(homeDir, ".codex", "config.toml"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
   it("replaces a legacy repo-local astrograph block with the portable package command", async () => {

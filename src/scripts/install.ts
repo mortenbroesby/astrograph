@@ -139,6 +139,8 @@ interface SetupForAllOptions {
 export interface SetupGlobalCodexOptions {
   dryRun?: boolean;
   environment?: StoragePathEnvironment;
+  nodeVersion?: string;
+  executableAvailable?: boolean;
 }
 
 export interface GlobalSetupResult {
@@ -775,13 +777,55 @@ function parseGlobalConfig(contents: string, configPath: string): Record<string,
   }
 }
 
+function globalExecutableIsAvailable(environment: StoragePathEnvironment): boolean {
+  const env = environment.env ?? process.env;
+  const pathValue = env.PATH;
+  if (!pathValue) return false;
+  const extensions = process.platform === "win32" ? [".cmd", ".exe", ".bat", ""] : [""];
+  return pathValue.split(path.delimiter).some((entry) =>
+    extensions.some((extension) => {
+      const candidate = path.join(entry, `astrograph${extension}`);
+      try {
+        return execFileSync(candidate, ["--help"], { stdio: "ignore" }) === undefined;
+      } catch {
+        return false;
+      }
+    }),
+  );
+}
+
+function assertGlobalInstallPrerequisites(options: SetupGlobalCodexOptions): void {
+  const nodeVersion = options.nodeVersion ?? process.versions.node;
+  const match = nodeVersion.match(/^(\d+)\.(\d+)\./);
+  const major = Number(match?.[1] ?? 0);
+  const minor = Number(match?.[2] ?? 0);
+  if (major < 22 || (major === 22 && minor < 12)) {
+    throw new Error(`Astrograph global install requires Node.js >=22.12.0; found ${nodeVersion}. Install a supported Node release and retry.`);
+  }
+  const executableAvailable = options.executableAvailable ?? globalExecutableIsAvailable(options.environment ?? {});
+  if (!executableAvailable) {
+    throw new Error("Cannot find `astrograph` on PATH. Install it with `npm install --global astrograph`, open a new shell, then rerun `astrograph install --global --ide codex`.");
+  }
+}
+
+async function readOptionalConfig(configPath: string): Promise<string> {
+  try {
+    return await readFile(configPath, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return "";
+    throw new Error(`Cannot read user configuration ${configPath}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 export async function setupGlobalForCodex(
-  { dryRun = false, environment = {} }: SetupGlobalCodexOptions = {},
+  options: SetupGlobalCodexOptions = {},
 ): Promise<GlobalSetupResult> {
+  const { dryRun = false, environment = {} } = options;
+  assertGlobalInstallPrerequisites({ ...options, environment });
   const configPath = resolveGlobalCodexConfigPath(environment);
   const engineConfigPath = resolveGlobalConfigPath(environment);
-  const currentCodexConfig = await readFile(configPath, "utf8").catch(() => "");
-  const currentEngineConfig = await readFile(engineConfigPath, "utf8").catch(() => "");
+  const currentCodexConfig = await readOptionalConfig(configPath);
+  const currentEngineConfig = await readOptionalConfig(engineConfigPath);
   const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock());
   const engineConfigPreview = `${JSON.stringify({
     ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
@@ -789,10 +833,18 @@ export async function setupGlobalForCodex(
   }, null, 2)}\n`;
 
   if (!dryRun) {
-    await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
-    await mkdir(path.dirname(engineConfigPath), { recursive: true, mode: 0o700 });
-    await writeFile(configPath, configPreview, { encoding: "utf8", mode: 0o600 });
-    await writeFile(engineConfigPath, engineConfigPreview, { encoding: "utf8", mode: 0o600 });
+    try {
+      await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
+      await mkdir(path.dirname(engineConfigPath), { recursive: true, mode: 0o700 });
+    } catch (error) {
+      throw new Error(`Cannot create user configuration directories for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+    try {
+      await writeFile(engineConfigPath, engineConfigPreview, { encoding: "utf8", mode: 0o600 });
+      await writeFile(configPath, configPreview, { encoding: "utf8", mode: 0o600 });
+    } catch (error) {
+      throw new Error(`Cannot write user configuration for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
   }
 
   return {
