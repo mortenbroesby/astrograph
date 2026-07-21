@@ -208,6 +208,8 @@ Global setup is opt-in. It stores a separate SQLite cache for each canonical
 repository root and keeps all source paths, index contents, and events on the
 current OS user’s machine. Repository `astrograph.config.ts` or
 `astrograph.config.json` can override it with `storageLocation: "repo-local"`.
+For one CLI invocation, `--storage-location repo-local|global` takes precedence
+over both repository and user defaults.
 
 Use these JSON-first commands to inspect or recover a selected repository:
 

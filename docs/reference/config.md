@@ -78,6 +78,17 @@ written by `astrograph install --global`.
 Global mode still uses one SQLite database per canonical repository root. It
 does not share mutable index rows or source data between repositories.
 
+The CLI can override this setting for a single command, without rewriting
+configuration:
+
+```bash
+astrograph cli index-folder --repo /repo --storage-location global
+astrograph cli diagnostics --repo /repo --storage-location repo-local
+```
+
+Precedence is explicit CLI selection, repository configuration, then the
+user-level default written by `astrograph install --global`.
+
 ### `observability`
 
 Controls local event retention and redaction.

@@ -51,31 +51,26 @@ and an active checklist is created from that handoff.
 
 ## Remaining Delivery Work
 
-The following work remains before this epic can move to `closed/`. This is the
-authoritative active queue; do not infer completion from the presence of a
-partial implementation.
+Implementation acceptance is complete. The remaining work is the merge and
+guarded release workflow, not further feature implementation.
 
-1. **Lifecycle completeness (Story 3):** trace lock, watch, doctor, and reset
-   behavior through global storage and add two-repository tests for events,
-   freshness, diagnostics, and mixed global/repo-local process caches.
-2. **Migration failure matrix (Story 4):** add partial-staging, corrupt-source,
-   stale-source, and retry tests. The source must remain intact for each failed
-   case; cross-device behavior must be documented as copy-and-validate.
-3. **Cache control hardening (Story 5):** add direct tests for active-lock and
-   symlink/traversal refusal, plus status/remove JSON and confirmation behavior.
-   Scoped global prune is implemented with dry-run, `--all`, byte target, and
-   deterministic oldest-first ordering.
-4. **Release proof (Story 7):** obtain an authoritative successful packed-bin
-   run covering the isolated clean-user flow. The full suite completed on this
-   branch. `pnpm release:plan` selected a **minor** release targeting
-   `0.5.0-alpha.123`, but refused publication because the branch is not `main`;
-   rerun the guarded main-only apply flow after merge. Update public contracts
-   only where their tests prove the behavior.
+1. **Merge and release proof (Story 7):** the focused global suites, full test
+   suite, packed-bin flow, type lint, version gate, and release plan have run
+   on this branch. `pnpm release:plan` selects a **minor** release and refuses
+   publication before `main`, as designed. After merge, rerun the guarded
+   main-only apply flow; do not tag manually.
 
 **Completed Story 2 acceptance:** global installation now rejects unsupported
 Node, a missing `astrograph` command on `PATH`, and unreadable/unwritable user
 configuration paths before registration is written. Focused contract tests
 cover each remediation path.
+
+**Completed Stories 1 and 3–5 acceptance:** the typed resolver supports
+explicit CLI, repository, and user-default precedence; global caches are
+canonical-repository isolated across index, events, diagnostics, and watch;
+migration preserves local data through successful, incompatible, unverified,
+and interrupted states; and cache status, migration, removal, and global prune
+are JSON-first, CLI-only, dry-run-safe, lock-aware, and symlink-safe.
 
 Story 6, shared immutable artifacts, stays deferred until its evidence and ADR
 selection gate are met. It is not part of the remaining implementation work.
