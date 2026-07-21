@@ -27,6 +27,7 @@ import {
   parseStorageLocation,
   parseAstrographVersion,
   resolveGlobalCacheRoot,
+  resolveGlobalConfigPath,
   resolveEnginePaths,
 } from "../src/index.ts";
 import {
@@ -36,7 +37,7 @@ import {
   getCommandByMcpToolName,
 } from "../src/command-registry.ts";
 import { MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
-import { setupForAllIdes, setupForCodex, setupForIde } from "../src/scripts/install.ts";
+import { setupForAllIdes, setupForCodex, setupForIde, setupGlobalForCodex } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 
 const tempDirs: string[] = [];
@@ -104,6 +105,19 @@ describe("ai-context-engine contract", () => {
       env: { LOCALAPPDATA: "C:\\Users\\example\\AppData\\Local" },
       homeDir: () => "C:\\Users\\example",
     })).toContain(path.join("astrograph", "cache"));
+  });
+
+  it("uses a platform-specific global configuration path", () => {
+    expect(resolveGlobalConfigPath({
+      platform: "linux",
+      env: { XDG_CONFIG_HOME: "/var/config/user" },
+      homeDir: () => "/home/example",
+    })).toBe("/var/config/user/astrograph/config.json");
+    expect(resolveGlobalConfigPath({
+      platform: "darwin",
+      env: {},
+      homeDir: () => "/Users/example",
+    })).toBe("/Users/example/Library/Application Support/astrograph/config.json");
   });
 
   it("validates the storage location contract", () => {
@@ -581,6 +595,34 @@ describe("ai-context-engine contract", () => {
     );
   });
 
+  it("uses the global storage default until a repository config overrides it", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-config-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-global-config-"));
+    tempDirs.push(repoRoot, configHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome },
+      homeDir: () => "/unused",
+    };
+    const globalConfigPath = resolveGlobalConfigPath(environment);
+    await mkdir(path.dirname(globalConfigPath), { recursive: true });
+    await writeFile(globalConfigPath, JSON.stringify({ storageLocation: "global" }));
+
+    await expect(loadRepoEngineConfig(repoRoot, { environment })).resolves.toMatchObject({
+      storageLocation: "global",
+      globalConfigPath,
+    });
+
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "repo-local" }),
+    );
+    await expect(loadRepoEngineConfig(repoRoot, { environment })).resolves.toMatchObject({
+      storageLocation: "repo-local",
+      globalConfigPath,
+    });
+  });
+
   it("rejects unknown ranking path preset categories", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-config-"));
     tempDirs.push(repoRoot);
@@ -708,6 +750,32 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain(
       'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
     );
+  });
+
+  it("installs one idempotent global Codex server and opts into global storage", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-install-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-config-"));
+    tempDirs.push(homeDir, configHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome },
+      homeDir: () => homeDir,
+    };
+    const codexConfigPath = path.join(homeDir, ".codex", "config.toml");
+    await mkdir(path.dirname(codexConfigPath), { recursive: true });
+    await writeFile(codexConfigPath, "[mcp_servers.unrelated]\ncommand = \"keep\"\n");
+
+    const first = await setupGlobalForCodex({ environment });
+    const second = await setupGlobalForCodex({ environment });
+
+    expect(first.configPath).toBe(codexConfigPath);
+    expect(second.configPreview).toBe(first.configPreview);
+    expect(first.configPreview).toContain('command = "astrograph"');
+    expect(first.configPreview).toContain('args = ["mcp"]');
+    expect(first.configPreview).toContain("[mcp_servers.unrelated]");
+    expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
+      storageLocation: "global",
+    });
   });
 
   it("replaces a legacy repo-local astrograph block with the portable package command", async () => {

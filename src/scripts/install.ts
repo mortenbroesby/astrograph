@@ -10,12 +10,15 @@ import {
   confirm,
 } from "@clack/prompts";
 import { Command, Option } from "commander";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
+import { resolveGlobalConfigPath } from "../config.ts";
+import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
@@ -131,6 +134,19 @@ interface SetupForAllOptions {
   ides?: RequestedIde[];
   dryRun?: boolean;
   agentsPolicy?: boolean;
+}
+
+export interface SetupGlobalCodexOptions {
+  dryRun?: boolean;
+  environment?: StoragePathEnvironment;
+}
+
+export interface GlobalSetupResult {
+  ide: "codex";
+  configPath: string;
+  engineConfigPath: string;
+  configPreview: string;
+  engineConfigPreview: string;
 }
 
 interface AgentsPolicyResult {
@@ -719,11 +735,80 @@ ${toolApprovals}
 ${MARKER_END}`;
 }
 
+function globalAstrographConfigBlock(): string {
+  const enabledTools = MCP_TOOLS.map((tool) => `"${tool}"`).join(", ");
+  const toolApprovals = MCP_TOOLS.map((tool) =>
+    `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
+  ).join("\n\n");
+  return `${MARKER_BEGIN}
+[mcp_servers.astrograph]
+command = "astrograph"
+args = ["mcp"]
+startup_timeout_sec = 90
+enabled_tools = [${enabledTools}]
+
+${toolApprovals}
+${MARKER_END}`;
+}
+
+function resolveGlobalCodexConfigPath(
+  environment: StoragePathEnvironment = {},
+): string {
+  const homeDir = environment.homeDir ?? os.homedir;
+  return path.join(homeDir(), ".codex", "config.toml");
+}
+
+function parseGlobalConfig(contents: string, configPath: string): Record<string, unknown> {
+  if (contents.trim() === "") {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(contents);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Expected a JSON object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (error) {
+    throw new Error(
+      `Invalid global Astrograph config ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+export async function setupGlobalForCodex(
+  { dryRun = false, environment = {} }: SetupGlobalCodexOptions = {},
+): Promise<GlobalSetupResult> {
+  const configPath = resolveGlobalCodexConfigPath(environment);
+  const engineConfigPath = resolveGlobalConfigPath(environment);
+  const currentCodexConfig = await readFile(configPath, "utf8").catch(() => "");
+  const currentEngineConfig = await readFile(engineConfigPath, "utf8").catch(() => "");
+  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock());
+  const engineConfigPreview = `${JSON.stringify({
+    ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
+    storageLocation: "global",
+  }, null, 2)}\n`;
+
+  if (!dryRun) {
+    await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
+    await mkdir(path.dirname(engineConfigPath), { recursive: true, mode: 0o700 });
+    await writeFile(configPath, configPreview, { encoding: "utf8", mode: 0o600 });
+    await writeFile(engineConfigPath, engineConfigPreview, { encoding: "utf8", mode: 0o600 });
+  }
+
+  return {
+    ide: "codex",
+    configPath,
+    engineConfigPath,
+    configPreview,
+    engineConfigPreview,
+  };
+}
+
 function replaceManagedBlock(contents: string, block: string): string {
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     return contents.replace(
       new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"),
-      `${block}\n`,
+      block,
     );
   }
 
@@ -1033,7 +1118,19 @@ export async function setupForAllIdes(
 }
 
 async function main(): Promise<void> {
-  const parsed = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes("--global")) {
+    const ideIndex = argv.indexOf("--ide");
+    const ide = ideIndex >= 0 ? argv[ideIndex + 1] : "codex";
+    if (ide !== "codex") {
+      throw new Error("astrograph install --global currently supports only --ide codex");
+    }
+    const result = await setupGlobalForCodex({ dryRun: argv.includes("--dry-run") });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return;
+  }
+
+  const parsed = parseArgs(argv);
 
   if (parsed.showHelp) {
     usage();

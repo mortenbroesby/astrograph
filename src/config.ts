@@ -11,6 +11,7 @@ import { getSupportedLanguages } from "./language-registry.ts";
 import type {
   EngineConfig,
   EnginePaths,
+  GlobalEngineConfig,
   StorageLocation,
   StoragePathEnvironment,
   RepoPerformanceConfig,
@@ -169,6 +170,10 @@ const repoEngineConfigSchema = z.object({
   limits: repoLimitsConfigSchema.optional(),
 }) satisfies z.ZodType<RepoEngineConfig>;
 
+const globalEngineConfigSchema = z.object({
+  storageLocation: z.enum(["repo-local", "global"]).optional(),
+}) satisfies z.ZodType<GlobalEngineConfig>;
+
 type WorkerPoolMaxWorkersValue = number | "auto" | undefined;
 
 function defaultFileProcessingConcurrency(): number {
@@ -262,6 +267,32 @@ export function resolveGlobalCacheRoot(
   return path.join(cacheHome, ENGINE_DISPLAY_NAME);
 }
 
+export function resolveGlobalConfigPath(
+  environment: StoragePathEnvironment = {},
+): string {
+  const platform = environment.platform ?? process.platform;
+  const env = environment.env ?? process.env;
+  const homeDir = environment.homeDir ?? os.homedir;
+
+  if (platform === "win32") {
+    return path.join(
+      env.APPDATA || path.join(homeDir(), "AppData", "Roaming"),
+      ENGINE_DISPLAY_NAME,
+      "config.json",
+    );
+  }
+
+  if (platform === "darwin") {
+    return path.join(homeDir(), "Library", "Application Support", ENGINE_DISPLAY_NAME, "config.json");
+  }
+
+  const xdgConfigHome = env.XDG_CONFIG_HOME;
+  const configHome = xdgConfigHome && path.isAbsolute(xdgConfigHome)
+    ? xdgConfigHome
+    : path.join(homeDir(), ".config");
+  return path.join(configHome, ENGINE_DISPLAY_NAME, "config.json");
+}
+
 export function resolveEnginePaths(
   repoRoot: string,
   options: {
@@ -294,15 +325,18 @@ export async function resolveEngineRepoRoot(repoRoot: string): Promise<string> {
   return (await probeGitCheckout({ repoRoot: absoluteRepoRoot })).repoRoot;
 }
 
-function createDefaultResolvedRepoEngineConfig(
+async function createDefaultResolvedRepoEngineConfig(
   repoRoot: string,
-): ResolvedRepoEngineConfig {
+  environment?: StoragePathEnvironment,
+): Promise<ResolvedRepoEngineConfig> {
+  const global = await loadGlobalEngineConfig(environment);
   return {
     configPath: null,
+    globalConfigPath: global.configPath,
     repoRoot,
     summaryStrategy: DEFAULT_SUMMARY_STRATEGY,
     storageMode: "wal",
-    storageLocation: "repo-local",
+    storageLocation: global.data.storageLocation ?? "repo-local",
     observability: {
       enabled: false,
       host: DEFAULT_OBSERVABILITY_HOST,
@@ -338,6 +372,37 @@ function createDefaultResolvedRepoEngineConfig(
   };
 }
 
+async function loadGlobalEngineConfig(
+  environment?: StoragePathEnvironment,
+): Promise<{ configPath: string | null; data: GlobalEngineConfig }> {
+  const configPath = resolveGlobalConfigPath(environment);
+  const contents = await readFile(configPath, "utf8").catch((error: unknown) => {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  });
+  if (contents === null) {
+    return { configPath: null, data: {} };
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(contents);
+  } catch (error) {
+    throw new Error(
+      `Invalid global Astrograph config: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const parsed = globalEngineConfigSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid global Astrograph config: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+    );
+  }
+  return { configPath, data: parsed.data };
+}
+
 function resolveEngineConfigFromParsed(
   configPath: string,
   resolvedRepoRoot: string,
@@ -346,6 +411,7 @@ function resolveEngineConfigFromParsed(
 ): ResolvedRepoEngineConfig {
   return {
     configPath,
+    globalConfigPath: defaults.globalConfigPath,
     repoRoot: resolvedRepoRoot,
     summaryStrategy: data.summaryStrategy ?? defaults.summaryStrategy,
     storageMode: data.storageMode ?? defaults.storageMode,
@@ -387,12 +453,15 @@ function resolveEngineConfigFromParsed(
 
 export async function loadRepoEngineConfig(
   repoRoot: string,
-  options: { repoRootResolved?: boolean } = {},
+  options: { repoRootResolved?: boolean; environment?: StoragePathEnvironment } = {},
 ): Promise<ResolvedRepoEngineConfig> {
   const resolvedRepoRoot = options.repoRootResolved
     ? repoRoot
     : await resolveEngineRepoRoot(repoRoot);
-  const defaults = createDefaultResolvedRepoEngineConfig(resolvedRepoRoot);
+  const defaults = await createDefaultResolvedRepoEngineConfig(
+    resolvedRepoRoot,
+    options.environment,
+  );
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
   const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
 

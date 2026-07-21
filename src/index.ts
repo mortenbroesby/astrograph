@@ -31,6 +31,7 @@ export {
   parseSummaryStrategy,
   parseStorageLocation,
   resolveEngineRepoRoot,
+  resolveGlobalConfigPath,
   resolveGlobalCacheRoot,
   resolveEnginePaths,
 } from "./config.ts";
@@ -81,6 +82,7 @@ export type {
   EngineEventSource,
   EngineConfig,
   EnginePaths,
+  GlobalEngineConfig,
   EngineToolName,
   RepoEngineConfig,
   RepoObservabilityConfig,

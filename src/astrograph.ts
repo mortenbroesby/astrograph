@@ -17,6 +17,7 @@ function usage() {
     "  astrograph mcp",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
     "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--dry-run]",
+    "  astrograph install --global [--ide codex] [--dry-run]",
     "  astrograph init --ide codex",
   ].join("\n") + "\n",
 );
@@ -31,7 +32,7 @@ const sourceTarget =
       ? path.join(packageRoot, "src", "mcp.ts")
       : mode === "git-refresh"
         ? path.join(packageRoot, "src", "scripts", "git-smart-refresh.ts")
-        : mode === "init"
+        : mode === "init" || mode === "install"
           ? path.join(packageRoot, "src", "scripts", "install.ts")
           : null;
 const distTarget =
@@ -41,7 +42,7 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
         ? path.join(packageRoot, "dist", "scripts", "git-smart-refresh.js")
-        : mode === "init"
+        : mode === "init" || mode === "install"
           ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 

@@ -132,6 +132,10 @@ export interface RepoEngineConfig {
   };
 }
 
+export interface GlobalEngineConfig {
+  storageLocation?: StorageLocation;
+}
+
 export interface ResolvedObservabilityConfig {
   enabled: boolean;
   host: string;
@@ -173,6 +177,7 @@ export interface ResolvedLimitsConfig {
 
 export interface ResolvedRepoEngineConfig {
   configPath: string | null;
+  globalConfigPath: string | null;
   repoRoot: string;
   summaryStrategy: SummaryStrategy;
   storageMode: StorageMode;
