@@ -42,6 +42,11 @@ runs `pnpm check:version-bump`; the final story runs `pnpm release:plan`. A
 story may start only after its child delivery checklist names exact files,
 baseline commands, focused tests, final checks, and a commit checkpoint.
 
+**Deferred story handoffs:** Stories 2–7 are broken down in
+[Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md).
+They are not authorized for implementation until their selection gates are met
+and an active checklist is created from that handoff.
+
 ## Target User Experience
 
 ```text
