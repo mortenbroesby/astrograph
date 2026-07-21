@@ -216,11 +216,14 @@ astrograph cache status --repo /absolute/path/to/repo
 astrograph cache migrate --repo /absolute/path/to/repo
 astrograph cache migrate --repo /absolute/path/to/repo --yes
 astrograph cache remove --repo /absolute/path/to/repo --yes
+astrograph cache prune --all --max-bytes 1073741824
+astrograph cache prune --all --max-bytes 1073741824 --yes
 ```
 
 Migration first validates and copies the local cache into global storage; it
 never removes `.astrograph`. Cache migration and removal are CLI-only and
-default to dry-run. Global cache roots are `~/.cache/astrograph` on Linux
+default to dry-run. Pruning is explicitly all-cache scoped, removes oldest
+inactive repository caches first, and also defaults to dry-run. Global cache roots are `~/.cache/astrograph` on Linux
 (or `$XDG_CACHE_HOME/astrograph`), `~/Library/Caches/astrograph` on macOS, and
 `%LOCALAPPDATA%\\astrograph\\cache` on Windows.
 

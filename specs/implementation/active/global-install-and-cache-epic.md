@@ -61,9 +61,10 @@ partial implementation.
 2. **Migration failure matrix (Story 4):** add partial-staging, corrupt-source,
    stale-source, and retry tests. The source must remain intact for each failed
    case; cross-device behavior must be documented as copy-and-validate.
-3. **Cache control hardening (Story 5):** add scoped prune with deterministic
-   LRU ordering, active-lock refusal, symlink/traversal rejection, and tests
-   for status/remove JSON and confirmation behavior.
+3. **Cache control hardening (Story 5):** add direct tests for active-lock and
+   symlink/traversal refusal, plus status/remove JSON and confirmation behavior.
+   Scoped global prune is implemented with dry-run, `--all`, byte target, and
+   deterministic oldest-first ordering.
 4. **Release proof (Story 7):** obtain an authoritative successful packed-bin
    run covering the isolated clean-user flow. The full suite completed on this
    branch. `pnpm release:plan` selected a **minor** release targeting
