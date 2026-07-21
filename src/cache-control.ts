@@ -11,7 +11,7 @@ import {
 import { readRepoMeta } from "./repo-meta.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
-import type { StorageLocation } from "./types.ts";
+import type { StorageLocation, StoragePathEnvironment } from "./types.ts";
 
 export interface CacheStatus {
   schemaVersion: 1;
@@ -72,10 +72,13 @@ async function validateCache(storageDir: string, repoRoot: string): Promise<void
   try { db.prepare("PRAGMA quick_check").get(); } finally { db.close(); }
 }
 
-export async function cacheStatus(repoRoot: string): Promise<CacheStatus> {
+export async function cacheStatus(
+  repoRoot: string,
+  environment?: StoragePathEnvironment,
+): Promise<CacheStatus> {
   const canonicalRoot = await resolveEngineRepoRoot(repoRoot);
-  const config = await loadRepoEngineConfig(canonicalRoot, { repoRootResolved: true });
-  const selected = resolveEnginePaths(canonicalRoot, { storageLocation: config.storageLocation });
+  const config = await loadRepoEngineConfig(canonicalRoot, { repoRootResolved: true, environment });
+  const selected = resolveEnginePaths(canonicalRoot, { storageLocation: config.storageLocation, environment });
   const local = resolveEnginePaths(canonicalRoot);
   const selectedExists = await hasContents(selected.storageDir);
   const localExists = await hasContents(local.storageDir);
@@ -96,8 +99,12 @@ export async function cacheStatus(repoRoot: string): Promise<CacheStatus> {
   };
 }
 
-export async function migrateLocalCache(repoRoot: string, dryRun = true): Promise<CacheMutationResult> {
-  const status = await cacheStatus(repoRoot);
+export async function migrateLocalCache(
+  repoRoot: string,
+  dryRun = true,
+  environment?: StoragePathEnvironment,
+): Promise<CacheMutationResult> {
+  const status = await cacheStatus(repoRoot, environment);
   if (status.storageLocation !== "global") throw new Error("Global cache migration requires storageLocation: \"global\".");
   const source = resolveEnginePaths(status.repoRoot).storageDir;
   if (!await hasContents(source)) return { schemaVersion: 1, action: "migrate", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "No repository-local cache exists." };
@@ -121,10 +128,14 @@ export async function migrateLocalCache(repoRoot: string, dryRun = true): Promis
   return { schemaVersion: 1, action: "migrate", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: true, message: "Copied verified local cache to global storage; repository-local cache was preserved." };
 }
 
-export async function removeGlobalCache(repoRoot: string, dryRun = true): Promise<CacheMutationResult> {
-  const status = await cacheStatus(repoRoot);
+export async function removeGlobalCache(
+  repoRoot: string,
+  dryRun = true,
+  environment?: StoragePathEnvironment,
+): Promise<CacheMutationResult> {
+  const status = await cacheStatus(repoRoot, environment);
   if (status.storageLocation !== "global") throw new Error("Global cache removal requires storageLocation: \"global\".");
-  const root = resolveGlobalCacheRoot();
+  const root = resolveGlobalCacheRoot(environment);
   const relative = path.relative(root, status.storageDir);
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) throw new Error("Refusing to remove a path outside the global Astrograph cache root.");
   if (dryRun) return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Would remove this repository's global cache only." };

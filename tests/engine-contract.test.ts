@@ -22,7 +22,11 @@ import {
   ENGINE_STORAGE_VERSION,
   ENGINE_TOOLS,
   assessAstrographVersionBump,
+  cacheStatus,
+  clearStorageProcessCaches,
+  indexFolder,
   loadRepoEngineConfig,
+  migrateLocalCache,
   createDefaultEngineConfig,
   parseStorageLocation,
   parseAstrographVersion,
@@ -607,7 +611,6 @@ describe("ai-context-engine contract", () => {
     const globalConfigPath = resolveGlobalConfigPath(environment);
     await mkdir(path.dirname(globalConfigPath), { recursive: true });
     await writeFile(globalConfigPath, JSON.stringify({ storageLocation: "global" }));
-
     await expect(loadRepoEngineConfig(repoRoot, { environment })).resolves.toMatchObject({
       storageLocation: "global",
       globalConfigPath,
@@ -621,6 +624,70 @@ describe("ai-context-engine contract", () => {
       storageLocation: "repo-local",
       globalConfigPath,
     });
+  });
+
+  it("copies a verified repository-local cache into an isolated global cache without removing the source", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-root-"));
+    tempDirs.push(repoRoot, configHome, cacheHome);
+    await mkdir(path.join(repoRoot, "src"));
+    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const migrationProof = true;\n");
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "repo-local" }),
+    );
+    await indexFolder({ repoRoot });
+    clearStorageProcessCaches();
+
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome },
+      homeDir: () => "/unused",
+    };
+    const globalConfigPath = resolveGlobalConfigPath(environment);
+    await mkdir(path.dirname(globalConfigPath), { recursive: true });
+    await writeFile(globalConfigPath, JSON.stringify({ storageLocation: "global" }));
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "global" }),
+    );
+
+    const preview = await migrateLocalCache(repoRoot, true, environment);
+    expect(preview.changed).toBe(false);
+    expect(preview.message).toMatch(/would copy/i);
+    const migrated = await migrateLocalCache(repoRoot, false, environment);
+    expect(migrated.changed).toBe(true);
+    const status = await cacheStatus(repoRoot, environment);
+    expect(status).toMatchObject({ storageLocation: "global", migration: "already-migrated" });
+    await expect(readFile(resolveEnginePaths(repoRoot).databasePath)).resolves.toBeDefined();
+    await expect(readFile(status.storageDir + "/index.sqlite")).resolves.toBeDefined();
+  });
+
+  it("refuses an incompatible global destination and preserves the local cache", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-conflict-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-conflict-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-conflict-root-"));
+    tempDirs.push(repoRoot, configHome, cacheHome);
+    await mkdir(path.join(repoRoot, "src"));
+    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const preserveLocalCache = true;\n");
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
+    await indexFolder({ repoRoot });
+    clearStorageProcessCaches();
+    const source = resolveEnginePaths(repoRoot).databasePath;
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome },
+      homeDir: () => "/unused",
+    };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    const destination = resolveEnginePaths(repoRoot, { storageLocation: "global", environment });
+    await mkdir(destination.storageDir, { recursive: true });
+    await writeFile(destination.storageVersionPath, JSON.stringify({ version: ENGINE_STORAGE_VERSION - 1 }));
+
+    await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/incompatible storage version/i);
+    await expect(readFile(source)).resolves.toBeDefined();
+    await expect(readFile(destination.storageVersionPath, "utf8")).resolves.toContain(`"version":${ENGINE_STORAGE_VERSION - 1}`);
   });
 
   it("rejects unknown ranking path preset categories", async () => {

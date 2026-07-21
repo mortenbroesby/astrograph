@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -306,14 +307,21 @@ export function resolveEnginePaths(
   } = {},
 ): EnginePaths {
   const storageLocation = options.storageLocation ?? "repo-local";
-  const canonicalRepoRoot = path.resolve(repoRoot);
+  const resolvedRepoRoot = path.resolve(repoRoot);
+  const canonicalRepoRoot = (() => {
+    try {
+      return realpathSync.native(resolvedRepoRoot);
+    } catch {
+      return resolvedRepoRoot;
+    }
+  })();
   const storageDir = storageLocation === "global"
     ? path.join(
       resolveGlobalCacheRoot(options.environment),
       "repos",
       hashString(canonicalRepoRoot, "integrity").replace("sha256:", ""),
     )
-    : path.join(canonicalRepoRoot, ENGINE_STORAGE_DIRNAME);
+    : path.join(resolvedRepoRoot, ENGINE_STORAGE_DIRNAME);
 
   return {
     storageDir,

@@ -53,6 +53,7 @@ async function main(): Promise<void> {
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
   const fixtureRepo = path.join(tempRoot, "fixture-repo");
+  const secondFixtureRepo = path.join(tempRoot, "fixture-repo-two");
   const globalHome = path.join(tempRoot, "global-home");
   const globalCacheHome = path.join(tempRoot, "global-cache");
 
@@ -61,6 +62,7 @@ async function main(): Promise<void> {
     await mkdir(installDir, { recursive: true });
     await mkdir(globalHome, { recursive: true });
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
+    await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
     await writeFile(
       path.join(installDir, "package.json"),
@@ -81,6 +83,10 @@ async function main(): Promise<void> {
         "",
       ].join("\n"),
     );
+    await writeFile(
+      path.join(secondFixtureRepo, "src", "catalog.ts"),
+      "export const catalogOnly = () => \"two\";\n",
+    );
 
     await run("git", ["init"], fixtureRepo);
     await run("git", ["add", "."], fixtureRepo);
@@ -88,6 +94,13 @@ async function main(): Promise<void> {
       "git",
       ["-c", "user.name=Codex", "-c", "user.email=codex@example.com", "commit", "-m", "init"],
       fixtureRepo,
+    );
+    await run("git", ["init"], secondFixtureRepo);
+    await run("git", ["add", "."], secondFixtureRepo);
+    await run(
+      "git",
+      ["-c", "user.name=Codex", "-c", "user.email=codex@example.com", "commit", "-m", "init"],
+      secondFixtureRepo,
     );
 
     await run("pnpm", ["pack", "--pack-destination", packDir], packageRoot);
@@ -184,6 +197,51 @@ async function main(): Promise<void> {
     }
     if (!globalInstalled.engineConfigPreview?.includes('"storageLocation": "global"')) {
       throw new Error(`Expected packaged global install to opt into global storage: ${globalInstall.stdout}`);
+    }
+
+    const globalEnvironment = { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome };
+    await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "index-folder", "--repo", fixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "index-folder", "--repo", secondFixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    const { stdout: firstCacheStatus } = await run(
+      "pnpm",
+      ["exec", "astrograph", "cache", "status", "--repo", fixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    const { stdout: secondCacheStatus } = await run(
+      "pnpm",
+      ["exec", "astrograph", "cache", "status", "--repo", secondFixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    const firstCache = JSON.parse(firstCacheStatus) as { storageLocation?: string; storageDir?: string };
+    const secondCache = JSON.parse(secondCacheStatus) as { storageLocation?: string; storageDir?: string };
+    if (
+      firstCache.storageLocation !== "global"
+      || secondCache.storageLocation !== "global"
+      || !firstCache.storageDir
+      || firstCache.storageDir === secondCache.storageDir
+    ) {
+      throw new Error(`Expected isolated global cache directories: ${firstCacheStatus} ${secondCacheStatus}`);
+    }
+    const { stdout: isolatedSearch } = await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "search-symbols", "--repo", fixtureRepo, "--query", "catalogOnly"],
+      installDir,
+      globalEnvironment,
+    );
+    if ((JSON.parse(isolatedSearch) as { items?: unknown[] }).items?.length !== 0) {
+      throw new Error(`Global cache isolation failed: ${isolatedSearch}`);
     }
   } finally {
     // Windows can retain a short-lived handle from the final pnpm child while
