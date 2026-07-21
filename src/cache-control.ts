@@ -153,6 +153,15 @@ export async function migrateLocalCache(
     await validateCache(status.storageDir, status.repoRoot);
     return { schemaVersion: 1, action: "migrate", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Verified global cache already exists; local cache was preserved." };
   }
+  const stagingPrefix = `${path.basename(status.storageDir)}.migrating-`;
+  const staleStaging = (await readdir(path.dirname(status.storageDir)).catch(() => []))
+    .find((entry) => entry.startsWith(stagingPrefix));
+  if (staleStaging) {
+    throw new Error(
+      `A previous global cache migration is incomplete at ${path.join(path.dirname(status.storageDir), staleStaging)}. ` +
+      "The repository-local cache was preserved; inspect or remove the staging directory, then retry.",
+    );
+  }
   if (dryRun) return { schemaVersion: 1, action: "migrate", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Would copy the verified repository-local cache; source would remain intact." };
   const staging = `${status.storageDir}.migrating-${process.pid}-${Date.now()}`;
   await mkdir(path.dirname(status.storageDir), { recursive: true, mode: 0o700 });

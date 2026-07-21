@@ -693,6 +693,28 @@ describe("ai-context-engine contract", () => {
     await expect(readFile(destination.storageVersionPath, "utf8")).resolves.toContain(`"version":${ENGINE_STORAGE_VERSION - 1}`);
   });
 
+  it("reports partial global migration staging and preserves the local cache for retry", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-partial-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-partial-root-"));
+    tempDirs.push(repoRoot, cacheHome);
+    await mkdir(path.join(repoRoot, "src"));
+    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const retryMigration = true;\n");
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
+    await indexFolder({ repoRoot });
+    clearStorageProcessCaches();
+    const source = resolveEnginePaths(repoRoot).databasePath;
+    const environment = { platform: "linux" as const, env: { XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    const destination = resolveEnginePaths(repoRoot, { storageLocation: "global", environment }).storageDir;
+    const staging = `${destination}.migrating-interrupted`;
+    await mkdir(staging, { recursive: true });
+    await writeFile(path.join(staging, "partial"), "incomplete");
+
+    await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/previous global cache migration is incomplete.*local cache was preserved/i);
+    await expect(readFile(source)).resolves.toBeDefined();
+    await expect(readFile(path.join(staging, "partial"), "utf8")).resolves.toBe("incomplete");
+  });
+
   it("prunes global caches oldest-first only after explicit confirmation", async () => {
     const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-prune-"));
     tempDirs.push(cacheHome);
