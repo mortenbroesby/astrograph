@@ -1,9 +1,8 @@
 # High-Impact Product Follow-Ups Epic
 
-> **Status:** Active — Story 1 is selected through the
-> [Global + Branch-Aware Artifact Reuse Delivery Checklist](./global-branch-artifact-reuse-delivery-checklist.md).
-> Stories 2–6 remain planned candidates and may not begin until explicitly
-> selected with their own active checklist.
+> **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
+> Story 3 is next for selection. Stories 3–6 may begin only with their own
+> active checklist.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -54,6 +53,11 @@ before implementation.
 
 ## Story 1: Global + Branch-Aware Immutable Artifact Reuse
 
+**Status:** Deferred — the representative two-file global fixture duplicated
+four artifacts but took only 2.044 seconds for both indexes. That does not
+justify new cross-repository storage complexity. See the
+[delivery checklist](./global-branch-artifact-reuse-delivery-checklist.md).
+
 **Outcome:** A user who indexes related checkouts or repositories avoids
 repeating validated immutable analysis, while each repository and checkout
 continues to own all mutable state.
@@ -83,6 +87,12 @@ or stale checkout dependency edges. Diagnostics expose reuse/fallback reasons
 without source content.
 
 ## Story 2: Global Installation Health and Recovery
+
+**Status:** Deferred — the supported global Codex path already has
+preflight, dry-run, marker-owned idempotent writes, permission remediation,
+cache status, and packed-package proof. No distinct recovery contract is
+justified without a reproducible support gap. See the
+[delivery checklist](./global-install-health-recovery-delivery-checklist.md).
 
 **Outcome:** A user can diagnose and safely repair a global Astrograph setup
 without knowing config-file locations or risking unrelated MCP configuration.

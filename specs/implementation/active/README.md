@@ -6,10 +6,11 @@ with the epic, then use its linked checklist for the next executable task.
 ## Current Queue
 
 1. [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
-   Story 1, global + branch-aware immutable artifact reuse, is selected.
-2. [Global + Branch-Aware Artifact Reuse Delivery Checklist](./global-branch-artifact-reuse-delivery-checklist.md)
-   — check off this bounded evidence/implementation sequence in order; defer
-   the implementation when the selection evidence does not justify it.
+   Story 3, checkout and cache transparency, is selected; Stories 1–2 are
+   deferred after their evidence gates.
+2. [Checkout and Cache Transparency Delivery Checklist](./global-checkout-cache-transparency-delivery-checklist.md)
+   — check off this bounded discovery/implementation sequence in order and
+   defer it when current diagnostics already resolve the observed issue.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

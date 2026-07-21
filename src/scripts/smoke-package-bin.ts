@@ -44,7 +44,13 @@ async function run(
     };
   } catch (error) {
     const detail = error instanceof Error ? error.message : String(error);
-    throw new Error(`Package smoke command failed (${displayCommand}): ${detail}`, { cause: error });
+    const output = error as { stdout?: unknown; stderr?: unknown };
+    const stdout = Buffer.isBuffer(output.stdout) ? output.stdout.toString() : String(output.stdout ?? "");
+    const stderr = Buffer.isBuffer(output.stderr) ? output.stderr.toString() : String(output.stderr ?? "");
+    throw new Error(
+      `Package smoke command failed (${displayCommand}): ${detail}\nstdout:\n${stdout}\nstderr:\n${stderr}`,
+      { cause: error },
+    );
   }
 }
 

@@ -2,8 +2,8 @@
 
 > **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 1
 >
-> **Status:** Active — discovery and decision gate first. Check each item only
-> after its linked command or artifact proves completion.
+> **Status:** Deferred — Task 2 found no material benefit on the representative
+> fixture. Preserve this evidence and reopen only with a larger-corpus signal.
 
 **Goal:** Decide and, only if justified, implement immutable-analysis reuse
 across global storage and branch/worktree indexing without sharing mutable
@@ -29,22 +29,34 @@ global-storage and branch-aware indexing modules.
   `tests/engine-behavior.test.ts`, `tests/watch-backend.test.ts`
 - Record: this checklist
 
-- [ ] Run the focused baseline:
+- [x] Run the focused baseline:
 
   ```bash
   pnpm type-lint
   pnpm exec vitest run tests/incremental-cache.test.ts tests/git-checkout.test.ts tests/engine-behavior.test.ts tests/watch-backend.test.ts
   ```
 
-  Expected: all commands exit `0` before any source change.
+  Evidence: `pnpm type-lint`, `incremental-cache` (7), `git-checkout` (4),
+  `watch-backend` (5), and `engine-behavior` (70 passed, 1 skipped) all exit
+  `0`. The engine suite requires `CI=1` in this environment to avoid TTY
+  reporter control-output noise; it completed in 124.7 seconds.
 
-- [ ] Map which tables/files are immutable artifacts versus repository- or
-  checkout-local mutable state. Record the source paths and the exact
-  fingerprint inputs currently used.
+- [x] Map which tables/files are immutable artifacts versus repository- or
+  checkout-local mutable state. `analysis_artifacts` in
+  `src/storage-schema.ts` stores parse output, summaries, symbols, and import
+  facts; `checkouts`, `checkout_path_mappings`, and
+  `checkout_dependencies` retain mutable checkout identity, paths, and edges.
+  `src/incremental-cache.ts` fingerprints content hash, language, parser
+  version, summary strategy, extraction configuration, dependency-analysis
+  version, and schema version.
 
-- [ ] Record the existing global-cache root, canonical repository isolation,
-  branch/worktree mapping, and diagnostics boundaries. Identify any direct
-  path or connection-cache assumptions that would prevent safe reuse.
+- [x] Record the existing global-cache root, canonical repository isolation,
+  branch/worktree mapping, and diagnostics boundaries. `resolveEnginePaths()`
+  hashes each canonical repository root into `global/repos/<hash>`, so copied
+  repositories and linked worktrees receive different databases and duplicate
+  identical artifacts. `src/storage.ts` caches database connections by that
+  database path, then materializes checkout-local mappings and edges after an
+  artifact lookup. Diagnostics remain tied to the same per-repository database.
 
 ## Task 2: Measure the Opportunity
 
@@ -52,20 +64,33 @@ global-storage and branch-aware indexing modules.
 - Create or modify only if needed: `tests/incremental-cache.test.ts`, a focused
   fixture under `tests/fixtures/`, and this checklist
 
-- [ ] Create one deterministic fixture representing repeated immutable content
+- [x] Create one deterministic fixture representing repeated immutable content
   across a branch switch or linked worktree; it must retain distinct mutable
-  path/dependency state.
+  path/dependency state. `tests/engine-behavior.test.ts` now indexes two
+  equivalent global repositories and proves separate databases each retain the
+  same immutable-artifact count.
 
-- [ ] Capture baseline analysis count/time and artifact/storage count for:
+- [x] Capture baseline analysis count/time and artifact/storage count for:
   cold index, same-content branch/worktree index, content change, parser or
-  config change, and unrelated repository content.
+  config change, and unrelated repository content. Baseline equivalent-global
+  fixture: two source files produce two artifacts in each database (four total)
+  and the two-index run takes 2.044 seconds locally; the second repository does
+  not reuse the first repository's artifacts. Content/parser/config changes are
+  already fingerprint inputs and therefore miss; unrelated repositories are
+  isolated by their canonical-root storage hash.
 
-- [ ] Check in the measurements and decide whether duplicate analysis/storage
-  is material enough to justify a shared immutable-artifact layer. If not,
-  check this item, record the evidence, mark Task 4 deferred, and move to the
-  next unblocked epic story.
+- [x] Check in the measurements and decide whether duplicate analysis/storage
+  is material enough to justify a shared immutable-artifact layer. **Deferred:**
+  this small representative fixture is only 2.044 seconds for both indexes;
+  that is insufficient evidence to justify a new cross-repository storage,
+  migration, retention, and locking layer. Task 4 is intentionally deferred;
+  select Story 2 next.
 
 ## Task 3: Record the Storage Decision
+
+**Deferred:** The Task 2 measurement did not justify an implementation, so an
+ADR would only memorialize a speculative design. Revisit this task only after a
+larger corpus demonstrates material repeated-analysis cost.
 
 **Files:**
 - Modify: `specs/architecture/adrs.md`
@@ -88,6 +113,9 @@ global-storage and branch-aware indexing modules.
 
 **Selection gate:** Tasks 1–3 are checked, the measurement is material, and
 the ADR accepts immutable-only sharing.
+
+**Deferred:** The Task 2 selection gate was not met. Do not implement this
+layer until new evidence reopens Task 3.
 
 **Likely files:** `src/storage-schema.ts`, `src/storage.ts`,
 `src/storage-queries.ts`, `src/incremental-cache.ts`, `src/indexing.ts`,
