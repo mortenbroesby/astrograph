@@ -120,7 +120,9 @@ export async function appendEngineEvent(
       repoConfig.observability.redactSourceText,
     ) as Record<string, unknown>,
   });
-  const paths = resolveEnginePaths(repoConfig.repoRoot);
+  const paths = resolveEnginePaths(repoConfig.repoRoot, {
+    storageLocation: repoConfig.storageLocation,
+  });
   const line = `${JSON.stringify(envelope)}\n`;
 
   writeQueue = writeQueue.then(async () => {
@@ -151,7 +153,9 @@ export async function readRecentEngineEvents(input: {
   limit?: number;
 }): Promise<EngineEventEnvelope[]> {
   const repoConfig = await loadRepoEngineConfig(input.repoRoot);
-  const paths = resolveEnginePaths(repoConfig.repoRoot);
+  const paths = resolveEnginePaths(repoConfig.repoRoot, {
+    storageLocation: repoConfig.storageLocation,
+  });
   const limit = Math.max(1, input.limit ?? 100);
   const contents = await readFile(paths.eventsPath, "utf8").catch(() => "");
 

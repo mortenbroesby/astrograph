@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -6,10 +7,14 @@ import path from "node:path";
 import { z } from "zod";
 
 import { probeGitCheckout } from "./git-checkout.ts";
+import { hashString } from "./hash.ts";
 import { getSupportedLanguages } from "./language-registry.ts";
 import type {
   EngineConfig,
   EnginePaths,
+  GlobalEngineConfig,
+  StorageLocation,
+  StoragePathEnvironment,
   RepoPerformanceConfig,
   RankingPathPresets,
   RankingPathPresetCategory,
@@ -65,6 +70,7 @@ export const DEFAULT_RANKING_WEIGHTS: RankingWeights = {
 };
 
 const SUMMARY_STRATEGIES = new Set<SummaryStrategy>(SUMMARY_STRATEGY_VALUES);
+const STORAGE_LOCATIONS = new Set<StorageLocation>(["repo-local", "global"]);
 
 const SYMBOL_KINDS = new Set<SymbolKind>([
   "function",
@@ -157,12 +163,17 @@ const repoLimitsConfigSchema = z.object({
 const repoEngineConfigSchema = z.object({
   summaryStrategy: z.enum(SUMMARY_STRATEGY_VALUES).optional(),
   storageMode: z.enum(["wal"]).optional(),
+  storageLocation: z.enum(["repo-local", "global"]).optional(),
   observability: repoObservabilityConfigSchema.optional(),
   performance: repoPerformanceConfigSchema.optional(),
   ranking: repoRankingConfigSchema.optional(),
   watch: repoWatchConfigSchema.optional(),
   limits: repoLimitsConfigSchema.optional(),
 }) satisfies z.ZodType<RepoEngineConfig>;
+
+const globalEngineConfigSchema = z.object({
+  storageLocation: z.enum(["repo-local", "global"]).optional(),
+}) satisfies z.ZodType<GlobalEngineConfig>;
 
 type WorkerPoolMaxWorkersValue = number | "auto" | undefined;
 
@@ -231,8 +242,86 @@ function resolveRankingPathPresets(
   ) as Record<RankingPathPresetCategory, string[]>;
 }
 
-export function resolveEnginePaths(repoRoot: string): EnginePaths {
-  const storageDir = path.join(repoRoot, ENGINE_STORAGE_DIRNAME);
+export function resolveGlobalCacheRoot(
+  environment: StoragePathEnvironment = {},
+): string {
+  const platform = environment.platform ?? process.platform;
+  const env = environment.env ?? process.env;
+  const homeDir = environment.homeDir ?? os.homedir;
+  const explicitCacheHome = env.ASTROGRAPH_CACHE_HOME;
+
+  if (explicitCacheHome && path.isAbsolute(explicitCacheHome)) {
+    return path.join(explicitCacheHome, ENGINE_DISPLAY_NAME);
+  }
+
+  if (platform === "win32") {
+    return path.join(
+      env.LOCALAPPDATA || path.join(homeDir(), "AppData", "Local"),
+      ENGINE_DISPLAY_NAME,
+      "cache",
+    );
+  }
+
+  if (platform === "darwin") {
+    return path.join(homeDir(), "Library", "Caches", ENGINE_DISPLAY_NAME);
+  }
+
+  const xdgCacheHome = env.XDG_CACHE_HOME;
+  const cacheHome = xdgCacheHome && path.isAbsolute(xdgCacheHome)
+    ? xdgCacheHome
+    : path.join(homeDir(), ".cache");
+  return path.join(cacheHome, ENGINE_DISPLAY_NAME);
+}
+
+export function resolveGlobalConfigPath(
+  environment: StoragePathEnvironment = {},
+): string {
+  const platform = environment.platform ?? process.platform;
+  const env = environment.env ?? process.env;
+  const homeDir = environment.homeDir ?? os.homedir;
+
+  if (platform === "win32") {
+    return path.join(
+      env.APPDATA || path.join(homeDir(), "AppData", "Roaming"),
+      ENGINE_DISPLAY_NAME,
+      "config.json",
+    );
+  }
+
+  if (platform === "darwin") {
+    return path.join(homeDir(), "Library", "Application Support", ENGINE_DISPLAY_NAME, "config.json");
+  }
+
+  const xdgConfigHome = env.XDG_CONFIG_HOME;
+  const configHome = xdgConfigHome && path.isAbsolute(xdgConfigHome)
+    ? xdgConfigHome
+    : path.join(homeDir(), ".config");
+  return path.join(configHome, ENGINE_DISPLAY_NAME, "config.json");
+}
+
+export function resolveEnginePaths(
+  repoRoot: string,
+  options: {
+    storageLocation?: StorageLocation;
+    environment?: StoragePathEnvironment;
+  } = {},
+): EnginePaths {
+  const storageLocation = options.storageLocation ?? "repo-local";
+  const resolvedRepoRoot = path.resolve(repoRoot);
+  const canonicalRepoRoot = (() => {
+    try {
+      return realpathSync.native(resolvedRepoRoot);
+    } catch {
+      return resolvedRepoRoot;
+    }
+  })();
+  const storageDir = storageLocation === "global"
+    ? path.join(
+      resolveGlobalCacheRoot(options.environment),
+      "repos",
+      hashString(canonicalRepoRoot, "integrity").replace("sha256:", ""),
+    )
+    : path.join(resolvedRepoRoot, ENGINE_STORAGE_DIRNAME);
 
   return {
     storageDir,
@@ -249,14 +338,18 @@ export async function resolveEngineRepoRoot(repoRoot: string): Promise<string> {
   return (await probeGitCheckout({ repoRoot: absoluteRepoRoot })).repoRoot;
 }
 
-function createDefaultResolvedRepoEngineConfig(
+async function createDefaultResolvedRepoEngineConfig(
   repoRoot: string,
-): ResolvedRepoEngineConfig {
+  environment?: StoragePathEnvironment,
+): Promise<ResolvedRepoEngineConfig> {
+  const global = await loadGlobalEngineConfig(environment);
   return {
     configPath: null,
+    globalConfigPath: global.configPath,
     repoRoot,
     summaryStrategy: DEFAULT_SUMMARY_STRATEGY,
     storageMode: "wal",
+    storageLocation: global.data.storageLocation ?? "repo-local",
     observability: {
       enabled: false,
       host: DEFAULT_OBSERVABILITY_HOST,
@@ -292,6 +385,37 @@ function createDefaultResolvedRepoEngineConfig(
   };
 }
 
+async function loadGlobalEngineConfig(
+  environment?: StoragePathEnvironment,
+): Promise<{ configPath: string | null; data: GlobalEngineConfig }> {
+  const configPath = resolveGlobalConfigPath(environment);
+  const contents = await readFile(configPath, "utf8").catch((error: unknown) => {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  });
+  if (contents === null) {
+    return { configPath: null, data: {} };
+  }
+
+  let parsedJson: unknown;
+  try {
+    parsedJson = JSON.parse(contents);
+  } catch (error) {
+    throw new Error(
+      `Invalid global Astrograph config: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+  const parsed = globalEngineConfigSchema.safeParse(parsedJson);
+  if (!parsed.success) {
+    throw new Error(
+      `Invalid global Astrograph config: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+    );
+  }
+  return { configPath, data: parsed.data };
+}
+
 function resolveEngineConfigFromParsed(
   configPath: string,
   resolvedRepoRoot: string,
@@ -300,9 +424,11 @@ function resolveEngineConfigFromParsed(
 ): ResolvedRepoEngineConfig {
   return {
     configPath,
+    globalConfigPath: defaults.globalConfigPath,
     repoRoot: resolvedRepoRoot,
     summaryStrategy: data.summaryStrategy ?? defaults.summaryStrategy,
     storageMode: data.storageMode ?? defaults.storageMode,
+    storageLocation: data.storageLocation ?? defaults.storageLocation,
     observability: {
       enabled: data.observability?.enabled ?? defaults.observability.enabled,
       host: data.observability?.host ?? defaults.observability.host,
@@ -340,12 +466,15 @@ function resolveEngineConfigFromParsed(
 
 export async function loadRepoEngineConfig(
   repoRoot: string,
-  options: { repoRootResolved?: boolean } = {},
+  options: { repoRootResolved?: boolean; environment?: StoragePathEnvironment } = {},
 ): Promise<ResolvedRepoEngineConfig> {
   const resolvedRepoRoot = options.repoRootResolved
     ? repoRoot
     : await resolveEngineRepoRoot(repoRoot);
-  const defaults = createDefaultResolvedRepoEngineConfig(resolvedRepoRoot);
+  const defaults = await createDefaultResolvedRepoEngineConfig(
+    resolvedRepoRoot,
+    options.environment,
+  );
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
   const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
 
@@ -365,7 +494,10 @@ export async function loadRepoEngineConfig(
         `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
       );
     }
-    return resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults);
+    return applyExplicitStorageLocation(
+      resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
+      options.environment,
+    );
   }
 
   const legacyContents = await readFile(legacyConfigPath, "utf8")
@@ -377,7 +509,7 @@ export async function loadRepoEngineConfig(
     });
 
   if (legacyContents === null) {
-    return defaults;
+    return applyExplicitStorageLocation(defaults, options.environment);
   }
 
   let parsedJson: unknown;
@@ -396,7 +528,19 @@ export async function loadRepoEngineConfig(
     );
   }
 
-  return resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults);
+  return applyExplicitStorageLocation(
+    resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults),
+    options.environment,
+  );
+}
+
+function applyExplicitStorageLocation(
+  config: ResolvedRepoEngineConfig,
+  environment?: StoragePathEnvironment,
+): ResolvedRepoEngineConfig {
+  const value = (environment?.env ?? process.env).ASTROGRAPH_STORAGE_LOCATION;
+  if (value === undefined || value === "") return config;
+  return { ...config, storageLocation: parseStorageLocation(value) };
 }
 
 export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
@@ -446,6 +590,22 @@ export function isSummaryStrategy(value: unknown): value is SummaryStrategy {
   return typeof value === "string" && SUMMARY_STRATEGIES.has(value as SummaryStrategy);
 }
 
+export function isStorageLocation(value: unknown): value is StorageLocation {
+  return typeof value === "string" && STORAGE_LOCATIONS.has(value as StorageLocation);
+}
+
+export function parseStorageLocation(
+  value: unknown,
+  label = "storageLocation",
+): StorageLocation {
+  if (!isStorageLocation(value)) {
+    throw new Error(
+      `Unsupported ${label}: ${String(value)}. Expected one of: ${[...STORAGE_LOCATIONS].join(", ")}`,
+    );
+  }
+  return value;
+}
+
 export function parseSummaryStrategy(
   value: unknown,
   label = "summaryStrategy",
@@ -484,6 +644,7 @@ export function createDefaultEngineConfig(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
   storageMode?: EngineConfig["storageMode"];
+  storageLocation?: StorageLocation;
   indexInclude?: string[];
   indexExclude?: string[];
   rankingWeights?: RankingWeights;
@@ -504,6 +665,7 @@ export function createDefaultEngineConfig(input: {
     languages: getSupportedLanguages(),
     respectGitIgnore: true,
     storageMode: input.storageMode ?? "wal",
+    storageLocation: input.storageLocation ?? "repo-local",
     staleStatus: "unknown",
     summaryStrategy:
       input.summaryStrategy === undefined
@@ -530,6 +692,8 @@ export function createDefaultEngineConfig(input: {
         [...(input.rankingPathPresets?.[category] ?? [])],
       ]),
     ) as Record<RankingPathPresetCategory, string[]>,
-    paths: resolveEnginePaths(input.repoRoot),
+    paths: resolveEnginePaths(input.repoRoot, {
+      storageLocation: input.storageLocation ?? "repo-local",
+    }),
   };
 }

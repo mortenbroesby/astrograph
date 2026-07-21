@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it as baseIt } from "vitest";
 import {
   ASTROGRAPH_PACKAGE_VERSION,
   ASTROGRAPH_VERSION_PARTS,
+  appendEngineEvent,
   diagnostics,
   doctor,
   getContextBundle,
@@ -507,6 +508,98 @@ module.exports = {
     expect(checkout?.canonical_root).toBe(canonicalRepoRoot);
   });
 
+  it("keeps global index, sidecars, and events together in an isolated cache directory", async () => {
+    const repoRoot = await createFixtureRepo({
+      directoryPrefix: "astrograph global storage fixture-",
+    });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-cache-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+
+      await indexFolder({ repoRoot });
+      await appendEngineEvent({
+        repoRoot,
+        source: "health",
+        event: "test.global-storage",
+        level: "info",
+      });
+
+      const canonicalRepoRoot = await realpath(repoRoot);
+      const paths = resolveEnginePaths(canonicalRepoRoot, { storageLocation: "global" });
+      const health = await diagnostics({ repoRoot });
+
+      expect(health.storageDir).toBe(paths.storageDir);
+      expect(health.databasePath).toBe(paths.databasePath);
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.databasePath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.repoMetaPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.integrityPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.storageVersionPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.readFile(paths.eventsPath, "utf8"))).resolves.toContain("test.global-storage");
+      await expect(import("node:fs/promises").then((fs) => fs.stat(path.join(canonicalRepoRoot, ".astrograph")))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      if (previousCacheHome === undefined) {
+        delete process.env.ASTROGRAPH_CACHE_HOME;
+      } else {
+        process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      }
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates global caches for repositories with equal fixture layouts", async () => {
+    const firstRepo = await createFixtureRepo({ directoryPrefix: "astrograph global isolation-a-" });
+    const secondRepo = await createFixtureRepo({ directoryPrefix: "astrograph global isolation-b-" });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-isolation-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await Promise.all([firstRepo, secondRepo].map((repoRoot) =>
+        writeFile(
+          path.join(repoRoot, "astrograph.config.json"),
+          JSON.stringify({ storageLocation: "global" }),
+        ),
+      ));
+      await writeFile(
+        path.join(secondRepo, "src", "global-only.ts"),
+        "export function globalOnlyRepositorySymbol() { return 42; }\n",
+      );
+
+      await indexFolder({ repoRoot: firstRepo });
+      await indexFolder({ repoRoot: secondRepo });
+
+      const firstRoot = await realpath(firstRepo);
+      const secondRoot = await realpath(secondRepo);
+      const firstPaths = resolveEnginePaths(firstRoot, { storageLocation: "global" });
+      const secondPaths = resolveEnginePaths(secondRoot, { storageLocation: "global" });
+      expect(firstPaths.storageDir).not.toBe(secondPaths.storageDir);
+
+      const firstResults = await searchSymbols({
+        repoRoot: firstRepo,
+        query: "globalOnlyRepositorySymbol",
+      });
+      const secondResults = await searchSymbols({
+        repoRoot: secondRepo,
+        query: "globalOnlyRepositorySymbol",
+      });
+      expect(firstResults).toEqual([]);
+      expect(secondResults.map((result) => result.name)).toContain("globalOnlyRepositorySymbol");
+    } finally {
+      if (previousCacheHome === undefined) {
+        delete process.env.ASTROGRAPH_CACHE_HOME;
+      } else {
+        process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      }
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
   it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
     const repoRoot = await createFixtureRepo();
 
@@ -642,6 +735,33 @@ module.exports = {
     await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
       .resolves.toContain('"version": 1');
+  });
+
+  it("preserves an incompatible global cache for explicit recovery", async () => {
+    const repoRoot = await createFixtureRepo();
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-recovery-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const fs = await import("node:fs/promises");
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+      const paths = resolveEnginePaths(await realpath(repoRoot), { storageLocation: "global" });
+      await fs.mkdir(paths.storageDir, { recursive: true });
+      await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+      const preservedPath = path.join(paths.storageDir, "preserve-me.json");
+      await fs.writeFile(preservedPath, "preserved");
+
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/contents were preserved/i);
+      await expect(fs.readFile(preservedPath, "utf8")).resolves.toBe("preserved");
+    } finally {
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      await rm(cacheHome, { recursive: true, force: true });
+    }
   });
 
   it("supports symbol and text search plus exact retrieval", async () => {

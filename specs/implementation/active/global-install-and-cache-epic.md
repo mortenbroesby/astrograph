@@ -1,7 +1,9 @@
 # Global Install and Cache Epic
 
-> **Status:** In progress — Story 1 is active through the
-> [Global Storage Contract Delivery Checklist](./global-storage-contract-delivery-checklist.md).
+> **Status:** In progress — the storage resolver, global Codex registration,
+> per-repository cache routing, conservative migration, and initial cache
+> controls are implemented. The remaining acceptance criteria below are still
+> active. Story 6 remains explicitly deferred.
 >
 > **Related contracts:** [CLI API](../../api-design/cli-api.md),
 > [MCP Tools](../../api-design/mcp-tools.md), and
@@ -41,6 +43,37 @@ Every source-changing story uses an isolated worktree. Before each commit it
 runs `pnpm check:version-bump`; the final story runs `pnpm release:plan`. A
 story may start only after its child delivery checklist names exact files,
 baseline commands, focused tests, final checks, and a commit checkpoint.
+
+**Deferred story handoffs:** Story 6 remains deferred; the original Stories 2–7 handoffs are in
+[Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md).
+They are not authorized for implementation until their selection gates are met
+and an active checklist is created from that handoff.
+
+## Remaining Delivery Work
+
+Implementation acceptance is complete. The remaining work is the merge and
+guarded release workflow, not further feature implementation.
+
+1. **Merge and release proof (Story 7):** the focused global suites, full test
+   suite, packed-bin flow, type lint, version gate, and release plan have run
+   on this branch. `pnpm release:plan` selects a **minor** release and refuses
+   publication before `main`, as designed. After merge, rerun the guarded
+   main-only apply flow; do not tag manually.
+
+**Completed Story 2 acceptance:** global installation now rejects unsupported
+Node, a missing `astrograph` command on `PATH`, and unreadable/unwritable user
+configuration paths before registration is written. Focused contract tests
+cover each remediation path.
+
+**Completed Stories 1 and 3–5 acceptance:** the typed resolver supports
+explicit CLI, repository, and user-default precedence; global caches are
+canonical-repository isolated across index, events, diagnostics, and watch;
+migration preserves local data through successful, incompatible, unverified,
+and interrupted states; and cache status, migration, removal, and global prune
+are JSON-first, CLI-only, dry-run-safe, lock-aware, and symlink-safe.
+
+Story 6, shared immutable artifacts, stays deferred until its evidence and ADR
+selection gate are met. It is not part of the remaining implementation work.
 
 ## Target User Experience
 

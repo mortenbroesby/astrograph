@@ -20,6 +20,7 @@ async function run(
   command: string,
   args: readonly string[],
   cwd: string,
+  environment: NodeJS.ProcessEnv = {},
 ): Promise<{ stdout: string; stderr: string }> {
   const displayCommand = [command, ...args].map((value) => JSON.stringify(value)).join(" ");
   console.error(`package smoke: ${displayCommand}`);
@@ -31,6 +32,7 @@ async function run(
       cwd,
       env: {
         ...process.env,
+        ...environment,
         CI: "1",
       },
       timeout: 60_000,
@@ -51,11 +53,16 @@ async function main(): Promise<void> {
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
   const fixtureRepo = path.join(tempRoot, "fixture-repo");
+  const secondFixtureRepo = path.join(tempRoot, "fixture-repo-two");
+  const globalHome = path.join(tempRoot, "global-home");
+  const globalCacheHome = path.join(tempRoot, "global-cache");
 
   try {
     await mkdir(packDir, { recursive: true });
     await mkdir(installDir, { recursive: true });
+    await mkdir(globalHome, { recursive: true });
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
+    await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
     await writeFile(
       path.join(installDir, "package.json"),
@@ -76,6 +83,10 @@ async function main(): Promise<void> {
         "",
       ].join("\n"),
     );
+    await writeFile(
+      path.join(secondFixtureRepo, "src", "catalog.ts"),
+      "export const catalogOnly = () => \"two\";\n",
+    );
 
     await run("git", ["init"], fixtureRepo);
     await run("git", ["add", "."], fixtureRepo);
@@ -83,6 +94,13 @@ async function main(): Promise<void> {
       "git",
       ["-c", "user.name=Codex", "-c", "user.email=codex@example.com", "commit", "-m", "init"],
       fixtureRepo,
+    );
+    await run("git", ["init"], secondFixtureRepo);
+    await run("git", ["add", "."], secondFixtureRepo);
+    await run(
+      "git",
+      ["-c", "user.name=Codex", "-c", "user.email=codex@example.com", "commit", "-m", "init"],
+      secondFixtureRepo,
     );
 
     await run("pnpm", ["pack", "--pack-destination", packDir], packageRoot);
@@ -163,6 +181,69 @@ async function main(): Promise<void> {
     if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
       throw new Error(`Expected astrograph init --agents to write code exploration policy: ${installResult.stdout}`);
     }
+
+    const globalInstall = await run(
+      "pnpm",
+      ["exec", "astrograph", "install", "--global", "--ide", "codex"],
+      installDir,
+      { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome },
+    );
+    const globalInstalled = JSON.parse(globalInstall.stdout) as {
+      configPreview?: string;
+      engineConfigPreview?: string;
+    };
+    if (!globalInstalled.configPreview?.includes('[mcp_servers.astrograph]')) {
+      throw new Error(`Expected packaged global install to register Codex: ${globalInstall.stdout}`);
+    }
+    if (!globalInstalled.engineConfigPreview?.includes('"storageLocation": "global"')) {
+      throw new Error(`Expected packaged global install to opt into global storage: ${globalInstall.stdout}`);
+    }
+
+    const globalEnvironment = { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome };
+    await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "index-folder", "--repo", fixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "index-folder", "--repo", secondFixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    const { stdout: firstCacheStatus } = await run(
+      "pnpm",
+      ["exec", "astrograph", "cache", "status", "--repo", fixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    const { stdout: secondCacheStatus } = await run(
+      "pnpm",
+      ["exec", "astrograph", "cache", "status", "--repo", secondFixtureRepo],
+      installDir,
+      globalEnvironment,
+    );
+    const firstCache = JSON.parse(firstCacheStatus) as { storageLocation?: string; storageDir?: string };
+    const secondCache = JSON.parse(secondCacheStatus) as { storageLocation?: string; storageDir?: string };
+    if (
+      firstCache.storageLocation !== "global"
+      || secondCache.storageLocation !== "global"
+      || !firstCache.storageDir
+      || firstCache.storageDir === secondCache.storageDir
+    ) {
+      throw new Error(`Expected isolated global cache directories: ${firstCacheStatus} ${secondCacheStatus}`);
+    }
+    const { stdout: isolatedSearch } = await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "search-symbols", "--repo", fixtureRepo, "--query", "catalogOnly"],
+      installDir,
+      globalEnvironment,
+    );
+    if ((JSON.parse(isolatedSearch) as { items?: unknown[] }).items?.length !== 0) {
+      throw new Error(`Global cache isolation failed: ${isolatedSearch}`);
+    }
+    console.error("package smoke: completed successfully");
   } finally {
     // Windows can retain a short-lived handle from the final pnpm child while
     // it exits. Node's bounded retry is preferable to treating a successful

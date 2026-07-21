@@ -8,6 +8,12 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph mcp` starts the stdio MCP server.
 - `astrograph git-refresh <event>` plans or executes index refreshes for git workflows.
 - `astrograph init --ide codex` writes managed local MCP configuration.
+- `astrograph install --global --ide codex` writes only the marker-owned user
+  Codex registration and user Astrograph default; it never edits a repository.
+- `astrograph cache status --repo <path>` returns a versioned JSON cache
+  status. `astrograph cache migrate` and `astrograph cache remove` default to dry-run and require
+  `--yes` to mutate one canonical repository cache. Cache mutations are not MCP
+  tools.
 
 ## JSON CLI Rules
 

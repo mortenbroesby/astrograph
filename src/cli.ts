@@ -12,6 +12,7 @@ import {
 } from "./validation.ts";
 import { COMMAND_REGISTRY } from "./command-registry.ts";
 import * as engine from "./index.ts";
+import { parseStorageLocation } from "./config.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
 
@@ -27,6 +28,9 @@ const BOOLEAN_FLAGS = new Set([
   "include-importers",
   "include-references",
   "json",
+  "yes",
+  "dry-run",
+  "all",
 ]);
 
 const commands: Record<string, CliHandler> = {
@@ -118,6 +122,17 @@ const commands: Record<string, CliHandler> = {
       scanFreshness: args["scan-freshness"] === "true",
     }) as Awaited<ReturnType<typeof engine.doctor>>;
     return args.json === "true" ? result : formatDoctorReport(result);
+  },
+  "cache-status": async (args) => engine.cacheStatus(required(args, "repo")),
+  "cache-migrate": async (args) => engine.migrateLocalCache(required(args, "repo"), args.yes !== "true"),
+  "cache-remove": async (args) => engine.removeGlobalCache(required(args, "repo"), args.yes !== "true"),
+  "cache-prune": async (args) => {
+    if (args.all !== "true") throw new Error("cache prune requires explicit --all scope.");
+    const maxBytes = Number(required(args, "max-bytes"));
+    if (!Number.isSafeInteger(maxBytes) || maxBytes < 0) {
+      throw new Error("--max-bytes must be a non-negative safe integer.");
+    }
+    return engine.pruneGlobalCaches(maxBytes, args.yes !== "true");
   },
 };
 
@@ -313,8 +328,19 @@ export async function handleCli(argv: string[]): Promise<string> {
     throw new Error(`Unknown command: ${command}`);
   }
 
-  const result = await handler(args);
-  return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const explicitStorageLocation = args["storage-location"];
+  if (explicitStorageLocation !== undefined) parseStorageLocation(explicitStorageLocation);
+  const previousStorageLocation = process.env.ASTROGRAPH_STORAGE_LOCATION;
+  if (explicitStorageLocation !== undefined) process.env.ASTROGRAPH_STORAGE_LOCATION = explicitStorageLocation;
+  try {
+    const result = await handler(args);
+    return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  } finally {
+    if (explicitStorageLocation !== undefined) {
+      if (previousStorageLocation === undefined) delete process.env.ASTROGRAPH_STORAGE_LOCATION;
+      else process.env.ASTROGRAPH_STORAGE_LOCATION = previousStorageLocation;
+    }
+  }
 }
 
 function formatAge(indexAgeMs: number | null): string {

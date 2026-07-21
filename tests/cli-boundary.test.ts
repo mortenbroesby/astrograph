@@ -1,4 +1,5 @@
-import { realpath } from "node:fs/promises";
+import { realpath, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -11,6 +12,40 @@ afterEach(async () => {
 });
 
 describe("cli boundaries", () => {
+  it("returns a versioned JSON cache status for the explicit repository", async () => {
+    const repoRoot = await createFixtureRepo();
+    const result = JSON.parse(await handleCli(["cache-status", "--repo", repoRoot]));
+    expect(result).toMatchObject({
+      schemaVersion: 1,
+      repoRoot: await realpath(repoRoot),
+      storageLocation: "repo-local",
+      migration: "not-needed",
+    });
+  });
+
+  it("requires explicit all-cache scope before pruning", async () => {
+    await expect(handleCli(["cache-prune", "--max-bytes", "0"])).rejects.toThrow(
+      /cache prune requires explicit --all scope/i,
+    );
+  });
+
+  it("lets explicit CLI storage selection override repository configuration for one command", async () => {
+    const repoRoot = await createFixtureRepo();
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "global" }),
+    );
+    const result = JSON.parse(await handleCli([
+      "cache-status",
+      "--repo",
+      repoRoot,
+      "--storage-location",
+      "repo-local",
+    ]));
+    expect(result.storageLocation).toBe("repo-local");
+    expect(process.env.ASTROGRAPH_STORAGE_LOCATION).toBeUndefined();
+  });
+
   it("rejects malformed CLI numeric and enum arguments", async () => {
     const repoRoot = await createFixtureRepo();
 

@@ -24,11 +24,15 @@ export {
   defineConfig,
   isSymbolKind,
   isSummaryStrategy,
+  isStorageLocation,
   loadRepoEngineConfig,
   normalizeSummaryStrategy,
   parseSymbolKind,
   parseSummaryStrategy,
+  parseStorageLocation,
   resolveEngineRepoRoot,
+  resolveGlobalConfigPath,
+  resolveGlobalCacheRoot,
   resolveEnginePaths,
 } from "./config.ts";
 export {
@@ -67,6 +71,13 @@ export {
   emitEngineEvent,
   readRecentEngineEvents,
 } from "./event-sink.ts";
+export {
+  cacheStatus,
+  migrateLocalCache,
+  pruneGlobalCaches,
+  removeGlobalCache,
+} from "./cache-control.ts";
+export type { CacheMutationResult, CachePruneResult, CacheStatus } from "./cache-control.ts";
 
 export type {
   AstrographVersionParts,
@@ -78,6 +89,7 @@ export type {
   EngineEventSource,
   EngineConfig,
   EnginePaths,
+  GlobalEngineConfig,
   EngineToolName,
   RepoEngineConfig,
   RepoObservabilityConfig,
@@ -122,6 +134,8 @@ export type {
   SearchTextMatch,
   StaleStatus,
   StorageMode,
+  StorageLocation,
+  StoragePathEnvironment,
   SupportTier,
   SymbolKind,
   SymbolSourceItem,
