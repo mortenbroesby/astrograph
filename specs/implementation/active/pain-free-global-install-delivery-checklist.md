@@ -67,5 +67,14 @@ and global storage contracts.
   global Codex install, two repository indexes, both cache-status calls, and a
   retrieval query successfully.
 
+- [x] Diagnose the exact-head Windows CI failure before merging. The large-file
+  tree-sitter recovery test reached its 15-second default timeout and left its
+  SQLite fixture locked during teardown. Give that deliberately large recovery
+  case a 45-second timeout; the focused test then passed locally in 1.78
+  seconds.
+
+- [ ] Re-run the Windows compatibility test matrix and package smoke on the
+  repaired exact PR head.
+
 - [ ] Commit source/test/doc changes, push a PR, and merge only after the exact
   head passes Fast required checks and Windows compatibility/package smoke.
