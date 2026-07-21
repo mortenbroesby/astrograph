@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { constants as fsConstants, accessSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   isCancel,
@@ -786,7 +787,8 @@ function globalExecutableIsAvailable(environment: StoragePathEnvironment): boole
     extensions.some((extension) => {
       const candidate = path.join(entry, `astrograph${extension}`);
       try {
-        return execFileSync(candidate, ["--help"], { stdio: "ignore" }) === undefined;
+        accessSync(candidate, fsConstants.X_OK);
+        return true;
       } catch {
         return false;
       }
