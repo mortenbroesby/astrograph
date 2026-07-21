@@ -16,7 +16,7 @@
   <a href="https://www.npmjs.com/package/astrograph"><img alt="npm" src="https://img.shields.io/npm/v/astrograph?color=0f172a&label=npm"></a>
   <a href="https://github.com/mortenbroesby/astrograph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mortenbroesby/astrograph/ci.yml?branch=main&label=ci"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-14b8a6"></a>
-  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D24-6366f1">
+  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D22.12.0-6366f1">
 </p>
 
 <p align="center">
@@ -112,16 +112,11 @@ code so it can retrieve less and understand more.
 
 ### 1) Install
 
-Use dependency-based setup if you want `astrograph` available in repo scripts:
+Use dependency-based setup if you want `astrograph` available in repository
+scripts:
 
 ```bash
 npm install -D astrograph
-```
-
-If you prefer one-shot setup without a prior install:
-
-```bash
-npx astrograph init
 ```
 
 For one user-level Codex MCP registration and an isolated cache for every
@@ -137,14 +132,15 @@ MCP call still supplies its repository root, so this is not one shared index.
 
 ### 2) Configure MCP
 
-Run the installer:
+Run the installer from the repository you want to index:
 
 ```bash
 npx astrograph init
 ```
 
-That writes MCP configuration for your target editor or agent client and
-preserves unrelated local config.
+This writes MCP configuration for your target editor or agent client and
+preserves unrelated local config. `npx` downloads and runs Astrograph when it
+is not already installed locally.
 
 If you want non-interactive setup:
 
