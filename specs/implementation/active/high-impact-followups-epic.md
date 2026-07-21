@@ -2,7 +2,8 @@
 
 > **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
 > Story 3 is complete locally and Story 4 has selected Precision Story 1.
-> Stories 5–6 remain dependent or externally blocked.
+> Stories 5–6 remain dependent or externally blocked; Story 7 is the final
+> pre-v1 cleanup story.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -208,6 +209,32 @@ release evidence.
 **Acceptance evidence:** The selected existing checklist—not this epic—records
 the native Windows and/or release CI proof for the exact merged commit.
 
+## Story 7: Pre-v1 Cache and Codebase Cleanup
+
+**Status:** Planned — select only after the preceding retrieval and delivery
+stories have reached their evidence gates.
+
+**Outcome:** Before v1, Astrograph keeps no compatibility burden for obsolete
+cache formats or superseded internal paths, and has a concise evidence-backed
+list of remaining cleanup work.
+
+**Scope:** Inventory all cache/version/migration compatibility behavior and
+make the direct pre-v1 decision for each: delete an old cache, or soft-delete
+it by moving it to a timestamped, clearly disposable location. Do not migrate
+or read an obsolete cache merely to preserve compatibility. Inventory code
+smells, dead code, duplicate contracts, stale docs/specs, and unnecessary
+fallbacks; select only the highest-impact removals with focused tests.
+
+**Selection gate:** First map every storage version check, migration path,
+cache-root lifecycle, and cleanup safety boundary. Then produce a ranked,
+evidence-backed smell inventory tied to exact files and tests. Do not turn the
+inventory into a broad refactor campaign.
+
+**Acceptance evidence:** Fixtures prove an obsolete cache is either removed or
+moved aside without being read, indexed, or migrated; active caches and paths
+outside Astrograph-owned storage are never deleted. The selected cleanup list
+records each removal, its verification, and every intentionally deferred item.
+
 ## Non-Goals
 
 - A shared mutable index, global source search across repositories, background
@@ -217,6 +244,8 @@ the native Windows and/or release CI proof for the exact merged commit.
   trackers.
 - Treating optional semantic retrieval as a prerequisite for local lexical
   value.
+- Preserving obsolete cache data or public/internal compatibility solely for a
+  pre-v1 migration path.
 
 ## Definition of Done
 
@@ -228,3 +257,5 @@ the native Windows and/or release CI proof for the exact merged commit.
   JSON behavior.
 - [ ] Measured user benefit, not a feature count, determines whether each
   candidate continues.
+- [ ] Story 7 removes or soft-deletes obsolete Astrograph caches and records a
+  bounded, evidence-backed cleanup inventory before v1.

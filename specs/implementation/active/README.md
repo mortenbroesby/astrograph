@@ -14,6 +14,9 @@ with the epic, then use its linked checklist for the next executable task.
    — Story 1, provenance-first symbol contract, is selected.
 4. [Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md)
    — establish the current source/symbol identity contract before changing it.
+5. [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md)
+   — Story 2 evidence gate for replacing heuristic ranking with deterministic
+   lexical scoring only where it improves a judged local corpus.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

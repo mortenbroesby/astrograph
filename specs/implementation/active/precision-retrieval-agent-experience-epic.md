@@ -47,6 +47,9 @@ ranges and `get_symbol_source` returns verifiable source provenance. See the
 
 ## Story 2 — Deterministic Lexical Ranking
 
+**Status:** Active — establish a judged fixture and deterministic BM25 ranking
+contract through the [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md).
+
 **Vision:** Natural-language and name queries find the right symbols without a network dependency.
 
 **Goal:** Add deterministic BM25-style ranking over names, qualified names, signatures, summaries, paths, and selected imports; preserve filters as hard constraints.
