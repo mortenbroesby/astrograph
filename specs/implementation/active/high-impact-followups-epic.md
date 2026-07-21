@@ -276,8 +276,9 @@ both as supported first-party installations.
 
 ## Story 9: Pre-v1 Cache and Codebase Cleanup
 
-**Status:** Planned — select only after the preceding retrieval and delivery
-stories have reached their evidence gates.
+**Status:** Active — Stories 7 and 8 are merged with exact-head Fast and
+Windows/package smoke CI evidence. See the
+[delivery checklist](./pre-v1-cache-codebase-cleanup-delivery-checklist.md).
 
 **Outcome:** Before v1, Astrograph keeps no compatibility burden for obsolete
 cache formats or superseded internal paths, and has a concise evidence-backed

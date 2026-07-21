@@ -21,6 +21,9 @@ with the epic, then use its linked checklist for the next executable task.
 6. [Global Copilot CLI Delivery Checklist](./global-copilot-cli-delivery-checklist.md)
    — Story 8 makes Copilot CLI a first-party global installation target with
    the same global-cache workflow as Codex.
+7. [Pre-v1 Cache and Codebase Cleanup Delivery Checklist](./pre-v1-cache-codebase-cleanup-delivery-checklist.md)
+   — Story 9 removes obsolete cache compatibility and records a bounded cleanup
+   inventory before v1.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

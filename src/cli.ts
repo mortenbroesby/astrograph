@@ -124,7 +124,6 @@ const commands: Record<string, CliHandler> = {
     return args.json === "true" ? result : formatDoctorReport(result);
   },
   "cache-status": async (args) => engine.cacheStatus(required(args, "repo")),
-  "cache-migrate": async (args) => engine.migrateLocalCache(required(args, "repo"), args.yes !== "true"),
   "cache-remove": async (args) => engine.removeGlobalCache(required(args, "repo"), args.yes !== "true"),
   "cache-prune": async (args) => {
     if (args.all !== "true") throw new Error("cache prune requires explicit --all scope.");

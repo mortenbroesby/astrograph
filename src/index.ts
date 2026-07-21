@@ -73,7 +73,6 @@ export {
 } from "./event-sink.ts";
 export {
   cacheStatus,
-  migrateLocalCache,
   pruneGlobalCaches,
   removeGlobalCache,
 } from "./cache-control.ts";

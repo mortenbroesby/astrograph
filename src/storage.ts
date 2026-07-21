@@ -627,28 +627,15 @@ async function ensureStorageVersion(
   }
 
   if (currentVersion === null) {
-    if (await storageDirHasContents(config.paths.storageDir)) {
+    if (!await storageDirHasContents(config.paths.storageDir)) {
       await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
-      storageLogger.info({
-        event: "storage.version.backfilled",
-        repoRoot: config.repoRoot,
-        storageDir: config.paths.storageDir,
-        storageVersion: ENGINE_STORAGE_VERSION,
-      });
       return;
     }
-
-    await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
+    await discardObsoleteStorage(config, "missing-or-malformed");
     return;
   }
 
-  if (currentVersion > ENGINE_STORAGE_VERSION) {
-    throw new Error(
-      `Unsupported Astrograph storage version ${currentVersion} in ${config.paths.storageDir}. Current runtime supports ${ENGINE_STORAGE_VERSION}.`,
-    );
-  }
-
-  await resetStorageForVersionMismatch(config, currentVersion);
+  await discardObsoleteStorage(config, String(currentVersion));
 }
 
 async function readStorageVersion(storageVersionPath: string): Promise<number | null> {
@@ -701,22 +688,15 @@ async function storageDirHasContents(storageDir: string): Promise<boolean> {
   return entries.some((entry) => entry !== STORAGE_VERSION_FILENAME);
 }
 
-async function resetStorageForVersionMismatch(
+async function discardObsoleteStorage(
   config: ReturnType<typeof createDefaultEngineConfig>,
-  currentVersion: number,
+  obsoleteVersion: string,
 ) {
-  if (config.storageLocation === "global") {
-    throw new Error(
-      `Global Astrograph cache at ${config.paths.storageDir} has incompatible storage version ${currentVersion}. ` +
-      "Its contents were preserved. Run an explicit migration or rebuild command after reviewing the cache status.",
-    );
-  }
-
   storageLogger.warn({
-    event: "storage.version.reset",
+    event: "storage.version.discarded",
     repoRoot: config.repoRoot,
     storageDir: config.paths.storageDir,
-    fromVersion: currentVersion,
+    obsoleteVersion,
     toVersion: ENGINE_STORAGE_VERSION,
   });
 

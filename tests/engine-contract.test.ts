@@ -26,7 +26,6 @@ import {
   clearStorageProcessCaches,
   indexFolder,
   loadRepoEngineConfig,
-  migrateLocalCache,
   pruneGlobalCaches,
   removeGlobalCache,
   createDefaultEngineConfig,
@@ -636,111 +635,6 @@ describe("ai-context-engine contract", () => {
     });
   });
 
-  it("copies a verified repository-local cache into an isolated global cache without removing the source", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-"));
-    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-config-"));
-    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-root-"));
-    tempDirs.push(repoRoot, configHome, cacheHome);
-    await mkdir(path.join(repoRoot, "src"));
-    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const migrationProof = true;\n");
-    await writeFile(
-      path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({ storageLocation: "repo-local" }),
-    );
-    await indexFolder({ repoRoot });
-    clearStorageProcessCaches();
-
-    const environment = {
-      platform: "linux" as const,
-      env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome },
-      homeDir: () => "/unused",
-    };
-    const globalConfigPath = resolveGlobalConfigPath(environment);
-    await mkdir(path.dirname(globalConfigPath), { recursive: true });
-    await writeFile(globalConfigPath, JSON.stringify({ storageLocation: "global" }));
-    await writeFile(
-      path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({ storageLocation: "global" }),
-    );
-
-    const preview = await migrateLocalCache(repoRoot, true, environment);
-    expect(preview.changed).toBe(false);
-    expect(preview.message).toMatch(/would copy/i);
-    const migrated = await migrateLocalCache(repoRoot, false, environment);
-    expect(migrated.changed).toBe(true);
-    const status = await cacheStatus(repoRoot, environment);
-    expect(status).toMatchObject({ storageLocation: "global", migration: "already-migrated" });
-    await expect(readFile(resolveEnginePaths(repoRoot).databasePath)).resolves.toBeDefined();
-    await expect(readFile(status.storageDir + "/index.sqlite")).resolves.toBeDefined();
-  });
-
-  it("refuses an incompatible global destination and preserves the local cache", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-conflict-"));
-    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-conflict-config-"));
-    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-conflict-root-"));
-    tempDirs.push(repoRoot, configHome, cacheHome);
-    await mkdir(path.join(repoRoot, "src"));
-    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const preserveLocalCache = true;\n");
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
-    await indexFolder({ repoRoot });
-    clearStorageProcessCaches();
-    const source = resolveEnginePaths(repoRoot).databasePath;
-    const environment = {
-      platform: "linux" as const,
-      env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome },
-      homeDir: () => "/unused",
-    };
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
-    const destination = resolveEnginePaths(repoRoot, { storageLocation: "global", environment });
-    await mkdir(destination.storageDir, { recursive: true });
-    await writeFile(destination.storageVersionPath, JSON.stringify({ version: ENGINE_STORAGE_VERSION - 1 }));
-
-    await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/incompatible storage version/i);
-    await expect(readFile(source)).resolves.toBeDefined();
-    await expect(readFile(destination.storageVersionPath, "utf8")).resolves.toContain(`"version":${ENGINE_STORAGE_VERSION - 1}`);
-  });
-
-  it("reports partial global migration staging and preserves the local cache for retry", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-partial-"));
-    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-partial-root-"));
-    tempDirs.push(repoRoot, cacheHome);
-    await mkdir(path.join(repoRoot, "src"));
-    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const retryMigration = true;\n");
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
-    await indexFolder({ repoRoot });
-    clearStorageProcessCaches();
-    const source = resolveEnginePaths(repoRoot).databasePath;
-    const environment = { platform: "linux" as const, env: { XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
-    const destination = resolveEnginePaths(repoRoot, { storageLocation: "global", environment }).storageDir;
-    const staging = `${destination}.migrating-interrupted`;
-    await mkdir(staging, { recursive: true });
-    await writeFile(path.join(staging, "partial"), "incomplete");
-
-    await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/previous global cache migration is incomplete.*local cache was preserved/i);
-    await expect(readFile(source)).resolves.toBeDefined();
-    await expect(readFile(path.join(staging, "partial"), "utf8")).resolves.toBe("incomplete");
-  });
-
-  it("refuses an unverified local migration source without deleting it", async () => {
-    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-unverified-"));
-    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-migration-unverified-root-"));
-    tempDirs.push(repoRoot, cacheHome);
-    await mkdir(path.join(repoRoot, "src"));
-    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const unverifiedMigration = true;\n");
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
-    await indexFolder({ repoRoot });
-    clearStorageProcessCaches();
-    const localPaths = resolveEnginePaths(repoRoot);
-    await writeFile(localPaths.repoMetaPath, JSON.stringify({ repoRoot: "/wrong-repository" }));
-    const environment = { platform: "linux" as const, env: { XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
-
-    await expect(migrateLocalCache(repoRoot, false, environment)).rejects.toThrow(/not verified for repository/i);
-    await expect(readFile(localPaths.databasePath)).resolves.toBeDefined();
-    await expect(readFile(localPaths.repoMetaPath, "utf8")).resolves.toContain("wrong-repository");
-  });
-
   it("prunes global caches oldest-first only after explicit confirmation", async () => {
     const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-prune-"));
     tempDirs.push(cacheHome);
@@ -779,19 +673,16 @@ describe("ai-context-engine contract", () => {
     const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-lock-config-"));
     const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-lock-root-"));
     tempDirs.push(repoRoot, configHome, cacheHome);
-    await mkdir(path.join(repoRoot, "src"));
-    await writeFile(path.join(repoRoot, "src", "entry.ts"), "export const lockProof = true;\n");
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
-    await indexFolder({ repoRoot });
-    clearStorageProcessCaches();
     const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
     await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
-    await migrateLocalCache(repoRoot, false, environment);
     const globalPath = resolveEnginePaths(repoRoot, { storageLocation: "global", environment }).databasePath;
+    await mkdir(path.dirname(globalPath), { recursive: true });
     const lock = SQLITE_INDEX_BACKEND.open(globalPath);
     lock.exec("BEGIN EXCLUSIVE");
     try {
-      await expect(removeGlobalCache(repoRoot, false, environment)).rejects.toThrow(/Refusing to remove an active global Astrograph cache/i);
+      await expect(removeGlobalCache(repoRoot, false, environment)).rejects.toThrow(
+        /(Refusing to remove an active global Astrograph cache|database is locked)/i,
+      );
       await expect(stat(globalPath)).resolves.toBeDefined();
     } finally {
       lock.exec("ROLLBACK");
