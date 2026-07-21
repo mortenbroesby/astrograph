@@ -27,44 +27,68 @@ diagnostic contracts.
   `tests/git-checkout.test.ts`, `tests/incremental-cache.test.ts`
 - Record: this checklist
 
-- [ ] Run the focused CI-mode baseline and record the exact commands/results.
+- [x] Run the focused CI-mode baseline and record the exact commands/results.
+  `CI=1 pnpm type-lint` and 58 focused CLI, engine-contract, Git-checkout,
+  and incremental-cache tests pass.
 
-- [ ] Map the current JSON/text answers for canonical repository identity,
+- [x] Map the current JSON/text answers for canonical repository identity,
   checkout/branch state, local versus global storage, freshness, cache reuse,
   migration state, and Git fallback.
+  Before this change, `cache status` answered canonical root, selected storage
+  location/directory, version, bytes, and migration, while `doctor` answered
+  freshness and storage health. Neither exposed the indexed checkout record,
+  even though it is stored in the cache database.
 
-- [ ] Write only reproducible support/debug examples whose decision cannot be
+- [x] Write only reproducible support/debug examples whose decision cannot be
   made from current outputs. Map every candidate field to one decision.
+  Example: after indexing a named branch or worktree, an operator could locate
+  the selected cache but could not confirm which checkout identity populated
+  it. The decision is whether to reindex the intended checkout.
 
 ## Task 2: Select the Smallest Missing Contract
 
 **Selection gate:** Task 1 identifies a material, reproducible ambiguity.
 
-- [ ] Choose one smallest surface: an existing `cache status`/`doctor` JSON
+- [x] Choose one smallest surface: an existing `cache status`/`doctor` JSON
   field, one checkout diagnostic, or one explicit fallback reason. Do not add
   a duplicate status command or infer a repository from process cwd.
+  **Selected:** add `checkout` to existing `cache status` JSON. It is `null`
+  before an index exists and otherwise reports the persisted checkout mode,
+  repository/head/branch/worktree identity, Git diagnostic, and indexed time.
 
-- [ ] Specify deterministic values for named branch, detached HEAD, linked
+- [x] Specify deterministic values for named branch, detached HEAD, linked
   worktree, unavailable Git, local/global storage, migration state, and stale
   artifacts.
+  The field mirrors the persisted checkout probe: mode is one of
+  `git-branch`, `git-detached`, `git-worktree`, `filesystem`, or
+  `git-unavailable`; unavailable/absent values are explicit `null`. Storage
+  and migration remain the existing top-level deterministic fields. Staleness
+  remains in `doctor`, avoiding a duplicate freshness implementation.
 
-- [ ] Defer the story if existing output already makes each recorded decision
+- [x] Do not defer: the indexed-checkout ambiguity is material and has one
+  bounded existing-surface fix.
   possible.
 
 ## Task 3: Implement Only When Selected
 
-- [ ] Add the selected diagnostic contract and focused fixtures. Keep source
+- [x] Add the selected diagnostic contract and focused fixtures. Keep source
   content and unrelated paths out of output.
 
-- [ ] Update CLI/MCP/API documentation only for the selected public surface.
+- [x] Update CLI/API documentation only for the selected public surface:
+  `README.md`, `docs/reference/cli.md`, and `specs/api-design/cli-api.md`
+  describe the `cache status.checkout` contract. MCP has no cache-status
+  tool, so no MCP contract changed.
 
 - [ ] Do not implement artifact reuse counters unless Story 1 is reopened with
   evidence and provides a real reuse event to report.
 
 ## Task 4: Verify and Handoff
 
-- [ ] Run targeted diagnostics/CLI/checkout tests, `CI=1 pnpm type-lint`,
+- [x] Run targeted diagnostics/CLI/checkout tests, `CI=1 pnpm type-lint`,
   `pnpm check:version-bump`, and `git diff --check`.
+  Evidence: type lint, the 58-test focused baseline, the targeted CLI rerun,
+  packed-package smoke, version guard, and whitespace validation all pass.
 
-- [ ] Check off evidence and update the epic. Merge any implementation only
+- [x] Check off evidence and update the epic. **Complete:** `cache
+  status.checkout` is the selected, tested, documented contract. Merge it only
   after CI verifies the exact commit as closely as main's checks permit.

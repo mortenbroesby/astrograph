@@ -1,7 +1,7 @@
 # High-Impact Product Follow-Ups Epic
 
 > **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
-> Story 3 is next for selection. Stories 3–6 may begin only with their own
+> Story 3 is complete locally and Story 4 is next for selection. Stories 4–6 may begin only with their own
 > active checklist.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
@@ -114,6 +114,12 @@ specific, non-destructive, and idempotent. Repeated repair preserves unrelated
 configuration byte-for-byte and packed-package tests cover the chosen clients.
 
 ## Story 3: Checkout and Cache Transparency
+
+**Status:** Complete locally — `cache status.checkout` now provides the
+persisted checkout identity that populated the selected cache. It is `null`
+before indexing and otherwise reports Git mode, repository/head/branch/worktree
+identity, diagnostic, and indexed time. See the
+[delivery checklist](./global-checkout-cache-transparency-delivery-checklist.md).
 
 **Outcome:** Users and agents can tell which repository/checkout is being used,
 whether results are fresh, and why a cache/artifact was reused or bypassed.

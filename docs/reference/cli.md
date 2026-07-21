@@ -82,6 +82,11 @@ rmdir /s /q .astrograph
 Global cache commands emit stable JSON envelopes with `schemaVersion: 1`.
 They are CLI-only; MCP has no destructive cache tools.
 
+`cache status` includes the canonical repository, selected storage location,
+and the persisted checkout that populated that cache. `checkout` is `null`
+until the repository has been indexed; otherwise it reports its Git mode,
+branch/head/worktree identity, diagnostic, and indexed time.
+
 ```bash
 astrograph cache status --repo /repo
 astrograph cache migrate --repo /repo        # preview only

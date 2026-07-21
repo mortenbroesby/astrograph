@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -14,6 +15,13 @@ afterEach(async () => {
 describe("cli boundaries", () => {
   it("returns a versioned JSON cache status for the explicit repository", async () => {
     const repoRoot = await createFixtureRepo();
+    execFileSync("git", ["add", "."], { cwd: repoRoot });
+    execFileSync(
+      "git",
+      ["-c", "user.name=Astrograph Test", "-c", "user.email=test@example.com", "commit", "-m", "fixture"],
+      { cwd: repoRoot },
+    );
+    await indexFolder({ repoRoot });
     const result = JSON.parse(await handleCli(["cache-status", "--repo", repoRoot]));
     expect(result).toMatchObject({
       schemaVersion: 1,
@@ -21,6 +29,15 @@ describe("cli boundaries", () => {
       storageLocation: "repo-local",
       migration: "not-needed",
     });
+    expect(result.checkout).toMatchObject({
+      mode: "git-branch",
+      repositoryId: null,
+      headOid: expect.stringMatching(/^[a-f0-9]{40}$/),
+      branchRef: expect.any(String),
+      worktreePath: await realpath(repoRoot),
+      diagnostic: null,
+    });
+    expect(result.checkout.indexedAt).toEqual(expect.any(String));
   });
 
   it("requires explicit all-cache scope before pruning", async () => {
