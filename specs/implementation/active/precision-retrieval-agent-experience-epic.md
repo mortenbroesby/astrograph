@@ -26,9 +26,10 @@
 
 ## Story 1 — Provenance-First Symbol Contract
 
-**Status:** Complete locally — public source/symbol results expose UTF-8 byte
+**Status:** Complete — public source/symbol results expose UTF-8 byte
 ranges and `get_symbol_source` returns verifiable source provenance. See the
 [delivery checklist](./provenance-first-symbol-contract-delivery-checklist.md).
+Fast and Windows plan-mode CI passed for the exact source head.
 
 **Vision:** A symbol is a verifiable address into one exact source version.
 

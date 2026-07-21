@@ -28,12 +28,21 @@ pnpm, Vitest, existing retrieval/config contracts.
 - Create: focused judged fixture/test only if none exists
 - Record: this checklist
 
-- [ ] Run the focused CI-mode ranking baseline and record command, pass count,
+- [x] Run the focused CI-mode ranking baseline and record command, pass count,
   warm latency, and index-size evidence.
+  `CI=1 pnpm exec vitest run --no-file-parallelism
+  tests/engine-behavior.test.ts --testNamePattern='ranks generator|path
+  presets|overlapping preset|substring search|repo-config ranking'` passes 5
+  focused tests in 14.91 seconds. Per-query warm latency and index-size delta
+  remain unmeasured until the judged fixture exists.
 
-- [ ] Record the current contract: FTS5 unicode61 provides a candidate
+- [x] Record the current contract: FTS5 unicode61 provides a candidate
   shortlist; weighted exact/prefix/contains scoring plus intent/path bonuses
   determines order. Filters are already hard SQL constraints.
+  `symbol_search` uses FTS5 `unicode61`, but `loadSymbolRows()` takes an
+  unordered shortlist and `scoreSymbolRow()` supplies the final heuristic
+  score. This is deterministic with stable tie-breaking, but not a BM25
+  ranking contract and has no recorded quality metrics.
 
 - [ ] Add a small deterministic judged fixture containing exact-name, acronym,
   natural-language, path-scoped, and no-result queries with expected top-k

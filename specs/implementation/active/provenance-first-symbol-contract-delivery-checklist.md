@@ -106,4 +106,6 @@ returned slice using existing fields.
 - [x] Update this checklist, the Precision Epic, and the high-impact epic with
   measured evidence and the release decision. **Complete locally:**
   `pnpm release:plan --base v0.4.4-alpha.133` selected minor; apply set
-  `0.5.0-alpha.135`. Merge only after CI validates the exact commit.
+  `0.5.0-alpha.135`. **CI evidence:** safe plan-mode CI run `29870153711`
+  passed Fast required checks and Windows compatibility for exact source head
+  `ba709bb`. Merge only after CI validates the final PR head.
