@@ -8,6 +8,7 @@ import {
   resolveEngineRepoRoot,
   resolveGlobalCacheRoot,
 } from "./config.ts";
+import { getCheckoutByCanonicalRoot } from "./checkout-mapping.ts";
 import { readRepoMeta } from "./repo-meta.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
@@ -22,6 +23,15 @@ export interface CacheStatus {
   bytes: number;
   exists: boolean;
   migration: "not-needed" | "available" | "already-migrated" | "source-unverified";
+  checkout: {
+    mode: "git-branch" | "git-detached" | "git-worktree" | "filesystem" | "git-unavailable";
+    repositoryId: string | null;
+    headOid: string | null;
+    branchRef: string | null;
+    worktreePath: string | null;
+    diagnostic: string | null;
+    indexedAt: string;
+  } | null;
 }
 
 export interface CacheMutationResult {
@@ -112,6 +122,30 @@ async function validateCache(storageDir: string, repoRoot: string): Promise<void
   try { db.prepare("PRAGMA quick_check").get(); } finally { db.close(); }
 }
 
+async function readIndexedCheckout(
+  databasePath: string,
+  canonicalRoot: string,
+): Promise<CacheStatus["checkout"]> {
+  const database = await lstat(databasePath).catch(() => null);
+  if (!database?.isFile()) return null;
+
+  const db = SQLITE_INDEX_BACKEND.open(databasePath);
+  try {
+    const checkout = getCheckoutByCanonicalRoot(db, canonicalRoot);
+    return checkout && {
+      mode: checkout.gitMode,
+      repositoryId: checkout.repositoryId,
+      headOid: checkout.headOid,
+      branchRef: checkout.branchRef,
+      worktreePath: checkout.worktreePath,
+      diagnostic: checkout.gitDiagnostic,
+      indexedAt: checkout.updatedAt,
+    };
+  } finally {
+    db.close();
+  }
+}
+
 export async function cacheStatus(
   repoRoot: string,
   environment?: StoragePathEnvironment,
@@ -136,6 +170,7 @@ export async function cacheStatus(
     bytes: await directoryBytes(selected.storageDir),
     exists: selectedExists,
     migration,
+    checkout: await readIndexedCheckout(selected.databasePath, canonicalRoot),
   };
 }
 

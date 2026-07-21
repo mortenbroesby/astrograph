@@ -1,14 +1,14 @@
 # High-Impact Product Follow-Ups Epic
 
-> **Status:** Planned — candidate stories only. Nothing in this document is
-> authorized for implementation until it is explicitly selected, receives its
-> own active delivery checklist, and satisfies the stated evidence gate.
+> **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
+> Story 3 is complete locally and Story 4 is next for selection. Stories 4–6 may begin only with their own
+> active checklist.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
 > and [Astrograph Feedback Consolidation Epic](../closed/astro-feedback-epic.md).
-> It complements—rather than replaces—the [Remaining Delivery Epic](./remaining-delivery-epic.md)
-> and [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md).
+> It complements—rather than replaces—the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md)
+> and [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Turn the largest completed platform investments into the next
 meaningful user outcomes: faster safe work across repositories and checkouts,
@@ -32,10 +32,10 @@ Vitest, GitHub Actions, npm trusted publishing, and existing CLI/MCP contracts.
 ## Priority and Selection Rules
 
 Stories are ordered by impact, not by implementation convenience. A story may
-move to `../active/` only when its selection gate is satisfied and a dedicated
-checklist names exact files, baseline results, focused tests, final checks,
-version decision, review evidence, and commit checkpoint. Source changes use
-an isolated worktree and run `pnpm check:version-bump` before commit.
+begin only when its selection gate is satisfied and a dedicated checklist names
+exact files, baseline results, focused tests, final checks, version decision,
+review evidence, and commit checkpoint. Source changes use an isolated
+worktree and run `pnpm check:version-bump` before commit.
 
 Do not use a candidate story to expand scope opportunistically. If discovery
 shows that a story requires a shared mutable index, network sync, source upload,
@@ -52,6 +52,11 @@ before implementation.
 | 6 | Cross-platform confidence and release automation evidence | Broadens reliable adoption without diluting the user-value work above. | Existing Remaining Delivery Epic | Select and update the existing Windows/release checklist; do not duplicate it here. |
 
 ## Story 1: Global + Branch-Aware Immutable Artifact Reuse
+
+**Status:** Deferred — the representative two-file global fixture duplicated
+four artifacts but took only 2.044 seconds for both indexes. That does not
+justify new cross-repository storage complexity. See the
+[delivery checklist](./global-branch-artifact-reuse-delivery-checklist.md).
 
 **Outcome:** A user who indexes related checkouts or repositories avoids
 repeating validated immutable analysis, while each repository and checkout
@@ -83,6 +88,12 @@ without source content.
 
 ## Story 2: Global Installation Health and Recovery
 
+**Status:** Deferred — the supported global Codex path already has
+preflight, dry-run, marker-owned idempotent writes, permission remediation,
+cache status, and packed-package proof. No distinct recovery contract is
+justified without a reproducible support gap. See the
+[delivery checklist](./global-install-health-recovery-delivery-checklist.md).
+
 **Outcome:** A user can diagnose and safely repair a global Astrograph setup
 without knowing config-file locations or risking unrelated MCP configuration.
 
@@ -104,6 +115,12 @@ configuration byte-for-byte and packed-package tests cover the chosen clients.
 
 ## Story 3: Checkout and Cache Transparency
 
+**Status:** Complete locally — `cache status.checkout` now provides the
+persisted checkout identity that populated the selected cache. It is `null`
+before indexing and otherwise reports Git mode, repository/head/branch/worktree
+identity, diagnostic, and indexed time. See the
+[delivery checklist](./global-checkout-cache-transparency-delivery-checklist.md).
+
 **Outcome:** Users and agents can tell which repository/checkout is being used,
 whether results are fresh, and why a cache/artifact was reused or bypassed.
 
@@ -123,11 +140,17 @@ remain compatible through additive fields only.
 
 ## Story 4: Provenance-First Retrieval and Deterministic Lexical Ranking
 
+**Status:** Blocked — the [Precision Retrieval and Agent Experience
+Epic](../planned/precision-retrieval-agent-experience-epic.md) explicitly
+defers this work until the Remaining Delivery Epic has no executable work.
+Do not bypass that dependency by moving or copying its plan. Re-evaluate when
+the Remaining Delivery tracker closes or explicitly removes this prerequisite.
+
 **Outcome:** Queries return smaller, verifiable, locally ranked source results
 before any optional semantic system is considered.
 
 **Scope:** Select and execute Stories 1–2 of the
-[Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md):
+  [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md):
 stable source/symbol provenance followed by deterministic lexical ranking.
 Do not begin semantic retrieval, remote embeddings, or a vector service in
 this story.
@@ -141,6 +164,10 @@ hash and range; the same corpus/query produces the same ranking with recorded
 precision@k, MRR, zero-result rate, warm latency, and storage delta.
 
 ## Story 5: Token-Budgeted Context and Compact Transport
+
+**Status:** Blocked — depends on Story 4 establishing provenance and lexical
+evidence. Retry only after Story 4 is selected and its acceptance evidence is
+recorded.
 
 **Outcome:** Agents receive coherent, source-attributed task context inside a
 declared budget rather than broad file dumps.
@@ -160,11 +187,17 @@ and round-trip any compact response losslessly.
 
 ## Story 6: Cross-Platform Confidence and Release Automation Evidence
 
+**Status:** Deferred — the next unchecked requirement in the
+[Remaining Delivery Epic](../planned/remaining-delivery-epic.md) is release
+publication evidence. Its dedicated checklist is blocked until a
+release-labelled PR is merged to `main`; Windows work must be selected in that
+epic if its tracker becomes executable again.
+
 **Outcome:** High-impact product work remains usable from supported Windows
 terminals and is released through a fully evidenced guarded path.
 
 **Scope:** This is a routing story, not a replacement plan. Select the
-appropriate unchecked item in the [Remaining Delivery Epic](./remaining-delivery-epic.md):
+appropriate unchecked item in the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md):
 Windows audit through release gate, or automatic release-publication evidence.
 Do not recreate those checklists here.
 

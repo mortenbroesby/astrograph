@@ -11,7 +11,9 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph install --global --ide codex` writes only the marker-owned user
   Codex registration and user Astrograph default; it never edits a repository.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
-  status. `astrograph cache migrate` and `astrograph cache remove` default to dry-run and require
+  status, including the persisted checkout identity that last populated the
+  selected cache (or `checkout: null` before indexing). `astrograph cache
+  migrate` and `astrograph cache remove` default to dry-run and require
   `--yes` to mutate one canonical repository cache. Cache mutations are not MCP
   tools.
 

@@ -222,6 +222,10 @@ astrograph cache prune --all --max-bytes 1073741824
 astrograph cache prune --all --max-bytes 1073741824 --yes
 ```
 
+`cache status` reports the canonical repository, selected storage, and the
+checkout identity that last populated that cache. Its `checkout` field is
+`null` before an index exists.
+
 Migration first validates and copies the local cache into global storage; it
 never removes `.astrograph`. Cache migration and removal are CLI-only and
 default to dry-run. Pruning is explicitly all-cache scoped, removes oldest

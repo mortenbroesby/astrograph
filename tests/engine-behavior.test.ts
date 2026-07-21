@@ -603,6 +603,54 @@ module.exports = {
     }
   });
 
+  it("measures duplicate immutable analysis across equivalent global repositories", async () => {
+    const firstRepo = await createFixtureRepo({ directoryPrefix: "astrograph global reuse-a-" });
+    const secondRepo = await createFixtureRepo({ directoryPrefix: "astrograph global reuse-b-" });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-reuse-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await Promise.all([firstRepo, secondRepo].map((repoRoot) =>
+        writeFile(
+          path.join(repoRoot, "astrograph.config.json"),
+          JSON.stringify({ storageLocation: "global" }),
+        ),
+      ));
+
+      const firstStartedAt = Date.now();
+      await indexFolder({ repoRoot: firstRepo });
+      const firstDurationMs = Date.now() - firstStartedAt;
+      const secondStartedAt = Date.now();
+      await indexFolder({ repoRoot: secondRepo });
+      const secondDurationMs = Date.now() - secondStartedAt;
+
+      const artifactCount = (repoRoot: string) => {
+        const db = new Database(
+          resolveEnginePaths(repoRoot, { storageLocation: "global" }).databasePath,
+          { readonly: true },
+        );
+        const count = db.prepare("SELECT COUNT(*) AS count FROM analysis_artifacts")
+          .get() as { count: number };
+        db.close();
+        return count.count;
+      };
+
+      const firstArtifacts = artifactCount(await realpath(firstRepo));
+      const secondArtifacts = artifactCount(await realpath(secondRepo));
+
+      expect(firstArtifacts).toBeGreaterThan(0);
+      expect(secondArtifacts).toBe(firstArtifacts);
+      expect(firstDurationMs).toBeGreaterThan(0);
+      expect(secondDurationMs).toBeGreaterThan(0);
+    } finally {
+      clearStorageProcessCaches();
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
   it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
     const repoRoot = await createFixtureRepo();
 
