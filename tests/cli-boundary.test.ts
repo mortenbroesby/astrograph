@@ -27,7 +27,6 @@ describe("cli boundaries", () => {
       schemaVersion: 1,
       repoRoot: await realpath(repoRoot),
       storageLocation: "repo-local",
-      migration: "not-needed",
     });
     expect(result.checkout).toMatchObject({
       mode: "git-branch",
