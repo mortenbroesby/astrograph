@@ -214,8 +214,8 @@ the native Windows and/or release CI proof for the exact merged commit.
 
 ## Story 7: Pain-Free Global Installation and Repository Usage
 
-**Status:** Planned — select after the cache status contract is stable and
-before the final cleanup story.
+**Status:** Active — selected through the
+[Pain-Free Global Install Delivery Checklist](./pain-free-global-install-delivery-checklist.md).
 
 **Outcome:** A user installs Astrograph once globally and can index, query, and
 use it from any repository without repo-local initialization, copied config, or

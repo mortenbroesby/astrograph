@@ -86,6 +86,10 @@ astrograph cache remove --repo /absolute/path/to/repo --yes
 
 The first removal command is a dry-run. It only targets the selected
 repository’s user-private global cache; no MCP tool can remove cache data.
+Global Codex setup is user-level: do not create repo-local `astrograph.config.*`
+or `.codex` files merely to repair a globally installed setup. Re-run
+`astrograph install --global --ide codex` if registration needs repair, then
+use `cache status` or `doctor` for the repository you opened.
 
 ### Problem: parser health is incomplete on older indexed files
 

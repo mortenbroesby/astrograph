@@ -194,24 +194,31 @@ To preview the changes without writing files:
 astrograph install --global --ide codex --dry-run
 ```
 
-### 3) Index each repository once
+### 3) Use any repository — no repo setup
 
-From a repository, create its initial index before asking Codex to retrieve
-code:
+Open Codex in any repository. The global registration finds the current
+repository and uses its own isolated directory beneath the global cache root.
+You do **not** run `astrograph init`, create `astrograph.config.*`, choose a
+cache directory, or add `.codex` files in that repository.
+
+Create the first index from Codex with `index_folder`, or run this command from
+any shell:
 
 ```bash
 astrograph cli index-folder --repo /absolute/path/to/repo
 astrograph cache status --repo /absolute/path/to/repo
 ```
 
-Thereafter, open Codex in that repository and use the Astrograph MCP tools.
-Start with `get_project_status`; if the index is stale, run `index_folder`.
+Thereafter use the Astrograph MCP tools normally. Start with
+`get_project_status`; if the index is stale, run `index_folder`.
 
-### 4) Choose storage deliberately
+### 4) Repository-local setup is an explicit alternative
 
-Global setup makes global storage the user default. A repository can opt out
-with `storageLocation: "repo-local"` in `astrograph.config.ts` or
-`astrograph.config.json`; an explicit CLI flag wins for one command:
+Global setup makes global storage the user default. Use repository-local
+`init` only when you intentionally want workspace-owned MCP configuration or
+storage. A repository can opt out with `storageLocation: "repo-local"` in
+`astrograph.config.ts` or `astrograph.config.json`; an explicit CLI flag wins
+for one command:
 
 ```bash
 astrograph cli index-folder --repo /absolute/path/to/repo --storage-location global
