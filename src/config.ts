@@ -247,6 +247,11 @@ export function resolveGlobalCacheRoot(
   const platform = environment.platform ?? process.platform;
   const env = environment.env ?? process.env;
   const homeDir = environment.homeDir ?? os.homedir;
+  const explicitCacheHome = env.ASTROGRAPH_CACHE_HOME;
+
+  if (explicitCacheHome && path.isAbsolute(explicitCacheHome)) {
+    return path.join(explicitCacheHome, ENGINE_DISPLAY_NAME);
+  }
 
   if (platform === "win32") {
     return path.join(

@@ -513,10 +513,10 @@ module.exports = {
       directoryPrefix: "astrograph global storage fixture-",
     });
     const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-cache-"));
-    const previousCacheHome = process.env.XDG_CACHE_HOME;
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
 
     try {
-      process.env.XDG_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
       await writeFile(
         path.join(repoRoot, "astrograph.config.json"),
         JSON.stringify({ storageLocation: "global" }),
@@ -544,9 +544,57 @@ module.exports = {
       await expect(import("node:fs/promises").then((fs) => fs.stat(path.join(canonicalRepoRoot, ".astrograph")))).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
       if (previousCacheHome === undefined) {
-        delete process.env.XDG_CACHE_HOME;
+        delete process.env.ASTROGRAPH_CACHE_HOME;
       } else {
-        process.env.XDG_CACHE_HOME = previousCacheHome;
+        process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      }
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates global caches for repositories with equal fixture layouts", async () => {
+    const firstRepo = await createFixtureRepo({ directoryPrefix: "astrograph global isolation-a-" });
+    const secondRepo = await createFixtureRepo({ directoryPrefix: "astrograph global isolation-b-" });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-isolation-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await Promise.all([firstRepo, secondRepo].map((repoRoot) =>
+        writeFile(
+          path.join(repoRoot, "astrograph.config.json"),
+          JSON.stringify({ storageLocation: "global" }),
+        ),
+      ));
+      await writeFile(
+        path.join(secondRepo, "src", "global-only.ts"),
+        "export function globalOnlyRepositorySymbol() { return 42; }\n",
+      );
+
+      await indexFolder({ repoRoot: firstRepo });
+      await indexFolder({ repoRoot: secondRepo });
+
+      const firstRoot = await realpath(firstRepo);
+      const secondRoot = await realpath(secondRepo);
+      const firstPaths = resolveEnginePaths(firstRoot, { storageLocation: "global" });
+      const secondPaths = resolveEnginePaths(secondRoot, { storageLocation: "global" });
+      expect(firstPaths.storageDir).not.toBe(secondPaths.storageDir);
+
+      const firstResults = await searchSymbols({
+        repoRoot: firstRepo,
+        query: "globalOnlyRepositorySymbol",
+      });
+      const secondResults = await searchSymbols({
+        repoRoot: secondRepo,
+        query: "globalOnlyRepositorySymbol",
+      });
+      expect(firstResults).toEqual([]);
+      expect(secondResults.map((result) => result.name)).toContain("globalOnlyRepositorySymbol");
+    } finally {
+      if (previousCacheHome === undefined) {
+        delete process.env.ASTROGRAPH_CACHE_HOME;
+      } else {
+        process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
       }
       await rm(cacheHome, { recursive: true, force: true });
     }
