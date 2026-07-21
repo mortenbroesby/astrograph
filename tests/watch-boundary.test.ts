@@ -5,7 +5,7 @@ import { setTimeout as delay } from "node:timers/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { diagnostics, searchSymbols, watchFolder } from "../src/index.ts";
+import { clearStorageProcessCaches, diagnostics, searchSymbols, watchFolder } from "../src/index.ts";
 import { resolveEnginePaths } from "../src/config.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
@@ -51,6 +51,7 @@ describe("watch boundaries", () => {
       expect((await searchSymbols({ repoRoot, query: "watchedGlobal" })).map((entry) => entry.name)).toContain("watchedGlobal");
     } finally {
       await watcher.close();
+      clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
       await rm(cacheHome, { recursive: true, force: true });

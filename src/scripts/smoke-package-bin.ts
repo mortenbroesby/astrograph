@@ -64,6 +64,14 @@ async function main(): Promise<void> {
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
     await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
+    // `init` writes an ESM config that imports `astrograph`. Model the
+    // supported repository setup: the configured project owns the package,
+    // rather than relying on a sibling CLI-only install.
+    await writeFile(
+      path.join(fixtureRepo, "package.json"),
+      JSON.stringify({ name: "astrograph-smoke-fixture", private: true }, null, 2),
+    );
+
     await writeFile(
       path.join(installDir, "package.json"),
       JSON.stringify({
@@ -182,11 +190,23 @@ async function main(): Promise<void> {
       throw new Error(`Expected astrograph init --agents to write code exploration policy: ${installResult.stdout}`);
     }
 
+    await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);
+
     const globalInstall = await run(
       "pnpm",
       ["exec", "astrograph", "install", "--global", "--ide", "codex"],
       installDir,
-      { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome },
+      {
+        HOME: globalHome,
+        ASTROGRAPH_CACHE_HOME: globalCacheHome,
+        // The global installer deliberately verifies that the `astrograph`
+        // command written to Codex configuration will resolve in a later
+        // session. This fixture installs the packed package locally, so model
+        // that global command discovery by exposing its bin directory.
+        PATH: [path.join(installDir, "node_modules", ".bin"), process.env.PATH]
+          .filter((entry): entry is string => Boolean(entry))
+          .join(path.delimiter),
+      },
     );
     const globalInstalled = JSON.parse(globalInstall.stdout) as {
       configPreview?: string;

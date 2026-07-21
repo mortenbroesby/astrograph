@@ -1,6 +1,7 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
-import { realpath, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -57,6 +58,7 @@ async function withMcpClient<T>(
     stderr: () => string;
   }) => Promise<T>,
 ) {
+  const isolatedHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-home-"));
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [path.join(packageRoot, "scripts", "astrograph.mjs"), "mcp"],
@@ -64,6 +66,8 @@ async function withMcpClient<T>(
     stderr: "pipe",
     env: {
       ...process.env,
+      HOME: isolatedHome,
+      XDG_CONFIG_HOME: path.join(isolatedHome, ".config"),
       ASTROGRAPH_USE_SOURCE: "1",
     },
   });
@@ -89,6 +93,7 @@ async function withMcpClient<T>(
     });
   } finally {
     await client.close();
+    await rm(isolatedHome, { recursive: true, force: true });
   }
 }
 
