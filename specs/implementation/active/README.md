@@ -6,11 +6,10 @@ with the epic, then use its linked checklist for the next executable task.
 ## Current Queue
 
 1. [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
-   Story 3, checkout and cache transparency, is selected; Stories 1–2 are
-   deferred after their evidence gates.
+   Stories 1–2 are deferred and Story 3 is complete locally. Stories 4–6 have
+   recorded dependencies; there is no unblocked follow-up story to select.
 2. [Checkout and Cache Transparency Delivery Checklist](./global-checkout-cache-transparency-delivery-checklist.md)
-   — check off this bounded discovery/implementation sequence in order and
-   defer it when current diagnostics already resolve the observed issue.
+   — completed local Story 3 evidence awaiting normal PR/CI review.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

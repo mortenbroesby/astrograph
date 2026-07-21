@@ -7,8 +7,8 @@
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
 > and [Astrograph Feedback Consolidation Epic](../closed/astro-feedback-epic.md).
-> It complements—rather than replaces—the [Remaining Delivery Epic](./remaining-delivery-epic.md)
-> and [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md).
+> It complements—rather than replaces—the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md)
+> and [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Turn the largest completed platform investments into the next
 meaningful user outcomes: faster safe work across repositories and checkouts,
@@ -140,11 +140,17 @@ remain compatible through additive fields only.
 
 ## Story 4: Provenance-First Retrieval and Deterministic Lexical Ranking
 
+**Status:** Blocked — the [Precision Retrieval and Agent Experience
+Epic](../planned/precision-retrieval-agent-experience-epic.md) explicitly
+defers this work until the Remaining Delivery Epic has no executable work.
+Do not bypass that dependency by moving or copying its plan. Re-evaluate when
+the Remaining Delivery tracker closes or explicitly removes this prerequisite.
+
 **Outcome:** Queries return smaller, verifiable, locally ranked source results
 before any optional semantic system is considered.
 
 **Scope:** Select and execute Stories 1–2 of the
-[Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md):
+  [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md):
 stable source/symbol provenance followed by deterministic lexical ranking.
 Do not begin semantic retrieval, remote embeddings, or a vector service in
 this story.
@@ -158,6 +164,10 @@ hash and range; the same corpus/query produces the same ranking with recorded
 precision@k, MRR, zero-result rate, warm latency, and storage delta.
 
 ## Story 5: Token-Budgeted Context and Compact Transport
+
+**Status:** Blocked — depends on Story 4 establishing provenance and lexical
+evidence. Retry only after Story 4 is selected and its acceptance evidence is
+recorded.
 
 **Outcome:** Agents receive coherent, source-attributed task context inside a
 declared budget rather than broad file dumps.
@@ -177,11 +187,17 @@ and round-trip any compact response losslessly.
 
 ## Story 6: Cross-Platform Confidence and Release Automation Evidence
 
+**Status:** Deferred — the next unchecked requirement in the
+[Remaining Delivery Epic](../planned/remaining-delivery-epic.md) is release
+publication evidence. Its dedicated checklist is blocked until a
+release-labelled PR is merged to `main`; Windows work must be selected in that
+epic if its tracker becomes executable again.
+
 **Outcome:** High-impact product work remains usable from supported Windows
 terminals and is released through a fully evidenced guarded path.
 
 **Scope:** This is a routing story, not a replacement plan. Select the
-appropriate unchecked item in the [Remaining Delivery Epic](./remaining-delivery-epic.md):
+appropriate unchecked item in the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md):
 Windows audit through release gate, or automatic release-publication evidence.
 Do not recreate those checklists here.
 
