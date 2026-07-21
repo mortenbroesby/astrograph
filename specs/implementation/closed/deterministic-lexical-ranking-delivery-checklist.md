@@ -1,9 +1,9 @@
 # Deterministic Lexical Ranking Delivery Checklist
 
-> **Epic:** [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md), Story 2
+> **Epic:** [Precision Retrieval and Agent Experience Epic](../active/precision-retrieval-agent-experience-epic.md), Story 2
 >
-> **Status:** Active — a judged corpus now supports the selected weighted BM25
-> ranking change; record its complete evidence before closing the story.
+> **Status:** Complete — merged with provenance-first retrieval as PR #26 after
+> exact-head Fast and Windows compatibility CI passed.
 
 **Goal:** Return the same locally ranked symbol results for the same corpus and
 query, with explicit lexical-field weights, deterministic tie-breaking, and
@@ -96,7 +96,9 @@ pnpm, Vitest, existing retrieval/config contracts.
   touches neither `src/storage-schema.ts` nor `src/indexing.ts`, so it cannot
   change persisted FTS rows or the SQLite index artifact.
 
-- [ ] Run affected engine/interface tests, `CI=1 pnpm type-lint`, package
+- [x] Run affected engine/interface tests, `CI=1 pnpm type-lint`, package
   smoke when the shipped surface changes, `pnpm check:version-bump`, and
-  `git diff --check`. Update the release decision and merge only after CI
-  validates the exact commit.
+  `git diff --check`. The recorded targeted engine/interface checks, type lint,
+  package smoke, version decision, and whitespace check passed before PR #26;
+  run `29871942353` then passed Fast required checks and Windows compatibility
+  for final exact head `edeab45`, which merged.

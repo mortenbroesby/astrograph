@@ -1,9 +1,9 @@
 # Pre-v1 Cache and Codebase Cleanup Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 9
+> **Epic:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 9
 >
-> **Status:** Active — remove obsolete cache compatibility and only the
-> highest-impact associated cleanup debt before v1.
+> **Status:** Complete — merged as PR #30 after exact-head Fast and Windows
+> compatibility/package-smoke CI passed.
 
 **Goal:** Obsolete Astrograph caches are discarded without being read,
 migrated, or preserved for compatibility. The public cache surface and docs no
@@ -91,5 +91,6 @@ storage/cache CLI contracts.
   passed again after clearing cached SQLite handles before the new global-cache
   fixtures remove their temporary roots.
 
-- [ ] Commit, push, and merge only after the exact PR head passes Fast required
-  checks and Windows compatibility/package smoke.
+- [x] Commit, push, and merge only after the exact PR head passes Fast required
+  checks and Windows compatibility/package smoke. PR #30 run `29877561794`
+  passed both gates for final exact head `fffd977`, then merged.

@@ -1,9 +1,9 @@
 # High-Impact Product Follow-Ups Epic
 
-> **Status:** Active — Stories 1 and 2 are deferred after their evidence gates;
-> Story 3 is complete locally and Story 4 has selected Precision Story 1.
-> Stories 5–8 remain dependent or planned; Story 9 is the final pre-v1 cleanup
-> story.
+> **Status:** Active — Stories 1, 2, and 6 are evidence-backed deferrals;
+> Stories 3, 4, 7, 8, and 9 are complete and CI-verified. Story 5 is the only
+> remaining candidate and requires its own payload/relevance selection evidence
+> before it becomes active work.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -123,7 +123,7 @@ configuration byte-for-byte and packed-package tests cover the chosen clients.
 persisted checkout identity that populated the selected cache. It is `null`
 before indexing and otherwise reports Git mode, repository/head/branch/worktree
 identity, diagnostic, and indexed time. See the
-[delivery checklist](./global-checkout-cache-transparency-delivery-checklist.md).
+[delivery checklist](../closed/global-checkout-cache-transparency-delivery-checklist.md).
 PR #24's Fast and Windows CI checks passed for the exact completed head.
 
 **Outcome:** Users and agents can tell which repository/checkout is being used,
@@ -145,10 +145,11 @@ remain compatible through additive fields only.
 
 ## Story 4: Provenance-First Retrieval and Deterministic Lexical Ranking
 
-**Status:** Active — the Remaining Delivery Epic's only unchecked release
-proof is externally blocked and its own policy permits independent work to
-continue. Precision Story 1 is selected through the
-[Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md).
+**Status:** Complete — provenance-first source retrieval and deterministic
+weighted BM25 ranking merged together as PR #26 after exact-head Fast and
+Windows compatibility CI passed. See the
+[provenance checklist](../closed/provenance-first-symbol-contract-delivery-checklist.md)
+and [ranking checklist](../closed/deterministic-lexical-ranking-delivery-checklist.md).
 
 **Outcome:** Queries return smaller, verifiable, locally ranked source results
 before any optional semantic system is considered.
@@ -169,9 +170,8 @@ precision@k, MRR, zero-result rate, warm latency, and storage delta.
 
 ## Story 5: Token-Budgeted Context and Compact Transport
 
-**Status:** Blocked — depends on Story 4 establishing provenance and lexical
-evidence. Retry only after Story 4 is selected and its acceptance evidence is
-recorded.
+**Status:** Unselected — Story 4's prerequisite is complete, but Story 5 has
+not yet established its required payload, relevance, and latency baseline.
 
 **Outcome:** Agents receive coherent, source-attributed task context inside a
 declared budget rather than broad file dumps.
@@ -245,9 +245,9 @@ directories.
 
 ## Story 8: Copilot CLI First-Party Global Installation
 
-**Status:** Active — global Codex setup is proven and merged; now implement
-the first-party Copilot CLI peer. See the
-[delivery checklist](./global-copilot-cli-delivery-checklist.md).
+**Status:** Complete — merged as PR #29 after exact-head Fast and Windows
+compatibility/package-smoke CI passed. See the
+[delivery checklist](../closed/global-copilot-cli-delivery-checklist.md).
 
 **Outcome:** Copilot CLI is a first-party supported installation target at the
 same level as Codex. A user can install or repair the Copilot CLI integration
@@ -276,9 +276,9 @@ both as supported first-party installations.
 
 ## Story 9: Pre-v1 Cache and Codebase Cleanup
 
-**Status:** Active — Stories 7 and 8 are merged with exact-head Fast and
-Windows/package smoke CI evidence. See the
-[delivery checklist](./pre-v1-cache-codebase-cleanup-delivery-checklist.md).
+**Status:** Complete — merged as PR #30 after exact-head Fast and Windows
+compatibility/package-smoke CI passed. See the
+[delivery checklist](../closed/pre-v1-cache-codebase-cleanup-delivery-checklist.md).
 
 **Outcome:** Before v1, Astrograph keeps no compatibility burden for obsolete
 cache formats or superseded internal paths, and has a concise evidence-backed
@@ -323,5 +323,5 @@ records each removal, its verification, and every intentionally deferred item.
   JSON behavior.
 - [ ] Measured user benefit, not a feature count, determines whether each
   candidate continues.
-- [ ] Story 9 removes or soft-deletes obsolete Astrograph caches and records a
+- [x] Story 9 removes or soft-deletes obsolete Astrograph caches and records a
   bounded, evidence-backed cleanup inventory before v1.

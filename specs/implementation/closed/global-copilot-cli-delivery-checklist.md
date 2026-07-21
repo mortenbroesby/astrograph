@@ -1,8 +1,9 @@
 # Global Copilot CLI Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 8
+> **Epic:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 8
 >
-> **Status:** Active — make Copilot CLI a first-party peer of Codex for the ordinary one-time global Astrograph install.
+> **Status:** Complete — merged as PR #29 after exact-head Fast and Windows
+> compatibility/package-smoke CI passed.
 
 **Goal:** A user installs Astrograph for Copilot CLI once, then works in any repository with Astrograph’s user-private global cache and without repo-local Astrograph configuration.
 
@@ -44,4 +45,6 @@
 
 - [x] Document one-time global installation for Codex and Copilot CLI, the normal “use Astrograph in the opened repository” workflow, user-level config locations, and `cache status`/`doctor` recovery. Keep repo-local install as an explicit alternative.
 - [x] Run the focused contract tests, `CI=1 pnpm type-lint`, `pnpm test:package-bin`, `pnpm check:version-bump`, `git diff --check`, and the specs inventory command. Four focused Copilot global tests passed; the full contract file passed 47/47; packed-package smoke completed successfully; type and version checks passed after the `0.5.0-alpha.137` increment.
-- [ ] Commit, push, and merge only after the exact PR head passes Fast required checks and Windows compatibility/package smoke.
+- [x] Commit, push, and merge only after the exact PR head passes Fast required
+  checks and Windows compatibility/package smoke. PR #29 run `29875333200`
+  passed both gates for final exact head `ddf6dc6`, then merged.
