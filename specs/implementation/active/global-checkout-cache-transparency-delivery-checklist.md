@@ -88,6 +88,10 @@ diagnostic contracts.
   `pnpm check:version-bump`, and `git diff --check`.
   Evidence: type lint, the 58-test focused baseline, the targeted CLI rerun,
   packed-package smoke, version guard, and whitespace validation all pass.
+  The CI staged-diff gate requires a release increment for the runtime change;
+  `pnpm release:plan --base v0.4.4-alpha.133` selected minor and
+  `pnpm release:apply --base v0.4.4-alpha.133` set
+  `0.5.0-alpha.134` after confirming the published baseline.
 
 - [x] Check off evidence and update the epic. **Complete:** `cache
   status.checkout` is the selected, tested, documented contract. Merge it only
