@@ -1,10 +1,12 @@
-import { rename, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, rename, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
 import { diagnostics, searchSymbols, watchFolder } from "../src/index.ts";
+import { resolveEnginePaths } from "../src/config.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 afterEach(async () => {
@@ -25,6 +27,36 @@ async function waitFor(
 }
 
 describe("watch boundaries", () => {
+  it("keeps watch refresh and diagnostics in the selected global cache", async () => {
+    const repoRoot = await createFixtureRepo();
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-watch-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    const events: string[][] = [];
+    const watcher = await watchFolder({
+      repoRoot,
+      debounceMs: 50,
+      onEvent(event) {
+        if (event.type === "reindex") events.push(event.changedPaths);
+      },
+    });
+    try {
+      await writeFile(path.join(repoRoot, "src", "watched-global.ts"), "export const watchedGlobal = true;\n");
+      await waitFor(() => events.length >= 1);
+      const health = await diagnostics({ repoRoot });
+      const paths = resolveEnginePaths(repoRoot, { storageLocation: "global" });
+      expect(health.storageDir).toBe(paths.storageDir);
+      expect(events.flat()).toContain("src/watched-global.ts");
+      expect((await searchSymbols({ repoRoot, query: "watchedGlobal" })).map((entry) => entry.name)).toContain("watchedGlobal");
+    } finally {
+      await watcher.close();
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  }, 10000);
+
   it("removes deleted files during watch refresh", async () => {
     const repoRoot = await createFixtureRepo();
     const reindexEvents: Array<{ changedPaths: string[]; indexedFiles?: number }> = [];
