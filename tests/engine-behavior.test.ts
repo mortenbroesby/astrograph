@@ -1113,6 +1113,42 @@ export class Greeter {
     expect(matches[0]?.name).toBe("generateApiHooks");
   });
 
+  it("keeps judged lexical ranking deterministic across exact, acronym, summary, path, and no-result queries", async () => {
+    const repoRoot = await createFixtureRepo();
+    await mkdir(path.join(repoRoot, "src", "ranking"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "http-server.ts"),
+      "export class HTTPServer { listen() {} }\n",
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "session.ts"),
+      "/** Refresh an expired session token. */\nexport function refreshSessionToken() { return true; }\n",
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "widget.ts"),
+      "export function rankingWidget() { return true; }\n",
+    );
+    await indexFolder({ repoRoot });
+
+    const exact = await searchSymbols({ repoRoot, query: "refreshSessionToken" });
+    const acronym = await searchSymbols({ repoRoot, query: "HTTP" });
+    const naturalLanguage = await searchSymbols({ repoRoot, query: "expired session" });
+    const pathScoped = await searchSymbols({
+      repoRoot,
+      query: "widget",
+      filePattern: "src/ranking/**",
+    });
+    const noResult = await searchSymbols({ repoRoot, query: "unfindable lexical fixture" });
+    const repeated = await searchSymbols({ repoRoot, query: "expired session" });
+
+    expect(exact[0]?.name).toBe("refreshSessionToken");
+    expect(acronym[0]?.name).toBe("HTTPServer");
+    expect(naturalLanguage[0]?.name).toBe("refreshSessionToken");
+    expect(pathScoped[0]).toMatchObject({ name: "rankingWidget", filePath: "src/ranking/widget.ts" });
+    expect(noResult).toEqual([]);
+    expect(repeated.map((symbol) => symbol.id)).toEqual(naturalLanguage.map((symbol) => symbol.id));
+  });
+
   it("applies matching repo path presets without replacing generic ranking", async () => {
     const createPresetFixture = async (pathPresets: Record<string, string[]>) => {
       const repoRoot = await createFixtureRepo();

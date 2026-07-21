@@ -44,9 +44,13 @@ pnpm, Vitest, existing retrieval/config contracts.
   score. This is deterministic with stable tie-breaking, but not a BM25
   ranking contract and has no recorded quality metrics.
 
-- [ ] Add a small deterministic judged fixture containing exact-name, acronym,
+- [x] Add a small deterministic judged fixture containing exact-name, acronym,
   natural-language, path-scoped, and no-result queries with expected top-k
-  symbol IDs.
+  symbols. `keeps judged lexical ranking deterministic across exact, acronym,
+  summary, path, and no-result queries` passed in CI mode (1 test, 1.58
+  seconds); the repeated natural-language query also asserts stable ordered
+  symbol IDs. The fixture uses stable symbol names because temporary fixture
+  paths vary per run.
 
 ## Task 2: Select and Specify the Lexical Signal
 
