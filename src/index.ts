@@ -71,6 +71,12 @@ export {
   emitEngineEvent,
   readRecentEngineEvents,
 } from "./event-sink.ts";
+export {
+  cacheStatus,
+  migrateLocalCache,
+  removeGlobalCache,
+} from "./cache-control.ts";
+export type { CacheMutationResult, CacheStatus } from "./cache-control.ts";
 
 export type {
   AstrographVersionParts,

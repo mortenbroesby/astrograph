@@ -1,7 +1,8 @@
 # Global Install and Cache Epic
 
-> **Status:** In progress — Story 1 is active through the
-> [Global Storage Contract Delivery Checklist](./global-storage-contract-delivery-checklist.md).
+> **Status:** In progress — Stories 1–3 are implemented on the active branch;
+> Stories 4–5 and Story 7 verification/release proof are active. Story 6
+> remains explicitly deferred.
 >
 > **Related contracts:** [CLI API](../../api-design/cli-api.md),
 > [MCP Tools](../../api-design/mcp-tools.md), and
@@ -42,7 +43,7 @@ runs `pnpm check:version-bump`; the final story runs `pnpm release:plan`. A
 story may start only after its child delivery checklist names exact files,
 baseline commands, focused tests, final checks, and a commit checkpoint.
 
-**Deferred story handoffs:** Stories 2–7 are broken down in
+**Deferred story handoffs:** Story 6 remains deferred; the original Stories 2–7 handoffs are in
 [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md).
 They are not authorized for implementation until their selection gates are met
 and an active checklist is created from that handoff.

@@ -1120,6 +1120,13 @@ export async function setupForAllIdes(
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   if (argv.includes("--global")) {
+    if (process.env.ASTROGRAPH_ENTRY_MODE !== "install") {
+      throw new Error("Use `astrograph install --global --ide codex`; `astrograph init` is repository-scoped.");
+    }
+    const allowed = new Set(["--global", "--ide", "codex", "--dry-run"]);
+    if (argv.some((entry) => !allowed.has(entry))) {
+      throw new Error("astrograph install --global accepts only --ide codex and --dry-run.");
+    }
     const ideIndex = argv.indexOf("--ide");
     const ide = ideIndex >= 0 ? argv[ideIndex + 1] : "codex";
     if (ide !== "codex") {

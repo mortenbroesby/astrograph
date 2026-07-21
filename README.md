@@ -124,6 +124,17 @@ If you prefer one-shot setup without a prior install:
 npx astrograph init
 ```
 
+For one user-level Codex MCP registration and an isolated cache for every
+repository, install Astrograph globally and opt in explicitly:
+
+```bash
+npm install --global astrograph
+astrograph install --global --ide codex
+```
+
+This registers one `astrograph mcp` server in `~/.codex/config.toml`. Every
+MCP call still supplies its repository root, so this is not one shared index.
+
 ### 2) Configure MCP
 
 Run the installer:
@@ -190,6 +201,28 @@ To configure multiple clients in one pass:
 npx astrograph init --yes --ide all --repo /absolute/path/to/repo
 npx astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
 ```
+
+## Global Cache
+
+Global setup is opt-in. It stores a separate SQLite cache for each canonical
+repository root and keeps all source paths, index contents, and events on the
+current OS user’s machine. Repository `astrograph.config.ts` or
+`astrograph.config.json` can override it with `storageLocation: "repo-local"`.
+
+Use these JSON-first commands to inspect or recover a selected repository:
+
+```bash
+astrograph cache status --repo /absolute/path/to/repo
+astrograph cache migrate --repo /absolute/path/to/repo
+astrograph cache migrate --repo /absolute/path/to/repo --yes
+astrograph cache remove --repo /absolute/path/to/repo --yes
+```
+
+Migration first validates and copies the local cache into global storage; it
+never removes `.astrograph`. Cache migration and removal are CLI-only and
+default to dry-run. Global cache roots are `~/.cache/astrograph` on Linux
+(or `$XDG_CACHE_HOME/astrograph`), `~/Library/Caches/astrograph` on macOS, and
+`%LOCALAPPDATA%\\astrograph\\cache` on Windows.
 
 <a id="documentation"></a>
 ## 📚 Documentation

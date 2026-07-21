@@ -11,6 +11,17 @@ afterEach(async () => {
 });
 
 describe("cli boundaries", () => {
+  it("returns a versioned JSON cache status for the explicit repository", async () => {
+    const repoRoot = await createFixtureRepo();
+    const result = JSON.parse(await handleCli(["cache-status", "--repo", repoRoot]));
+    expect(result).toMatchObject({
+      schemaVersion: 1,
+      repoRoot: await realpath(repoRoot),
+      storageLocation: "repo-local",
+      migration: "not-needed",
+    });
+  });
+
   it("rejects malformed CLI numeric and enum arguments", async () => {
     const repoRoot = await createFixtureRepo();
 

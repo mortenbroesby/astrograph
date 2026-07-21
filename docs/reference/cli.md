@@ -3,6 +3,7 @@
 Astrograph exposes three main command surfaces:
 
 - `astrograph init`
+- `astrograph install --global --ide codex`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
@@ -15,6 +16,9 @@ invocation path in your environment.
 
 - `astrograph init`
   Writes MCP configuration for supported clients.
+- `astrograph install --global --ide codex`
+  Registers one user-level Codex MCP server and enables per-repository global
+  cache storage. It does not modify a repository.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`
@@ -72,6 +76,26 @@ Remove-Item -Recurse -Force .astrograph
 :: cmd.exe
 rmdir /s /q .astrograph
 ```
+
+## Global Cache Commands
+
+Global cache commands emit stable JSON envelopes with `schemaVersion: 1`.
+They are CLI-only; MCP has no destructive cache tools.
+
+```bash
+astrograph cache status --repo /repo
+astrograph cache migrate --repo /repo        # preview only
+astrograph cache migrate --repo /repo --yes  # copy verified local state
+astrograph cache remove --repo /repo         # preview only
+astrograph cache remove --repo /repo --yes   # remove that global cache
+```
+
+`cache-migrate` requires `storageLocation: "global"`, validates the local
+cache’s version, repository identity, and SQLite database in staging, then
+atomically places the copy in the global repository directory. The source
+`.astrograph` cache is always preserved. `cache-remove` only accepts the
+canonical per-repository directory below the current user’s Astrograph cache
+root and requires `--yes` to mutate.
 
 ## Retrieval and Health Commands
 

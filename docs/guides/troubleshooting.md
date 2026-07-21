@@ -75,6 +75,18 @@ Remove-Item -Recurse -Force .astrograph
 rmdir /s /q .astrograph
 ```
 
+For an opted-in global cache, inspect it first instead of deleting a directory
+manually:
+
+```bash
+astrograph cache status --repo /absolute/path/to/repo
+astrograph cache remove --repo /absolute/path/to/repo
+astrograph cache remove --repo /absolute/path/to/repo --yes
+```
+
+The first removal command is a dry-run. It only targets the selected
+repository’s user-private global cache; no MCP tool can remove cache data.
+
 ### Problem: parser health is incomplete on older indexed files
 
 Fix:
