@@ -24,11 +24,14 @@ export {
   defineConfig,
   isSymbolKind,
   isSummaryStrategy,
+  isStorageLocation,
   loadRepoEngineConfig,
   normalizeSummaryStrategy,
   parseSymbolKind,
   parseSummaryStrategy,
+  parseStorageLocation,
   resolveEngineRepoRoot,
+  resolveGlobalCacheRoot,
   resolveEnginePaths,
 } from "./config.ts";
 export {
@@ -122,6 +125,8 @@ export type {
   SearchTextMatch,
   StaleStatus,
   StorageMode,
+  StorageLocation,
+  StoragePathEnvironment,
   SupportTier,
   SymbolKind,
   SymbolSourceItem,

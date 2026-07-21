@@ -2,6 +2,7 @@ export type SupportedLanguage = "ts" | "tsx" | "js" | "jsx";
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";
+export type StorageLocation = "repo-local" | "global";
 
 export type StaleStatus = "unknown" | "fresh" | "stale";
 
@@ -40,11 +41,18 @@ export interface EnginePaths {
   eventsPath: string;
 }
 
+export interface StoragePathEnvironment {
+  platform?: NodeJS.Platform;
+  env?: NodeJS.ProcessEnv;
+  homeDir?: () => string;
+}
+
 export interface EngineConfig {
   repoRoot: string;
   languages: SupportedLanguage[];
   respectGitIgnore: boolean;
   storageMode: StorageMode;
+  storageLocation: StorageLocation;
   staleStatus: StaleStatus;
   summaryStrategy: SummaryStrategy;
   indexInclude: string[];
@@ -108,6 +116,7 @@ export interface RepoRankingConfig {
 export interface RepoEngineConfig {
   summaryStrategy?: SummaryStrategy;
   storageMode?: StorageMode;
+  storageLocation?: StorageLocation;
   observability?: RepoObservabilityConfig;
   performance?: RepoPerformanceConfig;
   ranking?: RepoRankingConfig;
@@ -167,6 +176,7 @@ export interface ResolvedRepoEngineConfig {
   repoRoot: string;
   summaryStrategy: SummaryStrategy;
   storageMode: StorageMode;
+  storageLocation: StorageLocation;
   observability: ResolvedObservabilityConfig;
   performance: ResolvedPerformanceConfig;
   ranking: ResolvedRankingConfig;

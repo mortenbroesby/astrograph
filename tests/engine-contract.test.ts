@@ -24,7 +24,9 @@ import {
   assessAstrographVersionBump,
   loadRepoEngineConfig,
   createDefaultEngineConfig,
+  parseStorageLocation,
   parseAstrographVersion,
+  resolveGlobalCacheRoot,
   resolveEnginePaths,
 } from "../src/index.ts";
 import {
@@ -63,6 +65,53 @@ describe("ai-context-engine contract", () => {
     });
   });
 
+  it("derives a user-private global cache directory from the canonical repository path", () => {
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CACHE_HOME: "/var/cache/user" },
+      homeDir: () => "/home/example",
+    };
+
+    const first = resolveEnginePaths("/work/project one", {
+      storageLocation: "global",
+      environment,
+    });
+    const second = resolveEnginePaths("/work/project two", {
+      storageLocation: "global",
+      environment,
+    });
+
+    expect(first.storageDir).toMatch(/^\/var\/cache\/user\/astrograph\/repos\/[a-f0-9]{64}$/);
+    expect(second.storageDir).toMatch(/^\/var\/cache\/user\/astrograph\/repos\/[a-f0-9]{64}$/);
+    expect(first.storageDir).not.toBe(second.storageDir);
+    expect(first.databasePath).toBe(path.join(first.storageDir, "index.sqlite"));
+    expect(first.eventsPath).toBe(path.join(first.storageDir, "events.jsonl"));
+  });
+
+  it("uses platform-specific global cache roots without trusting relative XDG paths", () => {
+    expect(resolveGlobalCacheRoot({
+      platform: "linux",
+      env: { XDG_CACHE_HOME: "relative-cache" },
+      homeDir: () => "/home/example",
+    })).toBe("/home/example/.cache/astrograph");
+    expect(resolveGlobalCacheRoot({
+      platform: "darwin",
+      env: {},
+      homeDir: () => "/Users/example",
+    })).toBe("/Users/example/Library/Caches/astrograph");
+    expect(resolveGlobalCacheRoot({
+      platform: "win32",
+      env: { LOCALAPPDATA: "C:\\Users\\example\\AppData\\Local" },
+      homeDir: () => "C:\\Users\\example",
+    })).toContain(path.join("astrograph", "cache"));
+  });
+
+  it("validates the storage location contract", () => {
+    expect(parseStorageLocation("global")).toBe("global");
+    expect(parseStorageLocation("repo-local")).toBe("repo-local");
+    expect(() => parseStorageLocation("shared-database")).toThrow(/Unsupported storageLocation/i);
+  });
+
   it("defaults to a spec-aligned engine config", () => {
     const config = createDefaultEngineConfig({
       repoRoot: "/tmp/playground",
@@ -73,6 +122,7 @@ describe("ai-context-engine contract", () => {
       languages: ["ts", "tsx", "js", "jsx"],
       respectGitIgnore: true,
       storageMode: "wal",
+      storageLocation: "repo-local",
       staleStatus: "unknown",
       summaryStrategy: DEFAULT_SUMMARY_STRATEGY,
       indexInclude: [],
@@ -507,6 +557,27 @@ describe("ai-context-engine contract", () => {
 
     await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
       /Invalid astrograph\.config\.ts/i,
+    );
+  });
+
+  it("loads a repository global storage selection and rejects an invalid value", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "ai-context-engine-config-"));
+    tempDirs.push(repoRoot);
+
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "global" }),
+    );
+    await expect(loadRepoEngineConfig(repoRoot)).resolves.toMatchObject({
+      storageLocation: "global",
+    });
+
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "shared-database" }),
+    );
+    await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
+      /Invalid astrograph\.config\.json/i,
     );
   });
 

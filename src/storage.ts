@@ -588,6 +588,7 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     repoRoot: resolvedRepoRoot,
     summaryStrategy: summaryStrategy ?? repoConfig.summaryStrategy,
     storageMode: repoConfig.storageMode,
+    storageLocation: repoConfig.storageLocation,
     indexInclude: repoConfig.performance.include,
     indexExclude: repoConfig.performance.exclude,
     rankingWeights: repoConfig.ranking,
@@ -603,12 +604,12 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     maxChildProcessOutputBytes: repoConfig.limits.maxChildProcessOutputBytes,
     maxLiveSearchMatches: repoConfig.limits.maxLiveSearchMatches,
   });
-  if (!getLruEntry(ensuredStorageRoots, resolvedRepoRoot)) {
+  if (!getLruEntry(ensuredStorageRoots, config.paths.storageDir)) {
     await mkdir(config.paths.storageDir, { recursive: true });
     await ensureStorageVersion(config);
     setLruEntry(
       ensuredStorageRoots,
-      resolvedRepoRoot,
+      config.paths.storageDir,
       true,
       STORAGE_ROOT_CACHE_LIMIT,
     );
@@ -713,7 +714,7 @@ async function resetStorageForVersionMismatch(
   });
 
   clearDatabaseConnectionCache(config.paths.databasePath);
-  ensuredStorageRoots.delete(config.repoRoot);
+  ensuredStorageRoots.delete(config.paths.storageDir);
   await rm(config.paths.storageDir, { recursive: true, force: true });
   await mkdir(config.paths.storageDir, { recursive: true });
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
@@ -789,9 +790,13 @@ async function writeSidecars(input: {
   summaryStrategy: SummaryStrategy;
   readiness?: RepoMetaReadinessRecord;
 }) {
+  const repoConfig = await loadRepoEngineConfig(input.repoRoot, {
+    repoRootResolved: true,
+  });
   const config = createDefaultEngineConfig({
     repoRoot: input.repoRoot,
     summaryStrategy: input.summaryStrategy,
+    storageLocation: repoConfig.storageLocation,
   });
   const existingMeta = await readRepoMeta(config.paths.repoMetaPath);
   const meta = {

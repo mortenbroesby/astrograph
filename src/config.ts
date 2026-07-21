@@ -6,10 +6,13 @@ import path from "node:path";
 import { z } from "zod";
 
 import { probeGitCheckout } from "./git-checkout.ts";
+import { hashString } from "./hash.ts";
 import { getSupportedLanguages } from "./language-registry.ts";
 import type {
   EngineConfig,
   EnginePaths,
+  StorageLocation,
+  StoragePathEnvironment,
   RepoPerformanceConfig,
   RankingPathPresets,
   RankingPathPresetCategory,
@@ -65,6 +68,7 @@ export const DEFAULT_RANKING_WEIGHTS: RankingWeights = {
 };
 
 const SUMMARY_STRATEGIES = new Set<SummaryStrategy>(SUMMARY_STRATEGY_VALUES);
+const STORAGE_LOCATIONS = new Set<StorageLocation>(["repo-local", "global"]);
 
 const SYMBOL_KINDS = new Set<SymbolKind>([
   "function",
@@ -157,6 +161,7 @@ const repoLimitsConfigSchema = z.object({
 const repoEngineConfigSchema = z.object({
   summaryStrategy: z.enum(SUMMARY_STRATEGY_VALUES).optional(),
   storageMode: z.enum(["wal"]).optional(),
+  storageLocation: z.enum(["repo-local", "global"]).optional(),
   observability: repoObservabilityConfigSchema.optional(),
   performance: repoPerformanceConfigSchema.optional(),
   ranking: repoRankingConfigSchema.optional(),
@@ -231,8 +236,48 @@ function resolveRankingPathPresets(
   ) as Record<RankingPathPresetCategory, string[]>;
 }
 
-export function resolveEnginePaths(repoRoot: string): EnginePaths {
-  const storageDir = path.join(repoRoot, ENGINE_STORAGE_DIRNAME);
+export function resolveGlobalCacheRoot(
+  environment: StoragePathEnvironment = {},
+): string {
+  const platform = environment.platform ?? process.platform;
+  const env = environment.env ?? process.env;
+  const homeDir = environment.homeDir ?? os.homedir;
+
+  if (platform === "win32") {
+    return path.join(
+      env.LOCALAPPDATA || path.join(homeDir(), "AppData", "Local"),
+      ENGINE_DISPLAY_NAME,
+      "cache",
+    );
+  }
+
+  if (platform === "darwin") {
+    return path.join(homeDir(), "Library", "Caches", ENGINE_DISPLAY_NAME);
+  }
+
+  const xdgCacheHome = env.XDG_CACHE_HOME;
+  const cacheHome = xdgCacheHome && path.isAbsolute(xdgCacheHome)
+    ? xdgCacheHome
+    : path.join(homeDir(), ".cache");
+  return path.join(cacheHome, ENGINE_DISPLAY_NAME);
+}
+
+export function resolveEnginePaths(
+  repoRoot: string,
+  options: {
+    storageLocation?: StorageLocation;
+    environment?: StoragePathEnvironment;
+  } = {},
+): EnginePaths {
+  const storageLocation = options.storageLocation ?? "repo-local";
+  const canonicalRepoRoot = path.resolve(repoRoot);
+  const storageDir = storageLocation === "global"
+    ? path.join(
+      resolveGlobalCacheRoot(options.environment),
+      "repos",
+      hashString(canonicalRepoRoot, "integrity").replace("sha256:", ""),
+    )
+    : path.join(canonicalRepoRoot, ENGINE_STORAGE_DIRNAME);
 
   return {
     storageDir,
@@ -257,6 +302,7 @@ function createDefaultResolvedRepoEngineConfig(
     repoRoot,
     summaryStrategy: DEFAULT_SUMMARY_STRATEGY,
     storageMode: "wal",
+    storageLocation: "repo-local",
     observability: {
       enabled: false,
       host: DEFAULT_OBSERVABILITY_HOST,
@@ -303,6 +349,7 @@ function resolveEngineConfigFromParsed(
     repoRoot: resolvedRepoRoot,
     summaryStrategy: data.summaryStrategy ?? defaults.summaryStrategy,
     storageMode: data.storageMode ?? defaults.storageMode,
+    storageLocation: data.storageLocation ?? defaults.storageLocation,
     observability: {
       enabled: data.observability?.enabled ?? defaults.observability.enabled,
       host: data.observability?.host ?? defaults.observability.host,
@@ -446,6 +493,22 @@ export function isSummaryStrategy(value: unknown): value is SummaryStrategy {
   return typeof value === "string" && SUMMARY_STRATEGIES.has(value as SummaryStrategy);
 }
 
+export function isStorageLocation(value: unknown): value is StorageLocation {
+  return typeof value === "string" && STORAGE_LOCATIONS.has(value as StorageLocation);
+}
+
+export function parseStorageLocation(
+  value: unknown,
+  label = "storageLocation",
+): StorageLocation {
+  if (!isStorageLocation(value)) {
+    throw new Error(
+      `Unsupported ${label}: ${String(value)}. Expected one of: ${[...STORAGE_LOCATIONS].join(", ")}`,
+    );
+  }
+  return value;
+}
+
 export function parseSummaryStrategy(
   value: unknown,
   label = "summaryStrategy",
@@ -484,6 +547,7 @@ export function createDefaultEngineConfig(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
   storageMode?: EngineConfig["storageMode"];
+  storageLocation?: StorageLocation;
   indexInclude?: string[];
   indexExclude?: string[];
   rankingWeights?: RankingWeights;
@@ -504,6 +568,7 @@ export function createDefaultEngineConfig(input: {
     languages: getSupportedLanguages(),
     respectGitIgnore: true,
     storageMode: input.storageMode ?? "wal",
+    storageLocation: input.storageLocation ?? "repo-local",
     staleStatus: "unknown",
     summaryStrategy:
       input.summaryStrategy === undefined
@@ -530,6 +595,8 @@ export function createDefaultEngineConfig(input: {
         [...(input.rankingPathPresets?.[category] ?? [])],
       ]),
     ) as Record<RankingPathPresetCategory, string[]>,
-    paths: resolveEnginePaths(input.repoRoot),
+    paths: resolveEnginePaths(input.repoRoot, {
+      storageLocation: input.storageLocation ?? "repo-local",
+    }),
   };
 }

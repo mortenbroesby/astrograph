@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
@@ -11,6 +11,7 @@ import { afterEach, describe, expect, it as baseIt } from "vitest";
 import {
   ASTROGRAPH_PACKAGE_VERSION,
   ASTROGRAPH_VERSION_PARTS,
+  appendEngineEvent,
   diagnostics,
   doctor,
   getContextBundle,
@@ -505,6 +506,50 @@ module.exports = {
     db.close();
 
     expect(checkout?.canonical_root).toBe(canonicalRepoRoot);
+  });
+
+  it("keeps global index, sidecars, and events together in an isolated cache directory", async () => {
+    const repoRoot = await createFixtureRepo({
+      directoryPrefix: "astrograph global storage fixture-",
+    });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-cache-"));
+    const previousCacheHome = process.env.XDG_CACHE_HOME;
+
+    try {
+      process.env.XDG_CACHE_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+
+      await indexFolder({ repoRoot });
+      await appendEngineEvent({
+        repoRoot,
+        source: "health",
+        event: "test.global-storage",
+        level: "info",
+      });
+
+      const canonicalRepoRoot = await realpath(repoRoot);
+      const paths = resolveEnginePaths(canonicalRepoRoot, { storageLocation: "global" });
+      const health = await diagnostics({ repoRoot });
+
+      expect(health.storageDir).toBe(paths.storageDir);
+      expect(health.databasePath).toBe(paths.databasePath);
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.databasePath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.repoMetaPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.integrityPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.storageVersionPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.readFile(paths.eventsPath, "utf8"))).resolves.toContain("test.global-storage");
+      await expect(import("node:fs/promises").then((fs) => fs.stat(path.join(canonicalRepoRoot, ".astrograph")))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      if (previousCacheHome === undefined) {
+        delete process.env.XDG_CACHE_HOME;
+      } else {
+        process.env.XDG_CACHE_HOME = previousCacheHome;
+      }
+      await rm(cacheHome, { recursive: true, force: true });
+    }
   });
 
   it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
