@@ -1,5 +1,9 @@
 # README and Docs Diagram Design
 
+> **Status:** Planned completion — diagram assets are embedded in `README.md`
+> and `docs/README.md`; record final verification before moving this document
+> to `../closed/`.
+
 ## Goal
 
 Add a small, high-signal visual layer to Astrograph's public documentation so a

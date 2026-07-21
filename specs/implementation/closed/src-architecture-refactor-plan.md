@@ -1,5 +1,8 @@
 # Source Architecture Refactor Plan
 
+> **Status:** Closed — all planned tasks are checked and this document is
+> retained as the architecture-refactor delivery record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Turn the source architecture and storage reviews into one behavior-preserving refactor sequence that reduces `src/storage.ts`, clarifies parser internals, unifies CLI/MCP command contracts, narrows shared type ownership, and keeps public contracts stable.

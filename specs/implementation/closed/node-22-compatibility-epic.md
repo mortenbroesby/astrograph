@@ -2,7 +2,7 @@
 
 > **Status:** Closed — the Node 22 compatibility story is complete. The shared
 > release-publication follow-up moved to the
-> [Remaining Delivery Epic](./remaining-delivery-epic.md).
+> [Remaining Delivery Epic](../planned/remaining-delivery-epic.md).
 
 **Goal:** Lower Astrograph's entry barrier by making Node.js 22 LTS the minimum
 supported runtime for installation, CLI use, MCP stdio, indexing, refresh, and

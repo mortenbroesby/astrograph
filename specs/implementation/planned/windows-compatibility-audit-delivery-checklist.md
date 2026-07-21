@@ -2,7 +2,7 @@
 
 > **Epic:** [Remaining Delivery Epic](./remaining-delivery-epic.md), Story 2
 >
-> **Status:** Ready for PR review — audit and documentation only. This story
+> **Status:** Deferred — audit and documentation only. This story
 > does not authorize platform-behavior changes; later Windows stories own
 > remediation.
 

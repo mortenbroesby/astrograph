@@ -1,5 +1,9 @@
 # MCP v1 Hard-Switch Plan: Explicit Tools, Strict Schemas, and Cache Deletion
 
+> **Status:** Closed — all implementation, verification, and reviewer
+> checklist items are complete. This document is retained as the MCP v1
+> decision and delivery record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Replace MCP v1 from `query_code`-first workflows to explicit retrieval tools, enforce a strict response envelope across all MCP calls, and remove MCP cache behavior. The resulting tool surface must preserve function without implicit orchestration.

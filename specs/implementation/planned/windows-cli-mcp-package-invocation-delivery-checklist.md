@@ -2,7 +2,7 @@
 
 > **Story:** 5 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
 >
-> **Status:** In progress — fix the package-manager `.cmd` boundary and retain
+> **Status:** Deferred — fix the package-manager `.cmd` boundary and retain
 > native terminal proof for Story 7.
 
 **Goal:** Make CLI, MCP stdio, and the packed npm artifact usable from

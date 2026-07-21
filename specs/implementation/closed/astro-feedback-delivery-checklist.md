@@ -2,7 +2,7 @@
 
 > **Status:** Closed — all completed feedback work and its evidence remain here
 > as a historical record. Any unresolved release-publication work moved to the
-> [Remaining Delivery Epic](./remaining-delivery-epic.md); do not resume this
+> [Remaining Delivery Epic](../planned/remaining-delivery-epic.md); do not resume this
 > checklist.
 
 **Goal:** Deliver the feedback epic as small, independently verifiable changes

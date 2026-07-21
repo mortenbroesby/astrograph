@@ -2,7 +2,7 @@
 
 > **Story:** 3 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
 >
-> **Status:** In progress — portable regression coverage is the deliverable in
+> **Status:** Deferred — portable regression coverage is the deliverable in
 > this branch. Native Windows execution is deliberately handed to Story 7's
 > scoped runner, not treated as a reason to block the remaining stories.
 
