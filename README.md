@@ -28,6 +28,8 @@
   <span> | </span>
   <a href="#quick-start">Quick start</a>
   <span> | </span>
+  <a href="#global-installation">Global installation</a>
+  <span> | </span>
   <a href="./docs/README.md">Docs</a>
   <span> | </span>
   <a href="#documentation">Documentation</a>
@@ -119,17 +121,6 @@ scripts:
 npm install -D astrograph
 ```
 
-For one user-level Codex MCP registration and an isolated cache for every
-repository, install Astrograph globally and opt in explicitly:
-
-```bash
-npm install --global astrograph
-astrograph install --global --ide codex
-```
-
-This registers one `astrograph mcp` server in `~/.codex/config.toml`. Every
-MCP call still supplies its repository root, so this is not one shared index.
-
 ### 2) Configure MCP
 
 Run the installer from the repository you want to index:
@@ -167,6 +158,65 @@ npx astrograph cli index-folder --repo /absolute/path/to/repo
 
 Once the MCP config is written, start your editor or CLI agent session and use
 Astrograph's retrieval tools against the local repository.
+
+<a id="global-installation"></a>
+## 🌍 Global Installation and Use (Codex)
+
+Use global setup when you want one user-level Codex MCP registration that works
+across repositories. It is currently supported for Codex only. Astrograph keeps
+an isolated cache for each canonical repository root; it never combines source
+or mutable index data from separate repositories.
+
+### 1) Install the command
+
+Global setup requires Node.js `>=22.12.0`. Install Astrograph, then open a new
+shell if your npm global bin directory was not already on `PATH`:
+
+```bash
+npm install --global astrograph
+astrograph --help
+```
+
+### 2) Register the global Codex server
+
+```bash
+astrograph install --global --ide codex
+```
+
+The installer adds a managed `astrograph mcp` entry to
+`~/.codex/config.toml` and writes the global-storage preference to your
+user-level Astrograph configuration. It does not modify any repository. Restart
+Codex after this command so it loads the registered MCP server.
+
+To preview the changes without writing files:
+
+```bash
+astrograph install --global --ide codex --dry-run
+```
+
+### 3) Index each repository once
+
+From a repository, create its initial index before asking Codex to retrieve
+code:
+
+```bash
+astrograph cli index-folder --repo /absolute/path/to/repo
+astrograph cache status --repo /absolute/path/to/repo
+```
+
+Thereafter, open Codex in that repository and use the Astrograph MCP tools.
+Start with `get_project_status`; if the index is stale, run `index_folder`.
+
+### 4) Choose storage deliberately
+
+Global setup makes global storage the user default. A repository can opt out
+with `storageLocation: "repo-local"` in `astrograph.config.ts` or
+`astrograph.config.json`; an explicit CLI flag wins for one command:
+
+```bash
+astrograph cli index-folder --repo /absolute/path/to/repo --storage-location global
+astrograph cli diagnostics --repo /absolute/path/to/repo --storage-location repo-local
+```
 
 ## 🧩 IDE Setup
 
