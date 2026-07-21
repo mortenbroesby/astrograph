@@ -209,8 +209,9 @@ astrograph cli index-folder --repo /absolute/path/to/repo
 astrograph cache status --repo /absolute/path/to/repo
 ```
 
-Thereafter use the Astrograph MCP tools normally. Start with
-`get_project_status`; if the index is stale, run `index_folder`.
+Thereafter, use Astrograph normally from the supported harness you work in,
+such as Codex or Copilot CLI. Astrograph automatically uses the repository you
+opened and its isolated global cache.
 
 ### 4) Repository-local setup is an explicit alternative
 
