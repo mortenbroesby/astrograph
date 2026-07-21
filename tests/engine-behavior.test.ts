@@ -834,6 +834,7 @@ module.exports = {
       await expect(fs.readFile(paths.storageVersionPath, "utf8"))
         .resolves.toContain('"version": 1');
     } finally {
+      clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
       await rm(cacheHome, { recursive: true, force: true });
@@ -864,6 +865,7 @@ module.exports = {
       await expect(fs.readFile(outsidePayload, "utf8")).resolves.toBe("do not remove");
       expect((await fs.lstat(paths.storageDir)).isSymbolicLink()).toBe(false);
     } finally {
+      clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
       await rm(cacheHome, { recursive: true, force: true });

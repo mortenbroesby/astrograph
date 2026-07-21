@@ -86,7 +86,10 @@ storage/cache CLI contracts.
   passed; `engine-behavior`, `engine-contract`, and `cli-boundary` passed
   123/123 with one intentional skip; packed-package smoke completed; type,
   version, whitespace, and spec-inventory checks passed after the
-  `0.5.0-alpha.138` increment.
+  `0.5.0-alpha.138` increment. The exact Windows CI test selection passed
+  95/95 with one intentional skip, and packed-package smoke and type lint
+  passed again after clearing cached SQLite handles before the new global-cache
+  fixtures remove their temporary roots.
 
 - [ ] Commit, push, and merge only after the exact PR head passes Fast required
   checks and Windows compatibility/package smoke.
