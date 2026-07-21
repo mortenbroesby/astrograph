@@ -6,13 +6,16 @@ checklist, and then move it to `../active/` before implementation begins.
 
 ## Backlog
 
+- [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
+  impact-ordered candidates spanning global install/cache, branch-aware
+  indexing, retrieval quality, onboarding, and existing Windows/release work.
 - [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
   and release-publication evidence remain planned; its Staff Engineer review
   is closed.
 - [Release Publication Evidence Delivery Checklist](./release-publication-evidence-delivery-checklist.md)
   — deferred final proof for automatic release-labelled-PR publication.
-- Windows delivery checklists — deferred while Global Install and Cache is the
-  active focus: [audit](./windows-compatibility-audit-delivery-checklist.md),
+- Windows delivery checklists — deferred until explicitly selected:
+  [audit](./windows-compatibility-audit-delivery-checklist.md),
   [filesystem/storage](./windows-filesystem-storage-portability-delivery-checklist.md),
   [Git fallback](./windows-git-discovery-fallback-delivery-checklist.md),
   [CLI/MCP/package](./windows-cli-mcp-package-invocation-delivery-checklist.md),
