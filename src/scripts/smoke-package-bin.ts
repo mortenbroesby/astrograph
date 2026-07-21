@@ -64,6 +64,14 @@ async function main(): Promise<void> {
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
     await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
+    // `init` writes an ESM config that imports `astrograph`. Model the
+    // supported repository setup: the configured project owns the package,
+    // rather than relying on a sibling CLI-only install.
+    await writeFile(
+      path.join(fixtureRepo, "package.json"),
+      JSON.stringify({ name: "astrograph-smoke-fixture", private: true }, null, 2),
+    );
+
     await writeFile(
       path.join(installDir, "package.json"),
       JSON.stringify({
@@ -181,6 +189,8 @@ async function main(): Promise<void> {
     if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
       throw new Error(`Expected astrograph init --agents to write code exploration policy: ${installResult.stdout}`);
     }
+
+    await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);
 
     const globalInstall = await run(
       "pnpm",
