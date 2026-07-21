@@ -243,6 +243,7 @@ async function main(): Promise<void> {
     if ((JSON.parse(isolatedSearch) as { items?: unknown[] }).items?.length !== 0) {
       throw new Error(`Global cache isolation failed: ${isolatedSearch}`);
     }
+    console.error("package smoke: completed successfully");
   } finally {
     // Windows can retain a short-lived handle from the final pnpm child while
     // it exits. Node's bounded retry is preferable to treating a successful
