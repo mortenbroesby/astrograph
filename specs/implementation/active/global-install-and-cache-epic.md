@@ -1,9 +1,10 @@
 # Global Install and Cache Epic
 
-> **Status:** In progress — the storage resolver, global Codex registration,
-> per-repository cache routing, conservative migration, and initial cache
-> controls are implemented. The remaining acceptance criteria below are still
-> active. Story 6 remains explicitly deferred.
+> **Status:** Release pending — Stories 1–5 and the non-release portions of
+> Story 7 are merged and verified on `main` by [PR #19](https://github.com/mortenbroesby/astrograph/pull/19),
+> the CI repair [PR #20](https://github.com/mortenbroesby/astrograph/pull/20),
+> and the successful post-merge CI run. The only active work is an explicitly
+> approved, guarded npm release. Story 6 remains explicitly deferred.
 >
 > **Related contracts:** [CLI API](../../api-design/cli-api.md),
 > [MCP Tools](../../api-design/mcp-tools.md), and
@@ -44,21 +45,26 @@ runs `pnpm check:version-bump`; the final story runs `pnpm release:plan`. A
 story may start only after its child delivery checklist names exact files,
 baseline commands, focused tests, final checks, and a commit checkpoint.
 
-**Deferred story handoffs:** Story 6 remains deferred; the original Stories 2–7 handoffs are in
-[Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md).
-They are not authorized for implementation until their selection gates are met
+**Deferred story handoffs:** Story 6 remains deferred; the historical handoffs
+are in [Global Install and Cache Deferred Story Handoffs](../planned/global-install-and-cache-deferred-stories.md).
+They are not authorized for implementation until their selection gate is met
 and an active checklist is created from that handoff.
 
 ## Remaining Delivery Work
 
-Implementation acceptance is complete. The remaining work is the merge and
-guarded release workflow, not further feature implementation.
+Implementation acceptance, the repair merge, and post-merge CI are complete.
+The remaining work is the guarded release workflow, not further feature
+implementation.
 
-1. **Merge and release proof (Story 7):** the focused global suites, full test
-   suite, packed-bin flow, type lint, version gate, and release plan have run
-   on this branch. `pnpm release:plan` selects a **minor** release and refuses
-   publication before `main`, as designed. After merge, rerun the guarded
-   main-only apply flow; do not tag manually.
+1. **Guarded package release (Story 7):** the focused global suites, packed-bin
+   flow, type lint, version gate, PR CI, and post-merge `main` CI have passed.
+   The feature merge's automatic release was skipped because its original CI
+   failed; the repair merge is test-only and was not release-labelled. After
+   explicit approval, manually dispatch the existing `CI` workflow on `main`
+   with `release_mode=apply`. Do not tag manually.
+
+The detailed Story 1–7 checkboxes below are retained as historical acceptance
+criteria. The delivery status above is authoritative for remaining work.
 
 **Completed Story 2 acceptance:** global installation now rejects unsupported
 Node, a missing `astrograph` command on `PATH`, and unreadable/unwritable user
@@ -106,8 +112,8 @@ show XDG-style paths on Unix but must not make them the only supported layout.
 
 ## Story 1: Global Storage Contract
 
-**Active delivery checklist:**
-[Global Storage Contract Delivery Checklist](./global-storage-contract-delivery-checklist.md)
+**Completed delivery checklist:**
+[Global Storage Contract Delivery Checklist](../closed/global-storage-contract-delivery-checklist.md)
 
 **Goal:** Define and implement the internal storage-location contract without
 changing the default behavior until the global installer opts into it.

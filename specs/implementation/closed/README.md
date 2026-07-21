@@ -19,3 +19,5 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   — completed and merged as PR #3.
 - [MCP v1 Hard-Switch Plan](./mcp-v1-hard-switch-plan.md)
 - [Source Architecture Refactor Plan](./src-architecture-refactor-plan.md)
+- [Global Storage Contract Delivery Checklist](./global-storage-contract-delivery-checklist.md)
+  — implemented in the Global Install and Cache Epic.
