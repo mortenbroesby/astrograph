@@ -1,10 +1,13 @@
 # Global Install and Cache Epic
 
-> **Status:** Release pending — Stories 1–5 and the non-release portions of
-> Story 7 are merged and verified on `main` by [PR #19](https://github.com/mortenbroesby/astrograph/pull/19),
-> the CI repair [PR #20](https://github.com/mortenbroesby/astrograph/pull/20),
-> and the successful post-merge CI run. The only active work is an explicitly
-> approved, guarded npm release. Story 6 remains explicitly deferred.
+> **Status:** Completed and published — Stories 1–5 and the non-release
+> portions of Story 7 were merged by [PR #19](https://github.com/mortenbroesby/astrograph/pull/19)
+> and its CI repair [PR #20](https://github.com/mortenbroesby/astrograph/pull/20).
+> The guarded release completed after the full fast and Windows checks, creating
+> [`v0.4.4-alpha.133`](https://github.com/mortenbroesby/astrograph/releases/tag/v0.4.4-alpha.133)
+> at `3db4d97` and publishing
+> [`astrograph@0.4.4-alpha.133`](https://www.npmjs.com/package/astrograph/v/0.4.4-alpha.133).
+> Story 6 remains explicitly deferred.
 >
 > **Related contracts:** [CLI API](../../api-design/cli-api.md),
 > [MCP Tools](../../api-design/mcp-tools.md), and
@@ -50,21 +53,20 @@ are in [Global Install and Cache Deferred Story Handoffs](../planned/global-inst
 They are not authorized for implementation until their selection gate is met
 and an active checklist is created from that handoff.
 
-## Remaining Delivery Work
+## Delivery Evidence
 
-Implementation acceptance, the repair merge, and post-merge CI are complete.
-The remaining work is the guarded release workflow, not further feature
-implementation.
+Implementation acceptance, the repair merge, and the guarded package release
+are complete. The release workflow reran the fast required checks and Windows
+compatibility suite, including the packed-package smoke test, before it
+committed `Release 0.4.4-alpha.133`, pushed the matching tag, and triggered the
+successful trusted npm publication.
 
-1. **Guarded package release (Story 7):** the focused global suites, packed-bin
-   flow, type lint, version gate, PR CI, and post-merge `main` CI have passed.
-   The feature merge's automatic release was skipped because its original CI
-   failed; the repair merge is test-only and was not release-labelled. After
-   explicit approval, manually dispatch the existing `CI` workflow on `main`
-   with `release_mode=apply`. Do not tag manually.
+Manual apply mode intentionally requests a fresh patch release. The preceding
+plan classified the feature set as minor, but it did not mutate state; the
+published patch alpha is the expected manual-release result.
 
 The detailed Story 1–7 checkboxes below are retained as historical acceptance
-criteria. The delivery status above is authoritative for remaining work.
+criteria. The delivery status above is authoritative.
 
 **Completed Story 2 acceptance:** global installation now rejects unsupported
 Node, a missing `astrograph` command on `PATH`, and unreadable/unwritable user

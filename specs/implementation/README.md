@@ -5,7 +5,7 @@ evidence so documentation status is visible from the file tree.
 
 ## Work Status
 
-- [Active Work](./active/README.md) - Selected delivery: Staff Engineer review, Windows support, and release-publication evidence.
+- [Active Work](./active/README.md) - The selected delivery queue; currently no implementation epic is selected.
 - [Planned Work](./planned/README.md) - Approved backlog that has not been selected for delivery.
 - [Closed Records](./closed/README.md) - Completed and superseded implementation plans and evidence.
 
