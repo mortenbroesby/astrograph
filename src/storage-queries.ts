@@ -23,6 +23,7 @@ export interface DbSymbolRow {
   start_byte: number;
   end_byte: number;
   exported: number;
+  bm25_score?: number;
 }
 
 export interface DbFileContentRow extends DbSymbolRow {

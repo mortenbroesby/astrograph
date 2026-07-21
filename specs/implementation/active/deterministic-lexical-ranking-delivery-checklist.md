@@ -2,18 +2,20 @@
 
 > **Epic:** [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md), Story 2
 >
-> **Status:** Active — establish the judged corpus and current ranking evidence
-> before modifying the ranking signal.
+> **Status:** Active — a judged corpus now supports the selected weighted BM25
+> ranking change; record its complete evidence before closing the story.
 
 **Goal:** Return the same locally ranked symbol results for the same corpus and
 query, with explicit lexical-field weights, deterministic tie-breaking, and
 recorded relevance and latency evidence.
 
 **Architecture:** Reuse SQLite FTS5 `symbol_search` as the lexical index and
-keep kind/language/path filters as SQL hard constraints. Replace the current
-heuristic-only ordering only after a small judged fixture proves the selected
-BM25 signal improves or preserves the recorded task results. Do not introduce
-semantic retrieval, a vector service, or a second search tool.
+keep kind/language/path filters as SQL hard constraints. Ordinary lexical
+queries use weighted BM25 as their primary order; the existing deterministic
+heuristic and stable path/line/name sequence resolve ties. Generation and
+ranking-path intents retain their explicit routing because they deliberately
+bypass the FTS candidate query. Do not introduce semantic retrieval, a vector
+service, or a second search tool.
 
 **Tech Stack:** TypeScript, Node.js 22 LTS, SQLite FTS5 unicode61 tokenizer,
 pnpm, Vitest, existing retrieval/config contracts.
@@ -54,20 +56,30 @@ pnpm, Vitest, existing retrieval/config contracts.
 
 ## Task 2: Select and Specify the Lexical Signal
 
-- [ ] Compare existing results with SQLite FTS5 `bm25(symbol_search, ...)` on
-  the judged fixture. Select BM25 only if it improves or preserves every
-  required task; otherwise record the evidence-driven defer decision.
+- [x] Select SQLite FTS5 `bm25(symbol_search, 10.0, 7.0, 3.0, 2.0)` for the
+  judged fixture: name, qualified name, signature, and summary are weighted in
+  that order. It preserves the fixture's exact-name, identifier, summary,
+  path-scoped, and no-result expectations while retaining explicit
+  generation/path-intent routing outside FTS.
 
-- [ ] Fix tokenizer, named field weights, candidate limit, deterministic
+- [x] Fix tokenizer, named field weights, candidate limit, deterministic
   tie-break sequence, and incremental FTS update lifecycle in this checklist.
+  Tokenizer: FTS5 `unicode61`; weights: name 10, qualified name 7, signature
+  3, summary 2; candidate limit: 400; order: BM25 ascending, existing
+  deterministic score descending, exported, path, start line, then name.
+  `persistFileIndexResult()` replaces each file's FTS rows transactionally,
+  so incremental updates require no separate lifecycle.
 
-- [ ] Define requested-only ranking explanations; do not grow ordinary
-  discovery payloads without measured need.
+- [x] Keep ranking explanations request-only. The selected change exposes no
+  new ordinary discovery payload fields; add an explanation contract only when
+  a caller has a concrete diagnostic need and a bounded requested surface.
 
 ## Task 3: Implement and Measure Only When Selected
 
-- [ ] Add only the selected deterministic ranking behavior and focused tests.
-  Preserve exact lookup and filters as hard constraints.
+- [x] Add only the selected deterministic ranking behavior and focused tests.
+  Ordinary lexical candidates carry their weighted BM25 score into the stable
+  sorter; exact lookup and SQL kind/language/path constraints remain hard
+  constraints. The six focused engine tests passed in CI mode in 10.98 seconds.
 
 - [ ] Record precision@k, MRR, zero-result rate, warm latency, and index-size
   delta for the judged fixture, with exact command and raw expected output.
