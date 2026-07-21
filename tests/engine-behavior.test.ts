@@ -737,6 +737,33 @@ module.exports = {
       .resolves.toContain('"version": 1');
   });
 
+  it("preserves an incompatible global cache for explicit recovery", async () => {
+    const repoRoot = await createFixtureRepo();
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-recovery-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const fs = await import("node:fs/promises");
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+      const paths = resolveEnginePaths(await realpath(repoRoot), { storageLocation: "global" });
+      await fs.mkdir(paths.storageDir, { recursive: true });
+      await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+      const preservedPath = path.join(paths.storageDir, "preserve-me.json");
+      await fs.writeFile(preservedPath, "preserved");
+
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/contents were preserved/i);
+      await expect(fs.readFile(preservedPath, "utf8")).resolves.toBe("preserved");
+    } finally {
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
   it("supports symbol and text search plus exact retrieval", async () => {
     const repoRoot = await createFixtureRepo();
 

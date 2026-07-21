@@ -705,6 +705,13 @@ async function resetStorageForVersionMismatch(
   config: ReturnType<typeof createDefaultEngineConfig>,
   currentVersion: number,
 ) {
+  if (config.storageLocation === "global") {
+    throw new Error(
+      `Global Astrograph cache at ${config.paths.storageDir} has incompatible storage version ${currentVersion}. ` +
+      "Its contents were preserved. Run an explicit migration or rebuild command after reviewing the cache status.",
+    );
+  }
+
   storageLogger.warn({
     event: "storage.version.reset",
     repoRoot: config.repoRoot,
