@@ -77,6 +77,31 @@ describe("event sink privacy", () => {
     expect(rawLog).not.toContain("sk-123456789012345678901234");
   });
 
+  it("serializes concurrent event writes in call order", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await Promise.all([
+      appendEngineEvent({
+        repoRoot,
+        source: "mcp",
+        event: "test.first",
+        level: "info",
+      }),
+      appendEngineEvent({
+        repoRoot,
+        source: "mcp",
+        event: "test.second",
+        level: "info",
+      }),
+    ]);
+
+    const events = await readRecentEngineEvents({ repoRoot, limit: 2 });
+    expect(events.map((event) => event.event)).toEqual([
+      "test.first",
+      "test.second",
+    ]);
+  });
+
   it("retains at least three days of observability history by default", async () => {
     const repoRoot = await createFixtureRepo();
     const paths = resolveEnginePaths(repoRoot);
