@@ -5,10 +5,9 @@ with the epic, then use its linked checklist for the next executable task.
 
 ## Current Queue
 
-1. [Global Install and Cache Epic](./global-install-and-cache-epic.md) —
-   implementation and CI are complete on `main`; the only remaining work is
-   the explicitly approved, guarded npm release described in the epic's
-   **Remaining Delivery Work** section.
+No implementation epic is currently selected. The completed
+[Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
+historical evidence, including its successful package release.
 
 The completed [Global Storage Contract Delivery Checklist](../closed/global-storage-contract-delivery-checklist.md)
 is historical evidence. Story 6 remains a non-goal in the

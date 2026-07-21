@@ -4,8 +4,8 @@
 > Story 1
 >
 > **Status:** Implemented — the storage-contract source change was committed as
-> `393ec20`. The epic remains active for the later acceptance work listed in
-> [Remaining Delivery Work](./global-install-and-cache-epic.md#remaining-delivery-work).
+> `393ec20`. The epic was completed and published as
+> [`astrograph@0.4.4-alpha.133`](https://www.npmjs.com/package/astrograph/v/0.4.4-alpha.133).
 
 **Goal:** Add a tested storage-location contract that can select isolated,
 user-private global storage for a canonical repository while preserving the
@@ -82,7 +82,7 @@ path/hash helpers, pnpm.
   plus this checklist and its epic status update:
 
   ```bash
-  git add src/config.ts src/types/config.ts src/types.ts src/storage.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/active/global-install-and-cache-epic.md specs/implementation/active/global-storage-contract-delivery-checklist.md
+  git add src/config.ts src/types/config.ts src/types.ts src/storage.ts tests/engine-contract.test.ts tests/engine-behavior.test.ts specs/implementation/closed/global-install-and-cache-epic.md specs/implementation/closed/global-storage-contract-delivery-checklist.md
   git commit -m "feat: add global storage location contract"
   ```
 

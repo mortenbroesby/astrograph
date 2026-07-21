@@ -1,6 +1,6 @@
 # Global Install and Cache Deferred Story Handoffs
 
-> **Epic:** [Global Install and Cache Epic](../active/global-install-and-cache-epic.md)
+> **Epic:** [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md)
 >
 > **Status:** Historical handoffs for completed Stories 2–5 and Story 7;
 > **only Story 6 remains deferred.** This document does not authorize source
