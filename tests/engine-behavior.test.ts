@@ -12,6 +12,7 @@ import {
   ASTROGRAPH_PACKAGE_VERSION,
   ASTROGRAPH_VERSION_PARTS,
   appendEngineEvent,
+  clearStorageProcessCaches,
   diagnostics,
   doctor,
   getContextBundle,
@@ -543,6 +544,7 @@ module.exports = {
       await expect(import("node:fs/promises").then((fs) => fs.readFile(paths.eventsPath, "utf8"))).resolves.toContain("test.global-storage");
       await expect(import("node:fs/promises").then((fs) => fs.stat(path.join(canonicalRepoRoot, ".astrograph")))).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
+      clearStorageProcessCaches();
       if (previousCacheHome === undefined) {
         delete process.env.ASTROGRAPH_CACHE_HOME;
       } else {
@@ -591,6 +593,7 @@ module.exports = {
       expect(firstResults).toEqual([]);
       expect(secondResults.map((result) => result.name)).toContain("globalOnlyRepositorySymbol");
     } finally {
+      clearStorageProcessCaches();
       if (previousCacheHome === undefined) {
         delete process.env.ASTROGRAPH_CACHE_HOME;
       } else {

@@ -186,7 +186,17 @@ async function main(): Promise<void> {
       "pnpm",
       ["exec", "astrograph", "install", "--global", "--ide", "codex"],
       installDir,
-      { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome },
+      {
+        HOME: globalHome,
+        ASTROGRAPH_CACHE_HOME: globalCacheHome,
+        // The global installer deliberately verifies that the `astrograph`
+        // command written to Codex configuration will resolve in a later
+        // session. This fixture installs the packed package locally, so model
+        // that global command discovery by exposing its bin directory.
+        PATH: [path.join(installDir, "node_modules", ".bin"), process.env.PATH]
+          .filter((entry): entry is string => Boolean(entry))
+          .join(path.delimiter),
+      },
     );
     const globalInstalled = JSON.parse(globalInstall.stdout) as {
       configPreview?: string;
