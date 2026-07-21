@@ -73,7 +73,7 @@ returned slice using existing fields.
   legacy shape solely for compatibility.
   `startByte`/`endByte` are zero-based, end-exclusive UTF-8 offsets in the
   indexed file; line numbers are one-based and include CRLF as one line break.
-  The returned source is decoded from those UTF-8 bytes, so non-ASCII prefixes
+  The returned source range is calculated in UTF-8 bytes, so non-ASCII prefixes
   cannot shift a slice. IDs retain their persisted path/kind/qualified-name/
   byte-offset components; changed or renamed files receive a newly indexed
   identity. Parser fallback is reported directly from persisted metadata.
@@ -96,9 +96,14 @@ returned slice using existing fields.
   parser snapshot. Existing refresh/stale fixtures cover changed files; live
   freshness intentionally remains diagnostics-owned.
 
-- [ ] Run targeted tests, `CI=1 pnpm type-lint`, packed-package smoke if the
-  bin/API changes, `pnpm check:version-bump`, and `git diff --check`.
+- [x] Run targeted tests, `CI=1 pnpm type-lint`, packed-package smoke,
+  `pnpm check:version-bump`, and `git diff --check`.
+  Evidence: the full engine suite has 72 passed/1 skipped, interface has 13
+  passed, the targeted Unicode/CRLF fixture passes, and the packed
+  `0.5.0-alpha.135` package smoke passes. The staged-diff version guard is run
+  again before the release-preparation commit.
 
-- [ ] Update this checklist, the Precision Epic, and the high-impact epic with
-  measured evidence and the release decision. Commit only after every checked
-  item has evidence; merge only after CI validates the exact commit.
+- [x] Update this checklist, the Precision Epic, and the high-impact epic with
+  measured evidence and the release decision. **Complete locally:**
+  `pnpm release:plan --base v0.4.4-alpha.133` selected minor; apply set
+  `0.5.0-alpha.135`. Merge only after CI validates the exact commit.

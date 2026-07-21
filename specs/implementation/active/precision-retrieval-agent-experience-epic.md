@@ -26,6 +26,10 @@
 
 ## Story 1 — Provenance-First Symbol Contract
 
+**Status:** Complete locally — public source/symbol results expose UTF-8 byte
+ranges and `get_symbol_source` returns verifiable source provenance. See the
+[delivery checklist](./provenance-first-symbol-contract-delivery-checklist.md).
+
 **Vision:** A symbol is a verifiable address into one exact source version.
 
 **Goal:** Define stable IDs, canonical relative paths, byte/line ranges, source hashes, parser provenance, and freshness on source/symbol results.
