@@ -6,9 +6,6 @@ checklist, and then move it to `../active/` before implementation begins.
 
 ## Backlog
 
-- [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
-  impact-ordered candidates spanning global install/cache, branch-aware
-  indexing, retrieval quality, onboarding, and existing Windows/release work.
 - [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
   and release-publication evidence remain planned; its Staff Engineer review
   is closed.
