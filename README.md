@@ -160,12 +160,12 @@ Once the MCP config is written, start your editor or CLI agent session and use
 Astrograph's retrieval tools against the local repository.
 
 <a id="global-installation"></a>
-## 🌍 Global Installation and Use (Codex)
+## 🌍 Global Installation and Use (Codex and Copilot CLI)
 
-Use global setup when you want one user-level Codex MCP registration that works
-across repositories. It is currently supported for Codex only. Astrograph keeps
-an isolated cache for each canonical repository root; it never combines source
-or mutable index data from separate repositories.
+Use global setup when you want one user-level MCP registration that works
+across repositories. Codex and Copilot CLI are first-party global targets.
+Astrograph keeps an isolated cache for each canonical repository root; it never
+combines source or mutable index data from separate repositories.
 
 ### 1) Install the command
 
@@ -177,29 +177,39 @@ npm install --global astrograph
 astrograph --help
 ```
 
-### 2) Register the global Codex server
+### 2) Register your global server
+
+For Codex:
 
 ```bash
 astrograph install --global --ide codex
 ```
 
-The installer adds a managed `astrograph mcp` entry to
-`~/.codex/config.toml` and writes the global-storage preference to your
-user-level Astrograph configuration. It does not modify any repository. Restart
-Codex after this command so it loads the registered MCP server.
+For Copilot CLI:
+
+```bash
+astrograph install --global --ide copilot-cli
+```
+
+The installer adds only Astrograph’s managed server entry to the client’s
+user-level configuration: `~/.codex/config.toml` for Codex, or
+`~/.copilot/mcp-config.json` for Copilot CLI (`$COPILOT_HOME/mcp-config.json`
+when that variable is set). It also writes the global-storage preference to
+your user-level Astrograph configuration. It does not modify any repository.
+Restart the selected harness after this command so it loads the MCP server.
 
 To preview the changes without writing files:
 
 ```bash
-astrograph install --global --ide codex --dry-run
+astrograph install --global --ide copilot-cli --dry-run
 ```
 
 ### 3) Use any repository — no repo setup
 
-Open Codex in any repository. The global registration finds the current
+Open Codex or Copilot CLI in any repository. The global registration finds the current
 repository and uses its own isolated directory beneath the global cache root.
 You do **not** run `astrograph init`, create `astrograph.config.*`, choose a
-cache directory, or add `.codex` files in that repository.
+cache directory, or add `.codex` or `.mcp.json` files in that repository.
 
 Create the first index from Codex with `index_folder`, or run this command from
 any shell:
@@ -209,9 +219,8 @@ astrograph cli index-folder --repo /absolute/path/to/repo
 astrograph cache status --repo /absolute/path/to/repo
 ```
 
-Thereafter, use Astrograph normally from the supported harness you work in,
-such as Codex or Copilot CLI. Astrograph automatically uses the repository you
-opened and its isolated global cache.
+Thereafter, use Astrograph normally from Codex or Copilot CLI. Astrograph
+automatically uses the repository you opened and its isolated global cache.
 
 ### 4) Repository-local setup is an explicit alternative
 

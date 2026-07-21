@@ -214,8 +214,9 @@ the native Windows and/or release CI proof for the exact merged commit.
 
 ## Story 7: Pain-Free Global Installation and Repository Usage
 
-**Status:** Active — selected through the
-[Pain-Free Global Install Delivery Checklist](./pain-free-global-install-delivery-checklist.md).
+**Status:** Complete — merged as PR #28 after exact-head Fast required checks
+and Windows compatibility/package smoke passed. See the
+[delivery checklist](../closed/pain-free-global-install-delivery-checklist.md).
 
 **Outcome:** A user installs Astrograph once globally and can index, query, and
 use it from any repository without repo-local initialization, copied config, or
@@ -244,8 +245,9 @@ directories.
 
 ## Story 8: Copilot CLI First-Party Global Installation
 
-**Status:** Planned — select after the generic global workflow is proven so
-Copilot CLI follows the same root-cache and repository-discovery contract.
+**Status:** Active — global Codex setup is proven and merged; now implement
+the first-party Copilot CLI peer. See the
+[delivery checklist](./global-copilot-cli-delivery-checklist.md).
 
 **Outcome:** Copilot CLI is a first-party supported installation target at the
 same level as Codex. A user can install or repair the Copilot CLI integration

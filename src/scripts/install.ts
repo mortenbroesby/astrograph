@@ -137,7 +137,7 @@ interface SetupForAllOptions {
   agentsPolicy?: boolean;
 }
 
-export interface SetupGlobalCodexOptions {
+export interface SetupGlobalClientOptions {
   dryRun?: boolean;
   environment?: StoragePathEnvironment;
   nodeVersion?: string;
@@ -145,7 +145,7 @@ export interface SetupGlobalCodexOptions {
 }
 
 export interface GlobalSetupResult {
-  ide: "codex";
+  ide: "codex" | "copilot-cli";
   configPath: string;
   engineConfigPath: string;
   configPreview: string;
@@ -796,7 +796,10 @@ function globalExecutableIsAvailable(environment: StoragePathEnvironment): boole
   );
 }
 
-function assertGlobalInstallPrerequisites(options: SetupGlobalCodexOptions): void {
+function assertGlobalInstallPrerequisites(
+  options: SetupGlobalClientOptions,
+  ide: "codex" | "copilot-cli",
+): void {
   const nodeVersion = options.nodeVersion ?? process.versions.node;
   const match = nodeVersion.match(/^(\d+)\.(\d+)\./);
   const major = Number(match?.[1] ?? 0);
@@ -806,7 +809,7 @@ function assertGlobalInstallPrerequisites(options: SetupGlobalCodexOptions): voi
   }
   const executableAvailable = options.executableAvailable ?? globalExecutableIsAvailable(options.environment ?? {});
   if (!executableAvailable) {
-    throw new Error("Cannot find `astrograph` on PATH. Install it with `npm install --global astrograph`, open a new shell, then rerun `astrograph install --global --ide codex`.");
+    throw new Error(`Cannot find \`astrograph\` on PATH. Install it with \`npm install --global astrograph\`, open a new shell, then rerun \`astrograph install --global --ide ${ide}\`.`);
   }
 }
 
@@ -820,10 +823,10 @@ async function readOptionalConfig(configPath: string): Promise<string> {
 }
 
 export async function setupGlobalForCodex(
-  options: SetupGlobalCodexOptions = {},
+  options: SetupGlobalClientOptions = {},
 ): Promise<GlobalSetupResult> {
   const { dryRun = false, environment = {} } = options;
-  assertGlobalInstallPrerequisites({ ...options, environment });
+  assertGlobalInstallPrerequisites({ ...options, environment }, "codex");
   const configPath = resolveGlobalCodexConfigPath(environment);
   const engineConfigPath = resolveGlobalConfigPath(environment);
   const currentCodexConfig = await readOptionalConfig(configPath);
@@ -851,6 +854,75 @@ export async function setupGlobalForCodex(
 
   return {
     ide: "codex",
+    configPath,
+    engineConfigPath,
+    configPreview,
+    engineConfigPreview,
+  };
+}
+
+function resolveGlobalCopilotCliConfigPath(
+  environment: StoragePathEnvironment = {},
+): string {
+  const configuredHome = (environment.env ?? process.env).COPILOT_HOME;
+  if (configuredHome) {
+    if (!path.isAbsolute(configuredHome)) {
+      throw new Error("COPILOT_HOME must be an absolute path for global Copilot CLI setup");
+    }
+    return path.join(configuredHome, "mcp-config.json");
+  }
+  const homeDir = environment.homeDir ?? os.homedir;
+  return path.join(homeDir(), ".copilot", "mcp-config.json");
+}
+
+function globalCopilotCliServer(): InstalledObject {
+  return {
+    type: "local",
+    command: "astrograph",
+    args: ["mcp"],
+    cwd: ".",
+    env: {},
+    tools: MCP_TOOLS,
+  };
+}
+
+export async function setupGlobalForCopilotCli(
+  options: SetupGlobalClientOptions = {},
+): Promise<GlobalSetupResult> {
+  const { dryRun = false, environment = {} } = options;
+  assertGlobalInstallPrerequisites({ ...options, environment }, "copilot-cli");
+  const configPath = resolveGlobalCopilotCliConfigPath(environment);
+  const engineConfigPath = resolveGlobalConfigPath(environment);
+  const currentCopilotConfig = await readOptionalConfig(configPath);
+  const currentEngineConfig = await readOptionalConfig(engineConfigPath);
+  const configPreview = replaceManagedServerInJson(
+    currentCopilotConfig,
+    configPath,
+    "mcpServers",
+    globalCopilotCliServer(),
+  );
+  const engineConfigPreview = `${JSON.stringify({
+    ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
+    storageLocation: "global",
+  }, null, 2)}\n`;
+
+  if (!dryRun) {
+    try {
+      await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
+      await mkdir(path.dirname(engineConfigPath), { recursive: true, mode: 0o700 });
+    } catch (error) {
+      throw new Error(`Cannot create user configuration directories for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+    try {
+      await writeFile(engineConfigPath, engineConfigPreview, { encoding: "utf8", mode: 0o600 });
+      await writeFile(configPath, configPreview, { encoding: "utf8", mode: 0o600 });
+    } catch (error) {
+      throw new Error(`Cannot write user configuration for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return {
+    ide: "copilot-cli",
     configPath,
     engineConfigPath,
     configPreview,
@@ -1175,18 +1247,20 @@ async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   if (argv.includes("--global")) {
     if (process.env.ASTROGRAPH_ENTRY_MODE !== "install") {
-      throw new Error("Use `astrograph install --global --ide codex`; `astrograph init` is repository-scoped.");
+      throw new Error("Use `astrograph install --global --ide codex|copilot-cli`; `astrograph init` is repository-scoped.");
     }
-    const allowed = new Set(["--global", "--ide", "codex", "--dry-run"]);
+    const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run"]);
     if (argv.some((entry) => !allowed.has(entry))) {
-      throw new Error("astrograph install --global accepts only --ide codex and --dry-run.");
+      throw new Error("astrograph install --global accepts only --ide codex|copilot-cli and --dry-run.");
     }
     const ideIndex = argv.indexOf("--ide");
     const ide = ideIndex >= 0 ? argv[ideIndex + 1] : "codex";
-    if (ide !== "codex") {
-      throw new Error("astrograph install --global currently supports only --ide codex");
+    if (ide !== "codex" && ide !== "copilot-cli") {
+      throw new Error("astrograph install --global currently supports only --ide codex or --ide copilot-cli");
     }
-    const result = await setupGlobalForCodex({ dryRun: argv.includes("--dry-run") });
+    const result = ide === "copilot-cli"
+      ? await setupGlobalForCopilotCli({ dryRun: argv.includes("--dry-run") })
+      : await setupGlobalForCodex({ dryRun: argv.includes("--dry-run") });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     return;
   }

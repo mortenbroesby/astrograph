@@ -44,7 +44,13 @@ import {
   getCommandByMcpToolName,
 } from "../src/command-registry.ts";
 import { MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
-import { setupForAllIdes, setupForCodex, setupForIde, setupGlobalForCodex } from "../src/scripts/install.ts";
+import {
+  setupForAllIdes,
+  setupForCodex,
+  setupForIde,
+  setupGlobalForCodex,
+  setupGlobalForCopilotCli,
+} from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
 
@@ -964,6 +970,66 @@ describe("ai-context-engine contract", () => {
     });
   });
 
+  it("installs one idempotent global Copilot CLI server without replacing unrelated servers", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-config-"));
+    tempDirs.push(homeDir, configHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome },
+      homeDir: () => homeDir,
+    };
+    const copilotConfigPath = path.join(homeDir, ".copilot", "mcp-config.json");
+    await mkdir(path.dirname(copilotConfigPath), { recursive: true });
+    await writeFile(copilotConfigPath, JSON.stringify({
+      mcpServers: {
+        unrelated: { type: "local", command: "keep", args: [] },
+      },
+      unrelatedSetting: true,
+    }, null, 2));
+
+    const first = await setupGlobalForCopilotCli({ environment, executableAvailable: true });
+    const second = await setupGlobalForCopilotCli({ environment, executableAvailable: true });
+
+    expect(first.ide).toBe("copilot-cli");
+    expect(first.configPath).toBe(copilotConfigPath);
+    expect(second.configPreview).toBe(first.configPreview);
+    expect(JSON.parse(first.configPreview)).toMatchObject({
+      unrelatedSetting: true,
+      mcpServers: {
+        unrelated: { command: "keep" },
+        astrograph: {
+          type: "local",
+          command: "astrograph",
+          args: ["mcp"],
+          env: {},
+        },
+      },
+    });
+    expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
+      storageLocation: "global",
+    });
+  });
+
+  it("uses COPILOT_HOME for global Copilot CLI setup", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-home-"));
+    const copilotHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-config-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-config-"));
+    tempDirs.push(homeDir, copilotHome, configHome);
+
+    const result = await setupGlobalForCopilotCli({
+      environment: {
+        platform: "linux",
+        env: { COPILOT_HOME: copilotHome, XDG_CONFIG_HOME: configHome },
+        homeDir: () => homeDir,
+      },
+      executableAvailable: true,
+    });
+
+    expect(result.configPath).toBe(path.join(copilotHome, "mcp-config.json"));
+    await expect(readFile(result.configPath, "utf8")).resolves.toContain('"astrograph"');
+  });
+
   it("uses one global Codex setup across unconfigured repositories", async () => {
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-home-"));
     const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-config-"));
@@ -1025,6 +1091,112 @@ describe("ai-context-engine contract", () => {
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
       clearStorageProcessCaches();
     }
+  });
+
+  it("uses one global Copilot CLI setup across unconfigured repositories", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-home-"));
+    const copilotHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-config-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-cache-"));
+    const firstRepo = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-first-"));
+    const secondRepo = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-second-"));
+    tempDirs.push(homeDir, copilotHome, configHome, cacheHome, firstRepo, secondRepo);
+    const environment = {
+      platform: process.platform,
+      env: {
+        COPILOT_HOME: copilotHome,
+        XDG_CONFIG_HOME: configHome,
+        ASTROGRAPH_CACHE_HOME: cacheHome,
+      },
+      homeDir: () => homeDir,
+    };
+    const previousHome = process.env.HOME;
+    const previousCopilotHome = process.env.COPILOT_HOME;
+    const previousConfigHome = process.env.XDG_CONFIG_HOME;
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.HOME = homeDir;
+      process.env.COPILOT_HOME = copilotHome;
+      process.env.XDG_CONFIG_HOME = configHome;
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await setupGlobalForCopilotCli({ environment, executableAvailable: true });
+      await writeFile(path.join(firstRepo, "first.ts"), "export function firstCopilotGlobalFixture() { return true; }\n");
+      await writeFile(path.join(secondRepo, "second.ts"), "export function secondCopilotGlobalFixture() { return true; }\n");
+      clearStorageProcessCaches();
+
+      await indexFolder({ repoRoot: firstRepo });
+      await indexFolder({ repoRoot: secondRepo });
+      const [firstStatus, secondStatus, firstSymbols, secondSymbols] = await Promise.all([
+        cacheStatus(firstRepo),
+        cacheStatus(secondRepo),
+        searchSymbols({ repoRoot: firstRepo, query: "firstCopilotGlobalFixture" }),
+        searchSymbols({ repoRoot: secondRepo, query: "secondCopilotGlobalFixture" }),
+      ]);
+
+      expect(firstStatus.storageLocation).toBe("global");
+      expect(secondStatus.storageLocation).toBe("global");
+      expect(firstStatus.storageDir).not.toBe(secondStatus.storageDir);
+      expect(firstStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
+      expect(secondStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
+      expect(firstSymbols.map((symbol) => symbol.name)).toContain("firstCopilotGlobalFixture");
+      expect(secondSymbols.map((symbol) => symbol.name)).toContain("secondCopilotGlobalFixture");
+      for (const repoRoot of [firstRepo, secondRepo]) {
+        await expect(stat(path.join(repoRoot, ".mcp.json"))).rejects.toMatchObject({ code: "ENOENT" });
+        await expect(stat(path.join(repoRoot, ".astrograph"))).rejects.toMatchObject({ code: "ENOENT" });
+        await expect(stat(path.join(repoRoot, "astrograph.config.json"))).rejects.toMatchObject({ code: "ENOENT" });
+        await expect(stat(path.join(repoRoot, "astrograph.config.ts"))).rejects.toMatchObject({ code: "ENOENT" });
+      }
+    } finally {
+      if (previousHome === undefined) delete process.env.HOME;
+      else process.env.HOME = previousHome;
+      if (previousCopilotHome === undefined) delete process.env.COPILOT_HOME;
+      else process.env.COPILOT_HOME = previousCopilotHome;
+      if (previousConfigHome === undefined) delete process.env.XDG_CONFIG_HOME;
+      else process.env.XDG_CONFIG_HOME = previousConfigHome;
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      clearStorageProcessCaches();
+    }
+  });
+
+  it("reports invalid and unwritable global Copilot CLI configuration before changing user state", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-invalid-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-invalid-config-"));
+    const copilotConfigPath = path.join(homeDir, ".copilot", "mcp-config.json");
+    tempDirs.push(homeDir, configHome);
+    await mkdir(path.dirname(copilotConfigPath), { recursive: true });
+    await writeFile(copilotConfigPath, "not-json");
+
+    await expect(setupGlobalForCopilotCli({
+      environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
+      executableAvailable: true,
+    })).rejects.toThrow(/Invalid JSON config file.*mcp-config\.json/i);
+    await expect(readFile(resolveGlobalConfigPath({
+      platform: "linux",
+      env: { XDG_CONFIG_HOME: configHome },
+      homeDir: () => homeDir,
+    }), "utf8")).rejects.toMatchObject({ code: "ENOENT" });
+
+    await expect(setupGlobalForCopilotCli({
+      environment: {
+        platform: "linux",
+        env: { COPILOT_HOME: "relative-copilot-home", XDG_CONFIG_HOME: configHome },
+        homeDir: () => homeDir,
+      },
+      executableAvailable: true,
+    })).rejects.toThrow(/COPILOT_HOME must be an absolute path/i);
+
+    const blockedCopilotHome = path.join(homeDir, "blocked-copilot-home");
+    await writeFile(blockedCopilotHome, "not-a-directory");
+    await expect(setupGlobalForCopilotCli({
+      environment: {
+        platform: "linux",
+        env: { COPILOT_HOME: blockedCopilotHome, XDG_CONFIG_HOME: configHome },
+        homeDir: () => homeDir,
+      },
+      executableAvailable: true,
+    })).rejects.toThrow(/Cannot read user configuration.*blocked-copilot-home/i);
   });
 
   it("reports actionable global-install prerequisites before writing user configuration", async () => {

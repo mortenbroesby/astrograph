@@ -23,3 +23,5 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   implemented, CI-verified, and published as `astrograph@0.4.4-alpha.133`.
 - [Global Storage Contract Delivery Checklist](./global-storage-contract-delivery-checklist.md)
   — implemented in the Global Install and Cache Epic.
+- [Pain-Free Global Install Delivery Checklist](./pain-free-global-install-delivery-checklist.md)
+  — merged as PR #28 after exact-head Fast and Windows/package smoke evidence.

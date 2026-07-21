@@ -3,7 +3,7 @@
 Astrograph exposes three main command surfaces:
 
 - `astrograph init`
-- `astrograph install --global --ide codex`
+- `astrograph install --global --ide codex|copilot-cli`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
@@ -16,11 +16,14 @@ invocation path in your environment.
 
 - `astrograph init`
   Writes MCP configuration for supported clients.
-- `astrograph install --global --ide codex`
-  Registers one user-level Codex MCP server and enables per-repository global
-  cache storage. It does not modify a repository: after installing once, open
-  any repository and index it or use the MCP tools directly. Normal global use
-  does not require `init`, repo-local config, or a chosen cache directory.
+- `astrograph install --global --ide codex|copilot-cli`
+  Registers one user-level MCP server and enables per-repository global cache
+  storage. Codex writes its managed Astrograph block to `~/.codex/config.toml`;
+  Copilot CLI writes only `mcpServers.astrograph` to
+  `~/.copilot/mcp-config.json` (or `$COPILOT_HOME/mcp-config.json`). It does
+  not modify a repository: after installing once, open any repository and
+  index it or use the MCP tools directly. Normal global use does not require
+  `init`, repo-local config, or a chosen cache directory.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`
@@ -89,9 +92,11 @@ and the persisted checkout that populated that cache. `checkout` is `null`
 until the repository has been indexed; otherwise it reports its Git mode,
 branch/head/worktree identity, diagnostic, and indexed time.
 
-For a globally installed Codex client, use these recovery commands before
-editing or deleting cache files manually. They operate on the selected
-repository's isolated global cache, not a shared cross-repository index.
+For a globally installed Codex or Copilot CLI client, use these recovery
+commands before editing or deleting cache files manually. They operate on the
+selected repository's isolated global cache, not a shared cross-repository
+index. Re-run the matching `astrograph install --global --ide ...` command to
+repair a managed client entry without changing unrelated user configuration.
 
 ```bash
 astrograph cache status --repo /repo
