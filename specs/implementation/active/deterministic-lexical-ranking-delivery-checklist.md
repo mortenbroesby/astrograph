@@ -81,8 +81,20 @@ pnpm, Vitest, existing retrieval/config contracts.
   sorter; exact lookup and SQL kind/language/path constraints remain hard
   constraints. The six focused engine tests passed in CI mode in 10.98 seconds.
 
-- [ ] Record precision@k, MRR, zero-result rate, warm latency, and index-size
+- [x] Record precision@k, MRR, zero-result rate, warm latency, and index-size
   delta for the judged fixture, with exact command and raw expected output.
+  The warmed five-query fixture returned the expected first result for all four
+  result-bearing queries (precision@1 `1.00`, MRR `1.00`); the deliberate
+  no-result query makes the zero-result rate `1/5` (`20%`). A direct warm run
+  took `16.04ms` total (`3.21ms/query`) and returned:
+  `refreshSessionToken`; `HTTPServer`, `listen`; `refreshSessionToken`;
+  `rankingWidget`; and `[]`. Reproduce the judged results with
+  `CI=1 pnpm exec vitest run --no-file-parallelism tests/engine-behavior.test.ts
+  --testNamePattern='keeps judged lexical'`; the direct measurement reused
+  `createFixtureRepo`, `indexFolder`, and `searchSymbols` with one warm-up
+  pass. Index-size delta is `0 B` by construction: this change
+  touches neither `src/storage-schema.ts` nor `src/indexing.ts`, so it cannot
+  change persisted FTS rows or the SQLite index artifact.
 
 - [ ] Run affected engine/interface tests, `CI=1 pnpm type-lint`, package
   smoke when the shipped surface changes, `pnpm check:version-bump`, and
