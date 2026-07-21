@@ -1,15 +1,15 @@
 # Global Install and Cache Deferred Story Handoffs
 
-> **Epic:** [Global Install and Cache Epic](./global-install-and-cache-epic.md)
+> **Epic:** [Global Install and Cache Epic](../active/global-install-and-cache-epic.md)
 >
-> **Status:** Deferred — this document prepares Stories 2–7 for selection. It
-> does not authorize source changes, cache mutation, user-level configuration
-> writes, package publication, or any non-goal work.
+> **Status:** Historical handoffs for completed Stories 2–5 and Story 7;
+> **only Story 6 remains deferred.** This document does not authorize source
+> changes, cache mutation, user-level configuration writes, package
+> publication, or any non-goal work.
 
-Each story below may move to an active checklist only after all listed
-prerequisites are true. Create the active checklist by copying its baseline,
-steps, verification, and commit checkpoint; do not execute directly from this
-deferred record.
+Story 6 may move to an active checklist only after all listed prerequisites are
+true. Create the active checklist by copying its baseline, steps, verification,
+and commit checkpoint; do not execute directly from this deferred record.
 
 ## Shared Rules for Every Deferred Story
 
