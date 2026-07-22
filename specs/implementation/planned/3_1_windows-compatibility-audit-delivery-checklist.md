@@ -1,6 +1,6 @@
 # Windows Compatibility Audit Delivery Checklist
 
-> **Epic:** [Remaining Delivery Epic](./remaining-delivery-epic.md), Story 2
+> **Epic:** [Remaining Delivery Epic](./3_remaining-delivery-epic.md), Story 2
 >
 > **Status:** Deferred — audit and documentation only. This story
 > does not authorize platform-behavior changes; later Windows stories own

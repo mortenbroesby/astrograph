@@ -1,8 +1,8 @@
 # Global Installation Health and Recovery Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 2
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md), Story 2
 >
-> **Status:** Active — selected after a real global-install failure: npm
+> **Status:** Closed — selected after a real global-install failure: npm
 > `latest` remained at `0.4.4-alpha.133`, whose CLI lacked `--version` and the
 > expected global Copilot setup. `0.5.0-alpha.153` now publishes the new
 > contract; verify installation, diagnostics, repair, and client behavior from
@@ -51,10 +51,12 @@ installer and CLI/MCP contract tests.
   packed-package smoke proves the global installation path end to end.
 
 - [x] Produce a supported client/terminal matrix from actual tested behavior.
-  Global setup is currently proven for Codex only; repository-local setup
-  supports Codex, Copilot, and Copilot CLI. The packed-package smoke proves
-  global Codex registration, two isolated global cache roots, and CLI usage.
-  No other global client is promised.
+  The installed `0.5.0-alpha.153` artifact reports `copilot-cli` as the default
+  global client; `astrograph install --global --dry-run` previews its only two
+  writes without changing state. Focused contracts prove idempotent Copilot
+  CLI registration, unrelated-config preservation, `COPILOT_HOME`, diagnostics,
+  prerequisite failures, and global cache isolation. Codex remains supported;
+  no other global client is promised.
 
 ## Task 2: Reproduce and Prioritize Recovery Gaps
 
@@ -66,34 +68,30 @@ the corrective contract. This story must prove the installed artifact—not only
 the repository source—makes version, diagnostics, default global Copilot setup,
 and safe repair understandable.
 
-- [ ] Add focused fixtures for only the missing high-impact cases: moved or
-  missing executable, unsupported Node, marker drift, unwritable config, stale
-  generated configuration, and repeated repair.
+- [x] Confirm the existing focused fixtures cover the high-impact cases: a
+  missing executable, unsupported Node, invalid/unwritable Copilot config,
+  invalid `COPILOT_HOME`, repeat installation, and unrelated-config
+  preservation. The managed replacement makes repeated registration the safe
+  repair path; no marker-drift or stale-config case exposed an unhandled write.
 
-- [ ] Record which gaps are already actionable and which require a new health
-  or repair surface. Do not add a generic "doctor" command if existing output
-  is sufficient.
+- [x] Record the decision: all observed failures are already actionable through
+  installer preflight, `--diagnostics`, and `--dry-run`. The original failure
+  was the stale published `.133` package, not a missing source contract.
 
-- [ ] Select the smallest public contract: improve installer output, add one
-  inspectable health subcommand, or add one marker-owned repair flow. Defer
-  lower-impact clients and terminal permutations.
+- [x] Select no new public recovery surface. Keep the existing JSON diagnostics
+  and marker-owned idempotent installer; do not add a generic doctor or repair
+  command without a new reproducible gap.
 
 ## Task 3: Implement the Selected Recovery Path
 
 **Selection gate:** Tasks 1–2 identify a reproducible failure that current
 output cannot resolve safely.
 
-**Deferred:** Task 2 did not identify such a gap.
+**Not selected:** Task 2 did not identify such a gap.
 
-- [ ] Implement only the selected path. It must be JSON-first where it writes
-  or reports state, dry-run-safe when configuration could change, and preserve
-  non-Astrograph configuration byte-for-byte.
-
-- [ ] Make repeated repair idempotent and fail before a partial write when the
-  executable, runtime, permissions, or owned marker cannot be validated.
-
-- [ ] Add only the targeted CLI/MCP/API documentation required by the chosen
-  contract; do not expand this into multi-client setup work.
+- [x] No implementation was warranted. Existing JSON diagnostics, dry-run
+  preview, preflight failures, and repeat-install behavior already meet the
+  bounded recovery contract without adding a compatibility shim or new tool.
 
 ## Task 4: Verify and Handoff
 
@@ -112,7 +110,8 @@ output cannot resolve safely.
   smoke passes when run with CI-equivalent network access.
 
 - [x] Update this checklist and the active epic with the exact failure,
-  remediation, tests, and release decision. **Deferred:** no material gap
-  remains. The only change is an improved package-smoke error that includes
-  child-process stdout/stderr; merge it only after CI verifies the exact
-  commit.
+  remediation, tests, and release decision. **Closed with no source change:**
+  `astrograph --version` reported `0.5.0-alpha.153`; `--diagnostics` reported
+  the supported Node runtime, `~/.astrograph` paths, configured clients, and
+  the next safe step; `install --global --dry-run` previewed Copilot CLI and
+  global-storage writes. Four focused global-recovery contracts passed.

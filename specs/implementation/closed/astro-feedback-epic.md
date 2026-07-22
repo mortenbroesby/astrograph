@@ -8,7 +8,7 @@
 >
 > **Status:** Closed — all feature stories are complete. Any remaining release
 > publication evidence is consolidated in the
-> [Remaining Delivery Epic](../planned/remaining-delivery-epic.md).
+> [Remaining Delivery Epic](../planned/3_remaining-delivery-epic.md).
 
 **Goal:** Convert the current feedback themes into one dependency-ordered epic
 that improves retrieval quality, result discipline, explainability, and public

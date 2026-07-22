@@ -1,6 +1,6 @@
 # Checkout and Cache Transparency Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 3
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md), Story 3
 >
 > **Status:** Complete — merged as PR #24 after exact-head Fast and Windows
 > compatibility CI passed.

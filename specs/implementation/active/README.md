@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Global Installation Health and Recovery](./global-install-health-recovery-delivery-checklist.md)
-   — selected to prove the published global artifact makes installation,
-   diagnostics, and safe repair clear for the supported clients.
+1. [Reversible User-Data Cleanup](./reversible-user-data-cleanup-delivery-checklist.md)
+   — selected to establish an archive-first, previewable, auditable cleanup and
+   recovery contract before any cache-cleanup behavior changes.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

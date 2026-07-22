@@ -50,3 +50,8 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [File-Type Support Coverage and Discovery Delivery Checklist](./filetype-support-coverage-delivery-checklist.md)
   — closed with no additional runtime change after confirming the requested
   JavaScript-module and discovery-only extension matrix in PR #46.
+- [README and Docs Diagram Design](./readme-docs-diagram-design.md) — closed
+  after verifying the tracked Excalidraw/SVG assets and Markdown embeds.
+- [Global Installation Health and Recovery Delivery Checklist](./global-install-health-recovery-delivery-checklist.md)
+  — closed with no source change after verifying the published `.153` package,
+  diagnostics, dry-run, and focused Copilot CLI recovery contracts.

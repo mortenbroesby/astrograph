@@ -17,58 +17,59 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Global Installation Health and Recovery](./active/global-install-health-recovery-delivery-checklist.md)
-   - Goal: prove the published global artifact makes version, diagnostics,
-     default Copilot setup, and safe repair clear and idempotent.
-   - First unchecked task: reproduce the stale-package and global-client matrix
-     from `astrograph@0.5.0-alpha.153`.
+1. [Reversible User-Data Cleanup](./active/reversible-user-data-cleanup-delivery-checklist.md)
+   - Goal: make every cleanup or recovery operation scoped, previewable,
+     recoverable, and auditable before changing cache behavior.
+   - First unchecked task: inventory all delete, remove, prune, overwrite,
+     migration-reset, and cache-cleanup paths.
 
 ## Ready — detailed, but not selected
 
-- [npm-module adoption epic](./planned/npm-module-adoption-epic.md) is ready
-  for a bounded Slice A evaluation of `execa`, `semver`, and `latest-version`.
-  It must preserve product-specific command, MCP, installer, and release-policy
-  behavior; package-quality gates require a CI cost review before selection.
-- [Windows/release delivery roadmap](./planned/remaining-delivery-epic.md)
-  and its [release-publication checklist](./planned/release-publication-evidence-delivery-checklist.md).
-  The release path is built; the last proof requires a release-labelled PR
-  merged to `main`.
-- Windows audit, filesystem/storage, Git fallback, CLI/package, watch, and
-  CI/documentation checklists are available in [planned work](./planned/README.md).
-  Select one only for a concrete platform gap or release requirement.
-- [Reversible user-data cleanup](./planned/reversible-user-data-cleanup-delivery-checklist.md)
-  is ready to establish an archive-first, auditable cleanup contract. It must
-  be selected before cache cleanup behavior changes.
+0. [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
+   is the first ready operational story. It replaces the current release label,
+   release-branch, post-merge commit, and downstream-workflow loop with one
+   verified merge-to-npm transaction and a `no-release` exception.
+1. [Precision retrieval and agent experience](./planned/1_precision-retrieval-agent-experience-epic.md)
+   is the first ready product epic. Select only a specifically scoped next
+   story with its own delivery checklist.
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) is ready for
+   a bounded Slice A evaluation of `execa`, `semver`, and `latest-version`.
+   It must preserve product-specific behavior; package-quality gates require a
+   CI cost review before selection.
+3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
+   hosted Windows CI is disabled for cost. Its retained child checklists are
+   available in [planned work](./planned/README.md) when a concrete platform
+   gap, local/container proof, and re-enable budget exist.
 
 ## Parked — revisit only with new evidence
 
-- [Global + branch-aware immutable artifact reuse](./planned/global-branch-artifact-reuse-delivery-checklist.md):
+- [Global + branch-aware immutable artifact reuse](./planned/5_global-branch-artifact-reuse-delivery-checklist.md):
   a representative run took 2.044 seconds for both indexes, so the measured
   duplication did not justify cross-repository storage complexity.
-- [Compact versioned transport](./planned/precision-retrieval-agent-experience-epic.md#story-4--compact-versioned-transport):
+- [Compact versioned transport](./planned/1_precision-retrieval-agent-experience-epic.md#story-4--compact-versioned-transport):
   measure complete agent-visible MCP envelopes before selecting an opt-in,
   versioned compact JSON format for repetitive result shapes.
-- [Internal artifact serialization efficiency](./planned/precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
+- [Internal artifact serialization efficiency](./planned/1_precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
   MessagePack is only a selective internal candidate after measurements compare
   `analysis_artifacts` JSON, deduplicated layout, size, latency, and debuggability.
-- [Optional shared immutable artifact store](./planned/global-install-and-cache-deferred-stories.md#story-6-shared-immutable-artifact-store--optional-and-deferred):
+- [Optional shared immutable artifact store](./planned/6_global-install-and-cache-deferred-stories.md#story-6-shared-immutable-artifact-store--optional-and-deferred):
   never shares mutable repository indexes and remains optional.
 
 ## Blocked — external prerequisite only
 
-- [Automatic release-publication evidence](./planned/release-publication-evidence-delivery-checklist.md):
-  requires a release-labelled PR merged to `main`, then recorded version commit,
-  tag, CI, and trusted npm publication evidence.
+No planned item is blocked. The release path is a ready design-and-delivery
+change, not a reason to wait for a specially labelled PR.
 
 ## Ideas — not a commitment
 
-- [Later precision retrieval candidates](./planned/precision-retrieval-agent-experience-epic.md):
+- [Later precision retrieval candidates](./planned/1_precision-retrieval-agent-experience-epic.md):
   onboarding packs, incremental freshness, optional semantic/hybrid retrieval,
   and honest benchmark/reporting. Each needs its own evidence gate.
-- [Spec-system backlog](./planned/spec-system-backlog.md): architecture/API
+- [Spec-system backlog](./planned/7_spec-system-backlog.md): architecture/API
   coverage and authoring consistency.
-- [README/document diagram design](./planned/2026-05-06-readme-diagrams-design.md):
-  visual-documentation completion, not product delivery.
+- [High-impact follow-up history](./planned/4_high-impact-followups-epic.md):
+  completed results and deferred candidates; its selection gates remain the
+  only route for reopening them.
 - [Compact output versus internal serialization assessment](../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md):
   ingested roadmap input; it does not select either parked story.
 - [`specs/raw/`](../raw/): research inputs only; not a delivery queue.
@@ -81,8 +82,8 @@ roadmap explains everything else.
   MCP cache controls.
 - Backward compatibility solely to preserve obsolete pre-v1 cache data.
 
-These boundaries come from the [high-impact follow-up epic](./planned/high-impact-followups-epic.md),
-the [global-cache handoff](./planned/global-install-and-cache-deferred-stories.md),
+These boundaries come from the [high-impact follow-up epic](./planned/4_high-impact-followups-epic.md),
+the [global-cache handoff](./planned/6_global-install-and-cache-deferred-stories.md),
 and the [MCP contract](../api-design/mcp-tools.md).
 
 ## Done — evidence, not queue
@@ -100,6 +101,13 @@ and the [MCP contract](../api-design/mcp-tools.md).
   closed with no additional runtime change: PR #46 already proved the requested
   JavaScript-module and fallback-file matrix with exact-head Fast and Windows
   compatibility/package-smoke evidence.
+- [README and Docs Diagram Design](./closed/readme-docs-diagram-design.md) is
+  closed evidence: both checked-in SVGs and their Excalidraw sources are
+  embedded in the public documentation.
+- [Global Installation Health and Recovery](./closed/global-install-health-recovery-delivery-checklist.md)
+  closed with no source change: the stale published package was superseded by
+  `.153`, whose installed artifact and focused recovery contracts prove the
+  existing diagnostics and dry-run installer are sufficient.
 
 ## Maintaining this roadmap
 

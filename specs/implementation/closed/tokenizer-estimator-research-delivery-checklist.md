@@ -1,6 +1,6 @@
 # Tokenizer and Token-Estimator Research Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 10
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md), Story 10
 >
 > **Status:** Complete — retained `tiktoken` for exact budgets and `tokenx` as
 > the explicit estimate after PR #36 (`fa8d2a9`) passed exact-head Fast and

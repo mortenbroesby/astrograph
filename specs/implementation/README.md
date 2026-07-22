@@ -21,7 +21,7 @@ evidence so documentation status is visible from the file tree.
 ## Planned Subsystem Coverage
 
 The remaining durable subsystem and public-contract coverage is tracked in the
-[Spec System Backlog](./planned/spec-system-backlog.md). Do not create a second
+[Spec System Backlog](./planned/7_spec-system-backlog.md). Do not create a second
 unchecked list here.
 
 ## Implementation Rules

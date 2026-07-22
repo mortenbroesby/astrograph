@@ -1,6 +1,6 @@
 # Windows CLI, MCP, and Package Invocation Delivery Checklist
 
-> **Story:** 5 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
+> **Story:** 5 of the [Remaining Delivery Epic](./3_remaining-delivery-epic.md)
 >
 > **Status:** Deferred — fix the package-manager `.cmd` boundary and retain
 > native terminal proof for Story 7.
