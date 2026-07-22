@@ -8,8 +8,8 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Global Astrograph Cleanup and Delivery Preparation
-Checklist](./specs/implementation/active/global-astrograph-cleanup-preparation-checklist.md),
+Execute the active [File-Type Support Coverage and Discovery Delivery
+Checklist](./specs/implementation/active/filetype-support-coverage-delivery-checklist.md),
 starting at the first unchecked task.
 
 ## Required outcome

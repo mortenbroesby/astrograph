@@ -92,17 +92,38 @@ it.
 
 ## Story 4 — Compact, Versioned Transport
 
+**Status:** Parked — agent-facing compaction is the highest-priority token
+efficiency candidate after the active file-type work, but implementation is
+not justified until the exact agent-visible MCP envelopes show repeatable,
+material savings. See the [ingested assessment](../../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md).
+
 **Vision:** Retrieval saves tokens in selection and in response encoding.
 
-**Goal:** Add opt-in lossless compact responses while JSON remains the default.
+**Goal:** Add an opt-in, versioned compact *JSON* response format for selected
+repetitive MCP result shapes while ordinary JSON remains default and fail-open.
+This is the agent-facing successor to token-budgeted retrieval; it is not a
+binary transport change.
 
-**Likely files:** `src/serialization.ts`, MCP/CLI contracts, docs, serialization/interface tests.
+**Likely files:** `src/serialization.ts`, `src/mcp.ts`, `src/mcp-contract.ts`,
+`src/types/**`, MCP/CLI contracts, API docs, benchmarks, and
+serialization/interface tests.
 
-- [ ] Capture representative JSON bytes/tokens, including empty/error/provenance results.
-- [ ] Specify `format=json|compact|auto`, versioned envelope, path interning, decoder, fallback, and auto threshold.
-- [ ] Implement opt-in encoder only; preserve JSON compatibility.
+- [ ] Capture raw successful, empty, error, and provenance-heavy *agent-visible*
+  envelopes for `search_symbols`, `get_file_tree`, `get_file_outline`, and a
+  bounded `get_task_context`; measure bytes, the declared tokenizer count,
+  readability, and encode/decode latency.
+- [ ] Benchmark a deterministic table/path-interned draft against the current
+  pretty JSON envelope. Set any `auto` savings threshold from that evidence;
+  do not assume 15% or another fixed value in advance.
+- [ ] Write an ADR and public contract decision before enabling compact output:
+  current MCP v1 explicitly disables compact schema variants. Specify selected
+  tools, `format=json|compact|auto`, versioned envelope, reference decoder,
+  JSON fallback, and `get_task_context` budget accounting in each format.
+- [ ] Implement an opt-in compact JSON envelope only for selected tools;
+  preserve default JSON, strict v1 errors, and inspectable fail-open behavior.
 - [ ] Add reference decode/round-trip tests for Unicode, errors, nested provenance.
-- [ ] Report format selected and payload savings separately from retrieval savings.
+- [ ] Report format selection, bytes, agent-visible token savings, and
+  encode/decode latency separately from retrieval and source-token savings.
 - [ ] Verify contracts/type/version/diff, commit/push/review/merge.
 
 **Acceptance evidence:** Compact format round-trips losslessly and has reproducible savings where selected.
@@ -201,9 +222,41 @@ hidden tier, or tool removal was justified. See the
 
 **Acceptance evidence:** A contributor reruns documented commands and gets comparable raw metrics.
 
+## Story 10 — Internal Artifact Serialization Efficiency
+
+**Status:** Parked — MessagePack is an internal-performance research candidate,
+not an MCP response format or an active implementation commitment. See the
+[ingested assessment](../../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md).
+
+**Vision:** Internal persistence is efficient where measurements prove JSON
+serialization is a material cost, while developer inspection remains practical.
+
+**Goal:** Measure and, only if justified, improve the internal
+`analysis_artifacts` persistence boundary. MessagePack is one candidate beside
+deduplicated JSON/layout; it is never a default replacement for agent-facing
+MCP JSON.
+
+**Likely files:** `src/storage-schema.ts`, `src/storage.ts`,
+`src/incremental-cache.ts`, `tests/incremental-cache.test.ts`, targeted
+benchmarks, and cache/diagnostic docs.
+
+- [ ] Measure artifact-row bytes, SQLite size, warm-cache load time,
+  serialization CPU, and memory for current JSON fields.
+- [ ] First investigate whether duplicated artifact fields can be removed or
+  restructured without a binary format.
+- [ ] Compare current JSON, a debuplicated JSON/layout alternative, and
+  MessagePack only at `analysis_artifacts`; retain JSON debug tooling.
+- [ ] Select MessagePack only if a documented size/latency threshold is met and
+  cache-version discard/rebuild behavior remains safe before v1.
+- [ ] Do not apply this story to worker IPC, sync, background transport, or MCP
+  output without an existing measured boundary and a separate decision.
+
+**Acceptance evidence:** A reproducible benchmark shows a material internal
+gain with no public MCP-format change and no loss of normal debugging ability.
+
 ## Order and Completion
 
-Order: 1 → 2 → 3; Story 7 can start after Story 1; then 5 → 6 → 4 → 9; Story 8 only after Stories 2 and 9 prove it is justified. A blocked story records owner/evidence/retry condition and defers behind independent work.
+Order: 1 → 2 → 3; Story 7 can start after Story 1; then 5 → 6 → 4 → 9 → 10; Story 8 only after Stories 2 and 9 prove it is justified. A blocked story records owner/evidence/retry condition and defers behind independent work.
 
 - [ ] Provenance/freshness is a stable retrieval contract.
 - [ ] Lexical ranking and bounded context are deterministic and measured.

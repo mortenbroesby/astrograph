@@ -43,3 +43,7 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   — merged as PR #39 after exact-head Fast and Windows/package smoke evidence;
   documented the core/specialized policy and corrected generated client-tool
   visibility.
+- [Global Astrograph Cleanup and Delivery Preparation Checklist](./global-astrograph-cleanup-preparation-checklist.md)
+  — merged as PR #43 after exact-head Fast and Windows/package-smoke evidence;
+  removed stale tracked Codex MCP configuration drift and selected the next
+  file-type coverage goal.

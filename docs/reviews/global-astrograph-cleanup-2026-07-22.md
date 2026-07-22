@@ -42,7 +42,7 @@ envelope, or repository configuration contract.
 
 ## Next-story selection
 
-[File-Type Support Coverage and Discovery](../../specs/implementation/planned/filetype-support-coverage-delivery-checklist.md)
+[File-Type Support Coverage and Discovery](../../specs/implementation/active/filetype-support-coverage-delivery-checklist.md)
 is the next selected story after this cleanup merges. The user requested visible
 support for `.cjs`, `.mjs`, `.yaml`, `.yml`, `.md`, and `.txt`; the registry
 already supports those extensions, but user-facing coverage documentation and

@@ -1,11 +1,10 @@
 # File-Type Support Coverage and Discovery Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md),
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md),
 > Story 12.
 >
-> **Status:** Ready — do not start until a concrete extension gap or
-> documentation/contract inconsistency selects it into `../active/` and
-> `pointer.md` names it.
+> **Status:** Active — selected after the merged Global Astrograph Cleanup and
+> Delivery Preparation work. `pointer.md` names this as the one current goal.
 
 **Goal:** Make common file-type support explicit, tested, and discoverable;
 add only extensions whose intended support tier and user value are evidenced.
