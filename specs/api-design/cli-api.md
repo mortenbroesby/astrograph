@@ -16,9 +16,14 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
   status, including the persisted checkout identity that last populated the
   selected cache (or `checkout: null` before indexing). `astrograph cache
-  migrate` and `astrograph cache remove` default to dry-run and require
-  `--yes` to mutate one canonical repository cache. Cache mutations are not MCP
-  tools.
+  migrate`, `astrograph cache remove`, and `astrograph cache prune` default to
+  dry-run and require `--yes` to mutate scoped cache data. Mutations archive
+  rather than delete and return a receipt with byte count and recovery command.
+  `astrograph cache restore
+  --repo <path> --receipt <path> --yes` restores only a receipt-owned archive
+  into an absent canonical cache location. The restore preview validates the
+  same receipt and path-safety invariants as the mutation. Cache mutations are
+  not MCP tools.
 
 ## JSON CLI Rules
 

@@ -21,6 +21,7 @@ function usage() {
     "  astrograph cache status --repo /abs/repo",
     "  astrograph cache remove --repo /abs/repo [--yes]",
     "  astrograph cache prune --all --max-bytes <bytes> [--yes]",
+    "  astrograph cache restore --repo /abs/repo --receipt /path/to/receipt.json [--yes]",
     "  astrograph cli cache-status --repo /abs/repo",
     "  astrograph cli cache-remove --repo /abs/repo [--yes]",
     "  astrograph mcp",
@@ -77,7 +78,7 @@ const commandArgs = mode === "cache"
   : mode === "--diagnostics"
     ? ["--diagnostics"]
   : args;
-if (mode === "cache" && !["status", "remove", "prune"].includes(args[0] ?? "")) {
+if (mode === "cache" && !["status", "remove", "prune", "restore"].includes(args[0] ?? "")) {
   usage();
   process.exit(1);
 }

@@ -28,6 +28,7 @@ import {
   loadRepoEngineConfig,
   pruneGlobalCaches,
   removeGlobalCache,
+  restoreGlobalCache,
   createDefaultEngineConfig,
   parseStorageLocation,
   parseAstrographVersion,
@@ -684,10 +685,49 @@ describe("ai-context-engine contract", () => {
 
     const pruned = await pruneGlobalCaches(30, false, environment);
     expect(pruned.candidates).toEqual([
-      expect.objectContaining({ storageDir: older, active: false, removed: true }),
+      expect.objectContaining({ storageDir: older, active: false, removed: true, archive: expect.objectContaining({ reason: "prune" }) }),
     ]);
     await expect(stat(older)).rejects.toMatchObject({ code: "ENOENT" });
+    const archive = pruned.candidates[0]!.archive;
+    await expect(readFile(path.join(archive!.archivePath, "payload"), "utf8")).resolves.toBe("a".repeat(20));
+    expect(archive).toMatchObject({ bytes: 20, recoveryCommand: expect.stringContaining("astrograph cache restore") });
+    await expect(readFile(`${archive!.archivePath}.receipt.json`, "utf8")).resolves.toContain('"recoveryCommand"');
     await expect(stat(newer)).resolves.toBeDefined();
+  });
+
+  it("restores an explicitly archived global cache only with confirmation", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-restore-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-restore-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-restore-root-"));
+    tempDirs.push(repoRoot, configHome, cacheHome);
+    const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    const storageDir = resolveEnginePaths(repoRoot, { storageLocation: "global", environment }).storageDir;
+    await mkdir(storageDir, { recursive: true });
+    await writeFile(path.join(storageDir, "payload"), "restore me");
+    const archived = await removeGlobalCache(repoRoot, false, environment);
+    const receiptPath = `${archived.archive!.archivePath}.receipt.json`;
+    await expect(restoreGlobalCache(repoRoot, receiptPath, true, environment)).resolves.toMatchObject({ changed: false });
+    await expect(stat(storageDir)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(restoreGlobalCache(repoRoot, receiptPath, false, environment)).resolves.toMatchObject({ changed: true });
+    await expect(readFile(path.join(storageDir, "payload"), "utf8")).resolves.toBe("restore me");
+    await expect(restoreGlobalCache(repoRoot, receiptPath, false, environment)).rejects.toThrow(
+      /missing or unsafe|restore over an existing/i,
+    );
+  });
+
+  it("rejects malformed and out-of-root archive receipts before restoring", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-bad-receipt-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-bad-receipt-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-cache-bad-receipt-root-"));
+    tempDirs.push(repoRoot, configHome, cacheHome);
+    const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome, XDG_CACHE_HOME: cacheHome }, homeDir: () => "/unused" };
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "global" }));
+    const receiptPath = path.join(resolveGlobalCacheRoot(environment), "repos", ".archive", "bad.receipt.json");
+    await mkdir(path.dirname(receiptPath), { recursive: true });
+    await writeFile(receiptPath, JSON.stringify({ archivePath: "/tmp/not-astrograph", originalPath: "/tmp/not-astrograph", reason: "bad", archivedAt: "now" }));
+    await expect(restoreGlobalCache(repoRoot, receiptPath, true, environment)).rejects.toThrow(/invalid schema|invalid archive path/i);
+    await expect(restoreGlobalCache(repoRoot, receiptPath, false, environment)).rejects.toThrow(/invalid schema|invalid archive path/i);
   });
 
   it("refuses global cache removal while SQLite holds an exclusive lock", async () => {
@@ -1053,7 +1093,7 @@ describe("ai-context-engine contract", () => {
       else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       clearStorageProcessCaches();
     }
-  });
+  }, 15_000);
 
   it("uses one global Copilot CLI setup across unconfigured repositories", async () => {
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-home-"));
@@ -1125,7 +1165,7 @@ describe("ai-context-engine contract", () => {
       else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       clearStorageProcessCaches();
     }
-  });
+  }, 15_000);
 
   it("reports invalid and unwritable global Copilot CLI configuration before changing user state", async () => {
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-invalid-"));

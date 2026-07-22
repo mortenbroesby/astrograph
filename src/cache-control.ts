@@ -1,4 +1,4 @@
-import { lstat, readdir, readFile, rm, stat } from "node:fs/promises";
+import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -10,6 +10,7 @@ import {
 import { getCheckoutByCanonicalRoot } from "./checkout-mapping.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
+import { archiveManagedDirectory, validateManagedArchiveRestore, restoreManagedDirectory, type CacheArchiveReceipt } from "./cache-archive.ts";
 import type { StorageLocation, StoragePathEnvironment } from "./types.ts";
 
 export interface CacheStatus {
@@ -39,6 +40,7 @@ export interface CacheMutationResult {
   dryRun: boolean;
   changed: boolean;
   message: string;
+  archive: CacheArchiveReceipt | null;
 }
 
 export interface CachePruneResult {
@@ -49,7 +51,25 @@ export interface CachePruneResult {
   requestedMaxBytes: number;
   bytesBefore: number;
   bytesAfter: number;
-  candidates: Array<{ storageDir: string; bytes: number; active: boolean; removed: boolean }>;
+  candidates: Array<{ storageDir: string; bytes: number; active: boolean; removed: boolean; archive: CacheArchiveReceipt | null }>;
+}
+
+export interface CacheRestoreResult {
+  schemaVersion: 1;
+  action: "restore";
+  dryRun: boolean;
+  changed: boolean;
+  receipt: CacheArchiveReceipt;
+}
+
+function restoreCommand(repoRoot: string, receiptPath: string): string {
+  return `astrograph cache restore --repo ${JSON.stringify(repoRoot)} --receipt ${JSON.stringify(receiptPath)} --yes`;
+}
+
+function archiveRootFor(status: CacheStatus): string {
+  return status.storageLocation === "global"
+    ? path.join(path.dirname(status.storageDir), ".archive")
+    : path.join(path.dirname(status.storageDir), ".astrograph-archive");
 }
 
 async function readVersion(storageDir: string): Promise<number | null> {
@@ -80,6 +100,8 @@ async function assertSafeCachePath(cacheRoot: string, target: string): Promise<v
   if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
     throw new Error("Refusing to mutate a path outside the global Astrograph cache root.");
   }
+  const rootEntry = await lstat(cacheRoot).catch(() => null);
+  if (rootEntry?.isSymbolicLink()) throw new Error(`Refusing symlinked cache root: ${cacheRoot}`);
   let current = cacheRoot;
   for (const segment of relative.split(path.sep)) {
     current = path.join(current, segment);
@@ -162,10 +184,15 @@ export async function removeGlobalCache(
   const root = resolveGlobalCacheRoot(environment);
   await assertSafeCachePath(root, status.storageDir);
   if (await cacheIsActive(status.storageDir)) throw new Error("Refusing to remove an active global Astrograph cache.");
-  if (dryRun) return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Would remove this repository's global cache only." };
+  if (dryRun) return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Would archive this repository's global cache only.", archive: null };
   clearStorageProcessCaches();
-  await rm(status.storageDir, { recursive: true, force: false });
-  return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: true, message: "Removed this repository's global cache." };
+  const archive = await archiveManagedDirectory({
+    target: status.storageDir,
+    archiveRoot: archiveRootFor(status),
+    reason: "explicit-remove",
+    recoveryCommand: (receiptPath) => restoreCommand(status.repoRoot, receiptPath),
+  });
+  return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: true, message: "Archived this repository's global cache.", archive };
 }
 
 export async function pruneGlobalCaches(
@@ -194,10 +221,17 @@ export async function pruneGlobalCaches(
     if (bytesAfter <= requestedMaxBytes) break;
     const active = await cacheIsActive(candidate.storageDir);
     const removed = !active && !dryRun;
-    resultCandidates.push({ storageDir: candidate.storageDir, bytes: candidate.bytes, active, removed });
+    let archive: CacheArchiveReceipt | null = null;
+    resultCandidates.push({ storageDir: candidate.storageDir, bytes: candidate.bytes, active, removed, archive });
     if (active) continue;
     if (removed) {
-      await rm(candidate.storageDir, { recursive: true, force: false });
+      archive = await archiveManagedDirectory({
+        target: candidate.storageDir,
+        archiveRoot: path.join(path.dirname(candidate.storageDir), ".archive"),
+        reason: "prune",
+        recoveryCommand: (receiptPath) => `astrograph cache restore --repo <repository-root> --receipt ${JSON.stringify(receiptPath)} --yes`,
+      });
+      resultCandidates[resultCandidates.length - 1]!.archive = archive;
       bytesAfter -= candidate.bytes;
     } else {
       bytesAfter -= candidate.bytes;
@@ -205,3 +239,24 @@ export async function pruneGlobalCaches(
   }
   return { schemaVersion: 1, action: "prune", cacheRoot, dryRun, requestedMaxBytes, bytesBefore, bytesAfter, candidates: resultCandidates };
 }
+
+export async function restoreCache(
+  repoRoot: string,
+  receiptPath: string,
+  dryRun = true,
+  environment?: StoragePathEnvironment,
+): Promise<CacheRestoreResult> {
+  const status = await cacheStatus(repoRoot, environment);
+  const archiveRoot = archiveRootFor(status);
+  const originalRoot = path.dirname(status.storageDir);
+  const input = { receiptPath, archiveRoot, originalRoot };
+  const receipt = dryRun
+    ? await validateManagedArchiveRestore(input)
+    : await restoreManagedDirectory(input);
+  if (dryRun) return { schemaVersion: 1, action: "restore", dryRun, changed: false, receipt };
+  const restored = receipt;
+  return { schemaVersion: 1, action: "restore", dryRun, changed: true, receipt: restored };
+}
+
+/** @deprecated Use restoreCache; this name is retained for library callers. */
+export const restoreGlobalCache = restoreCache;

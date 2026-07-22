@@ -781,6 +781,9 @@ module.exports = {
 
     expect(health.schemaVersion).toBe(7);
     await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
+    const archives = await fs.readdir(path.join(repoRoot, ".astrograph-archive"));
+    const archivePath = path.join(repoRoot, ".astrograph-archive", archives.find((entry) => entry.endsWith("-.astrograph"))!);
+    await expect(fs.readFile(path.join(archivePath, "stale-artifact.json"), "utf8")).resolves.toBe("stale");
     await expect(fs.readFile(staleWalPath, "utf8")).resolves.not.toBe("stale wal");
     await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
@@ -814,10 +817,12 @@ module.exports = {
     const repoRoot = await createFixtureRepo();
     const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-recovery-"));
     const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
     const fs = await import("node:fs/promises");
 
     try {
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = cacheHome;
       await writeFile(
         path.join(repoRoot, "astrograph.config.json"),
         JSON.stringify({ storageLocation: "global" }),
@@ -836,19 +841,41 @@ module.exports = {
       clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       await rm(cacheHome, { recursive: true, force: true });
     }
   });
 
-  it("replaces a symlinked obsolete global cache without touching its target", async () => {
+  it("refuses automatic recovery while an incompatible local cache is actively locked", async () => {
+    const repoRoot = await createFixtureRepo();
+    const paths = resolveEnginePaths(repoRoot);
+    const fs = await import("node:fs/promises");
+    await fs.mkdir(paths.storageDir, { recursive: true });
+    await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+    await fs.writeFile(path.join(paths.storageDir, "preserve.txt"), "locked cache");
+    const lock = new Database(paths.databasePath);
+    lock.exec("BEGIN EXCLUSIVE");
+    try {
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/Refusing to recover an active Astrograph cache/i);
+      await expect(fs.readFile(path.join(paths.storageDir, "preserve.txt"), "utf8")).resolves.toBe("locked cache");
+    } finally {
+      lock.exec("ROLLBACK");
+      lock.close();
+    }
+  });
+
+  it("refuses a symlinked obsolete global cache without touching its target", async () => {
     const repoRoot = await createFixtureRepo();
     const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-obsolete-symlink-"));
     const outside = await mkdtemp(path.join(packageRoot, ".tmp-global-obsolete-outside-"));
     const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
     const fs = await import("node:fs/promises");
 
     try {
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = cacheHome;
       await writeFile(
         path.join(repoRoot, "astrograph.config.json"),
         JSON.stringify({ storageLocation: "global" }),
@@ -860,13 +887,15 @@ module.exports = {
       await fs.mkdir(path.dirname(paths.storageDir), { recursive: true });
       await fs.symlink(outside, paths.storageDir, "dir");
 
-      await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/Refusing to recover a symlinked Astrograph cache/i);
       await expect(fs.readFile(outsidePayload, "utf8")).resolves.toBe("do not remove");
-      expect((await fs.lstat(paths.storageDir)).isSymbolicLink()).toBe(false);
+      expect((await fs.lstat(paths.storageDir)).isSymbolicLink()).toBe(true);
     } finally {
       clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       await rm(cacheHome, { recursive: true, force: true });
       await rm(outside, { recursive: true, force: true });
     }

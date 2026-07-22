@@ -145,3 +145,53 @@ For the MCP v1 hard-switch, active parser execution is tree-sitter-only.
 - Targeted verification remains:
   `pnpm type-lint` and
   `pnpm exec vitest run tests/engine-contract.test.ts tests/engine-behavior.test.ts`.
+
+---
+
+## ADR-005: Archive Managed Cache Data Before Cleanup
+
+**Date:** 2026-07-22
+**Status:** Accepted
+
+## Context
+
+Global cache remove/prune and incompatible-storage recovery previously used
+recursive deletion. Although their targets were scoped and lock-aware, a bad
+path-resolution or implementation bug could irreversibly remove user data.
+
+## Decision
+
+All mutable-cache cleanup moves a validated inactive cache directory into a
+timestamped archive under Astrograph's managed root, records a JSON receipt,
+and returns that receipt in the JSON result. Dry-run remains the default;
+archive mutation requires the existing exact CLI scope plus `--yes`. Permanent
+deletion is not added and destructive cleanup remains unavailable to MCP.
+
+The move rejects symlinks, non-canonical/out-of-root paths, active SQLite
+databases, and archive collisions. Failed moves leave the original target in
+place. Automatic incompatible-cache recovery follows the same archive path.
+
+## Rationale
+
+- A same-filesystem rename is fast, atomic at the directory boundary, and
+  recoverable without copying untrusted paths.
+- Receipts make every mutation inspectable and provide an exact restore target.
+- One shared primitive prevents explicit cleanup and automatic recovery from
+  drifting into different safety models.
+
+## Consequences
+
+- Archive retention is intentionally manual until measured user data warrants a
+  separate, explicit retention policy.
+- An archive move can fail across filesystems; Astrograph reports the failure
+  and preserves the original cache rather than falling back to deletion.
+- Public CLI and library result shapes gain archive metadata; MCP does not gain
+  cache mutation tools.
+
+## Verification
+
+- `tests/engine-contract.test.ts` proves dry-run, archive/restore metadata,
+  symlink/out-of-root rejection, lock rejection, collision, and failed moves.
+- `tests/engine-behavior.test.ts` proves incompatible local/global cache
+  recovery archives stale contents without touching symlink targets.
+- `tests/cli-boundary.test.ts` proves exact scope and `--yes` requirements.

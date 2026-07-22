@@ -74,8 +74,10 @@ export {
   cacheStatus,
   pruneGlobalCaches,
   removeGlobalCache,
+  restoreCache,
+  restoreGlobalCache,
 } from "./cache-control.ts";
-export type { CacheMutationResult, CachePruneResult, CacheStatus } from "./cache-control.ts";
+export type { CacheMutationResult, CachePruneResult, CacheRestoreResult, CacheStatus } from "./cache-control.ts";
 
 export type {
   AstrographVersionParts,

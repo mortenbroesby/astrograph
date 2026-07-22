@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, realpath, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
@@ -26,6 +26,7 @@ import {
   ENGINE_STORAGE_VERSION,
   loadRepoEngineConfig,
   resolveEngineRepoRoot,
+  resolveGlobalCacheRoot,
 } from "./config.ts";
 import {
   getCheckoutByCanonicalRoot,
@@ -43,6 +44,7 @@ import {
   storeAnalysisArtifact,
 } from "./incremental-cache.ts";
 import { emitEngineEvent } from "./event-sink.ts";
+import { archiveManagedDirectory } from "./cache-archive.ts";
 import { analyzeFileContent } from "./file-analysis.ts";
 import type { FileAnalysisTaskInput, FileAnalysisTaskOutput } from "./file-analysis.ts";
 import { searchLiveText } from "./live-search.ts";
@@ -703,11 +705,66 @@ async function discardObsoleteStorage(
     toVersion: ENGINE_STORAGE_VERSION,
   });
 
+  const storageEntry = await lstat(config.paths.storageDir);
+  if (storageEntry.isSymbolicLink()) {
+    throw new Error(`Refusing to recover a symlinked Astrograph cache: ${config.paths.storageDir}`);
+  }
+  await assertNoSymlinkedPathSegments(
+    config.storageLocation === "global" ? resolveGlobalCacheRoot() : config.repoRoot,
+    config.paths.storageDir,
+  );
+  if (await storageDatabaseIsActive(config.paths.databasePath)) {
+    throw new Error(`Refusing to recover an active Astrograph cache: ${config.paths.storageDir}`);
+  }
+  const archiveRoot = config.storageLocation === "global"
+    ? path.join(path.dirname(config.paths.storageDir), ".archive")
+    : path.join(path.dirname(config.paths.storageDir), ".astrograph-archive");
+  await archiveManagedDirectory({
+    target: config.paths.storageDir,
+    archiveRoot,
+    reason: `obsolete-storage-version-${obsoleteVersion}`,
+    recoveryCommand: (receiptPath) => `astrograph cache restore --repo ${JSON.stringify(config.repoRoot)} --receipt ${JSON.stringify(receiptPath)} --yes`,
+  });
   clearDatabaseConnectionCache(config.paths.databasePath);
   ensuredStorageRoots.delete(config.paths.storageDir);
-  await rm(config.paths.storageDir, { recursive: true, force: true });
   await mkdir(config.paths.storageDir, { recursive: true });
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
+}
+
+async function assertNoSymlinkedPathSegments(root: string, target: string): Promise<void> {
+  const resolvedRoot = path.resolve(root);
+  const resolvedTarget = path.resolve(target);
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`Refusing to recover a cache outside its managed root: ${resolvedTarget}`);
+  }
+  const rootEntry = await lstat(resolvedRoot).catch(() => null);
+  if (rootEntry?.isSymbolicLink()) throw new Error(`Refusing to recover through a symlinked managed root: ${resolvedRoot}`);
+  let current = resolvedRoot;
+  for (const segment of relative.split(path.sep)) {
+    current = path.join(current, segment);
+    const entry = await lstat(current).catch(() => null);
+    if (entry?.isSymbolicLink()) throw new Error(`Refusing to recover a symlinked Astrograph cache: ${current}`);
+  }
+}
+
+async function storageDatabaseIsActive(databasePath: string): Promise<boolean> {
+  if (!await lstat(databasePath).catch(() => null)) return false;
+  let database: ReturnType<typeof SQLITE_INDEX_BACKEND.open> | null = null;
+  try {
+    database = SQLITE_INDEX_BACKEND.open(databasePath);
+    database.exec("PRAGMA busy_timeout = 0");
+    database.exec("BEGIN EXCLUSIVE");
+    database.exec("ROLLBACK");
+    return false;
+  } catch (error) {
+    if (error instanceof Error && /locked|busy/i.test(error.message)) return true;
+    // A malformed obsolete database is safe to archive; it cannot be used as
+    // evidence that another process owns an active SQLite transaction.
+    return false;
+  } finally {
+    database?.close();
+  }
 }
 
 async function createEngineContext(input: {
