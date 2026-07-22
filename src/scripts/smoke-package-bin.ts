@@ -265,6 +265,32 @@ async function main(): Promise<void> {
     }
 
     const globalEnvironment = { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome };
+    const { stdout: diagnosticsOutput } = await run(
+      "pnpm",
+      ["exec", "astrograph", "--diagnostics"],
+      installDir,
+      globalEnvironment,
+    );
+    const diagnostics = JSON.parse(diagnosticsOutput) as {
+      package?: { name?: string; version?: string };
+      runtime?: { supported?: boolean };
+      storage?: { location?: string; cacheRoot?: string };
+      clients?: Array<{ ide?: string; configured?: boolean }>;
+      nextStep?: string;
+    };
+    if (
+      diagnostics.package?.name !== "astrograph"
+      || typeof diagnostics.package.version !== "string"
+      || diagnostics.runtime?.supported !== true
+      || diagnostics.storage?.location !== "global"
+      || diagnostics.storage.cacheRoot !== globalCacheHome
+      || !diagnostics.clients?.some((client) => client.ide === "codex" && client.configured)
+      || !diagnostics.clients?.some((client) => client.ide === "copilot-cli" && client.configured)
+      || typeof diagnostics.nextStep !== "string"
+    ) {
+      throw new Error(`Expected packaged global diagnostics: ${diagnosticsOutput}`);
+    }
+
     await run(
       "pnpm",
       ["exec", "astrograph", "cli", "index-folder", "--repo", fixtureRepo],
