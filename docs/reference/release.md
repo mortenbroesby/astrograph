@@ -41,9 +41,14 @@ lockfile changes publish when the commit signals warrant it.
 ## First-Time Setup
 
 1. Configure npm trusted publishing for `mortenbroesby/astrograph`.
-2. Point the npm package at the `release.yml` workflow and `npm` environment.
+2. Point the npm package at the `ci.yml` workflow and `npm` environment.
 3. Protect the `npm` environment if manual approval is desired.
 4. Confirm the package is public and publishes to the `latest` dist-tag.
+
+If a tag was created but its npm publication failed, correct the trusted
+publisher binding first, then dispatch **CI** with that exact tag. Do not create
+another tag or change the version: the retry checks out the immutable tagged
+commit and republishes only that package version.
 
 ## Local Plan and Apply
 
@@ -72,27 +77,29 @@ pnpm release:apply
    checked-out merge candidate to npm with provenance. It never writes a
    version commit to `main`, creates a release PR, or starts another workflow.
 
-The release agent performs no install, build, lint, or test steps. It relies on
-the successful CI gate and only decides the release, commits the version, and
-pushes its tag.
+The release decision performs no install, build, lint, or test steps. It relies
+on the successful CI gate and only decides whether the already-versioned merge
+may be tagged and published. npm's normal package lifecycle may still build the
+tarball during `npm publish`.
 
 This replaces the prior release-agent plus tag-publisher pair with one
 post-Fast `ubuntu-latest` job for qualifying `main` merges. It adds no broad
 trigger, runner, matrix, schedule, or hosted Windows usage.
 
 `pnpm release:plan` remains the local, non-mutating inspection command. The
-separate `Release` workflow is retry-only: dispatch it with an existing matching
-tag after a failed npm publication; it checks out that tag and cannot create or
-bump a version.
+manual **CI** workflow is retry-only: dispatch it with an existing matching tag
+after a failed npm publication; it checks out that tag and cannot create or
+bump a version. It deliberately shares `ci.yml` with the automatic publisher,
+because npm permits only one trusted-publisher workflow per package.
 
 ## Manual Release Flow
 
 1. Run `pnpm release:plan` and inspect its `mainVersion`, registry state,
    candidate version, and transaction action.
-2. Run `pnpm release:apply` only from an up-to-date `main` checkout. It either
-   writes the declared coupled version updates or accepts an already-valid
-   candidate without a second increment.
-3. Verify the normal CI gate:
+2. For a release-worthy change, run `pnpm release:apply` before opening the
+   owning pull request. It writes the declared coupled version updates that the
+   pull request must carry into the merge.
+3. Verify the normal CI gate before requesting review:
 
 ```bash
 pnpm build
@@ -101,17 +108,16 @@ pnpm test
 pnpm test:package-bin
 ```
 
-4. Let the guarded CI release agent commit and tag the accepted candidate. Do
-   not create a competing manual tag.
+4. Merge the verified pull request. The guarded CI job tags and publishes that
+   exact merge candidate; do not create a competing manual tag.
 
-The tag publish workflow installs locked dependencies and runs `npm publish`
-with provenance. It deliberately does not repeat build, lint, or test gates;
+The merge publisher installs locked dependencies and runs `npm publish` with
+provenance. It deliberately does not repeat build, lint, or test gates;
 package lifecycle preparation remains npm's responsibility for the tarball.
 
-The publisher accepts only a tag matching the checked-out package version
-(`v<package.json version>`). New releases must therefore pass through the
-guarded CI release agent, which chooses the version, updates its version
-contract, commits it to `main`, and creates that tag. A manual `Release`
+The retry publisher accepts only a tag matching the checked-out package version
+(`v<package.json version>`). New releases must therefore pass through a
+guarded merge of the pull request that owns the version bump. A manual **CI**
 dispatch is a retry only: select the existing matching tag when a prior
 publication did not reach npm; it never creates or bumps a version.
 
