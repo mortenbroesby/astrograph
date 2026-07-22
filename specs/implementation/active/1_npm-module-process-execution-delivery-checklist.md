@@ -107,4 +107,5 @@ and this checklist.
 - The full suite's only local failure was the pre-existing sandbox inability to
   create `/Users/macbook/.astrograph`; `tests/watch-boundary.test.ts` passed
   4/4 when supplied an isolated temporary `HOME` and cache. No user cache was
-  modified. The guarded version-policy command passed without a manual bump.
+  modified. CI then correctly required the next monotonic source version, so
+  this branch carries `0.5.1-alpha.161` before merge.
