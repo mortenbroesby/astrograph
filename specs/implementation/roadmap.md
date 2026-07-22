@@ -17,18 +17,14 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
-   - Goal: replace the label-gated release loop with one verified,
-     idempotent merge-to-npm transaction.
-   - Next action: configure npm trusted publishing for `ci.yml` and the `npm`
-     environment, then retry the existing immutable tag
-     `v0.5.1-alpha.157` and record registry evidence.
+1. [Human and agent onboarding packs](./active/0_human-agent-onboarding-packs-delivery-checklist.md)
+   - Goal: audit and improve first-time setup, diagnostics, and safe recovery
+     without duplicating existing global and repository-local paths.
+   - First action: record the current command-and-write matrix and verify the
+     packed-package diagnostics and setup behavior before selecting a code gap.
 
 ## Ready — detailed, but not selected
 
-0. [Precision retrieval and agent experience](./planned/1_precision-retrieval-agent-experience-epic.md)
-   is the first ready product epic. Select only a specifically scoped next
-   story with its own delivery checklist.
 2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) is ready for
    a bounded Slice A evaluation of `execa`, `semver`, and `latest-version`.
    It must preserve product-specific behavior; package-quality gates require a
@@ -54,11 +50,8 @@ roadmap explains everything else.
 
 ## Blocked — external prerequisite only
 
-- [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
-  is waiting only for npm package settings to bind trusted publishing to
-  `mortenbroesby/astrograph`, workflow `ci.yml`, environment `npm`, with
-  publish permission. The matching tag already exists and must be retried, not
-  recreated.
+No selected item is blocked. The release-on-main path is now verified and
+recorded as completed evidence.
 
 ## Ideas — not a commitment
 
@@ -111,6 +104,10 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Reversible User-Data Cleanup](./closed/reversible-user-data-cleanup-delivery-checklist.md)
   closed in PR #60 after exact-head Fast CI and local package evidence proved
   archive-first, auditable cache recovery.
+- [Release on Main Merge](./closed/release-on-main-merge-delivery-checklist.md)
+  closed after `astrograph@0.5.1-alpha.157` published from its immutable merge
+  tag; a publish-only retry and existing-tag rerun proved recovery and
+  idempotence without expanding the Windows CI cost boundary.
 
 ## Maintaining this roadmap
 
