@@ -50,8 +50,6 @@ jobs:
     if: >-
       github.event_name != 'workflow_dispatch' &&
       (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
-    outputs:
-      release_eligible: ${{ steps.release_eligibility.outputs.release_eligible }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -98,22 +96,6 @@ jobs:
         run: |
           git reset --soft "${{ github.event.before }}"
           pnpm check:version-bump
-
-      - name: Check automatic release eligibility
-        id: release_eligibility
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          merged_release_prs="$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
-            --jq '[.[] | select(.merged_at != null and .base.ref == "main" and any(.labels[]; .name == "release"))] | length')"
-          if [ "$merged_release_prs" -gt 0 ]; then
-            echo "release_eligible=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "release_eligible=false" >> "$GITHUB_OUTPUT"
-          fi
 
   # Kept intact for a future re-enable. Set this back to the original draft
   # condition and add `windows` back to `release_agent.needs` when hosted
@@ -199,11 +181,27 @@ jobs:
       - name: Decide release
         id: release
         run: |
+          set -o pipefail
           args=(--merged-candidate)
           if [ "${{ steps.release_exception.outputs.no_release }}" = "true" ]; then
             args+=(--no-release)
           fi
-          node --experimental-strip-types ./src/scripts/release-agent.ts "${args[@]}"
+          node --experimental-strip-types ./src/scripts/release-agent.ts "${args[@]}" \
+            | tee "$RUNNER_TEMP/astrograph-release-decision.json"
+          {
+            echo "## Astrograph release decision"
+            echo
+            echo "Candidate SHA: \`${GITHUB_SHA}\`"
+            echo
+            echo '```json'
+            cat "$RUNNER_TEMP/astrograph-release-decision.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if jq -e '.transactionAction == "reject"' \
+            "$RUNNER_TEMP/astrograph-release-decision.json" >/dev/null; then
+            echo "Release candidate was rejected before tag or npm publication."
+            exit 1
+          fi
 
       - name: Push release tag
         if: steps.release.outputs.should_release == 'true'
@@ -211,9 +209,25 @@ jobs:
           git tag "${{ steps.release.outputs.target_tag }}"
           git push origin "${{ steps.release.outputs.target_tag }}"
 
+      - name: Record tag result
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          {
+            echo
+            echo "Tag pushed: \`${{ steps.release.outputs.target_tag }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Publish trusted npm release
         if: steps.release.outputs.should_release == 'true'
         run: npm publish --provenance --access public --tag latest
+
+      - name: Record publication result
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          {
+            echo
+            echo "npm published: \`astrograph@${{ steps.release.outputs.target_version }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
 
   retry_publish:
     name: Retry a tagged npm publication
