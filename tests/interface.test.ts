@@ -148,6 +148,21 @@ describe("ai-context-engine interfaces", () => {
             tiers: ["discovery"],
             summarySource: "markdown-headings",
           }),
+          expect.objectContaining({
+            extension: ".txt",
+            tiers: ["discovery"],
+            summarySource: "text-lines",
+          }),
+          expect.objectContaining({
+            extension: ".yaml",
+            tiers: ["discovery"],
+            summarySource: "yaml-top-level-keys",
+          }),
+          expect.objectContaining({
+            extension: ".yml",
+            tiers: ["discovery"],
+            summarySource: "yaml-top-level-keys",
+          }),
         ]),
       },
     });

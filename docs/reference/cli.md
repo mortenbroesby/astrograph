@@ -52,6 +52,18 @@ invocation path in your environment.
 Most CLI commands emit JSON by default. `doctor` also supports a more readable
 formatted report unless you pass `--json`.
 
+## File Support
+
+JavaScript modules (`.js`, `.cjs`, `.mjs`) are graph-capable source files, like
+TypeScript. Markdown (`.md`), YAML (`.yaml`, `.yml`), and text (`.txt`) are
+discovery-only: use `find-files`, `search-text`, and `get-file-summary` for
+them, but do not pass them through a `language` filter or expect symbols,
+outlines, or dependency-graph results. `get-project-status` and `diagnostics`
+return the full registry and available tools for each tier.
+
+See [File Support Tiers](../getting-started/concepts.md#file-support-tiers) for
+the complete current extension matrix and summary behavior.
+
 ## Setup Commands
 
 Interactive install:
