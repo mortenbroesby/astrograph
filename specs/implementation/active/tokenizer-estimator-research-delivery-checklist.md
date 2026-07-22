@@ -44,18 +44,24 @@ and candidate libraries pinned in the lockfile only if selected for evaluation.
 - Modify: `docs/reviews/tokenizer-estimator-research-<date>.md`
 - Test: `tests/tokenizer.test.ts`, benchmark tests
 
-- [ ] Measure exact-count agreement, estimation error distribution, warm
+- [x] Measure exact-count agreement, estimation error distribution, warm
   latency, memory/package cost, and deterministic repeatability for every
-  corpus case.
-- [ ] Record operational evidence: offline behavior, Node 22+ compatibility,
+  corpus case. The checked-in fresh-process benchmark compares all seven locked
+  corpus cases; the research record contains three-run latency/RSS medians and
+  exact/estimation results.
+- [x] Record operational evidence: offline behavior, Node 22+ compatibility,
   license, release activity, dependency depth, and native-install risk.
-- [ ] Decide retain, replace, or defer separately for exact counts and fast
+  All candidates are local Node packages; the research record captures package
+  metadata, zero/one dependency depth, WASM/pure-JS behavior, and licenses.
+- [x] Decide retain, replace, or defer separately for exact counts and fast
   estimates. Do not replace a dependency without a material measured benefit.
+  Retain `tiktoken` for exact counts and `tokenx` as the labelled estimate;
+  neither exact candidate provides sufficient total benefit to replace it.
 
 ## Task 3: Apply Only a Selected Change
 
-**Selection gate:** Task 2 shows a material benefit that outweighs the
-dependency and runtime risk.
+**Selection gate:** Not met. Task 2 found no material benefit that outweighs
+the dependency and runtime risk.
 
 **Likely files:** `src/tokenizer.ts`, `bench/src/tokenizer.ts`, `package.json`,
 `pnpm-lock.yaml`, API/benchmark docs, and focused tokenizer/context tests.
