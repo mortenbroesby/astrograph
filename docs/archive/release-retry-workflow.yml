@@ -1,3 +1,7 @@
+# Archived on 2026-07-22. npm supports one trusted-publisher workflow per
+# package, so retry publishing now lives in .github/workflows/ci.yml beside
+# the automatic main-merge publisher. This file is retained for reference and
+# is deliberately outside .github/workflows/ so GitHub cannot execute it.
 name: Release
 
 on:

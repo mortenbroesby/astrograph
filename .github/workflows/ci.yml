@@ -29,26 +29,17 @@ on:
       - "vitest.config.ts"
   workflow_dispatch:
     inputs:
-      release_mode:
-        description: "Run the release agent in plan mode or apply mode."
-        type: choice
-        required: true
-        default: plan
-        options:
-          - plan
-          - apply
-      release_base:
-        description: "Optional base tag/ref. Defaults to the latest merged v* tag."
+      tag:
+        description: "Existing version tag to retry after an npm publication failure."
         type: string
-        required: false
-        default: ""
+        required: true
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_mode || 'ci' }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.tag || 'ci' }}
   cancel-in-progress: true
 
 jobs:
@@ -170,6 +161,7 @@ jobs:
       contents: write
       pull-requests: read
       id-token: write
+    environment: npm
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -219,4 +211,46 @@ jobs:
 
       - name: Publish trusted npm release
         if: steps.release.outputs.should_release == 'true'
+        run: npm publish --provenance --access public --tag latest
+
+  retry_publish:
+    name: Retry a tagged npm publication
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      id-token: write
+    environment: npm
+    steps:
+      - name: Checkout tagged release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          registry-url: https://registry.npmjs.org
+
+      - name: Validate release tag
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          expected_tag="v$(node -p "require('./package.json').version")"
+          if [ "$RELEASE_TAG" != "$expected_tag" ]; then
+            echo "Release tag '$RELEASE_TAG' does not match package version '$expected_tag'."
+            exit 1
+          fi
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish trusted npm release
         run: npm publish --provenance --access public --tag latest
