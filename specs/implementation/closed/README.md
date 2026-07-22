@@ -55,3 +55,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Global Installation Health and Recovery Delivery Checklist](./global-install-health-recovery-delivery-checklist.md)
   — closed with no source change after verifying the published `.153` package,
   diagnostics, dry-run, and focused Copilot CLI recovery contracts.
+- [Reversible User-Data Cleanup Delivery Checklist](./reversible-user-data-cleanup-delivery-checklist.md)
+  — merged as PR #60 after archive-first cleanup, deterministic failure-injection
+  coverage, and exact-head Fast/package/MCP smoke evidence.

@@ -1,7 +1,9 @@
 # Reversible User-Data Cleanup Delivery Checklist
 
-> **Status:** Active — selected by `pointer.md` as the single next goal after
-> global-install recovery closed with no new public recovery surface.
+> **Status:** Closed — merged in PR #60 at `e5bf569` after exact-head Fast CI
+> passed, including package-bin and MCP stdio smoke. Hosted Windows remains
+> intentionally disabled under the cost policy; local package evidence is
+> recorded in the PR.
 
 **Goal:** Ensure every Astrograph cleanup or cache-recovery operation is safe
 by default: it must be scoped, previewable, recoverable, and auditable. An
@@ -54,8 +56,8 @@ MCP.
 
 ## Task 4: Verify and commit
 
-- [ ] Run focused cache/control tests, `pnpm type-lint`, `pnpm test`,
+- [x] Run focused cache/control tests, `pnpm type-lint`, `pnpm test`,
   `pnpm test:package-bin`, `pnpm check:version-bump`, and `git diff --check`.
-- [ ] Require exact-head Fast and Windows/package-smoke CI before merge.
-- [ ] Use a runtime-appropriate version decision and record CI evidence before
+- [x] Require exact-head Fast and Windows/package-smoke CI before merge.
+- [x] Use a runtime-appropriate version decision and record CI evidence before
   moving this checklist to `closed/`.

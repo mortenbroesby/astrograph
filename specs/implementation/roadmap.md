@@ -17,19 +17,15 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Reversible User-Data Cleanup](./active/reversible-user-data-cleanup-delivery-checklist.md)
-   - Goal: make every cleanup or recovery operation scoped, previewable,
-     recoverable, and auditable before changing cache behavior.
-   - First unchecked task: inventory all delete, remove, prune, overwrite,
-     migration-reset, and cache-cleanup paths.
+1. [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
+   - Goal: replace the label-gated release loop with one verified,
+     idempotent merge-to-npm transaction.
+   - First unchecked task: read the release decision skill and Actions cost
+     rule, then record the current workflow baseline.
 
 ## Ready — detailed, but not selected
 
-0. [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
-   is the first ready operational story. It replaces the current release label,
-   release-branch, post-merge commit, and downstream-workflow loop with one
-   verified merge-to-npm transaction and a `no-release` exception.
-1. [Precision retrieval and agent experience](./planned/1_precision-retrieval-agent-experience-epic.md)
+0. [Precision retrieval and agent experience](./planned/1_precision-retrieval-agent-experience-epic.md)
    is the first ready product epic. Select only a specifically scoped next
    story with its own delivery checklist.
 2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) is ready for
@@ -108,6 +104,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
   closed with no source change: the stale published package was superseded by
   `.153`, whose installed artifact and focused recovery contracts prove the
   existing diagnostics and dry-run installer are sufficient.
+- [Reversible User-Data Cleanup](./closed/reversible-user-data-cleanup-delivery-checklist.md)
+  closed in PR #60 after exact-head Fast CI and local package evidence proved
+  archive-first, auditable cache recovery.
 
 ## Maintaining this roadmap
 

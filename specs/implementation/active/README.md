@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Reversible User-Data Cleanup](./reversible-user-data-cleanup-delivery-checklist.md)
-   — selected to establish an archive-first, previewable, auditable cleanup and
-   recovery contract before any cache-cleanup behavior changes.
+1. [Release on Main Merge](../planned/0_release-on-main-merge-delivery-checklist.md)
+   — selected to replace the label-gated release loop with one verified,
+   idempotent merge-to-npm transaction.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories
