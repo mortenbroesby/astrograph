@@ -122,11 +122,14 @@ jobs:
             echo "release_eligible=false" >> "$GITHUB_OUTPUT"
           fi
 
+  # Kept intact for a future re-enable. Set this back to the original draft
+  # condition and add `windows` back to `release_agent.needs` when hosted
+  # Windows minutes are available again.
   windows:
     name: Windows compatibility
     runs-on: windows-latest
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: ${{ false }} # Disabled: avoid paid GitHub-hosted Windows runner minutes.
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -159,10 +162,10 @@ jobs:
     name: Release agent
     runs-on: ubuntu-latest
     timeout-minutes: 3
-    needs: [fast, windows]
+    needs: [fast]
     if: >-
-      always() && ((github.event_name == 'workflow_dispatch' && needs.fast.result == 'success' && needs.windows.result == 'success') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.fast.result == 'success' && needs.windows.result == 'success' &&
+      always() && ((github.event_name == 'workflow_dispatch' && needs.fast.result == 'success') ||
+      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.fast.result == 'success' &&
       needs.fast.outputs.release_eligible == 'true' && !startsWith(github.event.head_commit.message, 'Release ')))
     permissions:
       contents: write
