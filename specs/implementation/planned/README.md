@@ -42,8 +42,6 @@ checklist, and then move it to `../active/` before implementation begins.
 - [Reversible User-Data Cleanup Delivery Checklist](./reversible-user-data-cleanup-delivery-checklist.md)
   — archive-first safety contract for cache cleanup and recovery; ready but not
   selected.
-- Deferred high-impact checklists — [global/branch immutable artifact
-  reuse](./global-branch-artifact-reuse-delivery-checklist.md) and [global
-  installation health/recovery](./global-install-health-recovery-delivery-checklist.md)
-  have recorded negative evidence and must not be revived without their
-  selection gates.
+- Deferred high-impact checklist — [global/branch immutable artifact
+  reuse](./global-branch-artifact-reuse-delivery-checklist.md) has recorded
+  negative evidence and must not be revived without its selection gate.

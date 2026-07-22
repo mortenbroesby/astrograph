@@ -95,11 +95,10 @@ without source content.
 
 ## Story 2: Global Installation Health and Recovery
 
-**Status:** Deferred — the supported global Codex path already has
-preflight, dry-run, marker-owned idempotent writes, permission remediation,
-cache status, and packed-package proof. No distinct recovery contract is
-justified without a reproducible support gap. See the
-[delivery checklist](./global-install-health-recovery-delivery-checklist.md).
+**Status:** Active — a stale globally installed package lacked the expected
+version and Copilot global-setup path. Verify the published repair contract
+from the installed artifact before expanding the surface. See the
+[delivery checklist](../active/global-install-health-recovery-delivery-checklist.md).
 
 **Outcome:** A user can diagnose and safely repair a global Astrograph setup
 without knowing config-file locations or risking unrelated MCP configuration.
@@ -387,7 +386,7 @@ text without a parser and a separate quality decision.
 
 **Selection gate:** A user-reported failure, missing fixture, inconsistent
 CLI/MCP status, or user-facing documentation gap for a concrete extension.
-See the [delivery checklist](../active/filetype-support-coverage-delivery-checklist.md).
+See the [delivery checklist](../closed/filetype-support-coverage-delivery-checklist.md).
 
 **Acceptance evidence:** Registry, scanner, CLI/MCP, and documentation tests
 prove extension classification, the advertised tier, deterministic summaries,

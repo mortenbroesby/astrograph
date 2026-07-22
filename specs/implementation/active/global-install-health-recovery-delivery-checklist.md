@@ -1,10 +1,12 @@
 # Global Installation Health and Recovery Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 2
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 2
 >
-> **Status:** Deferred — the current global Codex path already covers the
-> high-impact recovery cases. Reopen only with a reproducible supported-client
-> failure that current output cannot resolve.
+> **Status:** Active — selected after a real global-install failure: npm
+> `latest` remained at `0.4.4-alpha.133`, whose CLI lacked `--version` and the
+> expected global Copilot setup. `0.5.0-alpha.153` now publishes the new
+> contract; verify installation, diagnostics, repair, and client behavior from
+> the packaged artifact before adding more surface area.
 
 **Goal:** Make global Astrograph installation failures inspectable and safely
 repairable without requiring users to know client config locations.
@@ -56,9 +58,13 @@ installer and CLI/MCP contract tests.
 
 ## Task 2: Reproduce and Prioritize Recovery Gaps
 
-**Deferred:** No reproducible high-impact gap remains in the supported global
-Codex surface. The package smoke now includes child-process stdout/stderr in a
-failure report, making environment failures actionable without a new command.
+**Selection evidence:** A globally installed stale package produced an
+unactionable experience: `astrograph --version` was unavailable and
+`astrograph install --global --ide copilot-cli` was rejected despite the
+intended first-party Copilot flow. The release of `0.5.0-alpha.153` contains
+the corrective contract. This story must prove the installed artifact—not only
+the repository source—makes version, diagnostics, default global Copilot setup,
+and safe repair understandable.
 
 - [ ] Add focused fixtures for only the missing high-impact cases: moved or
   missing executable, unsupported Node, marker drift, unwritable config, stale
