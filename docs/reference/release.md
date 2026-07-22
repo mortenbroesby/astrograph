@@ -90,7 +90,8 @@ trigger, runner, matrix, schedule, or hosted Windows usage.
 manual **CI** workflow is retry-only: dispatch it with an existing matching tag
 after a failed npm publication; it checks out that tag and cannot create or
 bump a version. It deliberately shares `ci.yml` with the automatic publisher,
-because npm permits only one trusted-publisher workflow per package.
+because npm permits only one trusted-publisher workflow per package. The retry
+does not rerun the Fast test suite; the tagged candidate has already passed it.
 
 ## Manual Release Flow
 
