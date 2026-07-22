@@ -1,8 +1,8 @@
 # Reduce Astrograph Boilerplate with Proven npm Modules
 
-> **Status:** Active in Slice A — Story 1 is selected in the
-> [process-execution delivery checklist](../active/1_npm-module-process-execution-delivery-checklist.md).
-> Stories 2–10 remain planned until their individual selection gates pass.
+> **Status:** Active in Slice A — Story 2 is selected in the
+> [semver delivery checklist](../active/2_npm-module-semver-delivery-checklist.md).
+> Stories 3–10 remain planned until their individual selection gates pass.
 
 **Goal:** Replace generic bespoke tooling plumbing with mature npm modules where
 that reduces maintenance or strengthens package confidence, while preserving

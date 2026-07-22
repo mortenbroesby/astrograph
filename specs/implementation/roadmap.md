@@ -17,16 +17,16 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Process execution seam with `execa`](./active/1_npm-module-process-execution-delivery-checklist.md)
-   - Goal: replace generic process plumbing in three scripts with a narrow,
-     behavior-preserving internal seam.
-   - First action: record the selected scripts' current process contracts and
-     verify `execa`'s Node/license/synchronous API fit before changing source.
+1. [Generic version handling with `semver`](./active/2_npm-module-semver-delivery-checklist.md)
+   - Goal: replace generic version mechanics while retaining Astrograph's
+     explicit alpha-release and safe release-transaction policy.
+   - First action: classify generic parser/comparator call sites against
+     product-specific alpha policy before selecting a library-backed seam.
 
 ## Ready — detailed, but not selected
 
-2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 1
-   selected; Stories 2–10 remain planned. Preserve product-specific behavior;
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 2
+   selected; Stories 3–10 remain planned. Preserve product-specific behavior;
    package-quality gates require a CI cost review before selection.
 3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
@@ -110,6 +110,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Human and Agent Onboarding Packs](./closed/human-agent-onboarding-packs-delivery-checklist.md)
   closed after PR #70 added packed diagnostics coverage, Fast CI passed, and
   `astrograph@0.5.1-alpha.160` was verified as npm `latest`.
+- [Process Execution Seam with `execa`](./closed/npm-module-process-execution-delivery-checklist.md)
+  closed after PR #72 passed exact-head Fast/package evidence and
+  `astrograph@0.5.1-alpha.161` was verified as npm `latest`.
 
 ## Maintaining this roadmap
 

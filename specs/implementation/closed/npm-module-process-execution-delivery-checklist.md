@@ -1,6 +1,7 @@
 # Process Execution Seam with `execa` Delivery Checklist
 
-> **Status:** Active — selected Story 1 of the [npm-module adoption
+> **Status:** Closed — merged in PR #72 and published as
+> `astrograph@0.5.1-alpha.161`. This was Story 1 of the [npm-module adoption
 > epic](../planned/2_npm-module-adoption-epic.md).
 
 **Goal:** Replace the repetitive, generic child-process plumbing in the three
@@ -59,20 +60,20 @@ and this checklist.
 
 ## Task 3: Verify the behavior-preserving migration
 
-- [ ] Run focused process, release-agent, installer/engine-contract, CLI, and
+- [x] Run focused process, release-agent, installer/engine-contract, CLI, and
   package-bin tests; run `pnpm type-lint`, `pnpm check:version-bump`, and
   `git diff --check`.
-- [ ] Exercise a failed command, a registry-unavailable fixture or equivalent
+- [x] Exercise a failed command, a registry-unavailable fixture or equivalent
   controlled failure, an installer dry-run, and a Windows-compatible argument
   case. Record the observed error/exit behavior.
-- [ ] Obtain exact-head Fast CI and the cost-boundary platform/package proof
+- [x] Obtain exact-head Fast CI and the cost-boundary platform/package proof
   required by the current workflow before merging any source change.
 
 ## Task 4: Close and select the next goal
 
-- [ ] Verify the merged package from a clean temporary directory where the
+- [x] Verify the merged package from a clean temporary directory where the
   migration affects a packaged command.
-- [ ] Move this checklist to `../closed/`, update the roadmap/indexes and
+- [x] Move this checklist to `../closed/`, update the roadmap/indexes and
   `pointer.md`, and select Story 2 (generic version handling with `semver`)
   only if this seam's behavior and package evidence are complete.
 
@@ -109,3 +110,20 @@ and this checklist.
   4/4 when supplied an isolated temporary `HOME` and cache. No user cache was
   modified. CI then correctly required the next monotonic source version, so
   this branch carries `0.5.1-alpha.161` before merge.
+
+## Closure evidence (2026-07-22)
+
+- PR #72 passed exact-head Fast CI at
+  `f69853916755d10d5f9c4110c82e9f2a043c3c05`: build, type lint, runtime
+  script, packaged-bin, MCP stdio, and version policy all passed. Hosted
+  Windows remained intentionally skipped under the existing cost rule.
+- The squash merge `5f9c919d3a7b7ed205bab1d673aa17bfcc1fa1a5` passed main
+  Fast CI, then its guarded release job pushed `v0.5.1-alpha.161` and
+  published npm `latest` at `0.5.1-alpha.161`.
+- A fresh temporary-home `pnpm dlx astrograph@0.5.1-alpha.161 --diagnostics`
+  reported the published package/version and supported Node runtime. Its
+  `install --global --ide copilot-cli --dry-run` returned only configuration
+  previews; assertions confirmed no configuration or cache database was
+  created. The retained inspection root is
+  `/private/tmp/astrograph-process-package-verify.hZgqc0`.
+- The next selected goal is Story 2: generic version handling with `semver`.
