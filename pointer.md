@@ -8,25 +8,26 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Human and Agent Onboarding Packs Delivery
-Checklist](./specs/implementation/active/0_human-agent-onboarding-packs-delivery-checklist.md),
-starting with the audited setup baseline.
+Execute the active [Process Execution Seam with `execa` Delivery
+Checklist](./specs/implementation/active/1_npm-module-process-execution-delivery-checklist.md),
+starting with its process-contract baseline.
 
 ## Required outcome
 
-Produce evidence-backed, safe first-time setup and recovery guidance for human
-and agent users. Measure the existing behavior before changing it; leave
+Replace generic child-process plumbing in the selected scripts only when the
+baseline proves `execa` preserves every Astrograph-relevant behavior. Leave
 exactly one next goal ready only after this checklist closes.
 
 ## Hard boundaries
 
 - Do not implement compact transport, semantic retrieval, Windows work, shared
-  artifact reuse, or unrelated release publication merely because they are
-  listed in an epic.
-- Preserve canonical repository isolation, per-call `repoRoot`, local-first
-  storage, and current user privacy.
+  artifact reuse, release publication changes, or another npm-module story
+  merely because it is listed in an epic.
+- Preserve product-specific command, MCP, installer-managed-block, and
+  release-decision behavior. Do not turn the process helper into a public API.
 - Do not add a shared mutable index, daemon, network synchronization, hidden
-  routing, compatibility shim, or destructive MCP cache operation.
+  routing, compatibility shim, destructive MCP cache operation, or broad async
+  script rewrite.
 - Use an isolated worktree for source changes. Require exact-head Fast and
   package-smoke evidence before merging source changes to `main`; hosted
   Windows remains disabled under the cost rule until its explicit re-enable

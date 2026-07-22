@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Human and Agent Onboarding Packs](./0_human-agent-onboarding-packs-delivery-checklist.md)
-   — selected Story 6 of precision retrieval: audit and improve first-time
-   setup, diagnostics, and safe recovery without duplicating existing flows.
+1. [Process Execution Seam with `execa`](./1_npm-module-process-execution-delivery-checklist.md)
+   — selected Story 1 of npm-module adoption: replace generic script process
+   plumbing behind a narrow internal seam without changing product behavior.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

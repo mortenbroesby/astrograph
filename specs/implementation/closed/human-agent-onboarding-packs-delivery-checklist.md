@@ -1,8 +1,8 @@
 # Human and Agent Onboarding Packs Delivery Checklist
 
-> **Status:** Active — selected as the highest-impact unstarted precision
-> retrieval story after the verified release-on-main delivery. This is Story 6
-> of the [Precision Retrieval and Agent Experience Epic](../planned/1_precision-retrieval-agent-experience-epic.md).
+> **Status:** Closed — completed in PR #70 and published as
+> `astrograph@0.5.1-alpha.160`. This was Story 6 of the [Precision Retrieval
+> and Agent Experience Epic](../planned/1_precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Make a first-time Astrograph setup and recovery path understandable,
 inspectable, idempotent, and safe for people and agents without requiring
@@ -76,15 +76,15 @@ installer/CLI/package tests.
 
 ## Task 4: Verify, release, and close
 
-- [ ] Run focused tests, `pnpm type-lint`, `pnpm test:package-bin`,
+- [x] Run focused tests, `pnpm type-lint`, `pnpm test:package-bin`,
   `pnpm check:version-bump` when applicable, and `git diff --check`.
-- [ ] Obtain exact-head Fast CI. Hosted Windows remains disabled under the cost
+- [x] Obtain exact-head Fast CI. Hosted Windows remains disabled under the cost
   rule; record equivalent local/container or package-smoke evidence and the
   condition for re-enabling the hosted job.
-- [ ] Verify the published package from a clean temporary directory with
+- [x] Verify the published package from a clean temporary directory with
   `npx astrograph@<version> --diagnostics` and the selected dry-run setup
   commands; do not modify a real user configuration during verification.
-- [ ] Move this checklist to `../closed/`, update the roadmap/indexes, and
+- [x] Move this checklist to `../closed/`, update the roadmap/indexes, and
   select exactly one subsequent evidence-gated story only after all acceptance
   evidence is recorded.
 
@@ -121,3 +121,26 @@ installer/CLI/package tests.
   `.160` across the baseline and packed-smoke environment fixes under the
   monotonic version policy. No MCP tool, configuration-write behavior, or
   documentation contract changes.
+
+## Closure evidence (2026-07-22)
+
+- PR #70 merged the exact head `5c06638dc4ba31be10e8113bc44c531193375e38` as
+  `45cbc634d0654f9225b213d9175ffd7bd504b0e5`. Its Fast required check passed.
+  The hosted Windows job was intentionally skipped under the retained Actions
+  cost boundary; the packed-bin smoke remains the required portable proof
+  until a re-enable budget and explicit approval exist.
+- The immutable tag `v0.5.1-alpha.160` points at that merge and npm reports
+  `astrograph@latest` as `0.5.1-alpha.160`.
+- A clean temporary-home package run used
+  `pnpm dlx astrograph@0.5.1-alpha.160 --diagnostics` and
+  `install --global --ide copilot-cli --dry-run`, with the actual Node binary
+  first on `PATH` to avoid this host's version-manager shim. Diagnostics
+  reported `.160`, Node 24.13.0 as supported, unconfigured temporary paths,
+  and the global Copilot CLI next step; dry-run returned both configuration
+  previews. Assertions confirmed it created no temporary-home Astrograph
+  config, Copilot configuration, or cache database, so no user configuration
+  was touched. The retained temporary root is
+  `/private/tmp/astrograph-onboarding-verify.ojd5bQ` for inspection.
+- The next selected goal is the bounded process-execution seam in the
+  [npm-module adoption epic](../planned/2_npm-module-adoption-epic.md). Its
+  dedicated active checklist owns all further implementation decisions.
