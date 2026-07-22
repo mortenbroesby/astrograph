@@ -56,6 +56,7 @@ before implementation.
 | 9 | Pre-v1 cache and codebase cleanup | Removes obsolete cache and compatibility debt once the intended global workflow is settled. | Stories 4–8 evidence gates | A bounded cache-lifecycle and code-smell inventory tied to exact files and tests. |
 | 10 | Tokenizer and token-estimator research | Makes token budgets and benchmark claims trustworthy before investing in compact transport or another context format. | Story 5 JSON evidence | A reproducible candidate matrix covering accuracy, runtime, package footprint, license, Node support, and maintenance risk. |
 | 11 | MCP tool-surface review and core consolidation | Helps agents discover the intended workflow with fewer overlapping tools and less schema overhead. | Provenance, ranking, and task context | A task-to-tool composition audit, current schema-token baseline, and a bounded comparison with jCodeMunch's documented surface. |
+| 12 | File-type support coverage and discovery | Makes common repository content reliably discoverable and makes the actual support tier visible to users. | Existing language registry and fallback summaries | A registry/fixture/docs inventory proving the requested extension is missing, inconsistent, or insufficiently discoverable. |
 
 ## Story 1: Global + Branch-Aware Immutable Artifact Reuse
 
@@ -367,6 +368,30 @@ contract/test owner.
 reduce schema/tool-selection overhead while preserving every required workflow.
 Focused MCP/CLI tests prove each retained core task, each advanced tool remains
 discoverable, and every removed pre-v1 tool has no active caller or contract.
+
+## Story 12: File-Type Support Coverage and Discovery
+
+**Status:** Ready — the current registry already gives `.js`, `.cjs`, and
+`.mjs` graph support, while `.md`, `.txt`, `.yaml`, and `.yml` have discovery
+support with deterministic summaries. Select the detailed checklist only to
+verify/document that contract or add an evidence-backed missing extension.
+
+**Outcome:** Users can tell whether a file receives graph-quality symbol
+analysis or deterministic discovery/summary support, and common repository
+extensions work consistently through indexing and retrieval.
+
+**Scope:** Use the existing language and fallback registries as the single
+owner. Preserve the distinction between parsed graph languages and fallback
+file discovery; do not claim symbol/graph support for YAML, Markdown, or plain
+text without a parser and a separate quality decision.
+
+**Selection gate:** A user-reported failure, missing fixture, inconsistent
+CLI/MCP status, or user-facing documentation gap for a concrete extension.
+See the [delivery checklist](./filetype-support-coverage-delivery-checklist.md).
+
+**Acceptance evidence:** Registry, scanner, CLI/MCP, and documentation tests
+prove extension classification, the advertised tier, deterministic summaries,
+and safe case-insensitive matching for every selected extension.
 
 ## Non-Goals
 

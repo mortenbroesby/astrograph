@@ -3,9 +3,6 @@
 > **Status:** Planned — no precision-retrieval story is selected. Stories 1–3 and 5 are
 > closed. Story 4 remains deferred pending a separately measured compact-
 > transport need; later stories require their own evidence gates.
-> has no independent executable work: its sole unchecked release-publication
-> proof is externally blocked and may not halt independent delivery. Stories
-> 1–3 are complete and closed; later stories remain evidence-gated candidates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
