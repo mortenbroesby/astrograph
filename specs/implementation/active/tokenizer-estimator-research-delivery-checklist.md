@@ -23,15 +23,19 @@ and candidate libraries pinned in the lockfile only if selected for evaluation.
 - Inspect: `src/tokenizer.ts`, `bench/src/tokenizer.ts`, `package.json`,
   `pnpm-lock.yaml`
 - Create: `docs/reviews/tokenizer-estimator-research-<date>.md`
-- Test: `tests/tokenizer.test.ts`, `bench/tests/**`
+- Test: `bench/tests/tokenizer.test.ts`, `bench/tests/**`
 
-- [ ] Record the current exact and estimated algorithms, tokenizer model,
+- [x] Record the current exact and estimated algorithms, tokenizer model,
   package versions, installed/package footprint, licenses, Node support, and
-  native-binary behavior.
-- [ ] Select at most three maintained candidates with a concrete reason to
+  native-binary behavior. See
+  `docs/reviews/tokenizer-estimator-research-2026-07-22.md`.
+- [x] Select at most three maintained candidates with a concrete reason to
   evaluate each. Exclude remote APIs and unmaintained or incompatible packages.
-- [ ] Define a locked corpus: task-context JSON, empty/error envelopes,
+  `gpt-tokenizer@3.4.0` and `js-tiktoken@1.0.21` are the two exact candidates;
+  the unrelated BSV Tokenator package is explicitly excluded.
+- [x] Define a locked corpus: task-context JSON, empty/error envelopes,
   provenance-heavy results, Unicode/CRLF source, and large source snippets.
+  The exact cases and measurements are defined in the research record.
 
 ## Task 2: Measure and Decide
 

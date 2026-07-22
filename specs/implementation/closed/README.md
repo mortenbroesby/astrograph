@@ -34,3 +34,5 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   — merged as PR #29 after exact-head Fast and Windows/package smoke evidence.
 - [Pre-v1 Cache and Codebase Cleanup Delivery Checklist](./pre-v1-cache-codebase-cleanup-delivery-checklist.md)
   — merged as PR #30 after exact-head Fast and Windows/package smoke evidence.
+- [Token-Budgeted Task Context Delivery Checklist](./token-budgeted-task-context-delivery-checklist.md)
+  — merged as PR #34 after exact-head Fast and Windows/package smoke evidence.

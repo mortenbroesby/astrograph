@@ -1,9 +1,9 @@
 # High-Impact Product Follow-Ups Epic
 
 > **Status:** Active — Stories 1, 2, and 6 are evidence-backed deferrals;
-> Stories 3, 4, 7, 8, and 9 are complete and CI-verified. Story 5 is the only
-> remaining candidate and requires its own payload/relevance selection evidence
-> before it becomes active work.
+> Stories 3, 4, 5, 7, 8, and 9 are complete and CI-verified. Story 10 is the
+> active research work; it must establish token-estimation evidence before any
+> dependency or task-context-contract change.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -171,13 +171,16 @@ precision@k, MRR, zero-result rate, warm latency, and storage delta.
 
 ## Story 5: Token-Budgeted Context and Compact Transport
 
-**Status:** Active — the baseline on main commit `1efcc8f` showed that the
+**Status:** Complete — the bounded JSON task-context contract merged as PR #34
+(`b5837a7`) after Fast required checks and Windows compatibility/package smoke
+passed for exact head `94fdb59`. See the
+[delivery checklist](../closed/token-budgeted-task-context-delivery-checklist.md).
+Compact transport remains deferred until the JSON contract has a separately
+measured case for it. The baseline on main commit `1efcc8f` showed that the
 three current context paths cannot produce the same bounded agent-visible
 payload: at 400 source tokens they selected no items for representative tasks,
 and at 8,000 they serialized 13.7k–30.8k tokens for 4,499 selected source
-tokens. The selected work is the bounded JSON task-context contract in the
-[delivery checklist](./token-budgeted-task-context-delivery-checklist.md).
-Compact transport remains deferred until that contract is measured.
+tokens.
 
 **Outcome:** Agents receive coherent, source-attributed task context inside a
 declared budget rather than broad file dumps.
@@ -309,8 +312,8 @@ records each removal, its verification, and every intentionally deferred item.
 
 ## Story 10: Tokenizer and Token-Estimator Research
 
-**Status:** Planned — use the dedicated
-[research checklist](../planned/tokenizer-estimator-research-delivery-checklist.md)
+**Status:** Active — use the dedicated
+[research checklist](./tokenizer-estimator-research-delivery-checklist.md)
 before changing the production tokenizer or any token-budget contract.
 
 **Outcome:** Astrograph has an evidence-backed choice for exact token counting

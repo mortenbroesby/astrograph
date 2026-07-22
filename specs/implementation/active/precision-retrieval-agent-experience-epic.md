@@ -4,8 +4,8 @@
 > has no independent executable work:
 > its sole unchecked release-publication proof is externally blocked and may
 > not halt independent delivery. Stories 1 and 2 are complete and closed;
-> Story 3 is active after its evidence gate established that the current
-> overlapping context paths do not provide one bounded agent-visible payload.
+> Story 3 is complete and closed; compact transport remains deferred until a
+> separately measured need justifies it.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -70,11 +70,12 @@ contract merged as PR #26. See the closed
 
 ## Story 3 — Token-Budgeted Task Context
 
-**Status:** Active — execute the
-[delivery checklist](./token-budgeted-task-context-delivery-checklist.md).
-The recorded baseline justifies consolidating the three current paths; Story 4
-compact transport remains deferred until this JSON contract is correct and
-measured.
+**Status:** Complete — merged as PR #34 after exact-head Fast and Windows
+compatibility/package-smoke CI passed. See the closed
+[delivery checklist](../closed/token-budgeted-task-context-delivery-checklist.md).
+The recorded baseline justified consolidating the three current paths; Story 4
+compact transport remains deferred until a separately measured need justifies
+it.
 
 **Vision:** One bounded request assembles coherent task context rather than broad file dumps.
 
@@ -82,13 +83,13 @@ measured.
 
 **Likely files:** `src/retrieval.ts`, command/MCP contracts, tokenizer, CLI/MCP docs, interface tests.
 
-- [ ] Inventory existing context tools and choose one additive contract—do not duplicate tools.
-- [ ] Specify task/query, optional anchors, intent hint, budget/depth; output selected source, provenance, exclusions, truncation, actual tokens.
-- [ ] Select deterministically: anchors → lexical matches → required relations → budget-aware expansion.
-- [ ] Enforce token limit excluding only documented envelope overhead.
-- [ ] Test exploration/debug/refactor/audit fixtures for relevance, deduplication, provenance, and budget compliance.
-- [ ] Keep initial intent classification rules-based and explainable.
-- [ ] Verify MCP/CLI parity, type/version/diff, commit/push/review/merge.
+- [x] Inventory existing context tools and replace them with one direct contract; no compatibility aliases remain.
+- [x] Specify task/query, optional anchors, intent hint, budget/depth; output selected source, provenance, exclusions, truncation, actual tokens.
+- [x] Select deterministically: anchors → lexical matches → required relations → budget-aware expansion.
+- [x] Enforce the serialized agent-visible token limit, rejecting an envelope that cannot fit the declared budget.
+- [x] Test exploration/debug/refactor/audit fixtures for relevance, deduplication, provenance, and budget compliance.
+- [x] Keep initial intent classification rules-based and explainable.
+- [x] Verify MCP/CLI parity, type/version/diff, commit/push/review/merge as PR #34 (`b5837a7`).
 
 **Acceptance evidence:** A single request returns source-attributed task context inside its stated budget.
 
