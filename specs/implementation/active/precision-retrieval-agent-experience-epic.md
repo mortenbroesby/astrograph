@@ -4,7 +4,8 @@
 > has no independent executable work:
 > its sole unchecked release-publication proof is externally blocked and may
 > not halt independent delivery. Stories 1 and 2 are complete and closed;
-> Story 3 is the next candidate only after its own evidence gate is satisfied.
+> Story 3 is active after its evidence gate established that the current
+> overlapping context paths do not provide one bounded agent-visible payload.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -68,6 +69,12 @@ contract merged as PR #26. See the closed
 **Acceptance evidence:** Same corpus/query always yields the same ranked result with recorded quality and latency.
 
 ## Story 3 — Token-Budgeted Task Context
+
+**Status:** Active — execute the
+[delivery checklist](./token-budgeted-task-context-delivery-checklist.md).
+The recorded baseline justifies consolidating the three current paths; Story 4
+compact transport remains deferred until this JSON contract is correct and
+measured.
 
 **Vision:** One bounded request assembles coherent task context rather than broad file dumps.
 

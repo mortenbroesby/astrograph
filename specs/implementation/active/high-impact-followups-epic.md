@@ -170,8 +170,13 @@ precision@k, MRR, zero-result rate, warm latency, and storage delta.
 
 ## Story 5: Token-Budgeted Context and Compact Transport
 
-**Status:** Unselected — Story 4's prerequisite is complete, but Story 5 has
-not yet established its required payload, relevance, and latency baseline.
+**Status:** Active — the baseline on main commit `1efcc8f` showed that the
+three current context paths cannot produce the same bounded agent-visible
+payload: at 400 source tokens they selected no items for representative tasks,
+and at 8,000 they serialized 13.7k–30.8k tokens for 4,499 selected source
+tokens. The selected work is the bounded JSON task-context contract in the
+[delivery checklist](./token-budgeted-task-context-delivery-checklist.md).
+Compact transport remains deferred until that contract is measured.
 
 **Outcome:** Agents receive coherent, source-attributed task context inside a
 declared budget rather than broad file dumps.
