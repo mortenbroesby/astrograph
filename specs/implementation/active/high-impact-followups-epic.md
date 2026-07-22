@@ -55,6 +55,7 @@ before implementation.
 | 8 | Copilot CLI first-party global installation | Makes Copilot CLI a supported peer of Codex for global Astrograph-server installation and use. | Story 7 global workflow | A packed-package Copilot CLI matrix proving install, repair, and normal global use. |
 | 9 | Pre-v1 cache and codebase cleanup | Removes obsolete cache and compatibility debt once the intended global workflow is settled. | Stories 4–8 evidence gates | A bounded cache-lifecycle and code-smell inventory tied to exact files and tests. |
 | 10 | Tokenizer and token-estimator research | Makes token budgets and benchmark claims trustworthy before investing in compact transport or another context format. | Story 5 JSON evidence | A reproducible candidate matrix covering accuracy, runtime, package footprint, license, Node support, and maintenance risk. |
+| 11 | MCP tool-surface review and core consolidation | Helps agents discover the intended workflow with fewer overlapping tools and less schema overhead. | Provenance, ranking, and task context | A task-to-tool composition audit, current schema-token baseline, and a bounded comparison with jCodeMunch's documented surface. |
 
 ## Story 1: Global + Branch-Aware Immutable Artifact Reuse
 
@@ -336,6 +337,34 @@ material accuracy, latency, or maintenance benefit over the current split.
 **Acceptance evidence:** The research record names one retained/replaced
 choice for exact counts and estimates, records the measurements and trade-offs,
 and includes focused regression fixtures if a dependency change is selected.
+
+## Story 11: MCP Tool-Surface Review and Core Consolidation
+
+**Status:** Planned — select through the dedicated
+[delivery checklist](../planned/mcp-tool-surface-core-delivery-checklist.md).
+
+**Outcome:** A new agent can identify the small, preferred Astrograph workflow
+without learning a sprawling MCP catalog, while advanced operations remain
+available only when they have a distinct, evidence-backed purpose.
+
+**Scope:** Select and execute the existing Precision Epic
+[Story 5: Small MCP Core and Guided Routing](./precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing).
+Audit each current CLI/MCP command's task intent, composition frequency,
+schema-token cost, and overlap. Compare the result with jCodeMunch's documented
+surface only to identify useful discoverability patterns—not as a tool-count
+target or cloning exercise. Prefer removing redundant pre-v1 paths and concise
+tool descriptions over a generic router, hidden behavior, or a second catalog.
+
+**Selection gate:** Record a task-to-tool matrix for the supported global and
+repository workflows, current MCP schema bytes/tokens, and at least one
+reproducible agent/operator confusion or redundant composition. Map every
+proposed removal or core/advanced classification to a user decision and
+contract/test owner.
+
+**Acceptance evidence:** A documented core surface and advanced-tool policy
+reduce schema/tool-selection overhead while preserving every required workflow.
+Focused MCP/CLI tests prove each retained core task, each advanced tool remains
+discoverable, and every removed pre-v1 tool has no active caller or contract.
 
 ## Non-Goals
 

@@ -23,6 +23,9 @@ checklist, and then move it to `../active/` before implementation begins.
   verification criteria recorded as complete before it can be closed.
 - [Spec System Backlog](./spec-system-backlog.md) — outstanding architecture,
   API-contract, and implementation-plan documentation coverage.
+- [MCP Tool-Surface Core Delivery Checklist](./mcp-tool-surface-core-delivery-checklist.md)
+  — evidence-gated review of Astrograph's MCP core and advanced tools, using
+  jCodeMunch only as a discoverability comparison rather than a count target.
 - [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md)
   — only Story 6's optional shared immutable artifact store remains deferred;
   it is not authorized for implementation.
