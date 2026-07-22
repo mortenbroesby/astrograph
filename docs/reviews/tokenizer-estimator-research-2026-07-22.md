@@ -91,3 +91,40 @@ its package and memory cost. Retain `tokenx` unless a candidate estimator
 improves the measured error distribution or warm latency materially without
 adding meaningful package or maintenance risk. This is a pre-v1 decision: a
 selected replacement must be direct, without a compatibility adapter.
+
+## Task 2 Measurement — 2026-07-22
+
+Run the checked-in benchmark with:
+
+```sh
+pnpm bench:tokenizer-research -- --iterations 100
+CI=1 pnpm exec vitest run bench/tests/tokenizer.test.ts bench/tests/tokenizer-research.test.ts
+```
+
+The benchmark runs each candidate in a fresh Node process, warms it once, then
+counts all seven corpus cases 100 times. The table records the median of three
+fresh-process runs. RSS deltas are process-local, post-warm samples; package
+unpacked size is therefore the more reliable install-footprint comparison.
+
+| Candidate | Exact agreement with `tiktoken cl100k_base` | Warm median / p95 for whole corpus | Median RSS delta | Package cost | Result |
+| --- | --- | --- | ---: | ---: | --- |
+| `tiktoken@1.0.22` | reference | 22.75 / 23.80 ms | 7.45 MB | 23.59 MB | retain exact authority |
+| `gpt-tokenizer@3.4.0` (`cl100k_base`) | 7/7 exact | 8.52 / 9.77 ms | 7.57 MB | 53.10 MB | reject replacement |
+| `js-tiktoken@1.0.21` (`cl100k_base`) | 7/7 exact | 23.76 / 31.83 ms | 114.62 MB | 22.43 MB + `base64-js` | reject replacement |
+| `tokenx@1.3.0` | estimator, not exact | 4.87 / 5.59 ms | 14.06 MB | 0.017 MB | retain labelled estimator only |
+
+`tokenx` had 17.75% mean absolute percentage error across the seven cases and
+41.18% worst-case error (the error envelope); its weighted signed error was
+-7.83%. It therefore remains unsuitable for enforcing a task-context budget.
+
+### Decision
+
+**Retain `tiktoken` for exact token budgeting and retain `tokenx` only as the
+explicitly approximate benchmark/observability sidecar.** Although
+`gpt-tokenizer` is about 2.7× faster for this deliberately large corpus, it
+adds about 29.5 MB of unpacked package content. The measured retrieval workflow
+spends substantially more time indexing and selecting source than counting a
+single serialized payload, so that speed difference is not a material
+user-facing benefit at the current boundary. `js-tiktoken` has neither a speed
+nor memory advantage. No runtime dependency or token-budget contract changes
+are selected.
