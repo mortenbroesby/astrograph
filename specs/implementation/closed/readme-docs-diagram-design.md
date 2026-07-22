@@ -1,8 +1,7 @@
 # README and Docs Diagram Design
 
-> **Status:** Planned completion — diagram assets are embedded in `README.md`
-> and `docs/README.md`; record final verification before moving this document
-> to `../closed/`.
+> **Status:** Closed — both Excalidraw source files and SVG exports are tracked
+> under `assets/diagrams/` and embedded by `README.md` and `docs/README.md`.
 
 ## Goal
 

@@ -1,7 +1,7 @@
 # Windows Platform Support Epic
 
 > **Status:** Closed and consolidated — this unstarted roadmap moved to the
-> [Remaining Delivery Epic](../planned/remaining-delivery-epic.md). Do not begin work
+> [Remaining Delivery Epic](../planned/3_remaining-delivery-epic.md). Do not begin work
 > from this document.
 
 **Goal:** Make Astrograph reliably usable on supported Windows systems from a

@@ -1,6 +1,6 @@
 # Windows Git Discovery and Fallback Delivery Checklist
 
-> **Story:** 4 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
+> **Story:** 4 of the [Remaining Delivery Epic](./3_remaining-delivery-epic.md)
 >
 > **Status:** Deferred — implement portable Git-path identity and fallback
 > regression coverage here. Story 7 owns native `windows-latest` execution.
@@ -56,7 +56,7 @@ as a linked worktree.
 
 **Files:**
 
-- Update: `specs/implementation/remaining-delivery-epic.md`
+- Update: `specs/implementation/planned/3_remaining-delivery-epic.md`
 - Update: this checklist
 
 - [x] Give Story 7 the exact command:

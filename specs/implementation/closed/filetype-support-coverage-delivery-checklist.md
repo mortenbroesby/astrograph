@@ -1,6 +1,6 @@
 # File-Type Support Coverage and Discovery Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md),
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md),
 > Story 12.
 >
 > **Status:** Done — no runtime change was warranted. The requested extensions

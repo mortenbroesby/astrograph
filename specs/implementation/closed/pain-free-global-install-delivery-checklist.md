@@ -1,6 +1,6 @@
 # Pain-Free Global Install Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 7
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md), Story 7
 >
 > **Status:** Complete — merged as PR #28 after exact-head Fast required
 > checks and Windows compatibility/package smoke passed.

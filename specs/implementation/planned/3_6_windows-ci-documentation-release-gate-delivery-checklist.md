@@ -1,6 +1,6 @@
 # Windows CI, Documentation, and Release Gate Delivery Checklist
 
-> **Story:** 7 of the [Remaining Delivery Epic](./remaining-delivery-epic.md)
+> **Story:** 7 of the [Remaining Delivery Epic](./3_remaining-delivery-epic.md)
 >
 > **Status:** Deferred — native Windows CI found portable-path and ESM
 > entrypoint gaps; this checklist records their correction before merge.

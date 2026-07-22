@@ -48,7 +48,7 @@ Reusable starting points for agent-created docs.
 
 The completed bootstrap and historical milestones are preserved in Git history.
 The remaining documentation work is tracked in the planned
-[Spec System Backlog](./implementation/planned/spec-system-backlog.md), rather
+[Spec System Backlog](./implementation/planned/7_spec-system-backlog.md), rather
 than duplicated in this index.
 
 ---

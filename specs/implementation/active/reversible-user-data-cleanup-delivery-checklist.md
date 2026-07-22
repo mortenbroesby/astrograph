@@ -1,7 +1,7 @@
 # Reversible User-Data Cleanup Delivery Checklist
 
-> **Status:** Ready — safety follow-up; do not implement until explicitly
-> selected by `pointer.md`.
+> **Status:** Active — selected by `pointer.md` as the single next goal after
+> global-install recovery closed with no new public recovery surface.
 
 **Goal:** Ensure every Astrograph cleanup or cache-recovery operation is safe
 by default: it must be scoped, previewable, recoverable, and auditable. An

@@ -4,44 +4,40 @@ This directory contains approved but unstarted work. A planned epic is not an
 active delivery commitment: select it explicitly, create its delivery
 checklist, and then move it to `../active/` before implementation begins.
 
-## Backlog
+## Ordered Backlog
 
-- [Delivery Roadmap](../roadmap.md) — the canonical status dashboard; this
-  directory holds only the detailed records behind its ready, parked, and idea
-  categories.
-- [Reduce Astrograph Boilerplate with Proven npm Modules](./npm-module-adoption-epic.md)
-  — approved, dependency-ordered adoption of generic process, semver, registry,
-  package-quality, dependency-drift, and boundary tooling; it preserves
-  Astrograph-specific product behavior.
-- [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
-  completed results plus deferred global/release candidates; no story is
-  currently selected.
-- [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
-  — later retrieval candidates; Stories 1–3 and 5 are closed. Compact MCP
-  output and MessagePack internal serialization are separately parked there.
-- [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
-  and release-publication evidence remain planned; its Staff Engineer review
-  is closed.
-- [Release Publication Evidence Delivery Checklist](./release-publication-evidence-delivery-checklist.md)
-  — deferred final proof for automatic release-labelled-PR publication.
-- Windows delivery checklists — deferred until explicitly selected:
-  [audit](./windows-compatibility-audit-delivery-checklist.md),
-  [filesystem/storage](./windows-filesystem-storage-portability-delivery-checklist.md),
-  [Git fallback](./windows-git-discovery-fallback-delivery-checklist.md),
-  [CLI/MCP/package](./windows-cli-mcp-package-invocation-delivery-checklist.md),
-  [watch/refresh](./windows-watch-refresh-delivery-checklist.md), and
-  [CI/docs/release](./windows-ci-documentation-release-gate-delivery-checklist.md).
-- [README and Docs Diagram Design](./2026-05-06-readme-diagrams-design.md) —
-  the checked-in diagrams are embedded; the design pass still needs its
-  verification criteria recorded as complete before it can be closed.
-- [Spec System Backlog](./spec-system-backlog.md) — outstanding architecture,
-  API-contract, and implementation-plan documentation coverage.
-- [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md)
-  — only Story 6's optional shared immutable artifact store remains deferred;
-  it is not authorized for implementation.
-- [Reversible User-Data Cleanup Delivery Checklist](./reversible-user-data-cleanup-delivery-checklist.md)
-  — archive-first safety contract for cache cleanup and recovery; ready but not
-  selected.
-- Deferred high-impact checklist — [global/branch immutable artifact
-  reuse](./global-branch-artifact-reuse-delivery-checklist.md) has recorded
-  negative evidence and must not be revived without its selection gate.
+The numeric prefix is the priority order. A child prefix such as `4_1` is a
+dependency-ordered part of its parent epic, not a competing top-level priority.
+
+0. [Release on Main Merge](./0_release-on-main-merge-delivery-checklist.md)
+   — highest immediate operational impact: one observable merge-to-npm path,
+   with `no-release` as the explicit exception.
+1. [Precision Retrieval and Agent Experience Epic](./1_precision-retrieval-agent-experience-epic.md)
+   — highest product impact: trustworthy, token-efficient retrieval in small,
+   evidence-gated slices. Select a story only after its checklist is ready.
+2. [Reduce Astrograph Boilerplate with Proven npm Modules](./2_npm-module-adoption-epic.md)
+   — bounded internal maintenance improvements; preserve product-specific
+   behavior and select one slice at a time.
+3. [Remaining Delivery Epic](./3_remaining-delivery-epic.md) — parked Windows
+   support sequence. Hosted Windows CI is disabled for cost; retain its code
+   and re-enable only with budget and local/container proof.
+   1. [Compatibility audit](./3_1_windows-compatibility-audit-delivery-checklist.md)
+   2. [Filesystem and storage portability](./3_2_windows-filesystem-storage-portability-delivery-checklist.md)
+   3. [Git discovery and fallback](./3_3_windows-git-discovery-fallback-delivery-checklist.md)
+   4. [CLI, MCP, and package invocation](./3_4_windows-cli-mcp-package-invocation-delivery-checklist.md)
+   5. [Watch and refresh reliability](./3_5_windows-watch-refresh-delivery-checklist.md)
+   6. [CI, documentation, and release gate](./3_6_windows-ci-documentation-release-gate-delivery-checklist.md)
+4. [High-Impact Product Follow-Ups](./4_high-impact-followups-epic.md) —
+   historical completed results plus deferred candidates; reopen only when a
+   recorded selection gate gains new evidence.
+5. [Global + Branch-Aware Artifact Reuse](./5_global-branch-artifact-reuse-delivery-checklist.md)
+   — deferred after its measured benefit did not justify the added storage
+   complexity.
+6. [Global Install and Cache Deferred Story Handoffs](./6_global-install-and-cache-deferred-stories.md)
+   — historical handoffs; only the optional immutable artifact-store candidate
+   remains deferred and it is not authorized for implementation.
+7. [Spec System Backlog](./7_spec-system-backlog.md) — lower-impact durable
+   architecture/API coverage and authoring consistency.
+
+The completed [README and Docs Diagram Design](../closed/readme-docs-diagram-design.md)
+record now lives with closed evidence rather than in the delivery queue.

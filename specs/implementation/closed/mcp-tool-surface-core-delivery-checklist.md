@@ -1,6 +1,6 @@
 # MCP Tool-Surface Core Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 11; routes to [Precision Retrieval and Agent Experience Epic, Story 5](../planned/precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing)
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md), Story 11; routes to [Precision Retrieval and Agent Experience Epic, Story 5](../planned/1_precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing)
 >
 > **Status:** Complete — merged as PR #39 (`54971f6`) after Fast required
 > checks and Windows compatibility/package smoke passed for the exact PR head

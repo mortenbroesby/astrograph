@@ -1,6 +1,6 @@
 # Remaining Delivery Epic
 
-> **Status:** Planned — Story 1 is closed. Stories 2–8 remain planned and must
+> **Status:** Parked — Story 1 is closed. Stories 2–7 remain planned and must
 > not begin until explicitly selected.
 >
 > **Consolidates remaining delivery work from:**
@@ -34,7 +34,6 @@ Actions, npm trusted publishing, and Windows Git/Node terminals.
 | 5 | Windows CLI, MCP, and package invocation | Windows Story 4 | Stories 2–4 | The built package works from PowerShell, `cmd`, and Git Bash. |
 | 6 | Windows watch and refresh reliability | Windows Story 5 | Stories 3–5 | Filesystem events preserve correct indexing and safe fallback. |
 | 7 | Windows CI, documentation, and release gate | Windows Story 6 | Stories 3–6 | Scoped Windows CI provides release-quality proof and documented support. |
-| 8 | Release publication evidence | Branch-aware index and Node 22 epics | A release-labelled PR merged to `main` | Cloud release commits a newer version, tags it, and publishes it to npm with recorded evidence. |
 
 ## Story Start Protocol
 
@@ -56,9 +55,9 @@ next retry condition in the active delivery checklist. Then defer that story to
 the end of the executable queue and continue every independent, unblocked
 story. Only stop when no unblocked work remains.
 
-Release publication is intentionally Story 8 because it depends on an external
-merged, `release`-labelled PR; it must never prevent the review or Windows
-stories from progressing.
+Release delivery is intentionally outside this parked Windows epic. It is the
+separate, higher-priority [Release on Main Merge checklist](./0_release-on-main-merge-delivery-checklist.md)
+and must not prevent Windows work from progressing.
 
 ## Story 1: Staff Engineer Design and Engineering Review — Complete
 
@@ -106,8 +105,8 @@ that cannot be supported by repository evidence.
 
 ## Story 2: Windows Compatibility Audit
 
-**Active delivery checklist:**
-[Windows Compatibility Audit Delivery Checklist](./windows-compatibility-audit-delivery-checklist.md)
+**Delivery checklist:**
+[Windows Compatibility Audit Delivery Checklist](./3_1_windows-compatibility-audit-delivery-checklist.md)
 
 **Goal:** Turn every Windows-sensitive path, process, storage, and shell
 assumption into an explicit, testable requirement before behavior changes.
@@ -121,6 +120,9 @@ assumption into an explicit, testable requirement before behavior changes.
 
 ## Story 3: Windows Filesystem and Storage Portability
 
+**Delivery checklist:**
+[Windows Filesystem and Storage Portability Delivery Checklist](./3_2_windows-filesystem-storage-portability-delivery-checklist.md)
+
 **Goal:** Preserve repository identity and `.astrograph` storage lifecycle for
 Windows paths, drive letters, spaces, and supported case behavior.
 
@@ -130,6 +132,9 @@ Windows paths, drive letters, spaces, and supported case behavior.
 - SQLite, metadata, integrity, and cleanup do not rely on shell deletion.
 
 ## Story 4: Windows Git Discovery and Fallback
+
+**Delivery checklist:**
+[Windows Git Discovery and Fallback Delivery Checklist](./3_3_windows-git-discovery-fallback-delivery-checklist.md)
 
 **Goal:** Support Windows Git and Git Bash enrichment without making Git a
 requirement for ordinary indexing.
@@ -142,6 +147,9 @@ requirement for ordinary indexing.
 
 ## Story 5: Windows CLI, MCP, and Package Invocation
 
+**Delivery checklist:**
+[Windows CLI, MCP, and Package Invocation Delivery Checklist](./3_4_windows-cli-mcp-package-invocation-delivery-checklist.md)
+
 **Goal:** Make CLI, MCP stdio, and the packed npm artifact usable from
 PowerShell, `cmd`, and Git Bash.
 
@@ -151,6 +159,9 @@ PowerShell, `cmd`, and Git Bash.
 - A packed tarball installs, indexes, and queries successfully on Windows.
 
 ## Story 6: Windows Watch and Refresh Reliability
+
+**Delivery checklist:**
+[Windows Watch and Refresh Reliability Delivery Checklist](./3_5_windows-watch-refresh-delivery-checklist.md)
 
 **Goal:** Keep indexing and freshness correct after Windows create, edit,
 rename, delete, and failed-probe events.
@@ -162,8 +173,8 @@ rename, delete, and failed-probe events.
 
 ## Story 7: Windows CI, Documentation, and Release Gate
 
-**Active delivery checklist:**
-[Windows CI, Documentation, and Release Gate Delivery Checklist](./windows-ci-documentation-release-gate-delivery-checklist.md)
+**Delivery checklist:**
+[Windows CI, Documentation, and Release Gate Delivery Checklist](./3_6_windows-ci-documentation-release-gate-delivery-checklist.md)
 
 **Goal:** Make the supported Windows experience continuously verifiable and
 visible to users before any release claims Windows support.
@@ -182,63 +193,11 @@ visible to users before any release claims Windows support.
 - README and release docs state supported terminals, prerequisites, and the
   Git-optional fallback.
 
-## Story 8: Release Publication Evidence
-
-**Goal:** Exercise and prove the opt-in cloud release path for the completed
-branch-aware index and Node 22 work.
-
-**Scope:** Use a release-labelled PR merged into `main`; wait for its required
-CI; verify the release-only job creates the version commit and tag; then verify
-the tag-triggered trusted npm publication.
-
-**Version automation requirement:** Establish one idempotent version
-plan/apply mechanism for local use, merged-PR release CI, and manual release
-CI. It must make the same decision in every environment, update every
-version-coupled test or fixture deliberately, and expose its proposed change
-before it writes.
-
-**Required version sanity checks:**
-
-- Detect whether the merged commit already contains a valid version increment;
-  do not create a conflicting second increment.
-- Compare the candidate against the current `main` version and the latest
-  published npm version using an explicit, documented source-of-truth and
-  failure policy for unavailable registry data.
-- Reject duplicate, stale, non-monotonic, or conflicting versions before any
-  commit, tag, or publication.
-- Run `pnpm check:version-bump` after every prospective or applied update, and
-  add focused release-policy tests for already-bumped, conflicting-main,
-  conflicting-npm, and ordinary-increment paths.
-- Keep `pnpm release:plan` side-effect free and make `pnpm release:apply` the
-  only local command that writes the version and its required coupled updates.
-
-**Delivery shape:** A release-labelled PR merge invokes the shared check and
-apply flow after required CI succeeds; it commits any necessary version update
-to `main`, verifies it, pushes the matching tag, and relies on the existing
-tag-triggered trusted publisher. Manual release uses that same flow rather than
-a second implementation.
-
-**Acceptance criteria:**
-
-- The release runs only for a merged `main` PR carrying the `release` label.
-- The cloud release increments the version and pushes its version commit and
-  matching tag without rerunning a test suite in the release-only job.
-- Local, merged-PR, and manual-release paths share the same version decision,
-  update, and sanity-check implementation.
-- A version already validly bumped on `main` is accepted without a duplicate
-  increment; any version that conflicts with `main` or npm is rejected with an
-  actionable diagnostic.
-- Release-policy tests prove the version decision and coupled-update behavior
-  before the workflow is relied on for publication.
-- The npm registry, Git tag, release commit, and GitHub Actions URLs are
-  recorded in the active delivery evidence before this story is closed.
-
 ## Definition of Done
 
 - [x] Story 1 has an evidence-based Staff Engineer review and a proportionate
   Now/Next/Later roadmap.
-- [x] Stories 2–7 have complete child-task checklists and passing Windows CI
-  evidence.
-- [ ] Story 8 has recorded release publication evidence.
+- [x] Stories 2–7 have complete child-task checklists and historical Windows
+  CI evidence; the hosted job is currently disabled under the cost policy.
 - [ ] The original epics remain closed historical records and this document is
   the only active tracker for their remaining delivery obligations.

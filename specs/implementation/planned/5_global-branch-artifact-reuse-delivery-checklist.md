@@ -1,6 +1,6 @@
 # Global + Branch-Aware Artifact Reuse Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 1
+> **Epic:** [High-Impact Product Follow-Ups Epic](./4_high-impact-followups-epic.md), Story 1
 >
 > **Status:** Deferred — Task 2 found no material benefit on the representative
 > fixture. Preserve this evidence and reopen only with a larger-corpus signal.
@@ -95,7 +95,7 @@ larger corpus demonstrates material repeated-analysis cost.
 **Files:**
 - Modify: `specs/architecture/adrs.md`
 - Create: an ADR only if the project ADR index requires a separate file
-- Modify: this checklist and `high-impact-followups-epic.md`
+- Modify: this checklist and `4_high-impact-followups-epic.md`
 
 - [ ] Write an ADR that fixes the selected ownership boundary, complete
   fingerprint, retention/eviction, migration/rebuild behavior, locking, and

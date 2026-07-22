@@ -8,8 +8,8 @@
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
 > and [Astrograph Feedback Consolidation Epic](../closed/astro-feedback-epic.md).
-> It complements—rather than replaces—the [Remaining Delivery Epic](./remaining-delivery-epic.md)
-> and [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md).
+> It complements—rather than replaces—the parked [Remaining Delivery Epic](./3_remaining-delivery-epic.md)
+> and [Precision Retrieval and Agent Experience Epic](./1_precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Turn the largest completed platform investments into the next
 meaningful user outcomes: faster safe work across repositories and checkouts,
@@ -63,7 +63,7 @@ before implementation.
 **Status:** Deferred — the representative two-file global fixture duplicated
 four artifacts but took only 2.044 seconds for both indexes. That does not
 justify new cross-repository storage complexity. See the
-[delivery checklist](./global-branch-artifact-reuse-delivery-checklist.md).
+[delivery checklist](./5_global-branch-artifact-reuse-delivery-checklist.md).
 
 **Outcome:** A user who indexes related checkouts or repositories avoids
 repeating validated immutable analysis, while each repository and checkout
@@ -95,10 +95,10 @@ without source content.
 
 ## Story 2: Global Installation Health and Recovery
 
-**Status:** Active — a stale globally installed package lacked the expected
+**Status:** Closed — a stale globally installed package lacked the expected
 version and Copilot global-setup path. Verify the published repair contract
 from the installed artifact before expanding the surface. See the
-[delivery checklist](../active/global-install-health-recovery-delivery-checklist.md).
+[closed delivery checklist](../closed/global-install-health-recovery-delivery-checklist.md).
 
 **Outcome:** A user can diagnose and safely repair a global Astrograph setup
 without knowing config-file locations or risking unrelated MCP configuration.
@@ -157,7 +157,7 @@ and [ranking checklist](../closed/deterministic-lexical-ranking-delivery-checkli
 before any optional semantic system is considered.
 
 **Scope:** Select and execute Stories 1–2 of the
-  [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md):
+  [Precision Retrieval and Agent Experience Epic](./1_precision-retrieval-agent-experience-epic.md):
 stable source/symbol provenance followed by deterministic lexical ranking.
 Do not begin semantic retrieval, remote embeddings, or a vector service in
 this story.
@@ -202,7 +202,7 @@ and round-trip any compact response losslessly.
 ## Story 6: Cross-Platform Confidence and Release Automation Evidence
 
 **Status:** Deferred — the next unchecked requirement in the
-[Remaining Delivery Epic](./remaining-delivery-epic.md) is release
+[Remaining Delivery Epic](./3_remaining-delivery-epic.md) is release
 publication evidence. Its dedicated checklist is blocked until a
 release-labelled PR is merged to `main`; Windows work must be selected in that
 epic if its tracker becomes executable again.
@@ -211,7 +211,7 @@ epic if its tracker becomes executable again.
 terminals and is released through a fully evidenced guarded path.
 
 **Scope:** This is a routing story, not a replacement plan. Select the
-appropriate unchecked item in the [Remaining Delivery Epic](./remaining-delivery-epic.md):
+appropriate unchecked item in the [Remaining Delivery Epic](./3_remaining-delivery-epic.md):
 Windows audit through release gate, or automatic release-publication evidence.
 Do not recreate those checklists here.
 
@@ -350,7 +350,7 @@ without learning a sprawling MCP catalog, while advanced operations remain
 available only when they have a distinct, evidence-backed purpose.
 
 **Scope:** Select and execute the existing Precision Epic
-[Story 5: Small MCP Core and Guided Routing](./precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing).
+[Story 5: Small MCP Core and Guided Routing](./1_precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing).
 Audit each current CLI/MCP command's task intent, composition frequency,
 schema-token cost, and overlap. Compare the result with jCodeMunch's documented
 surface only to identify useful discoverability patterns—not as a tool-count

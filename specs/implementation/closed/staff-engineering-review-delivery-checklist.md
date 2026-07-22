@@ -1,6 +1,6 @@
 # Staff Engineer Review Delivery Checklist
 
-> **Epic:** [Remaining Delivery Epic](../planned/remaining-delivery-epic.md), Story 1
+> **Epic:** [Remaining Delivery Epic](../planned/3_remaining-delivery-epic.md), Story 1
 >
 > **Status:** Closed — merged as [PR #3](https://github.com/mortenbroesby/astrograph/pull/3)
 > with its required CI passing. This story does not authorize implementation of

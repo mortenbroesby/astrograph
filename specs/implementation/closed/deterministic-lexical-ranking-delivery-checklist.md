@@ -1,6 +1,6 @@
 # Deterministic Lexical Ranking Delivery Checklist
 
-> **Epic:** [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md), Story 2
+> **Epic:** [Precision Retrieval and Agent Experience Epic](../planned/1_precision-retrieval-agent-experience-epic.md), Story 2
 >
 > **Status:** Complete — merged with provenance-first retrieval as PR #26 after
 > exact-head Fast and Windows compatibility CI passed.

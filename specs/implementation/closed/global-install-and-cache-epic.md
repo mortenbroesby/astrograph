@@ -49,7 +49,7 @@ story may start only after its child delivery checklist names exact files,
 baseline commands, focused tests, final checks, and a commit checkpoint.
 
 **Deferred story handoffs:** Story 6 remains deferred; the historical handoffs
-are in [Global Install and Cache Deferred Story Handoffs](../planned/global-install-and-cache-deferred-stories.md).
+are in [Global Install and Cache Deferred Story Handoffs](../planned/6_global-install-and-cache-deferred-stories.md).
 They are not authorized for implementation until their selection gate is met
 and an active checklist is created from that handoff.
 
