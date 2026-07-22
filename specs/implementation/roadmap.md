@@ -22,7 +22,7 @@ roadmap explains everything else.
      idempotent merge-to-npm transaction.
    - Next action: configure npm trusted publishing for `ci.yml` and the `npm`
      environment, then retry the existing immutable tag
-     `v0.5.1-alpha.156` and record registry evidence.
+     `v0.5.1-alpha.157` and record registry evidence.
 
 ## Ready — detailed, but not selected
 
