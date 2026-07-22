@@ -50,10 +50,4 @@ sets `ALLOW_GITHUB_ACTIONS_COST_INCREASE=true`.
 
 ## Code Exploration Policy
 
-Prefer Astrograph MCP tools for code exploration before falling back to raw file reads or shell search.
-
-- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.
-- Before reading a file, use `get_file_outline`, `get_file_summary`, or `query_code` with source intent.
-- Before searching broadly, use `query_code`, `find_files`, or `search_text`.
-- Before exploring structure, use `get_file_tree` or `get_repo_outline`.
-- Use raw file reads or shell search only when Astrograph cannot answer the question or when debugging Astrograph itself.
+Use Astrograph normally from the target harness (such as Codex or Copilot) for code exploration. Prefer its indexed search, file summaries, and repository views before raw file reads or shell search; fall back only when Astrograph cannot answer the question or when debugging Astrograph itself.
