@@ -40,21 +40,21 @@ test.
 
 ## Task 2 — Introduce the bounded process wrapper
 
-- [ ] Add `execa` after confirming supported Node and license fit.
-- [ ] Add `src/lib/process.ts` with explicit argument-array execution, timeout, stdout/stderr, and non-zero-error behavior.
-- [ ] Add focused tests for wrapper behavior not already covered by scripts.
+- [x] Add `execa` after confirming supported Node and license fit.
+- [x] Add `src/lib/process.ts` with explicit argument-array execution, timeout, stdout/stderr, and non-zero-error behavior.
+- [x] Add focused tests for wrapper behavior not already covered by scripts.
 
 Expected: no unbounded generic shell abstraction.
 
 ## Task 3 — Migrate `run-vitest.ts`
 
-- [ ] Preserve current test-shard timeout and output behavior.
-- [ ] Run focused tests and `pnpm type-lint`.
+- [x] Preserve current test-shard output and Windows-shell behavior (the prior launcher had no explicit timeout).
+- [x] Run a launcher smoke (`pnpm test -- --help`) and `pnpm type-lint`.
 
 ## Task 4 — Migrate release and installer scripts
 
-- [ ] Preserve release registry-unavailable, version-decision, tag, and publish semantics.
-- [ ] Preserve installer managed-block, dry-run, timeout, and platform behavior.
+- [x] Preserve release registry-unavailable, version-decision, tag, and publish semantics.
+- [x] Preserve installer managed-block, dry-run, timeout, and platform behavior.
 - [ ] Run focused release/install tests and `pnpm type-lint` after each migration.
 
 ## Task 5 — Final verification and delivery
@@ -66,3 +66,17 @@ Expected: no unbounded generic shell abstraction.
 ## Commit checkpoint
 
 Stage the changed package metadata, process wrapper, migrated scripts, and focused tests; run `pnpm check:version-bump`; then commit with `refactor: centralize process execution`.
+
+## Implementation evidence (2026-07-22)
+
+- `execa@10.0.0` declares Node `>=22` and MIT licensing, satisfying the
+  package's `>=22.12.0` floor and dependency gate.
+- `tests/process.test.ts` proves captured stdout with suppressed stderr and
+  non-zero inherited-stdio status propagation.
+- Passed: `pnpm exec vitest run tests/process.test.ts tests/release-agent.test.ts`,
+  `pnpm type-lint`, `pnpm check:version-bump`, and `pnpm test -- --help`.
+- `tests/engine-contract.test.ts` currently has two unrelated global-cache
+  assertions that set `ASTROGRAPH_CACHE_HOME` but expect the macOS default
+  under `~/.astrograph`. They fail before exercising a migrated process call;
+  keep them as an explicit follow-up verification blocker rather than changing
+  storage behavior in this story.

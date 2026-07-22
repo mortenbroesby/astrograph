@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -16,6 +15,7 @@ import {
   type AstrographReleaseTransactionAction,
 } from "../release-transaction.ts";
 import { parseAstrographVersion } from "../version.ts";
+import { captureProcess } from "../lib/process.ts";
 
 interface ReleaseAgentOptions {
   apply: boolean;
@@ -80,11 +80,9 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
 }
 
 function git(args: readonly string[]): string {
-  return execFileSync("git", [...args], {
+  return captureProcess("git", args, {
     cwd: packageRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
+  });
 }
 
 function gitMaybe(args: readonly string[]): string {
@@ -128,12 +126,10 @@ function readPackageVersionAtRefMaybe(ref: string): string | null {
 
 function readRegistryVersion(): AstrographRegistryVersionState {
   try {
-    const output = execFileSync("npm", ["view", "astrograph", "version", "--json"], {
+    const output = captureProcess("npm", ["view", "astrograph", "version", "--json"], {
       cwd: packageRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
       timeout: 15_000,
-    }).trim();
+    });
     const parsed = JSON.parse(output) as unknown;
     if (typeof parsed !== "string") {
       throw new Error("npm returned a non-string version.");
