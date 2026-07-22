@@ -93,6 +93,8 @@ export async function archiveManagedDirectory(input: {
   archiveRoot: string;
   reason: string;
   recoveryCommand: (receiptPath: string) => string;
+  now?: () => Date;
+  move?: (from: string, to: string) => Promise<void>;
 }): Promise<CacheArchiveReceipt> {
   const target = path.resolve(input.target);
   const archiveRoot = path.resolve(input.archiveRoot);
@@ -106,7 +108,7 @@ export async function archiveManagedDirectory(input: {
   await mkdir(archiveRoot, { recursive: true, mode: 0o700 });
   const archiveRootEntry = await lstat(archiveRoot);
   if (!archiveRootEntry.isDirectory() || archiveRootEntry.isSymbolicLink()) throw new Error(`Refusing symlinked archive root: ${archiveRoot}`);
-  const archivedAt = new Date().toISOString();
+  const archivedAt = (input.now ?? (() => new Date()))().toISOString();
   const archivePath = path.join(archiveRoot, `${archivedAt.replace(/[:.]/g, "-")}-${path.basename(target)}`);
   const receiptPath = `${archivePath}.receipt.json`;
   if (await lstat(archivePath).catch(() => null) || await lstat(receiptPath).catch(() => null)) {
@@ -125,6 +127,6 @@ export async function archiveManagedDirectory(input: {
   // Write the auditable receipt before moving data. If the move fails, the
   // original remains in place and the receipt identifies the failed attempt.
   await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600, flag: "wx" });
-  await rename(target, archivePath);
+  await (input.move ?? rename)(target, archivePath);
   return receipt;
 }

@@ -47,7 +47,7 @@ MCP.
 
 - [x] Add archive/restore fixtures that assert bytes and metadata survive the
   round trip and unrelated files remain byte-for-byte unchanged.
-- [ ] Add failure-injection coverage for partial moves, collisions, permissions,
+- [x] Add failure-injection coverage for partial moves, collisions, permissions,
   malformed receipts, and concurrent index activity.
 - [x] Document preview, archive, inspect, restore, retention, and the separate
   irreversible-delete procedure in plain language.

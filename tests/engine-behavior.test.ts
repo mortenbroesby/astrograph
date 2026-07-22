@@ -817,10 +817,12 @@ module.exports = {
     const repoRoot = await createFixtureRepo();
     const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-recovery-"));
     const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
     const fs = await import("node:fs/promises");
 
     try {
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = cacheHome;
       await writeFile(
         path.join(repoRoot, "astrograph.config.json"),
         JSON.stringify({ storageLocation: "global" }),
@@ -839,6 +841,8 @@ module.exports = {
       clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       await rm(cacheHome, { recursive: true, force: true });
     }
   });
@@ -866,10 +870,12 @@ module.exports = {
     const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-obsolete-symlink-"));
     const outside = await mkdtemp(path.join(packageRoot, ".tmp-global-obsolete-outside-"));
     const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
     const fs = await import("node:fs/promises");
 
     try {
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = cacheHome;
       await writeFile(
         path.join(repoRoot, "astrograph.config.json"),
         JSON.stringify({ storageLocation: "global" }),
@@ -888,6 +894,8 @@ module.exports = {
       clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       await rm(cacheHome, { recursive: true, force: true });
       await rm(outside, { recursive: true, force: true });
     }
