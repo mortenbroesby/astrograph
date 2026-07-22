@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [File-Type Support Coverage and Discovery](./filetype-support-coverage-delivery-checklist.md)
-   — selected to verify and document the existing JavaScript-module and
-   fallback-file support matrix, then add only evidenced gaps.
+1. [Global Installation Health and Recovery](./global-install-health-recovery-delivery-checklist.md)
+   — selected to prove the published global artifact makes installation,
+   diagnostics, and safe repair clear for the supported clients.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

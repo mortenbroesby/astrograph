@@ -17,10 +17,11 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [File-Type Support Coverage and Discovery](./active/filetype-support-coverage-delivery-checklist.md)
-   - Goal: verify/document current JavaScript-module and fallback-file support,
-     then add only evidence-backed missing extensions.
-   - First unchecked task: reproduce and classify the requested support.
+1. [Global Installation Health and Recovery](./active/global-install-health-recovery-delivery-checklist.md)
+   - Goal: prove the published global artifact makes version, diagnostics,
+     default Copilot setup, and safe repair clear and idempotent.
+   - First unchecked task: reproduce the stale-package and global-client matrix
+     from `astrograph@0.5.0-alpha.153`.
 
 ## Ready — detailed, but not selected
 
@@ -44,9 +45,6 @@ roadmap explains everything else.
 - [Global + branch-aware immutable artifact reuse](./planned/global-branch-artifact-reuse-delivery-checklist.md):
   a representative run took 2.044 seconds for both indexes, so the measured
   duplication did not justify cross-repository storage complexity.
-- [Global installation health and recovery](./planned/global-install-health-recovery-delivery-checklist.md):
-  current preflight, dry-run, idempotent writes, remediation, status, and
-  packed-package evidence leave no distinct recovery gap.
 - [Compact versioned transport](./planned/precision-retrieval-agent-experience-epic.md#story-4--compact-versioned-transport):
   measure complete agent-visible MCP envelopes before selecting an opt-in,
   versioned compact JSON format for repetitive result shapes.
@@ -98,6 +96,10 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Global Astrograph cleanup preparation](./closed/global-astrograph-cleanup-preparation-checklist.md)
   closed in PR #43 after removing stale tracked Codex MCP configuration drift
   with exact-head Fast and Windows/package-smoke evidence.
+- [File-Type Support Coverage and Discovery](./closed/filetype-support-coverage-delivery-checklist.md)
+  closed with no additional runtime change: PR #46 already proved the requested
+  JavaScript-module and fallback-file matrix with exact-head Fast and Windows
+  compatibility/package-smoke evidence.
 
 ## Maintaining this roadmap
 

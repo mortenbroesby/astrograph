@@ -47,3 +47,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   — merged as PR #43 after exact-head Fast and Windows/package-smoke evidence;
   removed stale tracked Codex MCP configuration drift and selected the next
   file-type coverage goal.
+- [File-Type Support Coverage and Discovery Delivery Checklist](./filetype-support-coverage-delivery-checklist.md)
+  — closed with no additional runtime change after confirming the requested
+  JavaScript-module and discovery-only extension matrix in PR #46.

@@ -8,8 +8,8 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [File-Type Support Coverage and Discovery Delivery
-Checklist](./specs/implementation/active/filetype-support-coverage-delivery-checklist.md),
+Execute the active [Global Installation Health and Recovery Delivery
+Checklist](./specs/implementation/active/global-install-health-recovery-delivery-checklist.md),
 starting at the first unchecked task.
 
 ## Required outcome

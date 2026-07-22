@@ -2,7 +2,7 @@
 
 > **Status:** Closed — completed by PR #43 (`6283565`) after exact-head Fast
 > required checks and Windows compatibility/package smoke passed. The next
-> selected goal is [File-Type Support Coverage and Discovery](../active/filetype-support-coverage-delivery-checklist.md).
+> selected goal was [File-Type Support Coverage and Discovery](./filetype-support-coverage-delivery-checklist.md).
 
 **Goal:** Remove tracker and codebase-hygiene ambiguity, record a bounded
 cleanup decision, and leave one evidence-gated next story ready for a bare
@@ -66,7 +66,7 @@ source/test files discovered in Task 2.
 - [x] Re-evaluate the documented gates for immutable artifact reuse, global
   install health/recovery, compact transport, release publication evidence,
   and later precision work using Task 2 evidence.
-- [x] Select [File-Type Support Coverage and Discovery](../active/filetype-support-coverage-delivery-checklist.md)
+- [x] Select [File-Type Support Coverage and Discovery](./filetype-support-coverage-delivery-checklist.md)
   after this cleanup merges: the explicit user request satisfies its documented
   coverage/documentation-gap gate.
 - [x] Move the selected File-Type Support Coverage and Discovery checklist to
