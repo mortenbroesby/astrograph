@@ -9,6 +9,10 @@ import {
   compareAstrographVersions,
   decideAstrographReleaseTransaction,
 } from "../src/release-transaction.ts";
+import {
+  assessAstrographVersionBump,
+  parseAstrographVersion,
+} from "../src/version.ts";
 
 const previous = {
   major: 0,
@@ -259,6 +263,24 @@ describe("release policy", () => {
       registry: { status: "available", version: "0.3.2-alpha.75" },
       tagAlreadyExists: true,
     })).toMatchObject({ action: "no-op", versionAlreadyCurrent: true });
+  });
+
+  it("rejects a missing required version bump", () => {
+    const version = parseAstrographVersion("0.4.0-alpha.106");
+
+    expect(assessAstrographVersionBump(version, version)).toMatchObject({
+      ok: false,
+      reason: "Astrograph version did not change.",
+    });
+  });
+
+  it("rejects a malformed release candidate before any tag decision", () => {
+    expect(() => decideAstrographReleaseTransaction({
+      candidateVersion: "0.4.0",
+      mainVersion: "0.4.0-alpha.105",
+      registry: { status: "available", version: "0.3.2-alpha.75" },
+      tagAlreadyExists: false,
+    })).toThrow('Invalid Astrograph version "0.4.0"');
   });
 
   it.each([

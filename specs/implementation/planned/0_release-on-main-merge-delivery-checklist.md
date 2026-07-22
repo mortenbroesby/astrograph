@@ -49,7 +49,7 @@ needed; modify `tests/release-policy.test.ts`.
 
 - [x] Preserve the checkout-independent monotonic alpha-version comparator and
   coupled version ownership (`package.json` plus engine-contract expectation).
-- [ ] Add pure fixtures for ordinary eligible merge, `no-release`, missing
+- [x] Add pure fixtures for ordinary eligible merge, `no-release`, missing
   required bump, duplicate tag, registry-newer version, malformed version,
   unavailable registry, and rerun after a successful publish.
 - [x] Make PR CI report a machine-readable release decision without writing.
