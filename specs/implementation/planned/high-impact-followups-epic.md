@@ -371,7 +371,7 @@ discoverable, and every removed pre-v1 tool has no active caller or contract.
 
 ## Story 12: File-Type Support Coverage and Discovery
 
-**Status:** Ready — the current registry already gives `.js`, `.cjs`, and
+**Status:** Active — the current registry already gives `.js`, `.cjs`, and
 `.mjs` graph support, while `.md`, `.txt`, `.yaml`, and `.yml` have discovery
 support with deterministic summaries. Select the detailed checklist only to
 verify/document that contract or add an evidence-backed missing extension.
@@ -387,7 +387,7 @@ text without a parser and a separate quality decision.
 
 **Selection gate:** A user-reported failure, missing fixture, inconsistent
 CLI/MCP status, or user-facing documentation gap for a concrete extension.
-See the [delivery checklist](./filetype-support-coverage-delivery-checklist.md).
+See the [delivery checklist](../active/filetype-support-coverage-delivery-checklist.md).
 
 **Acceptance evidence:** Registry, scanner, CLI/MCP, and documentation tests
 prove extension classification, the advertised tier, deterministic summaries,

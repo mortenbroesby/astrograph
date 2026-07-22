@@ -17,10 +17,10 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Global Astrograph Cleanup and Delivery Preparation](./active/global-astrograph-cleanup-preparation-checklist.md)
-   - Goal: make one evidence-backed cleanup decision and select exactly one
-     next goal, if a selection gate is met.
-   - First unchecked task: build the bounded cleanup inventory and baseline.
+1. [File-Type Support Coverage and Discovery](./active/filetype-support-coverage-delivery-checklist.md)
+   - Goal: verify/document current JavaScript-module and fallback-file support,
+     then add only evidence-backed missing extensions.
+   - First unchecked task: reproduce and classify the requested support.
 
 ## Ready — detailed, but not selected
 
@@ -31,11 +31,6 @@ roadmap explains everything else.
 - Windows audit, filesystem/storage, Git fallback, CLI/package, watch, and
   CI/documentation checklists are available in [planned work](./planned/README.md).
   Select one only for a concrete platform gap or release requirement.
-- [File-type support coverage and discovery](./planned/filetype-support-coverage-delivery-checklist.md)
-  is ready to verify and document current support, then add only evidenced
-  gaps. The present registry already covers `.js`/`.cjs`/`.mjs` with graph
-  support and `.md`/`.txt`/`.yaml`/`.yml` with deterministic discovery
-  summaries.
 
 ## Parked — revisit only with new evidence
 
@@ -46,7 +41,11 @@ roadmap explains everything else.
   current preflight, dry-run, idempotent writes, remediation, status, and
   packed-package evidence leave no distinct recovery gap.
 - [Compact versioned transport](./planned/precision-retrieval-agent-experience-epic.md#story-4--compact-versioned-transport):
-  require a measured need beyond the delivered bounded JSON task context.
+  measure complete agent-visible MCP envelopes before selecting an opt-in,
+  versioned compact JSON format for repetitive result shapes.
+- [Internal artifact serialization efficiency](./planned/precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
+  MessagePack is only a selective internal candidate after measurements compare
+  `analysis_artifacts` JSON, deduplicated layout, size, latency, and debuggability.
 - [Optional shared immutable artifact store](./planned/global-install-and-cache-deferred-stories.md#story-6-shared-immutable-artifact-store--optional-and-deferred):
   never shares mutable repository indexes and remains optional.
 
@@ -65,6 +64,8 @@ roadmap explains everything else.
   coverage and authoring consistency.
 - [README/document diagram design](./planned/2026-05-06-readme-diagrams-design.md):
   visual-documentation completion, not product delivery.
+- [Compact output versus internal serialization assessment](../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md):
+  ingested roadmap input; it does not select either parked story.
 - [`specs/raw/`](../raw/): research inputs only; not a delivery queue.
 
 ## Descoped — do not quietly add
@@ -87,6 +88,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
   deliveries.
 - The [completed global-install epic](./closed/global-install-and-cache-epic.md)
   is historical evidence, including its package release.
+- [Global Astrograph cleanup preparation](./closed/global-astrograph-cleanup-preparation-checklist.md)
+  closed in PR #43 after removing stale tracked Codex MCP configuration drift
+  with exact-head Fast and Windows/package-smoke evidence.
 
 ## Maintaining this roadmap
 

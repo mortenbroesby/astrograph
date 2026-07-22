@@ -1,8 +1,8 @@
 # Global Astrograph Cleanup and Delivery Preparation Checklist
 
-> **Status:** Active — this is the one selected goal named by
-> [`pointer.md`](../../../pointer.md). It prepares the next global-Astrograph
-> delivery without assuming that a deferred feature should be implemented.
+> **Status:** Closed — completed by PR #43 (`6283565`) after exact-head Fast
+> required checks and Windows compatibility/package smoke passed. The next
+> selected goal is [File-Type Support Coverage and Discovery](../active/filetype-support-coverage-delivery-checklist.md).
 
 **Goal:** Remove tracker and codebase-hygiene ambiguity, record a bounded
 cleanup decision, and leave one evidence-gated next story ready for a bare
@@ -66,20 +66,20 @@ source/test files discovered in Task 2.
 - [x] Re-evaluate the documented gates for immutable artifact reuse, global
   install health/recovery, compact transport, release publication evidence,
   and later precision work using Task 2 evidence.
-- [x] Select [File-Type Support Coverage and Discovery](../planned/filetype-support-coverage-delivery-checklist.md)
+- [x] Select [File-Type Support Coverage and Discovery](../active/filetype-support-coverage-delivery-checklist.md)
   after this cleanup merges: the explicit user request satisfies its documented
   coverage/documentation-gap gate.
-- [ ] Create or update that story's active checklist with exact files,
-  baseline, focused tests, final verification, release decision, and commit
-  checkpoint.
+- [x] Move the selected File-Type Support Coverage and Discovery checklist to
+  `active/`; it already has exact files, baseline, focused tests, final
+  verification, release decision, and commit checkpoint.
 
 ## Task 5: Verify and commit the preparation work
 
-- [ ] Run the Task 2 baseline again if source/tests changed.
-- [ ] Run `pnpm check:version-bump` if source, tests, scripts, or package
-  metadata changed; this documentation-only planning update needs no npm
-  release under `.skills/release-decision/SKILL.md`.
-- [ ] Run:
+- [x] Re-run the Task 2 focused baseline after source/test changes: 62 tests
+  and `pnpm type-lint` passed locally.
+- [x] Run `pnpm check:version-bump`; CI initially exposed the required alpha
+  increment, then `0.5.0-alpha.144` passed the exact version-policy gate.
+- [x] Run:
 
   ```bash
   git diff --check
@@ -87,5 +87,5 @@ source/test files discovered in Task 2.
   ```
 
   Expected: both commands exit `0`.
-- [ ] Commit the scoped preparation work and merge it only after the applicable
-  CI checks pass for the exact PR head.
+- [x] Merge PR #43 only after Fast required checks passed (55s) and Windows
+  compatibility, including the packed-package smoke, passed (5m35s).

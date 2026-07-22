@@ -6,10 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Global Astrograph Cleanup and Delivery Preparation](./global-astrograph-cleanup-preparation-checklist.md)
-   — selected documentation and codebase-hygiene preparation. It must produce
-   a bounded cleanup decision and point to the next evidence-gated delivery
-   story; it does not authorize global-cache behavior changes by itself.
+1. [File-Type Support Coverage and Discovery](./filetype-support-coverage-delivery-checklist.md)
+   — selected to verify and document the existing JavaScript-module and
+   fallback-file support matrix, then add only evidenced gaps.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories
