@@ -39,3 +39,7 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Tokenizer and Token-Estimator Research Delivery Checklist](./tokenizer-estimator-research-delivery-checklist.md)
   — merged as PR #36 after exact-head Fast and Windows/package smoke evidence;
   retained the existing exact tokenizer and labelled estimate.
+- [MCP Tool-Surface Core Delivery Checklist](./mcp-tool-surface-core-delivery-checklist.md)
+  — merged as PR #39 after exact-head Fast and Windows/package smoke evidence;
+  documented the core/specialized policy and corrected generated client-tool
+  visibility.
