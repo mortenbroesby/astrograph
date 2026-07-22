@@ -6,6 +6,14 @@ checklist, and then move it to `../active/` before implementation begins.
 
 ## Backlog
 
+- [Delivery Roadmap](../roadmap.md) — the canonical status dashboard; this
+  directory holds only the detailed records behind its ready, parked, and idea
+  categories.
+- [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
+  completed results plus deferred global/release candidates; no story is
+  currently selected.
+- [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
+  — later retrieval candidates; Stories 1–3 and 5 are closed.
 - [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
   and release-publication evidence remain planned; its Staff Engineer review
   is closed.

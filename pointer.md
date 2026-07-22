@@ -3,6 +3,8 @@
 This tracked file is the single entry point for a bare `/goal` request in the
 Astrograph repository. Read it before choosing work; do not revive a closed or
 deferred story merely because it appears earlier in repository history.
+For the full active/ready/parked/descoped/idea/done map, read the
+[Delivery Roadmap](./specs/implementation/roadmap.md).
 
 ## Current goal
 

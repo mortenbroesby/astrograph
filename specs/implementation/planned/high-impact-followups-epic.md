@@ -1,6 +1,6 @@
 # High-Impact Product Follow-Ups Epic
 
-> **Status:** No selected active story — Stories 1, 2, and 6 remain
+> **Status:** Planned — no story is selected. Stories 1, 2, and 6 remain
 > evidence-backed deferrals; Stories 3, 4, 5, 7, 8, 9, 10, and 11 are complete
 > and CI-verified. Re-select a deferred story only when its recorded selection
 > gate has new evidence.
@@ -8,7 +8,7 @@
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
 > and [Astrograph Feedback Consolidation Epic](../closed/astro-feedback-epic.md).
-> It complements—rather than replaces—the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md)
+> It complements—rather than replaces—the [Remaining Delivery Epic](./remaining-delivery-epic.md)
 > and [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Turn the largest completed platform investments into the next
@@ -62,7 +62,7 @@ before implementation.
 **Status:** Deferred — the representative two-file global fixture duplicated
 four artifacts but took only 2.044 seconds for both indexes. That does not
 justify new cross-repository storage complexity. See the
-[delivery checklist](../planned/global-branch-artifact-reuse-delivery-checklist.md).
+[delivery checklist](./global-branch-artifact-reuse-delivery-checklist.md).
 
 **Outcome:** A user who indexes related checkouts or repositories avoids
 repeating validated immutable analysis, while each repository and checkout
@@ -98,7 +98,7 @@ without source content.
 preflight, dry-run, marker-owned idempotent writes, permission remediation,
 cache status, and packed-package proof. No distinct recovery contract is
 justified without a reproducible support gap. See the
-[delivery checklist](../planned/global-install-health-recovery-delivery-checklist.md).
+[delivery checklist](./global-install-health-recovery-delivery-checklist.md).
 
 **Outcome:** A user can diagnose and safely repair a global Astrograph setup
 without knowing config-file locations or risking unrelated MCP configuration.
@@ -202,7 +202,7 @@ and round-trip any compact response losslessly.
 ## Story 6: Cross-Platform Confidence and Release Automation Evidence
 
 **Status:** Deferred — the next unchecked requirement in the
-[Remaining Delivery Epic](../planned/remaining-delivery-epic.md) is release
+[Remaining Delivery Epic](./remaining-delivery-epic.md) is release
 publication evidence. Its dedicated checklist is blocked until a
 release-labelled PR is merged to `main`; Windows work must be selected in that
 epic if its tracker becomes executable again.
@@ -211,7 +211,7 @@ epic if its tracker becomes executable again.
 terminals and is released through a fully evidenced guarded path.
 
 **Scope:** This is a routing story, not a replacement plan. Select the
-appropriate unchecked item in the [Remaining Delivery Epic](../planned/remaining-delivery-epic.md):
+appropriate unchecked item in the [Remaining Delivery Epic](./remaining-delivery-epic.md):
 Windows audit through release gate, or automatic release-publication evidence.
 Do not recreate those checklists here.
 

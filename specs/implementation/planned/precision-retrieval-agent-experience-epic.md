@@ -1,6 +1,6 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** No selected precision-retrieval story — Stories 1–3 and 5 are
+> **Status:** Planned — no precision-retrieval story is selected. Stories 1–3 and 5 are
 > closed. Story 4 remains deferred pending a separately measured compact-
 > transport need; later stories require their own evidence gates.
 > has no independent executable work: its sole unchecked release-publication

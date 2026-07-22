@@ -1,8 +1,8 @@
 # Provenance-First Symbol Contract Delivery Checklist
 
-> **Epic:** [Precision Retrieval and Agent Experience Epic](../active/precision-retrieval-agent-experience-epic.md), Story 1
+> **Epic:** [Precision Retrieval and Agent Experience Epic](../planned/precision-retrieval-agent-experience-epic.md), Story 1
 >
-> **Selected by:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 4
+> **Selected by:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 4
 >
 > **Status:** Complete — merged with the deterministic lexical-ranking work as
 > PR #26 after exact-head Fast and Windows compatibility CI passed.
