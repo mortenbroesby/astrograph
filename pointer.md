@@ -8,20 +8,20 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Reversible User-Data Cleanup Delivery
-Checklist](./specs/implementation/active/reversible-user-data-cleanup-delivery-checklist.md),
+Execute the active [Release on Main Merge Delivery
+Checklist](./specs/implementation/planned/0_release-on-main-merge-delivery-checklist.md),
 starting at the first unchecked task.
 
 ## Required outcome
 
-Produce an evidence-backed, bounded cleanup decision and leave exactly one
-next goal ready to execute. Prefer a small proven cleanup; if none is safe,
-record that result and select the smallest missing evidence-gathering task.
+Produce an evidence-backed, bounded merge-to-npm release design and leave
+exactly one next goal ready to execute. Preserve the current release evidence
+until one simple, verified transaction replaces it.
 
 ## Hard boundaries
 
 - Do not implement deferred global artifact reuse, compact transport, semantic
-  retrieval, Windows work, or release publication
+  retrieval, Windows work, or unrelated release publication
   merely because they are listed in an epic.
 - Preserve canonical repository isolation, per-call `repoRoot`, local-first
   storage, and current user privacy.
