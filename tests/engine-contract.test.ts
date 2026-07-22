@@ -854,6 +854,10 @@ describe("ai-context-engine contract", () => {
     expect(second.configPreview).toBe(first.configPreview);
     expect(first.configPreview).toContain('command = "astrograph"');
     expect(first.configPreview).toContain('args = ["mcp"]');
+    expect(first.configPreview).toContain('"get_project_status"');
+    expect(first.configPreview).toContain('"find_files"');
+    expect(first.configPreview).toContain('"search_text"');
+    expect(first.configPreview).toContain('"get_file_summary"');
     expect(first.configPreview).toContain("[mcp_servers.unrelated]");
     expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
       storageLocation: "global",
@@ -893,6 +897,12 @@ describe("ai-context-engine contract", () => {
           command: "astrograph",
           args: ["mcp"],
           env: {},
+          tools: expect.arrayContaining([
+            "get_project_status",
+            "find_files",
+            "search_text",
+            "get_file_summary",
+          ]),
         },
       },
     });

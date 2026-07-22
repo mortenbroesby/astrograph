@@ -1,9 +1,9 @@
 # High-Impact Product Follow-Ups Epic
 
-> **Status:** No selected active story — Stories 1, 2, and 6 remain
-> evidence-backed deferrals; Stories 3, 4, 5, 7, 8, 9, and 10 are complete and
-> CI-verified. Re-select a deferred story only when its recorded selection gate
-> has new evidence.
+> **Status:** Story 11 is active with a bounded installer visibility correction.
+> Stories 1, 2, and 6 remain evidence-backed deferrals; Stories 3, 4, 5, 7, 8,
+> 9, and 10 are complete and CI-verified. Re-select a deferred story only when
+> its recorded selection gate has new evidence.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -340,8 +340,10 @@ and includes focused regression fixtures if a dependency change is selected.
 
 ## Story 11: MCP Tool-Surface Review and Core Consolidation
 
-**Status:** Planned — select through the dedicated
-[delivery checklist](../planned/mcp-tool-surface-core-delivery-checklist.md).
+**Status:** Active — the audit found a generated-client policy/allowlist
+contradiction and selected the smallest direct correction. See the
+[delivery checklist](./mcp-tool-surface-core-delivery-checklist.md) and
+[audit](../../../docs/reviews/mcp-tool-surface-audit-2026-07-22.md).
 
 **Outcome:** A new agent can identify the small, preferred Astrograph workflow
 without learning a sprawling MCP catalog, while advanced operations remain

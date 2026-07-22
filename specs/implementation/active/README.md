@@ -1,16 +1,18 @@
 # Active Implementation Work
 
-This directory contains selected delivery work. It currently has no executable
-story: all completed checklists are in `../closed/`, while remaining candidates
-are deferred pending their explicit selection gates.
+This directory contains selected delivery work. Story 11 is active; all other
+remaining candidates are deferred pending their explicit selection gates.
 
 ## Current Queue
 
-No story is selected for implementation.
+- [MCP Tool-Surface Core Delivery Checklist](./mcp-tool-surface-core-delivery-checklist.md)
+  — selected after a measured audit found generated global client configuration
+  excluded tools named by its own policy; it is correcting that bounded drift.
 
 - [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
-  Stories 1, 2, and 6 are deferred; Stories 3, 4, 5, 7, 8, 9, and 10 are
-  closed. Compact transport remains deferred pending a separately measured need.
+  Story 11 is active; Stories 1, 2, and 6 are deferred; Stories 3, 4, 5, 7, 8,
+  9, and 10 are closed. Compact transport remains deferred pending a separately
+  measured need.
 - [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
   — Stories 1–3 are closed; later candidate stories require their own evidence
   gates before selection.

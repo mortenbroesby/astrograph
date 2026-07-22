@@ -3,6 +3,20 @@
 Astrograph's MCP server exposes a small tool surface for local code discovery,
 exact retrieval, bounded assembly, and health reporting.
 
+## Core and Specialized Policy
+
+Generated Codex and Copilot CLI setup exposes every MCP v1 tool directly. The
+preferred **core** is a workflow, not a hidden server tier: start with
+`get_project_status`/`index_folder`, use structural orientation or
+`suggest_initial_queries`, then `search_symbols`, `get_symbol_source`, and
+`get_task_context` only when bounded assembly is needed. Use `diagnostics` for
+health and `index_file` for a targeted refresh.
+
+`find_files`, `search_text`, and `get_file_summary` are **specialized** direct
+fallbacks for path-only discovery, literal text, and deterministic file-level
+summary. They remain visible and callable; Astrograph does not implement a
+router, hidden tool selection, or compatibility alias layer.
+
 ## MCP v1 Tools
 
 - `index_folder`

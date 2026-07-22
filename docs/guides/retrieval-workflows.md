@@ -15,6 +15,13 @@ Use this order unless you have a good reason not to:
 3. pull the source you actually need
 4. escalate to task context only when the narrow path is not enough
 
+All MCP v1 tools are directly available after generated global setup. Treat
+`get_project_status`, indexing, structure, symbol/source retrieval, bounded
+task context, and diagnostics as the preferred core. Use `find_files`,
+`search_text`, or `get_file_summary` only when that core does not fit a
+path-only, literal-text, or file-summary question; they are specialized
+fallbacks, not a separate hidden tier.
+
 ## Workflow 1: Find the Implementation of a Symbol
 
 Start by locating the symbol:
