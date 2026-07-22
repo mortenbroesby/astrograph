@@ -287,7 +287,7 @@ async function main(): Promise<void> {
       || typeof diagnostics.package.version !== "string"
       || diagnostics.runtime?.supported !== true
       || diagnostics.storage?.location !== "global"
-      || diagnostics.storage.cacheRoot !== globalCacheHome
+      || diagnostics.storage.cacheRoot !== path.join(globalCacheHome, "astrograph")
       || !diagnostics.clients?.some((client) => client.ide === "codex" && client.configured)
       || !diagnostics.clients?.some((client) => client.ide === "copilot-cli" && client.configured)
       || typeof diagnostics.nextStep !== "string"

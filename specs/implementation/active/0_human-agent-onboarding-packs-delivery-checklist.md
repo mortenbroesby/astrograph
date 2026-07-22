@@ -118,6 +118,6 @@ installer/CLI/package tests.
   package identity/version, supported Node runtime, global storage/cache root,
   both client registrations, and a next-step hint from the actual packed bin.
 - This is test-script work, so `package.json` advances from `.157` through
-  `.159` across the baseline and isolated-Copilot-environment fixes under the
+  `.160` across the baseline and packed-smoke environment fixes under the
   monotonic version policy. No MCP tool, configuration-write behavior, or
   documentation contract changes.
