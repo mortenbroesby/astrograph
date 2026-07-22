@@ -129,7 +129,8 @@ CLI JSON, and MCP stdio.
   `git diff --check`; apply the required pre-v1 version increment for source or
   test changes. The guarded release tool set `0.5.0-alpha.141`; type lint,
   version policy, and diff validation pass.
-- [ ] Run package-bin smoke and the Fast plus Windows/package-smoke CI paths on
-  the exact PR head before merge.
-- [ ] Move this checklist to `../closed/` only after the merged commit and CI
-  evidence are recorded in both epics.
+- [x] Run package-bin smoke and the Fast plus Windows/package-smoke CI paths on
+  the exact PR head before merge. PR #34 passed Fast required checks (54s) and
+  Windows compatibility/package smoke (4m42s) on `94fdb59`.
+- [x] Move this checklist to `../closed/` after PR #34 merged as `b5837a7` and
+  record the exact CI evidence in the epic and closed-record index.
