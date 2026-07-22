@@ -2,6 +2,13 @@
 
 ## Spec Workflow
 
+## Bare Goal Handoff
+
+When the user sends a bare `/goal` message in this repository, read
+[`pointer.md`](./pointer.md) before choosing work. It is the tracked source of
+truth for the one current goal, its boundary, and its executable checklist.
+Do not infer a different goal from older epics or closed records.
+
 Astrograph specs live under `specs/`, using the same broad taxonomy as the
 referenced `zyncbase/specs` setup:
 

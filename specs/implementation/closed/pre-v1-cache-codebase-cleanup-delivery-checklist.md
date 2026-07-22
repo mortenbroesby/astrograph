@@ -1,6 +1,6 @@
 # Pre-v1 Cache and Codebase Cleanup Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 9
+> **Epic:** [High-Impact Product Follow-Ups Epic](../planned/high-impact-followups-epic.md), Story 9
 >
 > **Status:** Complete — merged as PR #30 after exact-head Fast and Windows
 > compatibility/package-smoke CI passed.

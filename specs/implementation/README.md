@@ -5,6 +5,8 @@ evidence so documentation status is visible from the file tree.
 
 ## Work Status
 
+- [Delivery Roadmap](./roadmap.md) - One-page status of active, ready,
+  parked, descoped, idea, and completed work.
 - [Active Work](./active/README.md) - The selected delivery queue; the next
   follow-up candidates require their own evidence gates before implementation.
 - [Planned Work](./planned/README.md) - Approved backlog that has not been selected for delivery.

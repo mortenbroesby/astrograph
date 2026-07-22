@@ -1,6 +1,8 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** No selected active story — [Remaining Delivery](../planned/remaining-delivery-epic.md)
+> **Status:** Planned — no precision-retrieval story is selected. Stories 1–3 and 5 are
+> closed. Story 4 remains deferred pending a separately measured compact-
+> transport need; later stories require their own evidence gates.
 > has no independent executable work: its sole unchecked release-publication
 > proof is externally blocked and may not halt independent delivery. Stories
 > 1–3 are complete and closed; later stories remain evidence-gated candidates.
@@ -110,18 +112,27 @@ it.
 
 ## Story 5 — Small MCP Core and Guided Routing
 
+**Status:** Complete — PR #39 corrected generated Codex/Copilot tool visibility,
+documented the core/specialized policy, and recorded the 1,520-token full-schema
+baseline. The audit found 14 distinct direct tools, so no generic router,
+hidden tier, or tool removal was justified. See the
+[closed checklist](../closed/mcp-tool-surface-core-delivery-checklist.md) and
+[audit](../../../docs/reviews/mcp-tool-surface-audit-2026-07-22.md).
+
 **Vision:** Agents see a small, self-explanatory discovery-first surface.
 
 **Goal:** Define core versus advanced MCP tools and concise guidance without introducing a giant router.
 
 **Likely files:** MCP contract/server, command registry, install guidance, API specs, MCP tests.
 
-- [ ] Audit tool intents, overlap, schema size, and composition.
-- [ ] Declare core: index/status, outline, symbol search, exact source, context, refresh/diagnostics; justify advanced tools.
-- [ ] Add one discovery mechanism (descriptions or help/menu), not a second generic tool catalog.
-- [ ] Document preferred next primitive and “do not use when” guidance.
-- [ ] Test core stability, advanced discoverability, and CLI/MCP parity.
-- [ ] Measure schema-token change; commit/push/review/merge.
+- [x] Audit tool intents, overlap, schema size, and composition.
+- [x] Declare the preferred core workflow and justify specialized tools.
+- [x] Keep direct discovery in concise policy/guidance rather than add a router
+  or second tool catalog.
+- [x] Document preferred next primitives and “do not use when” guidance.
+- [x] Test policy-aligned generated configuration and MCP/CLI contract coverage.
+- [x] Measure schema tokens; merge the targeted configuration correction with
+  exact-head Fast and Windows/package-smoke CI evidence.
 
 **Acceptance evidence:** A new agent can discover the supported retrieval flow from the stable core.
 

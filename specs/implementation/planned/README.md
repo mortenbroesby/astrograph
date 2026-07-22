@@ -6,6 +6,14 @@ checklist, and then move it to `../active/` before implementation begins.
 
 ## Backlog
 
+- [Delivery Roadmap](../roadmap.md) — the canonical status dashboard; this
+  directory holds only the detailed records behind its ready, parked, and idea
+  categories.
+- [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
+  completed results plus deferred global/release candidates; no story is
+  currently selected.
+- [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
+  — later retrieval candidates; Stories 1–3 and 5 are closed.
 - [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
   and release-publication evidence remain planned; its Staff Engineer review
   is closed.
@@ -26,3 +34,8 @@ checklist, and then move it to `../active/` before implementation begins.
 - [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md)
   — only Story 6's optional shared immutable artifact store remains deferred;
   it is not authorized for implementation.
+- Deferred high-impact checklists — [global/branch immutable artifact
+  reuse](./global-branch-artifact-reuse-delivery-checklist.md) and [global
+  installation health/recovery](./global-install-health-recovery-delivery-checklist.md)
+  have recorded negative evidence and must not be revived without their
+  selection gates.
