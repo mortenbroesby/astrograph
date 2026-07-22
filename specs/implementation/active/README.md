@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Process Execution Seam with `execa`](./1_npm-module-process-execution-delivery-checklist.md)
-   — selected Story 1 of npm-module adoption: replace generic script process
-   plumbing behind a narrow internal seam without changing product behavior.
+1. [Generic Version Handling with `semver`](./2_npm-module-semver-delivery-checklist.md)
+   — selected Story 2 of npm-module adoption: replace generic version mechanics
+   while preserving Astrograph's alpha-release and registry-safety policy.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

@@ -64,3 +64,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Human and Agent Onboarding Packs Delivery Checklist](./human-agent-onboarding-packs-delivery-checklist.md)
   — closed after PR #70 added packed-package diagnostics coverage and
   `astrograph@0.5.1-alpha.160` published from its immutable merge tag.
+- [Process Execution Seam with `execa` Delivery Checklist](./npm-module-process-execution-delivery-checklist.md)
+  — closed after PR #72 passed exact-head package/CI evidence and
+  `astrograph@0.5.1-alpha.161` published from its immutable merge tag.
