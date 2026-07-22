@@ -14,6 +14,10 @@ checklist, and then move it to `../active/` before implementation begins.
   currently selected.
 - [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
   — later retrieval candidates; Stories 1–3 and 5 are closed.
+- [File-Type Support Coverage Delivery Checklist](./filetype-support-coverage-delivery-checklist.md)
+  — ready to verify/document common extensions and add only evidence-backed
+  missing support; JavaScript module variants and YAML/Markdown/text discovery
+  are already represented in the current registry.
 - [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
   and release-publication evidence remain planned; its Staff Engineer review
   is closed.

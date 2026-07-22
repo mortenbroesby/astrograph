@@ -31,6 +31,11 @@ roadmap explains everything else.
 - Windows audit, filesystem/storage, Git fallback, CLI/package, watch, and
   CI/documentation checklists are available in [planned work](./planned/README.md).
   Select one only for a concrete platform gap or release requirement.
+- [File-type support coverage and discovery](./planned/filetype-support-coverage-delivery-checklist.md)
+  is ready to verify and document current support, then add only evidenced
+  gaps. The present registry already covers `.js`/`.cjs`/`.mjs` with graph
+  support and `.md`/`.txt`/`.yaml`/`.yml` with deterministic discovery
+  summaries.
 
 ## Parked — revisit only with new evidence
 
