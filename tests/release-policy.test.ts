@@ -33,6 +33,16 @@ describe("release policy", () => {
     expect(decision.kind).toBe("none");
   });
 
+  it("does not publish a runtime-looking change when no-release is explicit", () => {
+    const decision = decideAstrographRelease({
+      commits: [{ subject: "fix: operational metadata only" }],
+      changedFiles: ["src/version.ts"],
+      noRelease: true,
+    });
+
+    expect(decision).toMatchObject({ kind: "none", reason: expect.stringContaining("no-release") });
+  });
+
   it("keeps internal checks on increment without publishing", () => {
     const decision = decideAstrographRelease({
       commits: [{ subject: "test: cover release policy" }],

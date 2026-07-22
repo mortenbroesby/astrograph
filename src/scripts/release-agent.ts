@@ -21,6 +21,8 @@ interface ReleaseAgentOptions {
   apply: boolean;
   base: string;
   forcePatch: boolean;
+  noRelease: boolean;
+  mergedCandidate: boolean;
 }
 
 interface ReleaseDecision {
@@ -54,6 +56,8 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
     apply: false,
     base: "",
     forcePatch: false,
+    noRelease: false,
+    mergedCandidate: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -62,6 +66,10 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
       options.apply = true;
     } else if (arg === "--force-patch") {
       options.forcePatch = true;
+    } else if (arg === "--no-release") {
+      options.noRelease = true;
+    } else if (arg === "--merged-candidate") {
+      options.mergedCandidate = true;
     } else if (arg === "--base") {
       options.base = argv[index + 1] ?? "";
       index += 1;
@@ -229,7 +237,11 @@ function main(): void {
   const currentParts = parseAstrographVersion(currentVersion);
   const commits = readCommitsSince(baseRef);
   const changedFiles = readChangedFilesSince(baseRef);
-  const detectedReleaseDecision = decideAstrographRelease({ commits, changedFiles });
+  const detectedReleaseDecision = decideAstrographRelease({
+    commits,
+    changedFiles,
+    noRelease: options.noRelease,
+  });
   const releaseDecision = options.forcePatch
     ? {
       ...detectedReleaseDecision,
@@ -239,7 +251,9 @@ function main(): void {
     : detectedReleaseDecision;
   const shouldPublish = isReleasePublishKind(releaseDecision.kind);
   let targetVersion = currentVersion;
-  if (shouldPublish) {
+  if (shouldPublish && options.mergedCandidate) {
+    targetVersion = currentVersion;
+  } else if (shouldPublish) {
     targetVersion = targetAstrographPublishVersion(
       baseParts,
       currentParts,

@@ -159,91 +159,63 @@ jobs:
       - run: pnpm test:package-bin
 
   release_agent:
-    name: Release agent
+    name: Tag and publish merged release
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 20
     needs: [fast]
     if: >-
-      always() && ((github.event_name == 'workflow_dispatch' && needs.fast.result == 'success') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.fast.result == 'success' &&
-      needs.fast.outputs.release_eligible == 'true' && !startsWith(github.event.head_commit.message, 'Release ')))
+      always() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.fast.result == 'success'
     permissions:
       contents: write
-      pull-requests: write
-      actions: write
-    env:
-      RELEASE_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.release_mode }}
-      RELEASE_BASE: ${{ inputs.release_base || '' }}
-      RELEASE_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply' && 'true' || 'false' }}
+      id-token: write
     steps:
-      - name: Refuse apply mode outside main
-        if: env.RELEASE_MODE == 'apply' && github.ref != 'refs/heads/main'
-        run: |
-          echo "Release apply mode must run from main."
-          exit 1
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: 24
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Read merged PR release exception
+        id: release_exception
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          no_release="$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '[.[] | select(.merged_at != null and .base.ref == "main") | any(.labels[]; .name == "no-release")] | any' || echo false)"
+          echo "no_release=${no_release}" >> "$GITHUB_OUTPUT"
 
       - name: Decide release
         id: release
         run: |
-          release_args=()
-          if [ "$RELEASE_MODE" = "apply" ]; then
-            release_args+=(--apply)
+          args=(--merged-candidate)
+          if [ "${{ steps.release_exception.outputs.no_release }}" = "true" ]; then
+            args+=(--no-release)
           fi
-          if [ "$RELEASE_FORCE_PATCH" = "true" ]; then
-            release_args+=(--force-patch)
-          fi
-          if [ -n "$RELEASE_BASE" ]; then
-            release_args+=(--base "$RELEASE_BASE")
-          fi
-          node --experimental-strip-types ./src/scripts/release-agent.ts "${release_args[@]}"
-
-      - name: Create release pull request
-        id: release_pr
-        if: env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json tests/engine-contract.test.ts
-          if ! git diff --cached --quiet; then
-            node --experimental-strip-types ./src/scripts/check-version-bump.ts
-            git commit -m "Release ${{ steps.release.outputs.target_version }}"
-            release_branch="release/${{ steps.release.outputs.target_version }}"
-            git push origin "HEAD:${release_branch}"
-            gh pr create \
-              --base main \
-              --head "${release_branch}" \
-              --title "Release ${{ steps.release.outputs.target_version }}" \
-              --body "Automated release-version transaction. Merge after the required CI checks pass." \
-              --label release
-            echo "release_pr_created=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "release_pr_created=false" >> "$GITHUB_OUTPUT"
-          fi
+          node --experimental-strip-types ./src/scripts/release-agent.ts "${args[@]}"
 
       - name: Push release tag
-        if: >-
-          env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true' &&
-          steps.release_pr.outputs.release_pr_created == 'false'
+        if: steps.release.outputs.should_release == 'true'
         run: |
           git tag "${{ steps.release.outputs.target_tag }}"
           git push origin "${{ steps.release.outputs.target_tag }}"
 
-      - name: Trigger trusted npm publication
-        if: >-
-          env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true' &&
-          steps.release_pr.outputs.release_pr_created == 'false'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run Release --ref "${{ steps.release.outputs.target_tag }}"
+      - name: Publish trusted npm release
+        if: steps.release.outputs.should_release == 'true'
+        run: npm publish --provenance --access public --tag latest

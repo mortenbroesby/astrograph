@@ -25,19 +25,19 @@ registry metadata, and npm OIDC trusted publishing.
 `tests/release-policy.test.ts`, `.github/workflows/ci.yml`,
 `.github/workflows/release.yml`, `docs/reference/release.md`, and this checklist.
 
-- [ ] Read the release decision skill and Actions cost rule; retain scoped
+- [x] Read the release decision skill and Actions cost rule; retain scoped
   triggers, caching, concurrency cancellation, and the temporarily disabled
   hosted Windows job.
-- [ ] Record the current label-gated, post-merge version-commit/tag/dispatch
+- [x] Record the current label-gated, post-merge version-commit/tag/dispatch
   sequence and the exact failure/latency it creates.
-- [ ] Choose and document the single version owner: a release-worthy PR must
+- [x] Choose and document the single version owner: a release-worthy PR must
   carry its valid version bump before merge, or a separate pre-merge release
   PR is created. Do not permit an Action to write protected `main` after merge.
-- [ ] Define eligibility: release by default for a qualifying merge, with an
+- [x] Define eligibility: release by default for a qualifying merge, with an
   explicit `no-release` label for docs/spec/workflow-only changes. Define the
   deterministic result for a duplicate, stale, malformed, or registry-newer
   version.
-- [ ] Define one publish boundary: tag and npm trusted publication execute in
+- [x] Define one publish boundary: tag and npm trusted publication execute in
   the post-merge release job from the same verified commit; do not rely on a
   token-created tag to trigger another workflow.
 

@@ -1,17 +1,19 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
   workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing version tag to retry (for example v0.5.1-alpha.155)."
+        required: true
+        type: string
 
 permissions:
   contents: read
   id-token: write
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-retry-${{ inputs.tag }}
   cancel-in-progress: true
 
 jobs:
@@ -23,6 +25,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -40,14 +44,9 @@ jobs:
 
       - name: Validate release tag
         env:
-          RELEASE_REF_TYPE: ${{ github.ref_type }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
           expected_tag="v$(node -p "require('./package.json').version")"
-          if [ "$RELEASE_REF_TYPE" != "tag" ]; then
-            echo "Release publishing must run from a version tag, not $RELEASE_REF_TYPE '$RELEASE_TAG'."
-            exit 1
-          fi
           if [ "$RELEASE_TAG" != "$expected_tag" ]; then
             echo "Release tag '$RELEASE_TAG' does not match package version '$expected_tag'."
             exit 1
