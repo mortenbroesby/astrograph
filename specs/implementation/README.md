@@ -5,8 +5,8 @@ evidence so documentation status is visible from the file tree.
 
 ## Work Status
 
-- [Active Work](./active/README.md) - The selected delivery queue; Story 8 is
-  implementing first-party global Copilot CLI support.
+- [Active Work](./active/README.md) - The selected delivery queue; the next
+  follow-up candidates require their own evidence gates before implementation.
 - [Planned Work](./planned/README.md) - Approved backlog that has not been selected for delivery.
 - [Closed Records](./closed/README.md) - Completed and superseded implementation plans and evidence.
 

@@ -25,3 +25,12 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   — implemented in the Global Install and Cache Epic.
 - [Pain-Free Global Install Delivery Checklist](./pain-free-global-install-delivery-checklist.md)
   — merged as PR #28 after exact-head Fast and Windows/package smoke evidence.
+- [Checkout and Cache Transparency Delivery Checklist](./global-checkout-cache-transparency-delivery-checklist.md)
+  — merged as PR #24 after exact-head Fast and Windows compatibility evidence.
+- [Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md)
+  and [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md)
+  — delivered together in PR #26 with exact-head Fast and Windows evidence.
+- [Global Copilot CLI Delivery Checklist](./global-copilot-cli-delivery-checklist.md)
+  — merged as PR #29 after exact-head Fast and Windows/package smoke evidence.
+- [Pre-v1 Cache and Codebase Cleanup Delivery Checklist](./pre-v1-cache-codebase-cleanup-delivery-checklist.md)
+  — merged as PR #30 after exact-head Fast and Windows/package smoke evidence.

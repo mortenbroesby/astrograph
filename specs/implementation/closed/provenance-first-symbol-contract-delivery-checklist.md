@@ -1,11 +1,11 @@
 # Provenance-First Symbol Contract Delivery Checklist
 
-> **Epic:** [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md), Story 1
+> **Epic:** [Precision Retrieval and Agent Experience Epic](../active/precision-retrieval-agent-experience-epic.md), Story 1
 >
-> **Selected by:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 4
+> **Selected by:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 4
 >
-> **Status:** Active — measure and specify the current contract before making
-> any source/symbol retrieval change.
+> **Status:** Complete — merged with the deterministic lexical-ranking work as
+> PR #26 after exact-head Fast and Windows compatibility CI passed.
 
 **Goal:** Ensure a returned source slice is a verifiable address into one exact
 source version, with deterministic identity, range, parser provenance, and
@@ -104,8 +104,7 @@ returned slice using existing fields.
   again before the release-preparation commit.
 
 - [x] Update this checklist, the Precision Epic, and the high-impact epic with
-  measured evidence and the release decision. **Complete locally:**
+  measured evidence and the release decision. **Complete:**
   `pnpm release:plan --base v0.4.4-alpha.133` selected minor; apply set
-  `0.5.0-alpha.135`. **CI evidence:** safe plan-mode CI run `29870153711`
-  passed Fast required checks and Windows compatibility for exact source head
-  `ba709bb`. Merge only after CI validates the final PR head.
+  `0.5.0-alpha.135`. PR #26 run `29871942353` passed Fast required checks and
+  Windows compatibility for final exact head `edeab45`, then merged.

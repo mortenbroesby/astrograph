@@ -1,9 +1,9 @@
 # Checkout and Cache Transparency Delivery Checklist
 
-> **Epic:** [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md), Story 3
+> **Epic:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 3
 >
-> **Status:** Active — establish a reproducible operator decision gap before
-> adding a diagnostic field or command.
+> **Status:** Complete — merged as PR #24 after exact-head Fast and Windows
+> compatibility CI passed.
 
 **Goal:** Let users and agents identify the canonical repository, selected
 checkout, storage location, freshness, and cache decision without guessing.
@@ -94,7 +94,6 @@ diagnostic contracts.
   `0.5.0-alpha.134` after confirming the published baseline.
 
 - [x] Check off evidence and update the epic. **Complete:** `cache
-  status.checkout` is the selected, tested, documented contract. Merge it only
-  after CI verifies the exact commit as closely as main's checks permit.
-  **CI evidence:** PR #24, run `29868619480`, passed both Fast required checks
-  and Windows compatibility for commit `f125105`.
+  status.checkout` is the selected, tested, documented contract. PR #24 merged
+  after run `29868619480` passed Fast required checks and Windows compatibility
+  for exact head `f125105`.

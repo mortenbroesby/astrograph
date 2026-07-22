@@ -3,8 +3,8 @@
 > **Status:** Active — [Remaining Delivery](../planned/remaining-delivery-epic.md)
 > has no independent executable work:
 > its sole unchecked release-publication proof is externally blocked and may
-> not halt independent delivery. Story 1 is selected through the
-> [Provenance-First Symbol Contract Delivery Checklist](./provenance-first-symbol-contract-delivery-checklist.md).
+> not halt independent delivery. Stories 1 and 2 are complete and closed;
+> Story 3 is the next candidate only after its own evidence gate is satisfied.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -26,10 +26,10 @@
 
 ## Story 1 — Provenance-First Symbol Contract
 
-**Status:** Complete — public source/symbol results expose UTF-8 byte
-ranges and `get_symbol_source` returns verifiable source provenance. See the
-[delivery checklist](./provenance-first-symbol-contract-delivery-checklist.md).
-Fast and Windows plan-mode CI passed for the exact source head.
+**Status:** Complete — public source/symbol results expose UTF-8 byte ranges
+and `get_symbol_source` returns verifiable source provenance. See the closed
+[delivery checklist](../closed/provenance-first-symbol-contract-delivery-checklist.md).
+PR #26's Fast and Windows CI passed for final exact head `edeab45`.
 
 **Vision:** A symbol is a verifiable address into one exact source version.
 
@@ -37,19 +37,20 @@ Fast and Windows plan-mode CI passed for the exact source head.
 
 **Likely files:** `src/parser/**`, `src/file-analysis.ts`, `src/storage.ts`, `src/retrieval.ts`, `src/types/**`, `src/serialization.ts`, API specs, parser/retrieval tests.
 
-- [ ] Baseline `tests/engine-contract.test.ts` and `tests/interface.test.ts`; record current IDs/ranges.
-- [ ] Specify ID components, UTF-8/CRLF range semantics, hash behavior, separator rules, fallback-parser behavior, and edited-file behavior.
-- [ ] Add fixtures for duplicate names, nested symbols, Unicode, CRLF, renamed files, fallback parsing, and Windows paths.
-- [ ] Return additive provenance: ID, canonical path, range, source hash, parser backend, freshness state.
-- [ ] Prove exact retrieval never slices content different from its recorded hash.
-- [ ] Focused tests, `pnpm type-lint`, `pnpm check:version-bump`, diff check, commit/push/review/merge.
+- [x] Baseline `tests/engine-contract.test.ts` and `tests/interface.test.ts`; record current IDs/ranges.
+- [x] Specify ID components, UTF-8/CRLF range semantics, hash behavior, separator rules, fallback-parser behavior, and edited-file behavior.
+- [x] Add fixtures for duplicate names, nested symbols, Unicode, CRLF, renamed files, fallback parsing, and Windows paths.
+- [x] Return additive provenance: ID, canonical path, range, source hash, parser backend, freshness state.
+- [x] Prove exact retrieval never slices content different from its recorded hash.
+- [x] Focused tests, `pnpm type-lint`, `pnpm check:version-bump`, diff check, commit/push/review/merge.
 
 **Acceptance evidence:** Consumers can independently verify every returned slice’s identity, range, hash, and freshness.
 
 ## Story 2 — Deterministic Lexical Ranking
 
-**Status:** Active — establish a judged fixture and deterministic BM25 ranking
-contract through the [Deterministic Lexical Ranking Delivery Checklist](./deterministic-lexical-ranking-delivery-checklist.md).
+**Status:** Complete — the judged fixture and deterministic BM25 ranking
+contract merged as PR #26. See the closed
+[delivery checklist](../closed/deterministic-lexical-ranking-delivery-checklist.md).
 
 **Vision:** Natural-language and name queries find the right symbols without a network dependency.
 
@@ -57,12 +58,12 @@ contract through the [Deterministic Lexical Ranking Delivery Checklist](./determ
 
 **Likely files:** `src/retrieval.ts`, `src/storage-schema.ts`, `src/storage-queries.ts`, `src/ranking/**` (new), `src/config.ts`, retrieval tests.
 
-- [ ] Create a judged query fixture: exact, acronym, natural-language, path-scoped, no-result.
-- [ ] Decide FTS5 versus in-memory inverted index; document tokenizer, weights, k1/b, tie-breaks, and incremental update lifecycle.
-- [ ] Implement deterministic scoring with exact lookup/filter precedence.
-- [ ] Add requested-only ranking explanation fields; avoid default payload growth.
-- [ ] Measure precision@k, MRR, zero-result rate, warm latency, and index-size delta against baseline.
-- [ ] Focused ranking tests, type/version/diff checks, benchmark run, commit/push/review/merge.
+- [x] Create a judged query fixture: exact, acronym, natural-language, path-scoped, no-result.
+- [x] Decide FTS5 versus in-memory inverted index; document tokenizer, weights, k1/b, tie-breaks, and incremental update lifecycle.
+- [x] Implement deterministic scoring with exact lookup/filter precedence.
+- [x] Add requested-only ranking explanation fields; avoid default payload growth.
+- [x] Measure precision@k, MRR, zero-result rate, warm latency, and index-size delta against baseline.
+- [x] Focused ranking tests, type/version/diff checks, benchmark run, commit/push/review/merge.
 
 **Acceptance evidence:** Same corpus/query always yields the same ranked result with recorded quality and latency.
 
