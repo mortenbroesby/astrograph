@@ -264,7 +264,11 @@ async function main(): Promise<void> {
       throw new Error("Expected packaged global install to persist the Copilot CLI Astrograph server");
     }
 
-    const globalEnvironment = { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome };
+    const globalEnvironment = {
+      HOME: globalHome,
+      COPILOT_HOME: globalCopilotHome,
+      ASTROGRAPH_CACHE_HOME: globalCacheHome,
+    };
     const { stdout: diagnosticsOutput } = await run(
       "pnpm",
       ["exec", "astrograph", "--diagnostics"],

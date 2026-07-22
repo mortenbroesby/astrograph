@@ -117,6 +117,7 @@ installer/CLI/package tests.
   setup and registration but not `astrograph --diagnostics`. It now verifies
   package identity/version, supported Node runtime, global storage/cache root,
   both client registrations, and a next-step hint from the actual packed bin.
-- This is test-script work, so `package.json` advances from `.157` to `.158`
-  under the monotonic version policy. No MCP tool, configuration-write behavior,
-  or documentation contract changes.
+- This is test-script work, so `package.json` advances from `.157` through
+  `.159` across the baseline and isolated-Copilot-environment fixes under the
+  monotonic version policy. No MCP tool, configuration-write behavior, or
+  documentation contract changes.
