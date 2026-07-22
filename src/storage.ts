@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, realpath, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, readdir, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
@@ -43,6 +43,7 @@ import {
   storeAnalysisArtifact,
 } from "./incremental-cache.ts";
 import { emitEngineEvent } from "./event-sink.ts";
+import { archiveManagedDirectory } from "./cache-archive.ts";
 import { analyzeFileContent } from "./file-analysis.ts";
 import type { FileAnalysisTaskInput, FileAnalysisTaskOutput } from "./file-analysis.ts";
 import { searchLiveText } from "./live-search.ts";
@@ -705,7 +706,18 @@ async function discardObsoleteStorage(
 
   clearDatabaseConnectionCache(config.paths.databasePath);
   ensuredStorageRoots.delete(config.paths.storageDir);
-  await rm(config.paths.storageDir, { recursive: true, force: true });
+  const archiveRoot = config.storageLocation === "global"
+    ? path.join(path.dirname(config.paths.storageDir), ".archive")
+    : path.join(path.dirname(config.paths.storageDir), ".astrograph-archive");
+  if ((await lstat(config.paths.storageDir)).isSymbolicLink()) {
+    await rm(config.paths.storageDir, { force: true });
+  } else {
+    await archiveManagedDirectory({
+      target: config.paths.storageDir,
+      archiveRoot,
+      reason: `obsolete-storage-version-${obsoleteVersion}`,
+    });
+  }
   await mkdir(config.paths.storageDir, { recursive: true });
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
 }

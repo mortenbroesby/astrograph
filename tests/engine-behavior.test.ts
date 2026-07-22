@@ -781,6 +781,9 @@ module.exports = {
 
     expect(health.schemaVersion).toBe(7);
     await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
+    const archives = await fs.readdir(path.join(repoRoot, ".astrograph-archive"));
+    const archivePath = path.join(repoRoot, ".astrograph-archive", archives.find((entry) => entry.endsWith("-.astrograph"))!);
+    await expect(fs.readFile(path.join(archivePath, "stale-artifact.json"), "utf8")).resolves.toBe("stale");
     await expect(fs.readFile(staleWalPath, "utf8")).resolves.not.toBe("stale wal");
     await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))

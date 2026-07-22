@@ -292,7 +292,7 @@ Use these JSON-first commands to inspect or recover a selected repository:
 
 ```bash
 astrograph cache status --repo /absolute/path/to/repo
-astrograph cache remove --repo /absolute/path/to/repo --yes
+astrograph cache remove --repo /absolute/path/to/repo --yes # archives; does not delete
 astrograph cache prune --all --max-bytes 1073741824
 astrograph cache prune --all --max-bytes 1073741824 --yes
 ```

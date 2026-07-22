@@ -1,4 +1,4 @@
-import { lstat, readdir, readFile, rm, stat } from "node:fs/promises";
+import { lstat, readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 
 import {
@@ -10,6 +10,7 @@ import {
 import { getCheckoutByCanonicalRoot } from "./checkout-mapping.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
+import { archiveManagedDirectory, restoreManagedDirectory, type CacheArchiveReceipt } from "./cache-archive.ts";
 import type { StorageLocation, StoragePathEnvironment } from "./types.ts";
 
 export interface CacheStatus {
@@ -39,6 +40,7 @@ export interface CacheMutationResult {
   dryRun: boolean;
   changed: boolean;
   message: string;
+  archive: CacheArchiveReceipt | null;
 }
 
 export interface CachePruneResult {
@@ -49,7 +51,15 @@ export interface CachePruneResult {
   requestedMaxBytes: number;
   bytesBefore: number;
   bytesAfter: number;
-  candidates: Array<{ storageDir: string; bytes: number; active: boolean; removed: boolean }>;
+  candidates: Array<{ storageDir: string; bytes: number; active: boolean; removed: boolean; archive: CacheArchiveReceipt | null }>;
+}
+
+export interface CacheRestoreResult {
+  schemaVersion: 1;
+  action: "restore";
+  dryRun: boolean;
+  changed: boolean;
+  receipt: CacheArchiveReceipt;
 }
 
 async function readVersion(storageDir: string): Promise<number | null> {
@@ -162,10 +172,10 @@ export async function removeGlobalCache(
   const root = resolveGlobalCacheRoot(environment);
   await assertSafeCachePath(root, status.storageDir);
   if (await cacheIsActive(status.storageDir)) throw new Error("Refusing to remove an active global Astrograph cache.");
-  if (dryRun) return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Would remove this repository's global cache only." };
+  if (dryRun) return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: false, message: "Would archive this repository's global cache only.", archive: null };
   clearStorageProcessCaches();
-  await rm(status.storageDir, { recursive: true, force: false });
-  return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: true, message: "Removed this repository's global cache." };
+  const archive = await archiveManagedDirectory({ target: status.storageDir, archiveRoot: path.join(path.dirname(status.storageDir), ".archive"), reason: "explicit-remove" });
+  return { schemaVersion: 1, action: "remove", repoRoot: status.repoRoot, storageDir: status.storageDir, dryRun, changed: true, message: "Archived this repository's global cache.", archive };
 }
 
 export async function pruneGlobalCaches(
@@ -194,14 +204,31 @@ export async function pruneGlobalCaches(
     if (bytesAfter <= requestedMaxBytes) break;
     const active = await cacheIsActive(candidate.storageDir);
     const removed = !active && !dryRun;
-    resultCandidates.push({ storageDir: candidate.storageDir, bytes: candidate.bytes, active, removed });
+    let archive: CacheArchiveReceipt | null = null;
+    resultCandidates.push({ storageDir: candidate.storageDir, bytes: candidate.bytes, active, removed, archive });
     if (active) continue;
     if (removed) {
-      await rm(candidate.storageDir, { recursive: true, force: false });
+      archive = await archiveManagedDirectory({ target: candidate.storageDir, archiveRoot: path.join(path.dirname(candidate.storageDir), ".archive"), reason: "prune" });
+      resultCandidates[resultCandidates.length - 1]!.archive = archive;
       bytesAfter -= candidate.bytes;
     } else {
       bytesAfter -= candidate.bytes;
     }
   }
   return { schemaVersion: 1, action: "prune", cacheRoot, dryRun, requestedMaxBytes, bytesBefore, bytesAfter, candidates: resultCandidates };
+}
+
+export async function restoreGlobalCache(
+  repoRoot: string,
+  receiptPath: string,
+  dryRun = true,
+  environment?: StoragePathEnvironment,
+): Promise<CacheRestoreResult> {
+  const status = await cacheStatus(repoRoot, environment);
+  if (status.storageLocation !== "global") throw new Error("Global cache restore requires storageLocation: \"global\".");
+  const cacheRoot = resolveGlobalCacheRoot(environment);
+  const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as CacheArchiveReceipt;
+  if (dryRun) return { schemaVersion: 1, action: "restore", dryRun, changed: false, receipt };
+  const restored = await restoreManagedDirectory({ receiptPath, archiveRoot: path.join(cacheRoot, "repos", ".archive"), originalRoot: path.join(cacheRoot, "repos") });
+  return { schemaVersion: 1, action: "restore", dryRun, changed: true, receipt: restored };
 }

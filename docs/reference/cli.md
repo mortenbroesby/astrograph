@@ -91,24 +91,10 @@ newer version is available:
 npm install astrograph@latest
 ```
 
-If you need to clear local state and rebuild after a major contract change:
-
-Use the command for your terminal, then run `astrograph init --yes`.
-
-```bash
-# Git Bash
-rm -rf .astrograph
-```
-
-```powershell
-# PowerShell
-Remove-Item -Recurse -Force .astrograph
-```
-
-```bat
-:: cmd.exe
-rmdir /s /q .astrograph
-```
+Do not manually delete `.astrograph` state. A missing, malformed, or
+incompatible storage marker causes Astrograph to archive the managed cache and
+rebuild it on the next operation. If a cache needs recovery, inspect status and
+use the scoped archive commands below.
 
 ## Global Cache Commands
 
@@ -129,16 +115,17 @@ repair a managed client entry without changing unrelated user configuration.
 ```bash
 astrograph cache status --repo /repo
 astrograph cache remove --repo /repo         # preview only
-astrograph cache remove --repo /repo --yes   # remove that global cache
+astrograph cache remove --repo /repo --yes   # archive that global cache
 astrograph cache prune --all --max-bytes 1073741824       # preview only
-astrograph cache prune --all --max-bytes 1073741824 --yes # prune oldest inactive caches
+astrograph cache prune --all --max-bytes 1073741824 --yes # archive oldest inactive caches
+astrograph cache restore --repo /repo --receipt /path/to/archive.receipt.json --yes
 ```
 
 Before v1, a cache with a missing, malformed, older, or newer storage marker is
-discarded and rebuilt automatically; Astrograph does not migrate or preserve it
-for compatibility. `cache-remove` only accepts the canonical per-repository
-directory below the current user’s Astrograph cache root and requires `--yes`
-to mutate.
+archived and rebuilt automatically; Astrograph does not migrate it for
+compatibility. Every archive has a JSON receipt. `cache-remove` only accepts
+the canonical per-repository directory below the current user’s Astrograph
+cache root and requires `--yes` to mutate.
 
 `cache prune` is intentionally whole-user-cache scoped: it requires `--all`
 and a byte target, sorts repository cache directories by last modification time
