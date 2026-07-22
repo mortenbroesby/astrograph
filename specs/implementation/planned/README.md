@@ -9,9 +9,6 @@ checklist, and then move it to `../active/` before implementation begins.
 The numeric prefix is the priority order. A child prefix such as `4_1` is a
 dependency-ordered part of its parent epic, not a competing top-level priority.
 
-0. [Release on Main Merge](./0_release-on-main-merge-delivery-checklist.md)
-   — highest immediate operational impact: one observable merge-to-npm path,
-   with `no-release` as the explicit exception.
 1. [Precision Retrieval and Agent Experience Epic](./1_precision-retrieval-agent-experience-epic.md)
    — highest product impact: trustworthy, token-efficient retrieval in small,
    evidence-gated slices. Select a story only after its checklist is ready.

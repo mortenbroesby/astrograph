@@ -1,9 +1,8 @@
 # Release on Main Merge Delivery Checklist
 
-> **Status:** Active — implementation is merged; final npm trusted-publisher
-> configuration and tagged retry evidence remain. It replaces the label-gated
-> release-proof obligation formerly tracked as Story 8 of the [Remaining
-> Delivery Epic](./3_remaining-delivery-epic.md).
+> **Status:** Complete — published and recovery/idempotence verified on
+> 2026-07-22. This replaces the label-gated release-proof obligation formerly
+> tracked as Story 8 of the [Remaining Delivery Epic](../planned/3_remaining-delivery-epic.md).
 
 **Goal:** Publish each eligible pull-request merge to `main` through one
 observable, idempotent release transaction—without a release label, a
@@ -84,12 +83,12 @@ focused release tests.
 - [x] Update `docs/reference/release.md`, README release guidance, and the
   workflow comments with the simple rule: qualifying PR merge → verified tag
   → npm publish; `no-release` is the exception.
-- [ ] Prove one release-worthy PR merge creates exactly one tag and one npm
+- [x] Prove one release-worthy PR merge creates exactly one tag and one npm
   publication for the merge SHA, with the GitHub Actions and npm URLs recorded.
 - [x] Prove one docs/spec or `no-release` merge does not tag or publish.
-- [ ] Prove a rerun is idempotent and a bad/stale registry state fails before
+- [x] Prove a rerun is idempotent and a bad/stale registry state fails before
   publish with an actionable summary.
-- [ ] Keep the release-only job short and no-test; record any Actions cost
+- [x] Keep the release-only job short and no-test; record any Actions cost
   change under the repository cost policy.
 
 ## Task 5: Final verification and handoff
@@ -99,17 +98,17 @@ focused release tests.
 - [x] Obtain exact-head required CI evidence for the implementation PR; the
   hosted Windows suite remains disabled by the cost policy, so record the
   equivalent local/container evidence and the explicit re-enable condition.
-- [ ] Merge a release-worthy test PR and record its merge SHA, release-job URL,
+- [x] Merge a release-worthy test PR and record its merge SHA, release-job URL,
   tag, npm publication URL, and registry version.
-- [ ] Merge a `no-release` test PR and record the absence of tag/publication.
-- [ ] Move this checklist to `../closed/` only after both paths are proven.
+- [x] Merge a `no-release` test PR and record the absence of tag/publication.
+- [x] Move this checklist to `../closed/` only after both paths are proven.
 
 ## Completion Evidence
 
-- [ ] A qualifying PR merge publishes one version from that merge SHA with
+- [x] A qualifying PR merge publishes one version from that merge SHA with
   recorded tag, Actions, npm, and registry evidence.
-- [ ] A `no-release` merge and a rerun do not accidentally publish.
-- [ ] The release path contains no legacy `release`-label lookup, post-merge
+- [x] A `no-release` merge and a rerun do not accidentally publish.
+- [x] The release path contains no legacy `release`-label lookup, post-merge
   `main` commit, release PR, or downstream tag-workflow dispatch. The explicit
   `no-release` exception remains intentionally supported.
 
@@ -139,11 +138,20 @@ focused release tests.
   The newer tag supersedes `.156` as the recovery candidate; neither version is
   in the npm registry.
 
-## Remaining external prerequisite
+## Final publication and idempotence evidence
 
-Configure npm trusted publishing for package `astrograph` to GitHub owner
-`mortenbroesby`, repository `astrograph`, workflow filename `ci.yml`, and
-environment `npm`, with `npm publish` allowed. Then dispatch the **CI**
-workflow with `tag=v0.5.1-alpha.157`, verify the npm registry result, rerun the
-same release decision once for idempotence, and complete the remaining
-end-to-end publication evidence before closing this checklist.
+- After configuring npm trusted publishing for `ci.yml` and environment `npm`,
+  the publish-only retry [29955239298](https://github.com/mortenbroesby/astrograph/actions/runs/29955239298)
+  published `astrograph@0.5.1-alpha.157` from tag
+  `v0.5.1-alpha.157` (merge SHA `af9437394e0b130d258d686cbdca334b4e6dce67`).
+  The npm registry and `latest` dist-tag both report `.157`:
+  [npm package version](https://www.npmjs.com/package/astrograph/v/0.5.1-alpha.157).
+- Rerunning only the originally failed release job in
+  [29950216983](https://github.com/mortenbroesby/astrograph/actions/runs/29950216983)
+  passed its Fast gate and release decision, then skipped tag push and npm
+  publication because the matching tag already existed. This proves the
+  existing-tag path is idempotent.
+- PRs #64 and #65 are the no-release path evidence: their workflow-only main
+  runs completed with an explicit no-op and neither pushed a tag nor published
+  npm. The manual retry run skipped Fast and Windows entirely, so no Actions
+  cost boundary was broadened.

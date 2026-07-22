@@ -8,27 +8,29 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Release on Main Merge Delivery
-Checklist](./specs/implementation/planned/0_release-on-main-merge-delivery-checklist.md),
-starting at the first unchecked task.
+Execute the active [Human and Agent Onboarding Packs Delivery
+Checklist](./specs/implementation/active/0_human-agent-onboarding-packs-delivery-checklist.md),
+starting with the audited setup baseline.
 
 ## Required outcome
 
-Produce an evidence-backed, bounded merge-to-npm release design and leave
-exactly one next goal ready to execute. Preserve the current release evidence
-until one simple, verified transaction replaces it.
+Produce evidence-backed, safe first-time setup and recovery guidance for human
+and agent users. Measure the existing behavior before changing it; leave
+exactly one next goal ready only after this checklist closes.
 
 ## Hard boundaries
 
-- Do not implement deferred global artifact reuse, compact transport, semantic
-  retrieval, Windows work, or unrelated release publication
-  merely because they are listed in an epic.
+- Do not implement compact transport, semantic retrieval, Windows work, shared
+  artifact reuse, or unrelated release publication merely because they are
+  listed in an epic.
 - Preserve canonical repository isolation, per-call `repoRoot`, local-first
   storage, and current user privacy.
 - Do not add a shared mutable index, daemon, network synchronization, hidden
   routing, compatibility shim, or destructive MCP cache operation.
 - Use an isolated worktree for source changes. Require exact-head Fast and
-  Windows/package-smoke CI before merging source changes to `main`.
+  package-smoke evidence before merging source changes to `main`; hosted
+  Windows remains disabled under the cost rule until its explicit re-enable
+  condition is met.
 
 ## Completion and update rule
 

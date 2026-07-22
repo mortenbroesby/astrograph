@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Release on Main Merge](../planned/0_release-on-main-merge-delivery-checklist.md)
-   — selected to replace the label-gated release loop with one verified,
-   idempotent merge-to-npm transaction.
+1. [Human and Agent Onboarding Packs](./0_human-agent-onboarding-packs-delivery-checklist.md)
+   — selected Story 6 of precision retrieval: audit and improve first-time
+   setup, diagnostics, and safe recovery without duplicating existing flows.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

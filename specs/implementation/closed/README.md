@@ -58,3 +58,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Reversible User-Data Cleanup Delivery Checklist](./reversible-user-data-cleanup-delivery-checklist.md)
   — merged as PR #60 after archive-first cleanup, deterministic failure-injection
   coverage, and exact-head Fast/package/MCP smoke evidence.
+- [Release on Main Merge Delivery Checklist](./release-on-main-merge-delivery-checklist.md)
+  — closed after merge SHA `af943739` published as `astrograph@0.5.1-alpha.157`,
+  with the publish-only retry and existing-tag rerun proving the guarded path.
