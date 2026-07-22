@@ -17,6 +17,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
+import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
 import { resolveGlobalConfigPath } from "../config.ts";
 import type { StoragePathEnvironment } from "../types.ts";
@@ -37,18 +38,7 @@ const PACKAGE_NAME = packageJson.name;
 const PACKAGE_VERSION = packageJson.version;
 const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"] as const;
 const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"] as const;
-const MCP_TOOLS = [
-  "index_folder",
-  "index_file",
-  "get_file_outline",
-  "get_file_tree",
-  "get_repo_outline",
-  "suggest_initial_queries",
-  "search_symbols",
-  "get_symbol_source",
-  "get_task_context",
-  "diagnostics",
-] as const;
+const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
