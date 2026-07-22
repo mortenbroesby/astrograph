@@ -247,8 +247,15 @@ export function resolveGlobalCacheRoot(
   const platform = environment.platform ?? process.platform;
   const env = environment.env ?? process.env;
   const homeDir = environment.homeDir ?? os.homedir;
-  const explicitCacheHome = env.ASTROGRAPH_CACHE_HOME;
+  if (platform === "darwin") {
+    const explicitGlobalHome = env.ASTROGRAPH_HOME;
+    const globalHome = explicitGlobalHome && path.isAbsolute(explicitGlobalHome)
+      ? explicitGlobalHome
+      : path.join(homeDir(), ENGINE_STORAGE_DIRNAME);
+    return path.join(globalHome, "cache");
+  }
 
+  const explicitCacheHome = env.ASTROGRAPH_CACHE_HOME;
   if (explicitCacheHome && path.isAbsolute(explicitCacheHome)) {
     return path.join(explicitCacheHome, ENGINE_DISPLAY_NAME);
   }
@@ -259,10 +266,6 @@ export function resolveGlobalCacheRoot(
       ENGINE_DISPLAY_NAME,
       "cache",
     );
-  }
-
-  if (platform === "darwin") {
-    return path.join(homeDir(), "Library", "Caches", ENGINE_DISPLAY_NAME);
   }
 
   const xdgCacheHome = env.XDG_CACHE_HOME;
@@ -288,7 +291,11 @@ export function resolveGlobalConfigPath(
   }
 
   if (platform === "darwin") {
-    return path.join(homeDir(), "Library", "Application Support", ENGINE_DISPLAY_NAME, "config.json");
+    const explicitGlobalHome = env.ASTROGRAPH_HOME;
+    const globalHome = explicitGlobalHome && path.isAbsolute(explicitGlobalHome)
+      ? explicitGlobalHome
+      : path.join(homeDir(), ENGINE_STORAGE_DIRNAME);
+    return path.join(globalHome, "config.json");
   }
 
   const xdgConfigHome = env.XDG_CONFIG_HOME;

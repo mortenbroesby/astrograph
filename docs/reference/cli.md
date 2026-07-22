@@ -3,11 +3,26 @@
 Astrograph exposes three main command surfaces:
 
 - `astrograph init`
-- `astrograph install --global --ide codex|copilot-cli`
+- `astrograph install --global [--ide copilot-cli|codex]`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
 Use `astrograph mcp` when you want to run the stdio MCP server directly.
+
+Use `astrograph --version` to print the installed package version. Use
+`astrograph --diagnostics` for a no-repository global setup report: Node
+compatibility, global config and cache paths, storage selection, and Copilot
+CLI/Codex registration presence.
+
+If these commands show an older installed version than expected, update first:
+
+```bash
+npm install --global astrograph@latest
+```
+
+On macOS, global setup stores `config.json` under `~/.astrograph` and creates
+`~/.astrograph/cache` when a repository is first indexed. Pre-v1 releases do
+not retain or migrate the former Library cache/config locations.
 
 Prefer `npx astrograph ...` unless you have already verified another local
 invocation path in your environment.
@@ -16,7 +31,7 @@ invocation path in your environment.
 
 - `astrograph init`
   Writes MCP configuration for supported clients.
-- `astrograph install --global --ide codex|copilot-cli`
+- `astrograph install --global [--ide copilot-cli|codex]`
   Registers one user-level MCP server and enables per-repository global cache
   storage. Codex writes its managed Astrograph block to `~/.codex/config.toml`;
   Copilot CLI writes only `mcpServers.astrograph` to
@@ -24,6 +39,7 @@ invocation path in your environment.
   not modify a repository: after installing once, open any repository and
   index it or use the MCP tools directly. Normal global use does not require
   `init`, repo-local config, or a chosen cache directory.
+  With no `--ide`, it installs for Copilot CLI.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`

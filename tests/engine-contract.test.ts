@@ -47,6 +47,7 @@ import {
   setupForAllIdes,
   setupForCodex,
   setupForIde,
+  getGlobalInstallationDiagnostics,
   setupGlobalForCodex,
   setupGlobalForCopilotCli,
 } from "../src/scripts/install.ts";
@@ -102,7 +103,7 @@ describe("ai-context-engine contract", () => {
     expect(first.eventsPath).toBe(path.join(first.storageDir, "events.jsonl"));
   });
 
-  it("uses platform-specific global cache roots without trusting relative XDG paths", () => {
+  it("uses a visible home-directory root for macOS global cache state", () => {
     expect(resolveGlobalCacheRoot({
       platform: "linux",
       env: { XDG_CACHE_HOME: "relative-cache" },
@@ -112,7 +113,7 @@ describe("ai-context-engine contract", () => {
       platform: "darwin",
       env: {},
       homeDir: () => "/Users/example",
-    })).toBe("/Users/example/Library/Caches/astrograph");
+    })).toBe("/Users/example/.astrograph/cache");
     expect(resolveGlobalCacheRoot({
       platform: "win32",
       env: { LOCALAPPDATA: "C:\\Users\\example\\AppData\\Local" },
@@ -120,7 +121,7 @@ describe("ai-context-engine contract", () => {
     })).toContain(path.join("astrograph", "cache"));
   });
 
-  it("uses a platform-specific global configuration path", () => {
+  it("uses a visible home-directory configuration path on macOS", () => {
     expect(resolveGlobalConfigPath({
       platform: "linux",
       env: { XDG_CONFIG_HOME: "/var/config/user" },
@@ -130,7 +131,7 @@ describe("ai-context-engine contract", () => {
       platform: "darwin",
       env: {},
       homeDir: () => "/Users/example",
-    })).toBe("/Users/example/Library/Application Support/astrograph/config.json");
+    })).toBe("/Users/example/.astrograph/config.json");
   });
 
   it("validates the storage location contract", () => {
@@ -933,6 +934,40 @@ describe("ai-context-engine contract", () => {
     });
   });
 
+  it("reports the default Copilot CLI global setup and cache location without writing state", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-diagnostics-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-diagnostics-config-"));
+    const cacheHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-diagnostics-cache-"));
+    tempDirs.push(homeDir, configHome, cacheHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome, ASTROGRAPH_CACHE_HOME: cacheHome },
+      homeDir: () => homeDir,
+    };
+
+    const before = await getGlobalInstallationDiagnostics(environment);
+    expect(before).toMatchObject({
+      schemaVersion: 1,
+      defaultGlobalIde: "copilot-cli",
+      storage: {
+        location: "not-configured",
+        cacheRoot: path.join(cacheHome, "astrograph"),
+        cacheRootExists: false,
+      },
+    });
+    expect(before.clients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ide: "copilot-cli", configured: false }),
+      expect.objectContaining({ ide: "codex", configured: false }),
+    ]));
+
+    await setupGlobalForCopilotCli({ environment, executableAvailable: true });
+    const after = await getGlobalInstallationDiagnostics(environment);
+    expect(after.storage).toMatchObject({ location: "global" });
+    expect(after.clients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ide: "copilot-cli", configured: true }),
+    ]));
+  });
+
   it("uses COPILOT_HOME for global Copilot CLI setup", async () => {
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-home-"));
     const copilotHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-copilot-config-home-"));
@@ -964,17 +999,20 @@ describe("ai-context-engine contract", () => {
       env: {
         XDG_CONFIG_HOME: configHome,
         ASTROGRAPH_CACHE_HOME: cacheHome,
+        ASTROGRAPH_HOME: path.join(homeDir, ".astrograph"),
       },
       homeDir: () => homeDir,
     };
     const previousHome = process.env.HOME;
     const previousConfigHome = process.env.XDG_CONFIG_HOME;
     const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
 
     try {
       process.env.HOME = homeDir;
       process.env.XDG_CONFIG_HOME = configHome;
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = path.join(homeDir, ".astrograph");
       await setupGlobalForCodex({ environment, executableAvailable: true });
       await writeFile(path.join(firstRepo, "first.ts"), "export function firstGlobalFixture() { return true; }\n");
       await writeFile(path.join(secondRepo, "second.ts"), "export function secondGlobalFixture() { return true; }\n");
@@ -992,8 +1030,8 @@ describe("ai-context-engine contract", () => {
       expect(firstStatus.storageLocation).toBe("global");
       expect(secondStatus.storageLocation).toBe("global");
       expect(firstStatus.storageDir).not.toBe(secondStatus.storageDir);
-      expect(firstStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
-      expect(secondStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
+      expect(firstStatus.storageDir.startsWith(path.join(homeDir, ".astrograph", "cache", "repos"))).toBe(true);
+      expect(secondStatus.storageDir.startsWith(path.join(homeDir, ".astrograph", "cache", "repos"))).toBe(true);
       expect(firstSymbols.map((symbol) => symbol.name)).toContain("firstGlobalFixture");
       expect(secondSymbols.map((symbol) => symbol.name)).toContain("secondGlobalFixture");
       await expect(stat(path.join(firstRepo, ".astrograph"))).rejects.toMatchObject({ code: "ENOENT" });
@@ -1011,6 +1049,8 @@ describe("ai-context-engine contract", () => {
       else process.env.XDG_CONFIG_HOME = previousConfigHome;
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       clearStorageProcessCaches();
     }
   });
@@ -1029,6 +1069,7 @@ describe("ai-context-engine contract", () => {
         COPILOT_HOME: copilotHome,
         XDG_CONFIG_HOME: configHome,
         ASTROGRAPH_CACHE_HOME: cacheHome,
+        ASTROGRAPH_HOME: path.join(homeDir, ".astrograph"),
       },
       homeDir: () => homeDir,
     };
@@ -1036,12 +1077,14 @@ describe("ai-context-engine contract", () => {
     const previousCopilotHome = process.env.COPILOT_HOME;
     const previousConfigHome = process.env.XDG_CONFIG_HOME;
     const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
 
     try {
       process.env.HOME = homeDir;
       process.env.COPILOT_HOME = copilotHome;
       process.env.XDG_CONFIG_HOME = configHome;
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = path.join(homeDir, ".astrograph");
       await setupGlobalForCopilotCli({ environment, executableAvailable: true });
       await writeFile(path.join(firstRepo, "first.ts"), "export function firstCopilotGlobalFixture() { return true; }\n");
       await writeFile(path.join(secondRepo, "second.ts"), "export function secondCopilotGlobalFixture() { return true; }\n");
@@ -1059,8 +1102,8 @@ describe("ai-context-engine contract", () => {
       expect(firstStatus.storageLocation).toBe("global");
       expect(secondStatus.storageLocation).toBe("global");
       expect(firstStatus.storageDir).not.toBe(secondStatus.storageDir);
-      expect(firstStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
-      expect(secondStatus.storageDir.startsWith(path.join(cacheHome, "astrograph", "repos"))).toBe(true);
+      expect(firstStatus.storageDir.startsWith(path.join(homeDir, ".astrograph", "cache", "repos"))).toBe(true);
+      expect(secondStatus.storageDir.startsWith(path.join(homeDir, ".astrograph", "cache", "repos"))).toBe(true);
       expect(firstSymbols.map((symbol) => symbol.name)).toContain("firstCopilotGlobalFixture");
       expect(secondSymbols.map((symbol) => symbol.name)).toContain("secondCopilotGlobalFixture");
       for (const repoRoot of [firstRepo, secondRepo]) {
@@ -1078,6 +1121,8 @@ describe("ai-context-engine contract", () => {
       else process.env.XDG_CONFIG_HOME = previousConfigHome;
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
       else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
       clearStorageProcessCaches();
     }
   });

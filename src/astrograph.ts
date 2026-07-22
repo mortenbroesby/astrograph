@@ -2,12 +2,15 @@
 
 import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const packageRoot = path.resolve(scriptDir, "..");
+const packageVersion = JSON.parse(readFileSync(path.join(packageRoot, "package.json"), "utf8"))
+  .version as string;
 
 function usage() {
   process.stderr.write(
@@ -21,15 +24,22 @@ function usage() {
     "  astrograph cli cache-status --repo /abs/repo",
     "  astrograph cli cache-remove --repo /abs/repo [--yes]",
     "  astrograph mcp",
+    "  astrograph --version",
+    "  astrograph --diagnostics",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
     "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--dry-run]",
-    "  astrograph install --global [--ide codex|copilot-cli] [--dry-run]",
+    "  astrograph install --global [--ide copilot-cli|codex] [--dry-run]",
     "  astrograph init --ide codex",
   ].join("\n") + "\n",
 );
 }
 
 const [mode, ...args] = process.argv.slice(2);
+
+if (mode === "--version" || mode === "-v") {
+  process.stdout.write(`${packageVersion}\n`);
+  process.exit(0);
+}
 
 const sourceTarget =
   mode === "cli" || mode === "cache"
@@ -38,7 +48,7 @@ const sourceTarget =
       ? path.join(packageRoot, "src", "mcp.ts")
       : mode === "git-refresh"
         ? path.join(packageRoot, "src", "scripts", "git-smart-refresh.ts")
-        : mode === "init" || mode === "install"
+        : mode === "init" || mode === "install" || mode === "--diagnostics"
           ? path.join(packageRoot, "src", "scripts", "install.ts")
           : null;
 const distTarget =
@@ -48,7 +58,7 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
         ? path.join(packageRoot, "dist", "scripts", "git-smart-refresh.js")
-        : mode === "init" || mode === "install"
+        : mode === "init" || mode === "install" || mode === "--diagnostics"
           ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 
@@ -64,6 +74,8 @@ const useBuiltTarget = existsSync(distTarget) && (!preferSource || !existsSync(s
 const nodeArgs = mode === "mcp" ? ["--no-warnings"] : [];
 const commandArgs = mode === "cache"
   ? [`cache-${args[0] ?? ""}`, ...args.slice(1)]
+  : mode === "--diagnostics"
+    ? ["--diagnostics"]
   : args;
 if (mode === "cache" && !["status", "remove", "prune"].includes(args[0] ?? "")) {
   usage();
