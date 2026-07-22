@@ -24,17 +24,17 @@ artifact smoke, Codex, Copilot, Copilot CLI, and Markdown documentation.
 `docs/getting-started/first-steps.md`, `docs/reference/cli.md`, existing
 installer/CLI/package tests, and this checklist.
 
-- [ ] Record a command-and-write matrix for global and repository-local setup:
+- [x] Record a command-and-write matrix for global and repository-local setup:
   Codex, Copilot, Copilot CLI, `--dry-run`, `--yes`, non-Git folders, and
   existing configuration. Include exact files that may change and whether each
   operation is safe to repeat.
-- [ ] Run the existing focused installer, CLI-boundary, diagnostics, and packed
+- [x] Run the existing focused installer, CLI-boundary, diagnostics, and packed
   package tests. Record command names, expected JSON/human output, and any
   platform limitation; do not infer behavior from README text alone.
-- [ ] Verify `astrograph --diagnostics` from the packed artifact reports the
+- [x] Verify `astrograph --diagnostics` from the packed artifact reports the
   installed version, storage location, global-client registration state, Node
   support, and actionable recovery guidance without needing a repository.
-- [ ] Compare the tested behavior with README, first-steps, and CLI reference;
+- [x] Compare the tested behavior with README, first-steps, and CLI reference;
   list each mismatch as a separate bounded follow-up before implementing it.
 
 ## Task 2: Specify the smallest onboarding contract change
@@ -42,16 +42,16 @@ installer/CLI/package tests, and this checklist.
 **Files:** this checklist; `specs/api-design/` or `specs/architecture/` only if
 the baseline exposes a durable public contract decision.
 
-- [ ] Decide whether existing behavior already satisfies the onboarding goal.
+- [x] Decide whether existing behavior already satisfies the onboarding goal.
   If it does, close this checklist with command evidence rather than changing
   code.
-- [ ] For every real gap, define one user-visible contract: inputs, proposed
+- [x] For every real gap, define one user-visible contract: inputs, proposed
   writes, dry-run result, idempotent repeat result, conflict/failure recovery,
   and global versus local storage boundary.
-- [ ] Keep the MCP tool surface unchanged unless the existing install/diagnostic
+- [x] Keep the MCP tool surface unchanged unless the existing install/diagnostic
   interfaces cannot express the required behavior. Do not add a generic router,
   background service, hidden configuration, or network synchronization.
-- [ ] State the package-version decision before modifying `src/`, tests,
+- [x] State the package-version decision before modifying `src/`, tests,
   scripts, package metadata, or TypeScript configuration.
 
 ## Task 3: Implement only measured gaps
@@ -61,16 +61,16 @@ the baseline exposes a durable public contract decision.
 `docs/getting-started/first-steps.md`, `docs/reference/cli.md`, and focused
 installer/CLI/package tests.
 
-- [ ] Implement the smallest additive or corrective behavior justified by the
+- [x] Implement the smallest additive or corrective behavior justified by the
   baseline. Every write remains scoped, previewable with dry-run where
   applicable, and recoverable; never delete user configuration or cache data.
-- [ ] Add focused fixtures for repeat invocation, an existing conflicting
+- [x] Add focused fixtures for repeat invocation, an existing conflicting
   registration, a failed write, a non-Git folder, and global Copilot CLI/Codex
   registration where that path changes.
-- [ ] Ensure packed-package tests execute the actual published CLI bin and
+- [x] Ensure packed-package tests execute the actual published CLI bin and
   verify both human-readable guidance and machine-readable output where the
   contract exposes it.
-- [ ] Update the user-facing docs with one recommended global path, the
+- [x] Update the user-facing docs with one recommended global path, the
   explicit local alternative, diagnostics, and safe recovery. Avoid asking
   users to run `init` in every repository after global setup.
 
@@ -97,3 +97,27 @@ installer/CLI/package tests.
   registration, and a safe recovery action without requiring a repository.
 - The final documented path is proven against the packed package, exact-head
   Fast CI, and cost-boundary evidence.
+
+## Baseline and gap decision (2026-07-22)
+
+- `tests/engine-contract.test.ts -t "global|setup"` proved dry-run and
+  idempotent repository-local setup, scoped conflict handling, Node/PATH
+  failures, global Codex and Copilot CLI registration, non-Git-compatible
+  storage behavior, and global cache isolation across two repositories.
+- The established command/write matrix is: `init --yes` writes repository-owned
+  configuration and may add the package dependency; `init --dry-run` previews
+  those writes; `install --global` writes only user-level Codex or Copilot CLI
+  registration plus global Astrograph configuration; global use requires no
+  per-repository `init`. Existing invalid config and failed-write paths reject
+  before mutating a second configuration file.
+- README, first-steps, and CLI reference already state the recommended global
+  path, the explicit local alternative, diagnostics, and archive-first
+  recovery. No user-facing contract mismatch justified new setup machinery.
+- The only measured gap was test coverage: the packed-package smoke exercised
+  setup and registration but not `astrograph --diagnostics`. It now verifies
+  package identity/version, supported Node runtime, global storage/cache root,
+  both client registrations, and a next-step hint from the actual packed bin.
+- This is test-script work, so `package.json` advances from `.157` through
+  `.160` across the baseline and packed-smoke environment fixes under the
+  monotonic version policy. No MCP tool, configuration-write behavior, or
+  documentation contract changes.

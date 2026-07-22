@@ -264,7 +264,37 @@ async function main(): Promise<void> {
       throw new Error("Expected packaged global install to persist the Copilot CLI Astrograph server");
     }
 
-    const globalEnvironment = { HOME: globalHome, ASTROGRAPH_CACHE_HOME: globalCacheHome };
+    const globalEnvironment = {
+      HOME: globalHome,
+      COPILOT_HOME: globalCopilotHome,
+      ASTROGRAPH_CACHE_HOME: globalCacheHome,
+    };
+    const { stdout: diagnosticsOutput } = await run(
+      "pnpm",
+      ["exec", "astrograph", "--diagnostics"],
+      installDir,
+      globalEnvironment,
+    );
+    const diagnostics = JSON.parse(diagnosticsOutput) as {
+      package?: { name?: string; version?: string };
+      runtime?: { supported?: boolean };
+      storage?: { location?: string; cacheRoot?: string };
+      clients?: Array<{ ide?: string; configured?: boolean }>;
+      nextStep?: string;
+    };
+    if (
+      diagnostics.package?.name !== "astrograph"
+      || typeof diagnostics.package.version !== "string"
+      || diagnostics.runtime?.supported !== true
+      || diagnostics.storage?.location !== "global"
+      || diagnostics.storage.cacheRoot !== path.join(globalCacheHome, "astrograph")
+      || !diagnostics.clients?.some((client) => client.ide === "codex" && client.configured)
+      || !diagnostics.clients?.some((client) => client.ide === "copilot-cli" && client.configured)
+      || typeof diagnostics.nextStep !== "string"
+    ) {
+      throw new Error(`Expected packaged global diagnostics: ${diagnosticsOutput}`);
+    }
+
     await run(
       "pnpm",
       ["exec", "astrograph", "cli", "index-folder", "--repo", fixtureRepo],
