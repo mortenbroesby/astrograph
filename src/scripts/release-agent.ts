@@ -149,7 +149,9 @@ function readRegistryVersion(): AstrographRegistryVersionState {
 }
 
 function headIsReleaseCommit(version: string): boolean {
-  return gitMaybe(["log", "-1", "--format=%s"]) === `Release ${version}`;
+  const subject = gitMaybe(["log", "-1", "--format=%s"]);
+  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^Release ${escapedVersion}(?: \\(#\\d+\\))?$`).test(subject);
 }
 
 interface AstrographCommit {
