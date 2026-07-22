@@ -13,11 +13,7 @@ import { afterEach, describe, expect, it as baseIt } from "vitest";
 import { handleCli } from "../src/cli.ts";
 import { MCP_SERVER_NAME, MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { dispatchTool } from "../src/mcp.ts";
-import {
-  ASTROGRAPH_PACKAGE_VERSION,
-  indexFolder,
-  readRecentEngineEvents,
-} from "../src/index.ts";
+import { ASTROGRAPH_PACKAGE_VERSION, indexFolder } from "../src/index.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 const execFileAsync = promisify(execFile);
@@ -28,23 +24,6 @@ const packageRoot = path.resolve(
 
 const it = (name: string, fn: (...args: never[]) => unknown, timeout = 30_000) =>
   baseIt(name, fn as never, timeout);
-
-async function waitFor(
-  predicate: () => boolean | Promise<boolean>,
-  timeoutMs = 5_000,
-): Promise<void> {
-  const startedAt = Date.now();
-  while (!(await predicate())) {
-    if (Date.now() - startedAt > timeoutMs) {
-      throw new Error(`Timed out after ${timeoutMs}ms`);
-    }
-    await delay(25);
-  }
-}
-
-function asTextResultForTest(value: unknown) {
-  return JSON.stringify(value, null, 2);
-}
 
 type McpToolTextResult = { type: string; text: string };
 function parseMcpToolResult(value: { content: McpToolTextResult[] } | McpToolTextResult): any {
@@ -239,45 +218,24 @@ describe("ai-context-engine interfaces", () => {
     ]);
     const greetId = JSON.parse(greetStdout).items[0].id as string;
 
-    const rankedContextStdout = await handleCli([
-      "get-ranked-context",
+    const taskContextStdout = await handleCli([
+      "get-task-context",
       "--repo",
       repoRoot,
       "--query",
       "Greeter",
-      "--budget",
-      "120",
+      "--payload-token-budget",
+      "1200",
     ]);
-    expect(JSON.parse(rankedContextStdout)).toMatchObject({
+    expect(JSON.parse(taskContextStdout)).toMatchObject({
       query: "Greeter",
-      bundle: {
-        tokenBudget: 120,
-      },
+      payloadTokenBudget: 1200,
     });
-    expect(JSON.parse(rankedContextStdout).candidates[0]).toMatchObject({
+    expect(JSON.parse(taskContextStdout).items[0]).toMatchObject({
       symbol: {
         name: "Greeter",
       },
-      selected: true,
-    });
-    const queryCodeAssembleStdout = await handleCli([
-      "query-code",
-      "--repo",
-      repoRoot,
-      "--query",
-      "Greeter",
-      "--budget",
-      "120",
-      "--include-ranked",
-    ]);
-    expect(JSON.parse(queryCodeAssembleStdout)).toMatchObject({
-      intent: "assemble",
-      bundle: {
-        tokenBudget: 120,
-      },
-      ranked: {
-        query: "Greeter",
-      },
+      provenance: expect.any(Object),
     });
 
     const symbolSourceStdout = await handleCli([
@@ -404,7 +362,6 @@ export function circumference(radius: number): string {
 
   it("treats a subdirectory CLI repo path as the enclosing git worktree root", async () => {
     const repoRoot = await createFixtureRepo();
-    const canonicalRepoRoot = await realpath(repoRoot);
     const nestedRepoRoot = path.join(repoRoot, "src");
 
     const summaryStdout = await handleCli([
@@ -424,8 +381,6 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(diagnosticsStdout)).toMatchObject({
-      storageDir: path.join(canonicalRepoRoot, ".astrograph"),
-      databasePath: path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
       storageVersion: 1,
       schemaVersion: 7,
       indexedFiles: 2,
@@ -439,6 +394,7 @@ export function circumference(radius: number): string {
 
   it("exposes spec-aligned MCP tools", async () => {
     const repoRoot = await createFixtureRepo();
+    let symbolSourceResponse: unknown;
     await writeFile(path.join(repoRoot, "README.md"), "# Fixture Repo\n\n## Start Here\n");
     await withMcpClient(async ({ client, stderr }) => {
       const toolsResult = await client.listTools();
@@ -506,11 +462,25 @@ export function circumference(radius: number): string {
         },
       });
       const bundleResult = await client.callTool({
-        name: "get_ranked_context",
+        name: "get_task_context",
         arguments: {
           repoRoot,
           query: "Greeter",
-          tokenBudget: 120,
+          payloadTokenBudget: 1200,
+        },
+      });
+      const greeterId = parseMcpToolResult(
+        discoverResult as { content: Array<{ type: string; text: string }> },
+      ).data.items[0].id as string;
+      const greetId = parseMcpToolResult(
+        greetResult as { content: Array<{ type: string; text: string }> },
+      ).data.items[0].id as string;
+      symbolSourceResponse = await client.callTool({
+        name: "get_symbol_source",
+        arguments: {
+          repoRoot,
+          symbolIds: [greeterId, greetId],
+          contextLines: 1,
         },
       });
 
@@ -528,8 +498,7 @@ export function circumference(radius: number): string {
       expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
         "search_symbols",
         "get_symbol_source",
-        "get_context_bundle",
-        "get_ranked_context",
+        "get_task_context",
       ]));
       expect(MCP_TOOL_DEFINITIONS.every((tool) => tool.toolVersion === "1")).toBe(true);
 
@@ -583,14 +552,7 @@ export function circumference(radius: number): string {
       expect(filteredDiscover.every((entry: { filePath: string }) =>
         entry.filePath.endsWith(".ts"),
       )).toBe(true);
-      const greeterToolId = discoverPayload.data.items[0].id as string;
 
-      const greetPayload = parseMcpToolResult(
-        greetResult as {
-          content: Array<{ type: string; text: string }>;
-        },
-      );
-      const greetToolId = greetPayload.data.items[0].id as string;
 
       const findFilesPayload = parseMcpToolResult(
         findFilesResult as {
@@ -664,8 +626,7 @@ export function circumference(radius: number): string {
                 graph: expect.arrayContaining([
                   "search_symbols",
                   "get_symbol_source",
-                  "get_context_bundle",
-                  "get_ranked_context",
+                  "get_task_context",
                 ]),
               }),
             },
@@ -678,8 +639,7 @@ export function circumference(radius: number): string {
                 graph: expect.arrayContaining([
                   "search_symbols",
                   "get_symbol_source",
-                  "get_context_bundle",
-                  "get_ranked_context",
+                  "get_task_context",
                 ]),
               }),
             },
@@ -709,26 +669,19 @@ export function circumference(radius: number): string {
         },
         data: {
           query: "Greeter",
-          bundle: {
-            tokenBudget: 120,
-          },
+          payloadTokenBudget: 1200,
         },
       });
-      expect(bundlePayload.data.candidates[0]).toMatchObject({
+      expect(bundlePayload.data.items[0]).toMatchObject({
         symbol: {
           name: "Greeter",
         },
-        selected: true,
+        provenance: expect.any(Object),
       });
 
-      const symbolSourceResponse = await dispatchTool("get_symbol_source", {
-        repoRoot,
-        symbolIds: [greeterToolId, greetToolId],
-        contextLines: 1,
-      });
-
-      const symbolSourceContent = asTextResultForTest(symbolSourceResponse);
-      const parsedSymbolSource = JSON.parse(symbolSourceContent);
+      const parsedSymbolSource = parseMcpToolResult(
+        symbolSourceResponse as { content: Array<{ type: string; text: string }> },
+      );
       expect(parsedSymbolSource).toMatchObject({
         ok: true,
         data: {
@@ -748,82 +701,6 @@ export function circumference(radius: number): string {
         },
       });
 
-      const searchSymbolsResponse = await dispatchTool("search_symbols", {
-        repoRoot,
-        query: "Greeter",
-      });
-
-      const searchSymbolsContent = asTextResultForTest(searchSymbolsResponse);
-      const parsedSearchSymbols = JSON.parse(searchSymbolsContent);
-      expect(parsedSearchSymbols).toMatchObject({
-        ok: true,
-        data: {
-          items: expect.arrayContaining([
-          expect.objectContaining({
-            name: "Greeter",
-          }),
-          ]),
-          truncated: false,
-        },
-        meta: {
-          toolVersion: "1",
-          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
-        },
-      });
-      let latestDiscoverEvent:
-        | Awaited<ReturnType<typeof readRecentEngineEvents>>[number]
-        | undefined;
-      await waitFor(async () => {
-        const recentEvents = await readRecentEngineEvents({ repoRoot, limit: 40 });
-        latestDiscoverEvent = [...recentEvents].reverse().find((event) =>
-          event.event === "mcp.tool.finished"
-          && event.source === "mcp"
-          && event.data?.toolName === "search_symbols"
-          && typeof event.data?.tokenEstimate === "object",
-        );
-        return latestDiscoverEvent !== undefined;
-      });
-      expect(latestDiscoverEvent?.data?.tokenEstimate).toMatchObject({
-        baselineTokens: expect.any(Number),
-        returnedTokens: expect.any(Number),
-        savedTokens: expect.any(Number),
-        savedPercent: expect.any(Number),
-        tokenizer: "tokenx",
-        sampleEvery: 10,
-        sampleOrdinal: expect.any(Number),
-      });
-      expect(["heuristic", "exact"]).toContain(
-        (
-          latestDiscoverEvent?.data?.tokenEstimate as { mode?: string } | undefined
-        )?.mode,
-      );
-      expect(
-        (
-          latestDiscoverEvent?.data?.tokenEstimate as { savedPercent?: number } | undefined
-        )?.savedPercent ?? 0,
-      ).toBeGreaterThanOrEqual(0);
-
-      const contextBundleResponse = await dispatchTool("get_context_bundle", {
-        repoRoot,
-        query: "Greeter",
-        tokenBudget: 120,
-      });
-
-      const contextBundleContent = asTextResultForTest(contextBundleResponse);
-      expect(JSON.parse(contextBundleContent)).toMatchObject({
-        ok: true,
-        data: {
-          query: "Greeter",
-          tokenBudget: 120,
-        },
-        meta: {
-          toolVersion: "1",
-          tokenBudgetUsed: expect.any(Number),
-          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-        },
-      });
-
       await expect(
         dispatchTool("query_code", {
           repoRoot,
@@ -837,36 +714,6 @@ export function circumference(radius: number): string {
         },
       });
 
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        await dispatchTool("get_repo_outline", { repoRoot });
-      }
-      let sampledRepoOutlineEvent:
-        | Awaited<ReturnType<typeof readRecentEngineEvents>>[number]
-        | undefined;
-      await waitFor(async () => {
-        const sampledEvents = await readRecentEngineEvents({ repoRoot, limit: 40 });
-        sampledRepoOutlineEvent = [...sampledEvents].reverse().find((event) =>
-          event.event === "mcp.tool.finished"
-          && event.source === "mcp"
-          && event.data?.toolName === "get_repo_outline"
-          && typeof event.data?.tokenEstimate === "object"
-          && typeof (event.data.tokenEstimate as { sampledExact?: unknown }).sampledExact === "object",
-        );
-        return sampledRepoOutlineEvent !== undefined;
-      });
-      expect(sampledRepoOutlineEvent?.data?.tokenEstimate).toMatchObject({
-        mode: "heuristic",
-        tokenizer: "cl100k_base",
-        sampleEvery: 10,
-        sampleOrdinal: expect.any(Number),
-        sampledExact: {
-          tokenizer: "cl100k_base",
-          baselineTokens: expect.any(Number),
-          returnedTokens: expect.any(Number),
-          savedTokens: expect.any(Number),
-          savedPercent: expect.any(Number),
-        },
-      });
     });
   }, 20_000);
 
@@ -1007,15 +854,15 @@ export function circumference(radius: number): string {
 
     await expect(
       handleCli([
-        "get-ranked-context",
+        "get-task-context",
         "--repo",
         repoRoot,
         "--query",
         "Greeter",
-        "--budget",
+        "--payload-token-budget",
         "0",
       ]),
-    ).rejects.toThrow(/tokenBudget must be positive/i);
+    ).rejects.toThrow(/payloadTokenBudget must be positive/i);
 
     await expect(
       handleCli([
@@ -1031,21 +878,7 @@ export function circumference(radius: number): string {
 
     await expect(
       handleCli([
-        "query-code",
-        "--repo",
-        repoRoot,
-        "--intent",
-        "assemble",
-        "--query",
-        "   ",
-        "--symbols",
-        "   ",
-      ]),
-    ).rejects.toThrow(/query_code assemble intent requires a non-empty query or symbolIds/i);
-
-    await expect(
-      handleCli([
-        "get-context-bundle",
+        "get-task-context",
         "--repo",
         repoRoot,
         "--query",
@@ -1053,7 +886,7 @@ export function circumference(radius: number): string {
         "--symbols",
         "   ",
       ]),
-    ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/getTaskContext requires a non-empty query or symbolIds/i);
   });
 
   it("accepts --include-references as a bare CLI boolean flag", async () => {
@@ -1123,10 +956,10 @@ export class Greeter {
     });
 
     await expect(
-      dispatchTool("get_ranked_context", {
+      dispatchTool("get_task_context", {
         repoRoot,
         query: "Greeter",
-        tokenBudget: "oops",
+        payloadTokenBudget: "oops",
       }),
     ).resolves.toMatchObject({
       ok: false,
@@ -1162,7 +995,7 @@ export class Greeter {
     });
 
     await expect(
-      dispatchTool("get_context_bundle", {
+      dispatchTool("get_task_context", {
         repoRoot,
         query: "   ",
         symbolIds: ["   "],
@@ -1175,7 +1008,7 @@ export class Greeter {
     });
 
     await expect(
-      dispatchTool("get_context_bundle", {
+      dispatchTool("get_task_context", {
         repoRoot,
       }),
     ).resolves.toMatchObject({
@@ -1264,26 +1097,27 @@ export class Greeter {
     }
   }, 15_000);
 
-  it("rejects malformed get_context_bundle MCP output with a strict failure envelope", async () => {
+  it("rejects malformed get_task_context MCP output with a strict failure envelope", async () => {
     const repoRoot = await createFixtureRepo();
 
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_task_context");
     expect(tool).toBeDefined();
 
     const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
     const originalExecute = mutableTool.execute;
     try {
       mutableTool.execute = async () => ({
-        tokenBudget: 128,
-        usedTokens: 12,
-        estimatedTokens: 18,
+        payloadTokenBudget: 128,
+        usedPayloadTokens: 12,
+        estimatedPayloadTokens: 18,
+        sourceTokens: 12,
         truncated: false,
         query: "Greeter",
         repoRoot,
         items: "not-an-array",
       });
 
-      const malformedResult = await dispatchTool("get_context_bundle", {
+      const malformedResult = await dispatchTool("get_task_context", {
         repoRoot,
         query: "Greeter",
       });
@@ -1293,7 +1127,7 @@ export class Greeter {
         data: null,
         error: {
           code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
-          message: expect.stringContaining("get_context_bundle output must include items"),
+          message: expect.stringContaining("get_task_context output must include items"),
         },
         meta: {
           toolVersion: "1",

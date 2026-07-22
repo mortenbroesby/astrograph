@@ -15,12 +15,11 @@ import {
   clearStorageProcessCaches,
   diagnostics,
   doctor,
-  getContextBundle,
+  getTaskContext,
   getFileContent,
   getFileOutline,
   getFileTree,
   getRepoOutline,
-  getRankedContext,
   getSymbolSource,
   indexFolder,
   indexFile,
@@ -1333,6 +1332,7 @@ export const four = 4;
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           include: ["src/**/*.ts"],
           exclude: ["src/math.ts"],
@@ -1410,6 +1410,7 @@ export function generated${index}(value: number): string {
     await writeFile(
       path.join(serialRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 1,
         },
@@ -1418,6 +1419,7 @@ export function generated${index}(value: number): string {
     await writeFile(
       path.join(parallelRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 4,
         },
@@ -1463,6 +1465,7 @@ export function workerGenerated${index}(value: number): string {
     await writeFile(
       path.join(directRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 4,
           workerPool: {
@@ -1475,6 +1478,7 @@ export function workerGenerated${index}(value: number): string {
     await writeFile(
       path.join(workerRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 4,
           workerPool: {
@@ -1553,23 +1557,12 @@ export function workerGenerated${index}(value: number): string {
     }
     expect(sourceResult.symbolSource?.items[0]?.symbol.name).toBe("Greeter");
 
-    const assembleResult = await queryCode({
+    const taskContext = await getTaskContext({
       repoRoot,
-      intent: "assemble",
       query: "Greeter",
-      tokenBudget: 120,
-      includeRankedCandidates: true,
+      payloadTokenBudget: 1_200,
     });
-    expect(assembleResult).toMatchObject({
-      intent: "assemble",
-      bundle: {
-        tokenBudget: 120,
-      },
-      ranked: {
-        query: "Greeter",
-      },
-    });
-    expect(assembleResult.intent).toBe("assemble");
+    expect(taskContext.items[0]?.symbol.name).toBe("Greeter");
   });
 
   it("supports auto query mode when the intent is omitted", async () => {
@@ -1597,12 +1590,11 @@ export function workerGenerated${index}(value: number): string {
     });
     expect(sourceResult.intent).toBe("source");
 
-    const assembleResult = await queryCode({
+    await expect(queryCode({
       repoRoot,
+      intent: "assemble" as never,
       query: "Greeter",
-      tokenBudget: 120,
-    });
-    expect(assembleResult.intent).toBe("assemble");
+    })).rejects.toThrow(/invalid query-code arguments/i);
   });
 
   it("explains graph-aware discover results with dependency and importer reasons", async () => {
@@ -1736,53 +1728,46 @@ export function renderFirst(value: number): string {
       discoverResult.matches.some((entry) => entry.symbol.name === "renderFirst"),
     ).toBe(false);
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "bestFormatter",
       includeDependencies: false,
       includeReferences: true,
       relationDepth: 1,
-      tokenBudget: 220,
+      payloadTokenBudget: 1_200,
     });
     expect(bundle.items.some((item) => item.symbol.name === "renderBest")).toBe(true);
     expect(bundle.items.some((item) => item.symbol.name === "renderFirst")).toBe(false);
   });
 
-  it("expands assembled query context with bounded graph relations", async () => {
+  it("expands task context with bounded graph relations", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const assembleResult = await queryCode({
+    const assembleResult = await getTaskContext({
       repoRoot,
-      intent: "assemble",
       query: "formatLabel",
-      tokenBudget: 160,
+      payloadTokenBudget: 1_200,
       includeDependencies: true,
       includeImporters: true,
       relationDepth: 1,
-      includeRankedCandidates: true,
     });
 
-    expect(assembleResult.intent).toBe("assemble");
-    if (assembleResult.intent !== "assemble") {
-      throw new Error("Expected assemble result");
-    }
-
-    expect(assembleResult.bundle.usedTokens).toBeLessThanOrEqual(
-      assembleResult.bundle.tokenBudget,
+    expect(assembleResult.usedPayloadTokens).toBeLessThanOrEqual(
+      assembleResult.payloadTokenBudget,
     );
-    expect(assembleResult.bundle.items).toEqual(
+    expect(assembleResult.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          role: "target",
+          role: "match",
           symbol: expect.objectContaining({
             name: "formatLabel",
           }),
           reason: "exact_symbol_match",
         }),
         expect.objectContaining({
-          role: expect.stringMatching(/target|dependency/),
+          role: expect.stringMatching(/match|relation/),
           symbol: expect.objectContaining({
             name: "area",
           }),
@@ -1790,12 +1775,6 @@ export function renderFirst(value: number): string {
         }),
       ]),
     );
-    expect(assembleResult.ranked?.candidates[0]).toMatchObject({
-      reason: "exact_symbol_match",
-      symbol: {
-        name: "formatLabel",
-      },
-    });
   });
 
   it("deduplicates repeated import sources while rebuilding file dependencies", async () => {
@@ -1862,20 +1841,12 @@ export function circleArea(radius: number): number {
     ).rejects.toThrow(/limit must be positive/i);
 
     await expect(
-      getContextBundle({
+      getTaskContext({
         repoRoot,
         query: "Greeter",
-        tokenBudget: 0,
+        payloadTokenBudget: 0,
       }),
-    ).rejects.toThrow(/tokenBudget must be positive/i);
-
-    await expect(
-      getRankedContext({
-        repoRoot,
-        query: "Greeter",
-        tokenBudget: 0,
-      }),
-    ).rejects.toThrow(/tokenBudget must be positive/i);
+    ).rejects.toThrow(/payloadTokenBudget must be positive/i);
 
     await expect(
       getSymbolSource({
@@ -1886,12 +1857,12 @@ export function circleArea(radius: number): number {
     ).rejects.toThrow(/contextLines must be non-negative/i);
 
     await expect(
-      getContextBundle({
+      getTaskContext({
         repoRoot,
         query: "   ",
         symbolIds: ["   "],
       }),
-    ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/getTaskContext requires a non-empty query or symbolIds/i);
   });
 
   it("extracts symbols from a large file when single-pass tree-sitter parsing fails", async () => {
@@ -2209,19 +2180,19 @@ export function circleArea(radius: number): number {
     });
   });
 
-  it("assembles bounded context bundles from persisted indexed content", async () => {
+  it("assembles bounded task context from persisted indexed content", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "area",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
 
     expect(bundle.items[0]).toMatchObject({
-      role: "target",
+      role: "match",
       symbol: {
         name: "area",
         filePath: "src/math.ts",
@@ -2232,6 +2203,9 @@ export function circleArea(radius: number): number {
     );
     expect(bundle.items[0].source).toContain("return formatLabel(value);");
     expect(bundle.truncated).toBe(false);
+    expect(bundle.exclusions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ reason: "duplicate" })]),
+    );
 
     await writeFile(
       path.join(repoRoot, "src", "math.ts"),
@@ -2245,10 +2219,10 @@ export function area(radius: number): string {
 `,
     );
 
-    const persistedBundle = await getContextBundle({
+    const persistedBundle = await getTaskContext({
       repoRoot,
       query: "area",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
 
     expect(persistedBundle.items[0].source).toContain(
@@ -2257,57 +2231,73 @@ export function area(radius: number): string {
     expect(persistedBundle.items[0].source).not.toContain("changed");
   });
 
-  it("keeps context bundles inside the declared token budget", async () => {
+  it("keeps task context inside the declared payload budget", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "area",
-      tokenBudget: 10,
+      payloadTokenBudget: 1_200,
     });
 
-    expect(bundle.usedTokens).toBeLessThanOrEqual(bundle.tokenBudget);
+    expect(bundle.usedPayloadTokens).toBeLessThanOrEqual(bundle.payloadTokenBudget);
   });
 
-  it("returns ranked query context with visible candidate selection", async () => {
+  it("returns source-attributed task context with deterministic selection", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const rankedContext = await getRankedContext({
+    const rankedContext = await getTaskContext({
       repoRoot,
       query: "Greeter",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
 
     expect(rankedContext).toMatchObject({
       query: "Greeter",
-      candidateCount: expect.any(Number),
-      selectedSeedIds: expect.any(Array),
-      bundle: {
-        tokenBudget: 120,
-      },
+      payloadTokenBudget: 1_200,
     });
-    expect(rankedContext.candidates[0]).toMatchObject({
-      rank: 1,
+    expect(rankedContext.items[0]).toMatchObject({
+      role: "match",
       reason: "exact_symbol_match",
       symbol: {
         name: "Greeter",
         filePath: "src/strings.ts",
       },
-      selected: true,
+      provenance: expect.any(Object),
     });
-    expect(rankedContext.selectedSeedIds).toContain(
-      rankedContext.candidates[0]?.symbol.id,
-    );
-    expect(rankedContext.bundle.items[0]).toMatchObject({
-      role: "target",
-      symbol: {
-        name: "Greeter",
-      },
-    });
+  });
+
+  it("keeps exploration, debug, refactor, and audit task fixtures deterministic", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+    const area = (await searchSymbols({ repoRoot, query: "area" }))[0];
+    expect(area).toBeDefined();
+
+    for (const [intent, query] of [
+      ["explore", "explore area formatting"],
+      ["debug", "debug area formatting"],
+      ["refactor", "refactor area formatting"],
+      ["audit", "audit area formatting"],
+    ] as const) {
+      const result = await getTaskContext({
+        repoRoot,
+        query,
+        symbolIds: [area!.id],
+        intent,
+        payloadTokenBudget: 1_200,
+      });
+      expect(result.intent).toBe(intent);
+      expect(result.items[0]).toMatchObject({
+        role: "anchor",
+        symbol: { id: area!.id, name: "area" },
+        provenance: { range: { encoding: "utf8" } },
+      });
+      expect(result.usedPayloadTokens).toBeLessThanOrEqual(result.payloadTokenBudget);
+    }
   });
 
   it("resolves aliased named imports to the correct dependency symbol", async () => {
@@ -2336,10 +2326,10 @@ export function renderValue(value: number): string {
 
     await indexFolder({ repoRoot });
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "renderValue",
-      tokenBudget: 200,
+      payloadTokenBudget: 1_200,
     });
 
     expect(bundle.items.some((item) => item.symbol.name === "bestFormatter")).toBe(
@@ -2376,10 +2366,10 @@ export function renderValue(value: number): string {
 
     await indexFolder({ repoRoot });
 
-    const initialBundle = await getContextBundle({
+    const initialBundle = await getTaskContext({
       repoRoot,
       query: "renderValue",
-      tokenBudget: 200,
+      payloadTokenBudget: 1_200,
     });
     expect(initialBundle.items.some((item) => item.symbol.name === "bestFormatter")).toBe(
       true,
@@ -2404,10 +2394,10 @@ export function renderValue(value: number): string {
       staleStatus: "fresh",
     });
 
-    const updatedBundle = await getContextBundle({
+    const updatedBundle = await getTaskContext({
       repoRoot,
       query: "renderValue",
-      tokenBudget: 200,
+      payloadTokenBudget: 1_200,
     });
     expect(updatedBundle.items.some((item) => item.symbol.name === "firstFormatter")).toBe(
       true,
@@ -2637,12 +2627,12 @@ export function helperValue(): string {
       filePath: "src/area-helper.ts",
     });
 
-    const rankedContext = await getRankedContext({
+    const rankedContext = await getTaskContext({
       repoRoot,
       query: "radius",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
-    expect(rankedContext.candidates[0]).toMatchObject({
+    expect(rankedContext.items[0]).toMatchObject({
       reason: "query_match",
       symbol: {
         name: "helperValue",

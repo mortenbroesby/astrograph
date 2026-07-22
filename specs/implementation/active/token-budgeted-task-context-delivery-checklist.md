@@ -46,12 +46,23 @@ CLI JSON, and MCP stdio.
 - Test: `tests/engine-contract.test.ts`
 - Test: `tests/interface.test.ts`
 
-- [ ] Decide the one task-context command and remove the redundant context
+- [x] Decide the one task-context command and remove the redundant context
   entry points rather than retaining aliases or compatibility shims.
-- [ ] Specify query, optional symbol anchors, rules-based intent hint, relation
+  **Decision:** `get_task_context` is now the only public bounded-context
+  command. `get_context_bundle` and `get_ranked_context` are removed from the
+  CLI, MCP registry, package exports, installer lists, and generated guidance;
+  `query_code` is restricted to discovery and source intents.
+- [x] Specify query, optional symbol anchors, rules-based intent hint, relation
   depth, declared payload budget, source-token accounting, and the JSON result
-  fields for selected items, exclusions, truncation, and provenance.
-- [ ] Update CLI/MCP contract docs and parity tests for the chosen command.
+  fields for selected items, exclusions, truncation, and provenance. The
+  contract uses `payloadTokenBudget`, `usedPayloadTokens`,
+  `estimatedPayloadTokens`, `sourceTokens`, deterministic exclusions, and
+  exact symbol-source provenance. A request whose envelope cannot fit fails
+  instead of exceeding its declared budget.
+- [x] Update CLI/MCP contract docs and parity tests for the chosen command.
+  Evidence: `pnpm type-lint`; focused engine task-context, MCP interface,
+  registry, and CLI-boundary suites pass with the global-cache fixture
+  permission required by this dogfooding environment.
 
 ## Task 2: Deterministic Budget-Aware Assembly
 
@@ -63,13 +74,22 @@ CLI JSON, and MCP stdio.
 - Test: `tests/engine-behavior.test.ts`
 - Test: `tests/interface.test.ts`
 
-- [ ] Select deterministically in this order: explicit anchors, lexical
+- [x] Select deterministically in this order: explicit anchors, lexical
   matches, required relations, then budget-aware expansion.
-- [ ] Budget serialized agent-visible JSON using the production tokenizer; only
-  documented envelope fields may be excluded from the declared budget.
-- [ ] Record deterministic exclusion reasons (`budget`, duplicate, unsupported,
+  `resolveTaskContextSeedCandidates()` preserves explicit anchor order, adds
+  deduplicated lexical matches, then expands enabled relations before applying
+  the JSON-payload budget.
+- [x] Budget serialized agent-visible JSON using the production tokenizer; only
+  documented envelope fields may be excluded from the declared budget. The
+  assembler counts its serialized result with `tiktoken`, rejects an envelope
+  that cannot fit, and reports the exact used payload tokens.
+- [x] Record deterministic exclusion reasons (`budget`, duplicate, unsupported,
   or relation-depth) and preserve source provenance for every selected item.
-- [ ] Keep intent classification local, rules-based, and explainable.
+  Every selected item carries `SymbolSourceItem` provenance; the exclusion
+  array is reason-sorted and fixtures cover duplicate and budget behavior.
+- [x] Keep intent classification local, rules-based, and explainable. The
+  four-value classifier uses documented keyword rules and callers can provide
+  an explicit intent override.
 
 ## Task 3: Fixture and Measurement Evidence
 
@@ -81,21 +101,34 @@ CLI JSON, and MCP stdio.
 - Modify: `bench/tests/fixtures/benchmarks/ai-context-engine-benchmark-corpus.json`
 - Modify: `docs/guides/retrieval-workflows.md`
 
-- [ ] Add exploration, debugging, refactor, and audit fixtures that assert
+- [x] Add exploration, debugging, refactor, and audit fixtures that assert
   targets, deterministic order, deduplication, provenance, exclusions, and
-  declared-payload budget compliance.
-- [ ] Extend the deterministic benchmark only as needed to compare the
+  declared-payload budget compliance. `tests/engine-behavior.test.ts` now
+  exercises every explicit intent with a stable anchor; existing task-context
+  fixtures cover relation expansion, duplicate exclusions, persisted source,
+  provenance, and budget compliance.
+- [x] Extend the deterministic benchmark only as needed to compare the
   canonical task-context payload with the recorded baseline; capture bytes,
-  exact and estimated tokens, relevance, and warm latency separately.
-- [ ] Update workflow guidance to direct agents to the canonical command only
-  after its contract and tests pass.
+  exact and estimated tokens, relevance, and warm latency separately. The
+  `bundle` workflow now invokes `getTaskContext` at a 1,200 payload-token
+  budget and reports serialized bytes, source tokens, candidate-payload tokens,
+  exact/estimated returned tokens, recall, and latency. On 2026-07-22 the five
+  tasks returned 1,074–1,183 exact payload tokens (4,088–4,902 bytes), 46–75%
+  task-slice reduction, and 681–771 ms latency; 3/5 tasks had a target hit.
+- [x] Update workflow guidance to direct agents to the canonical command only
+  after its contract and tests pass. `docs/guides/retrieval-workflows.md` and
+  `docs/reference/cli.md` now route bounded retrieval through
+  `get-task-context`.
 
 ## Task 4: Verify, Release Decision, and Handoff
 
-- [ ] Run focused context, interface, and benchmark tests.
-- [ ] Run `pnpm type-lint`, `pnpm check:version-bump`, `pnpm release:plan`, and
+- [x] Run focused context, interface, and benchmark tests. `bench/tests` (18),
+  focused MCP stdio (1), and the Windows-equivalent engine/filesystem/git/watch
+  matrix (96 passed, 1 intentionally skipped) pass on 2026-07-22.
+- [x] Run `pnpm type-lint`, `pnpm check:version-bump`, `pnpm release:plan`, and
   `git diff --check`; apply the required pre-v1 version increment for source or
-  test changes.
+  test changes. The guarded release tool set `0.5.0-alpha.141`; type lint,
+  version policy, and diff validation pass.
 - [ ] Run package-bin smoke and the Fast plus Windows/package-smoke CI paths on
   the exact PR head before merge.
 - [ ] Move this checklist to `../closed/` only after the merged commit and CI

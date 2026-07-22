@@ -22,6 +22,7 @@ import {
   validateRankedContextOptions,
   validateSearchTextOptions,
   validateSymbolSourceOptions,
+  validateTaskContextOptions,
 } from "./validation.ts";
 import type {
   ContextBundle,
@@ -31,7 +32,6 @@ import type {
   EngineConfig,
   FileContentResult,
   ImportSpecifier,
-  QueryCodeAssembleResult,
   QueryCodeDiscoverResult,
   QueryCodeIntent,
   QueryCodeMatchReason,
@@ -52,6 +52,13 @@ import type {
   SymbolSourceItem,
   SymbolSourceResult,
   SymbolSummary,
+  TaskContextExclusion,
+  TaskContextExclusionReason,
+  TaskContextIntent,
+  TaskContextItem,
+  TaskContextItemRole,
+  TaskContextOptions,
+  TaskContextResult,
 } from "./types.ts";
 
 export interface RetrievalContext {
@@ -811,6 +818,24 @@ function resolveRankedSeedCandidates(
     );
 }
 
+function resolveTaskContextSeedCandidates(
+  context: RetrievalContext,
+  input: TaskContextOptions,
+): RankedSeedCandidate[] {
+  const explicit = input.symbolIds?.length
+    ? resolveRankedSeedCandidates(context, { repoRoot: context.config.repoRoot, symbolIds: input.symbolIds })
+    : [];
+  const lexical = input.query
+    ? resolveRankedSeedCandidates(context, { repoRoot: context.config.repoRoot, query: input.query })
+    : [];
+  const seen = new Set<string>();
+  return [...explicit, ...lexical].filter((candidate) => {
+    if (seen.has(candidate.row.id)) return false;
+    seen.add(candidate.row.id);
+    return true;
+  });
+}
+
 function buildContextBundleFromSeeds(
   db: IndexBackendConnection,
   input: ContextBundleOptions & Pick<QueryCodeOptions, "includeDependencies" | "includeImporters" | "includeReferences" | "relationDepth">,
@@ -1247,6 +1272,195 @@ export function getRankedContextFromContext(context: RetrievalContext, input: {
   return buildRankedContextResult(normalizedInput, seedCandidates, bundle);
 }
 
+function inferTaskContextIntent(query: string | undefined): TaskContextIntent {
+  const normalized = query?.toLowerCase() ?? "";
+  if (/\b(error|fail|bug|broken|crash|regression|debug)\b/.test(normalized)) {
+    return "debug";
+  }
+  if (/\b(refactor|rename|extract|migrate|restructure)\b/.test(normalized)) {
+    return "refactor";
+  }
+  if (/\b(audit|review|security|risk|compliance)\b/.test(normalized)) {
+    return "audit";
+  }
+  return "explore";
+}
+
+function makeTaskContextItem(
+  row: DbFileContentRow,
+  role: TaskContextItemRole,
+  reason: string,
+): TaskContextItem {
+  const source = row.content.slice(row.start_byte, row.end_byte);
+  return {
+    role,
+    reason,
+    symbol: mapSymbolRow(row),
+    source,
+    provenance: buildSymbolSourceItem(row, false).provenance,
+    sourceTokens: countTokens(source),
+  };
+}
+
+function makeTaskContextExclusions(
+  counts: ReadonlyMap<TaskContextExclusionReason, number>,
+): TaskContextExclusion[] {
+  return (["budget", "duplicate", "unsupported", "relation_depth"] as const)
+    .map((reason) => ({ reason, count: counts.get(reason) ?? 0 }))
+    .filter((exclusion) => exclusion.count > 0);
+}
+
+function buildTaskContextResult(input: {
+  repoRoot: string;
+  query?: string;
+  intent: TaskContextIntent;
+  payloadTokenBudget: number;
+  relationDepth: number;
+}, items: TaskContextItem[], exclusions: TaskContextExclusion[], estimatedPayloadTokens: number): TaskContextResult {
+  const result: TaskContextResult = {
+    repoRoot: input.repoRoot,
+    query: input.query ?? null,
+    intent: input.intent,
+    payloadTokenBudget: input.payloadTokenBudget,
+    usedPayloadTokens: 0,
+    estimatedPayloadTokens,
+    sourceTokens: items.reduce((total, item) => total + item.sourceTokens, 0),
+    truncated: (exclusions.some((exclusion) =>
+      exclusion.reason === "budget" || exclusion.reason === "relation_depth")),
+    relationDepth: input.relationDepth,
+    exclusions,
+    items,
+  };
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    result.usedPayloadTokens = countTokens(JSON.stringify(result));
+  }
+  return result;
+}
+
+export function getTaskContextFromContext(
+  context: RetrievalContext,
+  input: TaskContextOptions,
+): TaskContextResult {
+  const normalizedSeeds = validateTaskContextOptions(input);
+  const payloadTokenBudget = input.payloadTokenBudget ?? 1200;
+  if (payloadTokenBudget < 128) {
+    throw new Error("payloadTokenBudget must be at least 128 to fit the task-context envelope");
+  }
+
+  const relationDepth = Math.min(3, Math.max(1, input.relationDepth ?? 1));
+  const normalizedInput = {
+    ...input,
+    repoRoot: context.config.repoRoot,
+    ...normalizedSeeds,
+    payloadTokenBudget,
+    relationDepth,
+    intent: input.intent ?? inferTaskContextIntent(normalizedSeeds.query),
+  };
+  const candidates: TaskContextItem[] = [];
+  const exclusions = new Map<TaskContextExclusionReason, number>();
+  const seen = new Set<string>();
+  const seedCandidates = resolveTaskContextSeedCandidates(context, normalizedInput);
+
+  for (const seed of seedCandidates) {
+    if (seen.has(seed.row.id)) {
+      exclusions.set("duplicate", (exclusions.get("duplicate") ?? 0) + 1);
+      continue;
+    }
+    seen.add(seed.row.id);
+    candidates.push(
+      makeTaskContextItem(
+        seed.row,
+        seed.reason === "explicit_symbol_id" ? "anchor" : "match",
+        seed.reason,
+      ),
+    );
+  }
+
+  const includeDependencies = input.includeDependencies ?? true;
+  const includeImporters = input.includeImporters ?? false;
+  const includeReferences = input.includeReferences ?? false;
+  let frontier = seedCandidates.map((seed) => seed.row as DbSymbolRow);
+  const visited = new Set(frontier.map((row) => row.id));
+
+  for (let depth = 0; depth < relationDepth; depth += 1) {
+    const nextFrontier: DbSymbolRow[] = [];
+    for (const seedRow of frontier) {
+      const relatedRows = [
+        ...(includeDependencies ? pickDependencyRows(context.db, seedRow) : []),
+        ...(includeReferences ? pickReferenceRows(context.db, seedRow) : []),
+        ...(includeImporters ? pickImporterRows(context.db, seedRow) : []),
+      ];
+      for (const related of relatedRows) {
+        if (seen.has(related.row.id)) {
+          exclusions.set("duplicate", (exclusions.get("duplicate") ?? 0) + 1);
+          continue;
+        }
+        seen.add(related.row.id);
+        const sourceRow = loadSymbolSourceRow(context.db, related.row.id);
+        if (!sourceRow) {
+          exclusions.set("unsupported", (exclusions.get("unsupported") ?? 0) + 1);
+          continue;
+        }
+        candidates.push(makeTaskContextItem(sourceRow, "relation", related.reason));
+        if (!visited.has(related.row.id)) {
+          visited.add(related.row.id);
+          nextFrontier.push(related.row);
+        }
+      }
+    }
+    frontier = nextFrontier;
+    if (frontier.length === 0) break;
+    if (depth === relationDepth - 1) {
+      exclusions.set("relation_depth", frontier.length);
+    }
+  }
+
+  const estimatedPayloadTokens = buildTaskContextResult(
+    normalizedInput,
+    candidates,
+    makeTaskContextExclusions(exclusions),
+    0,
+  ).usedPayloadTokens;
+  const selected: TaskContextItem[] = [];
+  for (const candidate of candidates) {
+    const next = buildTaskContextResult(
+      normalizedInput,
+      [...selected, candidate],
+      makeTaskContextExclusions(exclusions),
+      estimatedPayloadTokens,
+    );
+    if (next.usedPayloadTokens <= payloadTokenBudget) {
+      selected.push(candidate);
+    } else {
+      exclusions.set("budget", (exclusions.get("budget") ?? 0) + 1);
+    }
+  }
+
+  let result = buildTaskContextResult(
+    normalizedInput,
+    selected,
+    makeTaskContextExclusions(exclusions),
+    estimatedPayloadTokens,
+  );
+  while (result.usedPayloadTokens > payloadTokenBudget && selected.length > 0) {
+    selected.pop();
+    exclusions.set("budget", (exclusions.get("budget") ?? 0) + 1);
+    result = buildTaskContextResult(
+      normalizedInput,
+      selected,
+      makeTaskContextExclusions(exclusions),
+      estimatedPayloadTokens,
+    );
+  }
+  if (result.usedPayloadTokens > payloadTokenBudget) {
+    throw new Error(
+      `payloadTokenBudget ${payloadTokenBudget} is too small for the task-context envelope (${result.usedPayloadTokens} tokens)`,
+    );
+  }
+  return result;
+}
+
 export function getFileContentFromContext(
   context: RetrievalContext,
   filePath: string,
@@ -1372,45 +1586,15 @@ export function queryCodeInContext(
       };
       return result;
     }
-    case "assemble": {
-      const ranked = input.includeRankedCandidates && input.query
-        ? getRankedContextFromContext(context, {
-            repoRoot: context.config.repoRoot,
-            query: input.query,
-            tokenBudget: input.tokenBudget,
-            includeDependencies: input.includeDependencies,
-            includeImporters: input.includeImporters,
-            relationDepth: input.relationDepth,
-          })
-        : null;
-      const bundle = ranked
-        ? ranked.bundle
-        : getContextBundleFromContext(context, {
-            repoRoot: context.config.repoRoot,
-            query: input.query,
-            symbolIds: input.symbolIds,
-            tokenBudget: input.tokenBudget,
-            includeDependencies: input.includeDependencies,
-            includeImporters: input.includeImporters,
-            relationDepth: input.relationDepth,
-          });
-
-      const result: QueryCodeAssembleResult = {
-        intent: "assemble",
-        bundle,
-        ranked,
-      };
-      return result;
-    }
     default:
-      throw new Error(`Unsupported query_code intent: ${String(input.intent)}`);
+      throw new Error(`Invalid query-code arguments: unsupported intent ${String(input.intent)}`);
   }
 }
 
 export function resolveQueryCodeIntent(
   input: Pick<
     QueryCodeOptions,
-    "intent" | "symbolId" | "symbolIds" | "filePath" | "tokenBudget" | "includeRankedCandidates"
+    "intent" | "symbolId" | "symbolIds" | "filePath"
   >,
 ): Exclude<QueryCodeIntent, "auto"> {
   if (input.intent && input.intent !== "auto") {
@@ -1419,10 +1603,6 @@ export function resolveQueryCodeIntent(
 
   if (input.filePath || input.symbolId) {
     return "source";
-  }
-
-  if (input.tokenBudget !== undefined || input.includeRankedCandidates) {
-    return "assemble";
   }
 
   if (input.symbolIds && input.symbolIds.length > 0) {

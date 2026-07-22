@@ -8,7 +8,7 @@ be appended in chronological order and use [the ADR template](../templates/adr.m
 ## ADR-001: Use SQLite WAL For Local Index Storage
 
 **Date:** 2026-05-01
-**Status:** Accepted
+**Status:** Superseded by the token-budgeted task-context contract (2026-07-22)
 
 **Context:** Astrograph needs a local, inspectable, zero-service index for files,
 symbols, imports, freshness metadata, and search tables.
@@ -66,8 +66,9 @@ while moving to a cleaner versioned contract. Maintaining the existing
 **Decision:**
 
 - Remove `query_code` from the MCP surface in this hard-switch.
-- Add strict v1 tools: `search_symbols`, `get_symbol_source`,
-  `get_context_bundle`, and `get_ranked_context`.
+- This decision originally added strict v1 retrieval tools. Its two bounded
+  context tools were later replaced without compatibility aliases by the
+  single `get_task_context` contract.
 - Use a single strict v1 response envelope for success and failure.
 - Carry versioning in both registration metadata (`toolVersion: "1"`) and response
   metadata (`meta.toolVersion`).

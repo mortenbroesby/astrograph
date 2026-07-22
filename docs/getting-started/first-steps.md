@@ -82,11 +82,10 @@ npx astrograph cli search-symbols --repo /absolute/path/to/repo --query diagnost
 Ask a repository question:
 
 ```bash
-npx astrograph cli query-code \
+npx astrograph cli get-task-context \
   --repo /absolute/path/to/repo \
-  --intent assemble \
   --query "how does watch refresh remove deleted files?" \
-  --budget 8000 \
+  --payload-token-budget 1200 \
   --include-references
 ```
 

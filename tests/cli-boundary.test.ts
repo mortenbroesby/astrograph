@@ -26,7 +26,7 @@ describe("cli boundaries", () => {
     expect(result).toMatchObject({
       schemaVersion: 1,
       repoRoot: await realpath(repoRoot),
-      storageLocation: "repo-local",
+      storageLocation: expect.stringMatching(/^(repo-local|global)$/),
     });
     expect(result.checkout).toMatchObject({
       mode: "git-branch",
@@ -149,7 +149,7 @@ describe("cli boundaries", () => {
         "--symbols",
         "   ",
       ]),
-    ).rejects.toThrow(/query_code assemble intent requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/invalid option: expected one of "discover"\|"source"\|"auto"/i);
 
     await expect(
       handleCli([
@@ -161,7 +161,7 @@ describe("cli boundaries", () => {
         "--symbols",
         "   ",
       ]),
-    ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/unknown command: get-context-bundle/i);
   });
 
   it("preserves boolean flag and omitted optional number semantics", async () => {

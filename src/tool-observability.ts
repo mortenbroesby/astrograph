@@ -16,6 +16,7 @@ const HEURISTIC_SAVED_PCT_BY_TOOL: Record<string, number> = {
   get_project_status: 55,
   get_file_tree: 85,
   get_repo_outline: 90,
+  get_task_context: 70,
   search_text: 70,
   query_code_discover: 55,
   suggest_initial_queries: 92,
@@ -364,6 +365,30 @@ export function summarizeToolCompletion(
     };
   }
 
+  if (name === "get_task_context" && result && typeof result === "object") {
+    const taskContext = result as {
+      items?: Array<unknown>;
+      query?: string | null;
+      usedPayloadTokens?: number;
+      payloadTokenBudget?: number;
+      sourceTokens?: number;
+    };
+    return {
+      summary: `Assembled ${taskContext.items?.length ?? 0} task-context snippets`,
+      detail: [
+        `query: ${taskContext.query ?? "none"}`,
+        `payload budget used: ${taskContext.usedPayloadTokens ?? 0}/${taskContext.payloadTokenBudget ?? 0}`,
+        `source tokens: ${taskContext.sourceTokens ?? 0}`,
+      ],
+      tokenEstimate: buildTokenEstimate({
+        toolKey: name,
+        baselineValue: taskContext.items ?? [],
+        returnedValue: result,
+        heuristicSavedPercent: HEURISTIC_SAVED_PCT_BY_TOOL.get_task_context,
+      }),
+    };
+  }
+
   if (name === "query_code" && result && typeof result === "object") {
     const queryResult = result as {
       intent?: string;
@@ -407,21 +432,6 @@ export function summarizeToolCompletion(
       };
     }
 
-    if (queryResult.intent === "assemble" && queryResult.bundle) {
-      const baselineTokens = queryResult.bundle.estimatedTokens ?? null;
-      return {
-        summary: `Assembled ${queryResult.bundle.items?.length ?? 0} context snippets`,
-        detail: [
-          `query: ${queryResult.query ?? "none"}`,
-          `bundle budget used: ${queryResult.bundle.usedTokens ?? 0}/${baselineTokens ?? 0}`,
-        ],
-        tokenEstimate: buildTokenEstimate({
-          toolKey: `${name}_assemble`,
-          baselineValue: queryResult.bundle.items ?? [],
-          returnedValue: result,
-        }),
-      };
-    }
   }
 
   if (name === "diagnostics" && result && typeof result === "object") {

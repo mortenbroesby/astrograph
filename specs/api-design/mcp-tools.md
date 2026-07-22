@@ -17,8 +17,7 @@ exact retrieval, bounded assembly, and health reporting.
 - `suggest_initial_queries`
 - `search_symbols` (new v1)
 - `get_symbol_source` (new v1)
-- `get_context_bundle` (new v1)
-- `get_ranked_context` (new v1)
+- `get_task_context` (new v1)
 - `diagnostics`
 
 ## Contract Rules
@@ -197,7 +196,7 @@ Success `data`:
 The single-symbol convenience fields mirror the first item and must not replace
 the canonical `items` array.
 
-### `get_context_bundle`
+### `get_task_context`
 
 Registration metadata:
 
@@ -212,7 +211,8 @@ Request:
   repoRoot: string,
   query?: string,
   symbolIds?: string[],
-  tokenBudget?: number,
+  intent?: "explore" | "debug" | "refactor" | "audit",
+  payloadTokenBudget?: number,
   includeDependencies?: boolean,
   includeImporters?: boolean,
   includeReferences?: boolean,
@@ -228,61 +228,29 @@ Success `data`:
 {
   repoRoot: string,
   query: string | null,
-  tokenBudget: number,
-  estimatedTokens: number,
-  usedTokens: number,
+  intent: "explore" | "debug" | "refactor" | "audit",
+  payloadTokenBudget: number,
+  estimatedPayloadTokens: number,
+  usedPayloadTokens: number,
+  sourceTokens: number,
   truncated: boolean,
+  exclusions: Array<{ reason: "budget" | "duplicate" | "unsupported" | "relation_depth", count: number }>,
   items: Array<{
-    role: "target" | "dependency",
+    role: "anchor" | "match" | "relation",
     reason: string,
     symbol: SymbolSummary,
     source: string,
-    tokenCount: number,
+    sourceTokens: number,
+    provenance: SymbolSourceItem["provenance"],
   }>,
 }
 ```
 
-### `get_ranked_context`
-
-Registration metadata:
-
-```ts
-{ toolVersion: "1" }
-```
-
-Request:
-
-```ts
-{
-  repoRoot: string,
-  query: string,
-  tokenBudget?: number,
-  includeDependencies?: boolean,
-  includeImporters?: boolean,
-  includeReferences?: boolean,
-  relationDepth?: number,
-}
-```
-
-Success `data`:
-
-```ts
-{
-  repoRoot: string,
-  query: string,
-  tokenBudget: number,
-  candidateCount: number,
-  selectedSeedIds: string[],
-  candidates: Array<{
-    rank: number,
-    score: number,
-    reason: string,
-    symbol: SymbolSummary,
-    selected: boolean,
-  }>,
-  bundle: ContextBundle,
-}
-```
+`payloadTokenBudget` covers the serialized `data` payload measured by the
+production tokenizer. A request that cannot fit its own envelope fails rather
+than returning an over-budget result. Explicit symbol anchors are selected
+before lexical matches, followed by enabled relations. Every omitted candidate
+is counted with a deterministic exclusion reason.
 
 ## Contract Versioning
 

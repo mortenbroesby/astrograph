@@ -9,6 +9,8 @@ import type {
   QueryCodeIntent,
   QueryCodeOptions,
   SearchTextOptions,
+  TaskContextIntent,
+  TaskContextOptions,
   SearchSymbolsOptions,
   SummaryStrategy,
   SupportedLanguage,
@@ -23,7 +25,7 @@ const supportedLanguageSchema = z.enum(supportedLanguages as [
 ]);
 const symbolKindSchema = z.enum(["function", "class", "method", "constant", "type"]);
 const summaryStrategySchema = z.enum(SUMMARY_STRATEGIES);
-const queryCodeIntentSchema = z.enum(["discover", "source", "assemble", "auto"]);
+const queryCodeIntentSchema = z.enum(["discover", "source", "auto"]);
 
 const finiteNumberSchema = z.number().finite();
 const positiveNumberSchema = finiteNumberSchema.refine((value) => value > 0, {
@@ -69,9 +71,7 @@ const queryCodeOptionsSchema = z.object({
   limit: positiveNumberSchema.optional(),
   contextLines: nonNegativeNumberSchema.optional(),
   verify: z.boolean().optional(),
-  tokenBudget: positiveNumberSchema.optional(),
   includeTextMatches: z.boolean().optional(),
-  includeRankedCandidates: z.boolean().optional(),
   includeDependencies: z.boolean().optional(),
   includeImporters: z.boolean().optional(),
   includeReferences: z.boolean().optional(),
@@ -103,24 +103,12 @@ const queryCodeOptionsSchema = z.object({
     });
   }
 
-  if (
-    resolvedIntent === "assemble" &&
-    !input.query &&
-    (!input.symbolIds || input.symbolIds.length === 0)
-  ) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: input.intent === "auto"
-        ? "query_code auto intent resolved to assemble and requires a non-empty query or symbolIds"
-        : "query_code assemble intent requires a non-empty query or symbolIds",
-    });
-  }
 });
 
 function resolveQueryCodeIntent(
   input: Pick<
     QueryCodeOptions,
-    "intent" | "symbolId" | "symbolIds" | "filePath" | "tokenBudget" | "includeRankedCandidates"
+    "intent" | "symbolId" | "symbolIds" | "filePath"
   >,
 ): Exclude<QueryCodeIntent, "auto"> {
   if (input.intent && input.intent !== "auto") {
@@ -129,10 +117,6 @@ function resolveQueryCodeIntent(
 
   if (input.filePath || input.symbolId) {
     return "source";
-  }
-
-  if (input.tokenBudget !== undefined || input.includeRankedCandidates) {
-    return "assemble";
   }
 
   if (input.symbolIds && input.symbolIds.length > 0) {
@@ -280,7 +264,7 @@ export function normalizeContextBundleSeeds(
     .filter(Boolean);
 
   if (!query && (!symbolIds || symbolIds.length === 0)) {
-    throw new Error("getContextBundle requires a non-empty query or symbolIds");
+    throw new Error("getTaskContext requires a non-empty query or symbolIds");
   }
 
   return {
@@ -305,6 +289,26 @@ export function validateRankedContextOptions(input: {
   if (input.tokenBudget !== undefined) {
     requirePositiveNumber(input.tokenBudget, "tokenBudget");
   }
+}
+
+const taskContextIntents = new Set<TaskContextIntent>([
+  "explore",
+  "debug",
+  "refactor",
+  "audit",
+]);
+
+export function validateTaskContextOptions(
+  input: Pick<TaskContextOptions, "query" | "symbolIds" | "intent" | "payloadTokenBudget">,
+): Pick<TaskContextOptions, "query" | "symbolIds"> {
+  if (input.payloadTokenBudget !== undefined) {
+    requirePositiveNumber(input.payloadTokenBudget, "payloadTokenBudget");
+  }
+  if (input.intent !== undefined && !taskContextIntents.has(input.intent)) {
+    throw new Error("intent must be one of: explore, debug, refactor, audit");
+  }
+
+  return normalizeContextBundleSeeds(input);
 }
 
 export function validateSymbolSourceOptions(input: {

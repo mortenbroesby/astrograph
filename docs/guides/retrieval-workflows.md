@@ -13,7 +13,7 @@ Use this order unless you have a good reason not to:
 1. inspect structure
 2. find the exact symbol or file
 3. pull the source you actually need
-4. escalate to bundled or ranked context only when the narrow path is not enough
+4. escalate to task context only when the narrow path is not enough
 
 ## Workflow 1: Find the Implementation of a Symbol
 
@@ -46,39 +46,27 @@ search within it.
 
 ## Workflow 3: Ask a Repository Question
 
-Use `query-code` when the question is broader than one symbol but still
-focused:
+Use `get-task-context` when the question is broader than one symbol but still
+focused and needs source-attributed context within an agent-visible budget:
 
 ```bash
-npx astrograph cli query-code \
+npx astrograph cli get-task-context \
   --repo /absolute/path/to/repo \
-  --intent assemble \
   --query "how does watch refresh remove deleted files?" \
-  --budget 8000 \
+  --intent debug \
+  --payload-token-budget 8000 \
   --include-references
 ```
 
-## Workflow 4: Escalate to Context Bundles
+## Workflow 4: Anchor Task Context
 
-Use bundled or ranked context when the narrow path still leaves too much
-uncertainty.
-
-Ranked context:
+Use explicit symbols when you already know the relevant implementation:
 
 ```bash
-npx astrograph cli get-ranked-context \
-  --repo /absolute/path/to/repo \
-  --query "watch refresh" \
-  --budget 2000
-```
-
-Context bundle around known symbols:
-
-```bash
-npx astrograph cli get-context-bundle \
+npx astrograph cli get-task-context \
   --repo /absolute/path/to/repo \
   --symbols <symbol-id-1>,<symbol-id-2> \
-  --budget 2000 \
+  --payload-token-budget 2000 \
   --include-references
 ```
 
@@ -115,7 +103,7 @@ npx astrograph cli doctor --repo /absolute/path/to/repo
 - reading whole files before checking structure
 - using broad search as the first and only tool
 - assuming empty or weak results mean the feature is bad instead of checking freshness
-- jumping to large context bundles before identifying the relevant symbol or file
+- jumping to task context before identifying the relevant symbol or file
 
 ## Where To Go Next
 
