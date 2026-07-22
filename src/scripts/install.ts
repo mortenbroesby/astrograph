@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
-import { constants as fsConstants, accessSync } from "node:fs";
+import { constants as fsConstants, accessSync, existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   isCancel,
@@ -19,7 +19,7 @@ import { fileURLToPath } from "node:url";
 import { isMainModule } from "../entrypoint.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
-import { resolveGlobalConfigPath } from "../config.ts";
+import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
@@ -40,6 +40,7 @@ const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"] as const;
 const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"] as const;
 const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
+const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
@@ -139,6 +140,21 @@ export interface GlobalSetupResult {
   engineConfigPath: string;
   configPreview: string;
   engineConfigPreview: string;
+}
+
+export interface GlobalInstallationDiagnostics {
+  schemaVersion: 1;
+  package: { name: string; version: string };
+  runtime: { nodeVersion: string; minimumNodeVersion: string; supported: boolean };
+  defaultGlobalIde: "copilot-cli";
+  storage: {
+    location: "global" | "repo-local" | "not-configured";
+    configPath: string;
+    cacheRoot: string;
+    cacheRootExists: boolean;
+  };
+  clients: Array<{ ide: "copilot-cli" | "codex"; configPath: string; configured: boolean }>;
+  nextStep: string;
 }
 
 interface AgentsPolicyResult {
@@ -301,6 +317,52 @@ function usage(): void {
       "  npx astrograph init --yes --ide all",
     ].join("\n") + "\n",
   );
+}
+
+function nodeVersionSupported(nodeVersion: string): boolean {
+  const match = nodeVersion.replace(/^v/, "").match(/^(\d+)\.(\d+)\./);
+  const major = Number(match?.[1] ?? 0);
+  const minor = Number(match?.[2] ?? 0);
+  return major > 22 || (major === 22 && minor >= 12);
+}
+
+export async function getGlobalInstallationDiagnostics(
+  environment: StoragePathEnvironment = {},
+): Promise<GlobalInstallationDiagnostics> {
+  const engineConfigPath = resolveGlobalConfigPath(environment);
+  const cacheRoot = resolveGlobalCacheRoot(environment);
+  const engineConfig = await readOptionalConfig(engineConfigPath);
+  let storageLocation: GlobalInstallationDiagnostics["storage"]["location"] = "not-configured";
+  if (engineConfig) {
+    const parsed = parseGlobalConfig(engineConfig, engineConfigPath);
+    storageLocation = parsed.storageLocation === "global" ? "global" : "repo-local";
+  }
+  const copilotConfigPath = resolveGlobalCopilotCliConfigPath(environment);
+  const codexConfigPath = resolveGlobalCodexConfigPath(environment);
+
+  return {
+    schemaVersion: 1,
+    package: { name: PACKAGE_NAME, version: PACKAGE_VERSION },
+    runtime: {
+      nodeVersion: process.versions.node,
+      minimumNodeVersion: "22.12.0",
+      supported: nodeVersionSupported(process.versions.node),
+    },
+    defaultGlobalIde: DEFAULT_GLOBAL_INSTALL_IDE,
+    storage: {
+      location: storageLocation,
+      configPath: engineConfigPath,
+      cacheRoot,
+      cacheRootExists: existsSync(cacheRoot),
+    },
+    clients: [
+      { ide: "copilot-cli", configPath: copilotConfigPath, configured: existsSync(copilotConfigPath) },
+      { ide: "codex", configPath: codexConfigPath, configured: existsSync(codexConfigPath) },
+    ],
+    nextStep: storageLocation === "global" && existsSync(copilotConfigPath)
+      ? "Open Copilot CLI in a repository and use Astrograph normally; run index_folder when that repository has no index."
+      : "Run astrograph install --global to register Astrograph for Copilot CLI and enable isolated global cache storage.",
+  };
 }
 
 function isInstallIde(value: string): boolean {
@@ -1234,16 +1296,20 @@ export async function setupForAllIdes(
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
+  if (argv.length === 1 && argv[0] === "--diagnostics") {
+    process.stdout.write(`${JSON.stringify(await getGlobalInstallationDiagnostics(), null, 2)}\n`);
+    return;
+  }
   if (argv.includes("--global")) {
     if (process.env.ASTROGRAPH_ENTRY_MODE !== "install") {
-      throw new Error("Use `astrograph install --global --ide codex|copilot-cli`; `astrograph init` is repository-scoped.");
+      throw new Error("Use `astrograph install --global [--ide copilot-cli|codex]`; `astrograph init` is repository-scoped.");
     }
     const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run"]);
     if (argv.some((entry) => !allowed.has(entry))) {
-      throw new Error("astrograph install --global accepts only --ide codex|copilot-cli and --dry-run.");
+      throw new Error("astrograph install --global accepts only --ide copilot-cli|codex and --dry-run.");
     }
     const ideIndex = argv.indexOf("--ide");
-    const ide = ideIndex >= 0 ? argv[ideIndex + 1] : "codex";
+    const ide = ideIndex >= 0 ? argv[ideIndex + 1] : DEFAULT_GLOBAL_INSTALL_IDE;
     if (ide !== "codex" && ide !== "copilot-cli") {
       throw new Error("astrograph install --global currently supports only --ide codex or --ide copilot-cli");
     }

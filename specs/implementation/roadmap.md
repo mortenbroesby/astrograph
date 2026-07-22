@@ -31,6 +31,9 @@ roadmap explains everything else.
 - Windows audit, filesystem/storage, Git fallback, CLI/package, watch, and
   CI/documentation checklists are available in [planned work](./planned/README.md).
   Select one only for a concrete platform gap or release requirement.
+- [Reversible user-data cleanup](./planned/reversible-user-data-cleanup-delivery-checklist.md)
+  is ready to establish an archive-first, auditable cleanup contract. It must
+  be selected before cache cleanup behavior changes.
 
 ## Parked — revisit only with new evidence
 

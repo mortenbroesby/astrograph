@@ -169,17 +169,24 @@ combines source or mutable index data from separate repositories.
 
 ### 1) Install the command
 
-Global setup requires Node.js `>=22.12.0`. Install Astrograph, then open a new
-shell if your npm global bin directory was not already on `PATH`:
+Global setup requires Node.js `>=22.12.0`. Install or update Astrograph, then
+open a new shell if your npm global bin directory was not already on `PATH`:
 
 ```bash
-npm install --global astrograph
-astrograph --help
+npm install --global astrograph@latest
+astrograph --version
+astrograph --diagnostics
 ```
 
 ### 2) Register your global server
 
-For Codex:
+By default, Astrograph registers Copilot CLI:
+
+```bash
+astrograph install --global
+```
+
+For Codex instead:
 
 ```bash
 astrograph install --global --ide codex
@@ -197,6 +204,13 @@ user-level configuration: `~/.codex/config.toml` for Codex, or
 when that variable is set). It also writes the global-storage preference to
 your user-level Astrograph configuration. It does not modify any repository.
 Restart the selected harness after this command so it loads the MCP server.
+
+`astrograph --diagnostics` reports the installed Astrograph version, Node
+compatibility, selected global-storage configuration, cache root, and whether
+the Copilot CLI or Codex registration is present. On macOS all global state is
+visible under `~/.astrograph`: `config.json` is created during global setup and
+`cache/` is created when the first repository is indexed. Pre-v1 Astrograph
+does not reuse the previous Library cache/config locations.
 
 To preview the changes without writing files:
 
