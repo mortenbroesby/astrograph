@@ -132,12 +132,18 @@ focused release tests.
   [29948789650](https://github.com/mortenbroesby/astrograph/actions/runs/29948789650)
   and [29949213303](https://github.com/mortenbroesby/astrograph/actions/runs/29949213303)
   passed with a no-op decision: no tag push and no npm publication.
+- PR #67 completed the pure decision fixtures and advanced the required alpha
+  version. Its verified main merge created the newer immutable tag
+  `v0.5.1-alpha.157`, but npm publication failed with the same trusted-publisher
+  404 in [run 29950216983](https://github.com/mortenbroesby/astrograph/actions/runs/29950216983).
+  The newer tag supersedes `.156` as the recovery candidate; neither version is
+  in the npm registry.
 
 ## Remaining external prerequisite
 
 Configure npm trusted publishing for package `astrograph` to GitHub owner
 `mortenbroesby`, repository `astrograph`, workflow filename `ci.yml`, and
 environment `npm`, with `npm publish` allowed. Then dispatch the **CI**
-workflow with `tag=v0.5.1-alpha.156`, verify the npm registry result, rerun the
-same release decision once for idempotence, and complete the unchecked fixture
-and job-summary evidence before closing this checklist.
+workflow with `tag=v0.5.1-alpha.157`, verify the npm registry result, rerun the
+same release decision once for idempotence, and complete the remaining
+end-to-end publication evidence before closing this checklist.
