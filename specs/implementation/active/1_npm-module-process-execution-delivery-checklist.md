@@ -24,15 +24,15 @@ existing packed-package smoke.
 `src/scripts/release-agent.ts`, `src/scripts/install.ts`, their focused tests,
 and this checklist.
 
-- [ ] Record each target's current command, arguments, working-directory,
+- [x] Record each target's current command, arguments, working-directory,
   stdio, timeout, successful result, and non-zero/error behavior. The known
   direct call sites are `spawnSync` in `run-vitest.ts`, `execFileSync` for git
   and npm lookup in `release-agent.ts`, and `execFileSync` for npm/git/config
   support in `install.ts`.
-- [ ] Verify the selected `execa` release supports Node `>=22.12.0`, has an
+- [x] Verify the selected `execa` release supports Node `>=22.12.0`, has an
   acceptable license, and exposes the synchronous behavior required by these
   scripts. Record the selected version and why no async migration is needed.
-- [ ] Run the current focused release-agent, installer/engine-contract,
+- [x] Run the current focused release-agent, installer/engine-contract,
   CLI-boundary, and package-bin tests plus `pnpm type-lint`; stop and record
   any baseline failure before changing source.
 
@@ -42,18 +42,18 @@ and this checklist.
 `src/scripts/run-vitest.ts`, `src/scripts/release-agent.ts`,
 `src/scripts/install.ts`, and focused tests such as `tests/process.test.ts`.
 
-- [ ] Add `execa` at the verified version and create a small internal wrapper
+- [x] Add `execa` at the verified version and create a small internal wrapper
   with explicit options for `cwd`, encoding, stdio, timeout, and error
   propagation. Do not make it a public export.
-- [ ] Migrate `run-vitest.ts` first, retaining its normalized arguments and
+- [x] Migrate `run-vitest.ts` first, retaining its normalized arguments and
   exit-code behavior. Add a focused test proving a non-zero child process is
   surfaced without losing actionable output.
-- [ ] Migrate the release agent's generic git/npm commands without changing
+- [x] Migrate the release agent's generic git/npm commands without changing
   Astrograph's alpha policy, registry-unavailable handling, or release
   transaction semantics.
-- [ ] Migrate installer generic git/npm calls without changing managed-block
+- [x] Migrate installer generic git/npm calls without changing managed-block
   edits, dry-run, archive-first recovery, or global/local storage behavior.
-- [ ] Document any remaining direct synchronous process call inside these
+- [x] Document any remaining direct synchronous process call inside these
   three files with the specific product reason; do not expand the migration to
   unrelated runtime, test, or refresh code.
 
@@ -87,3 +87,24 @@ and this checklist.
   public Astrograph API.
 - Exact-head CI and packed-package evidence prove the published CLI and
   installer/release workflows remain safe.
+
+## Baseline and implementation evidence (2026-07-22)
+
+- Before source changes, `pnpm type-lint`, the focused release-agent,
+  installer/engine-contract, and CLI-boundary suite (53 tests), and
+  `pnpm test:package-bin` all passed from `fd719fa`.
+- `npm view execa` selected `10.0.0`: MIT licensed, Node `>=22`, and therefore
+  compatible with Astrograph's Node `>=22.12.0` floor. `execaSync` retains the
+  required synchronous script contract; this story intentionally does not add
+  an async rewrite.
+- `src/lib/process.ts` is private and wraps only `execaSync`. Focused TDD
+  proves captured stdout and non-zero propagation. The adoption test prevents
+  the three selected scripts from importing `node:child_process` directly.
+- `run-vitest.ts` retains its normalized arguments, inherited stdio,
+  Windows shell choice, and non-zero exit behavior; a nonexistent test target
+  exited with code 1. Release-agent and installer retain their prior cwd,
+  encoding, stdio, timeout, and catch/fallback behavior through the seam.
+- The full suite's only local failure was the pre-existing sandbox inability to
+  create `/Users/macbook/.astrograph`; `tests/watch-boundary.test.ts` passed
+  4/4 when supplied an isolated temporary `HOME` and cache. No user cache was
+  modified. The guarded version-policy command passed without a manual bump.
