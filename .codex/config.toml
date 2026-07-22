@@ -4,9 +4,27 @@ command = "npx"
 args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]
 cwd = "."
 startup_timeout_sec = 90
-enabled_tools = ["query_code", "get_file_tree", "get_file_outline"]
+enabled_tools = ["index_folder", "index_file", "find_files", "search_text", "get_file_summary", "get_project_status", "get_repo_outline", "get_file_tree", "get_file_outline", "suggest_initial_queries", "search_symbols", "get_symbol_source", "get_task_context", "diagnostics"]
 
-[mcp_servers.astrograph.tools.query_code]
+[mcp_servers.astrograph.tools.index_folder]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.index_file]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.find_files]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.search_text]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_file_summary]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_project_status]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_repo_outline]
 approval_mode = "approve"
 
 [mcp_servers.astrograph.tools.get_file_tree]
@@ -15,7 +33,23 @@ approval_mode = "approve"
 [mcp_servers.astrograph.tools.get_file_outline]
 approval_mode = "approve"
 
+[mcp_servers.astrograph.tools.suggest_initial_queries]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.search_symbols]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_symbol_source]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.get_task_context]
+approval_mode = "approve"
+
+[mcp_servers.astrograph.tools.diagnostics]
+approval_mode = "approve"
+
+# END ASTROGRAPH
+
 [mcp_servers.github]
 url = "https://api.githubcopilot.com/mcp/"
 bearer_token_env_var = "GITHUB_PAT_TOKEN"
-# END ASTROGRAPH

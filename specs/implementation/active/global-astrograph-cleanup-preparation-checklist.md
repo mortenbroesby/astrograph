@@ -29,10 +29,10 @@ source/test files discovered in Task 2.
 
 ## Task 2: Build a bounded cleanup inventory before editing runtime code
 
-- [ ] Start with `get_project_status`; refresh the Astrograph index only if it
-  is stale. Inspect storage/config/install/MCP boundaries with Astrograph tools
-  before raw searches.
-- [ ] Run and record the baseline:
+- [x] Astrograph MCP tools were unavailable in this session, so inspect the
+  storage/config/install/MCP boundaries with raw source reads as the permitted
+  Astrograph-debugging fallback.
+- [x] Run and record the baseline:
 
   ```bash
   pnpm type-lint
@@ -41,34 +41,34 @@ source/test files discovered in Task 2.
 
   Expected: all commands exit `0`, or every unrelated environment failure is
   recorded without being misattributed to cleanup.
-- [ ] Inventory only these cleanup classes: obsolete pre-v1 cache reads or
+- [x] Inventory only these cleanup classes: obsolete pre-v1 cache reads or
   migrations, duplicate configuration/installer contract definitions, dead
   compatibility paths, stale generated-client policy, and docs/spec links that
   disagree with current `main`.
-- [ ] For every candidate, record owner files, callers, public-contract impact,
+- [x] For every candidate, record owner files, callers, public-contract impact,
   focused test, deletion safety, and whether it blocks the selected global
-  follow-up. Do not turn this into a broad style refactor.
+  follow-up. See the [cleanup inventory](../../../docs/reviews/global-astrograph-cleanup-2026-07-22.md).
+  Do not turn this into a broad style refactor.
 
 ## Task 3: Apply only proven cleanup
 
-- [ ] Choose at most one cohesive cleanup whose inventory shows no active
-  caller or required compatibility obligation. If no such target exists, mark
-  this task “no code change justified” with the evidence.
-- [ ] Add or update the narrowest regression test before changing behavior.
-- [ ] Remove the obsolete path or reconcile its single owner. Do not add a
+- [x] Choose one cohesive cleanup: reconcile the stale tracked Codex client
+  policy, whose obsolete `query_code` allowlist had no active v1 contract.
+- [x] Add the narrowest regression test before changing behavior.
+- [x] Reconcile the configuration with its single production owner. Do not add a
   compatibility shim, migration reader, shared mutable index, daemon, network
   synchronization, or destructive MCP cache command.
-- [ ] Update the directly affected API/docs/spec contract only when public
-  behavior changes.
+- [x] No public API/docs/spec contract changes are required; the review record
+  documents the development-configuration correction.
 
 ## Task 4: Select the next delivery story and hand off
 
-- [ ] Re-evaluate the documented gates for immutable artifact reuse, global
+- [x] Re-evaluate the documented gates for immutable artifact reuse, global
   install health/recovery, compact transport, release publication evidence,
   and later precision work using Task 2 evidence.
-- [ ] Select exactly one next story only if its gate is satisfied. Otherwise
-  set `pointer.md` to the smallest remaining evidence-gathering goal and keep
-  all product stories deferred.
+- [x] Select [File-Type Support Coverage and Discovery](../planned/filetype-support-coverage-delivery-checklist.md)
+  after this cleanup merges: the explicit user request satisfies its documented
+  coverage/documentation-gap gate.
 - [ ] Create or update that story's active checklist with exact files,
   baseline, focused tests, final verification, release decision, and commit
   checkpoint.

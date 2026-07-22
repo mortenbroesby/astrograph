@@ -203,6 +203,28 @@ describe("ai-context-engine contract", () => {
     expect(getCommandByMcpToolName("get_task_context")).toBe(COMMAND_REGISTRY.getTaskContext);
   });
 
+  it("keeps the tracked Codex MCP configuration aligned with the v1 tool contract", async () => {
+    const config = await readFile(path.join(process.cwd(), ".codex", "config.toml"), "utf8");
+    const managed = config.match(/# BEGIN ASTROGRAPH[\s\S]*?# END ASTROGRAPH/);
+    expect(managed).not.toBeNull();
+
+    const managedContents = managed?.[0] ?? "";
+    const enabledToolsMatch = managedContents.match(/^enabled_tools = \[([^\]]*)\]$/m);
+    expect(enabledToolsMatch).not.toBeNull();
+    const enabledTools = [...(enabledToolsMatch?.[1] ?? "").matchAll(/"([^"]+)"/g)]
+      .map((match) => match[1]);
+
+    expect(enabledTools).toEqual(MCP_TOOL_DEFINITIONS.map((tool) => tool.name));
+    for (const tool of MCP_TOOL_DEFINITIONS) {
+      expect(managedContents).toContain(
+        `[mcp_servers.astrograph.tools.${tool.name}]\napproval_mode = "approve"`,
+      );
+    }
+    expect(managedContents).not.toContain("query_code");
+    expect(managedContents).not.toContain("[mcp_servers.github]");
+    expect(config).toContain("[mcp_servers.github]");
+  });
+
   it("normalizes dispatch failures into MCP envelopes", async () => {
     const unknownToolResult = await dispatchTool("query_code", { repoRoot: "/tmp" });
     expect(unknownToolResult).toMatchObject({
