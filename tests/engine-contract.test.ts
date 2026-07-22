@@ -185,8 +185,7 @@ describe("ai-context-engine contract", () => {
       "suggest_initial_queries",
       "search_symbols",
       "get_symbol_source",
-      "get_context_bundle",
-      "get_ranked_context",
+      "get_task_context",
       "diagnostics",
     ]);
     expect(MCP_COMMAND_REGISTRY.map((command) => command.mcpToolName)).toEqual(
@@ -196,13 +195,12 @@ describe("ai-context-engine contract", () => {
       "repoRoot",
       "summaryStrategy",
     ]);
-    expect(COMMAND_REGISTRY.queryCode.normalizedOptions).toContain("tokenBudget");
+    expect(COMMAND_REGISTRY.queryCode.normalizedOptions).not.toContain("tokenBudget");
     expect(getCommandByCliCommand("query-code")).toBe(COMMAND_REGISTRY.queryCode);
     expect(getCommandByMcpToolName("query_code")).toBeUndefined();
     expect(getCommandByMcpToolName("search_symbols")).toBe(COMMAND_REGISTRY.searchSymbols);
     expect(getCommandByMcpToolName("get_symbol_source")).toBe(COMMAND_REGISTRY.getSymbolSource);
-    expect(getCommandByMcpToolName("get_context_bundle")).toBe(COMMAND_REGISTRY.getContextBundle);
-    expect(getCommandByMcpToolName("get_ranked_context")).toBe(COMMAND_REGISTRY.getRankedContext);
+    expect(getCommandByMcpToolName("get_task_context")).toBe(COMMAND_REGISTRY.getTaskContext);
   });
 
   it("normalizes dispatch failures into MCP envelopes", async () => {
@@ -306,24 +304,25 @@ describe("ai-context-engine contract", () => {
     }
   });
 
-  it("rejects malformed get_context_bundle output with a strict failure envelope", async () => {
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+  it("rejects malformed get_task_context output with a strict failure envelope", async () => {
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_task_context");
     expect(tool).toBeDefined();
 
     const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
     const originalExecute = mutableTool.execute;
     try {
       mutableTool.execute = async () => ({
-        tokenBudget: 128,
-        usedTokens: 12,
-        estimatedTokens: 18,
+        payloadTokenBudget: 128,
+        usedPayloadTokens: 12,
+        estimatedPayloadTokens: 18,
+        sourceTokens: 12,
         truncated: false,
         query: "Greeter",
         repoRoot: "/tmp",
         items: "not-an-array",
       });
 
-      const malformedResult = await dispatchTool("get_context_bundle", {
+      const malformedResult = await dispatchTool("get_task_context", {
         repoRoot: "/tmp",
         query: "Greeter",
       });
@@ -333,7 +332,7 @@ describe("ai-context-engine contract", () => {
         data: null,
         error: {
           code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
-          message: expect.stringContaining("get_context_bundle output must include items"),
+          message: expect.stringContaining("get_task_context output must include items"),
         },
         meta: {
           toolVersion: "1",
@@ -1234,7 +1233,7 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
     expect(result.agentsPolicyPreview).toContain("search_symbols");
-    expect(result.agentsPolicyPreview).toContain("get_context_bundle");
+    expect(result.agentsPolicyPreview).toContain("get_task_context");
     expect(result.agentsPolicyPreview).not.toContain("query_code");
   });
 
@@ -1312,8 +1311,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain("index_folder");
     expect(result.configPreview).toContain("search_symbols");
     expect(result.configPreview).toContain("get_symbol_source");
-    expect(result.configPreview).toContain("get_context_bundle");
-    expect(result.configPreview).toContain("get_ranked_context");
+    expect(result.configPreview).toContain("get_task_context");
     expect(result.configPreview).not.toContain("query_code");
     expect(result.configPreview).toContain("diagnostics");
   });
@@ -1337,8 +1335,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain('"tools": [');
     expect(result.configPreview).toContain('"search_symbols"');
     expect(result.configPreview).toContain('"get_symbol_source"');
-    expect(result.configPreview).toContain('"get_context_bundle"');
-    expect(result.configPreview).toContain('"get_ranked_context"');
+    expect(result.configPreview).toContain('"get_task_context"');
     expect(result.configPreview).not.toContain('"query_code"');
     expect(result.configPreview).toContain('"suggest_initial_queries"');
     expect(result.configPreview).toContain('"diagnostics"');

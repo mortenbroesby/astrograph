@@ -85,10 +85,14 @@ function extractUsedTokenBudget(
   if (typeof result === "object" && result !== null) {
     const output = result as {
       usedTokens?: unknown;
+      usedPayloadTokens?: unknown;
       bundle?: { usedTokens?: unknown };
     };
     if (typeof output.usedTokens === "number" && Number.isFinite(output.usedTokens)) {
       return output.usedTokens;
+    }
+    if (typeof output.usedPayloadTokens === "number" && Number.isFinite(output.usedPayloadTokens)) {
+      return output.usedPayloadTokens;
     }
     if (
       typeof output.bundle === "object"
@@ -121,16 +125,6 @@ function ensureString(value: unknown): value is string {
 
 function ensureBoolean(value: unknown): value is boolean {
   return typeof value === "boolean";
-}
-
-function ensureArrayOfStrings(value: unknown, fieldName: string): value is string[] {
-  if (!Array.isArray(value)) {
-    throw new Error(`get_${fieldName} output must include an array of strings`);
-  }
-  if (!value.every((entry) => typeof entry === "string")) {
-    throw new Error(`get_${fieldName} output must include strings only`);
-  }
-  return true;
 }
 
 function assertSymbolSummary(value: unknown): value is Record<string, unknown> {
@@ -307,103 +301,49 @@ function validateSymbolSourceOutput(result: unknown) {
   }
 }
 
-function validateContextBundleOutput(result: unknown) {
+function validateTaskContextOutput(result: unknown) {
   assertIsObject(result);
-  if (!ensureNumber(result.tokenBudget)) {
-    throw new Error("get_context_bundle output must include tokenBudget");
+  if (!ensureNumber(result.payloadTokenBudget)) {
+    throw new Error("get_task_context output must include payloadTokenBudget");
   }
-  if (!ensureNumber(result.usedTokens)) {
-    throw new Error("get_context_bundle output must include usedTokens");
+  if (!ensureNumber(result.usedPayloadTokens)) {
+    throw new Error("get_task_context output must include usedPayloadTokens");
   }
-  if (!ensureNumber(result.estimatedTokens)) {
-    throw new Error("get_context_bundle output must include estimatedTokens");
+  if (!ensureNumber(result.estimatedPayloadTokens) || !ensureNumber(result.sourceTokens)) {
+    throw new Error("get_task_context output must include token accounting");
   }
   if (!ensureBoolean(result.truncated)) {
-    throw new Error("get_context_bundle output must include truncated");
+    throw new Error("get_task_context output must include truncated");
   }
   if (typeof result.query !== "string" && result.query !== null) {
-    throw new Error("get_context_bundle output must include query as string or null");
+    throw new Error("get_task_context output must include query as string or null");
   }
   if (typeof result.repoRoot !== "string") {
-    throw new Error("get_context_bundle output must include repoRoot");
+    throw new Error("get_task_context output must include repoRoot");
   }
   if (!Array.isArray(result.items)) {
-    throw new Error("get_context_bundle output must include items");
+    throw new Error("get_task_context output must include items");
   }
+  if (!Array.isArray(result.exclusions)) throw new Error("get_task_context output must include exclusions");
 
   for (const item of result.items) {
     assertIsObject(item);
     if (!ensureString(item.role)) {
-      throw new Error("context bundle item missing role");
+      throw new Error("task context item missing role");
     }
     if (!ensureString(item.reason)) {
-      throw new Error("context bundle item missing reason");
+      throw new Error("task context item missing reason");
     }
     if (!ensureString(item.source)) {
-      throw new Error("context bundle item missing source");
+      throw new Error("task context item missing source");
     }
-    if (!ensureNumber(item.tokenCount)) {
-      throw new Error("context bundle item missing tokenCount");
+    if (!ensureNumber(item.sourceTokens)) {
+      throw new Error("task context item missing sourceTokens");
     }
     assertSymbolSummary(item.symbol);
-  }
-}
-
-function validateRankedContextOutput(result: unknown) {
-  assertIsObject(result);
-  if (typeof result.query !== "string") {
-    throw new Error("get_ranked_context output must include query");
-  }
-  if (!ensureNumber(result.tokenBudget)) {
-    throw new Error("get_ranked_context output must include tokenBudget");
-  }
-  if (!ensureNumber(result.candidateCount)) {
-    throw new Error("get_ranked_context output must include candidateCount");
-  }
-  if (typeof result.repoRoot !== "string") {
-    throw new Error("get_ranked_context output must include repoRoot");
-  }
-  if (!Array.isArray(result.candidates)) {
-    throw new Error("get_ranked_context output must include candidates");
-  }
-  for (const candidate of result.candidates) {
-    assertIsObject(candidate);
-    if (!ensureNumber(candidate.rank) || !ensureNumber(candidate.score)) {
-      throw new Error("get_ranked_context candidate must include numeric rank and score");
+    if (typeof item.provenance !== "object" || item.provenance === null) {
+      throw new Error("task context item missing provenance");
     }
-    if (!ensureString(candidate.reason)) {
-      throw new Error("get_ranked_context candidate must include reason");
-    }
-    if (typeof candidate.selected !== "boolean") {
-      throw new Error("get_ranked_context candidate must include selected");
-    }
-    assertSymbolSummary(candidate.symbol);
-  }
-  if (!Array.isArray(result.selectedSeedIds)) {
-    throw new Error("get_ranked_context output must include selectedSeedIds");
-  }
-  ensureArrayOfStrings(result.selectedSeedIds, "ranked_context selectedSeedIds");
-  if (typeof result.bundle !== "object" || result.bundle === null) {
-    throw new Error("get_ranked_context output must include bundle");
-  }
-  const bundle = result.bundle as Record<string, unknown>;
-  if (typeof bundle.query !== "string" && bundle.query !== null) {
-    throw new Error("get_ranked_context bundle output must include query");
-  }
-  if (typeof bundle.repoRoot !== "string") {
-    throw new Error("get_ranked_context bundle output must include repoRoot");
-  }
-  if (!ensureNumber(bundle.tokenBudget)) {
-    throw new Error("get_ranked_context bundle output must include tokenBudget");
-  }
-  if (!ensureNumber(bundle.estimatedTokens)) {
-    throw new Error("get_ranked_context bundle output must include estimatedTokens");
-  }
-  if (!ensureNumber(bundle.usedTokens)) {
-    throw new Error("get_ranked_context bundle output must include usedTokens");
-  }
-  if (typeof bundle.truncated !== "boolean") {
-    throw new Error("get_ranked_context bundle output must include truncated");
   }
 }
 
@@ -420,12 +360,8 @@ function validateToolOutput(name: string, result: unknown) {
     validateSymbolSourceOutput(result);
     return;
   }
-  if (name === "get_context_bundle") {
-    validateContextBundleOutput(result);
-    return;
-  }
-  if (name === "get_ranked_context") {
-    validateRankedContextOutput(result);
+  if (name === "get_task_context") {
+    validateTaskContextOutput(result);
   }
 }
 

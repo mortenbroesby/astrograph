@@ -13,7 +13,7 @@ The TypeScript API exports Astrograph's core operations for direct Node use.
 
 - Indexing and refresh: `indexFolder`, `indexFile`, `watchFolder`
 - Discovery and retrieval: `findFiles`, `searchText`, `searchSymbols`, `queryCode`
-- Exact source and context: `getSymbolSource`, `getFileContent`, `getContextBundle`, `getRankedContext`
+- Exact source and context: `getSymbolSource`, `getFileContent`, `getTaskContext`
 - Health and operations: `diagnostics`, `doctor`, `getProjectStatus`
 
 ## Verification

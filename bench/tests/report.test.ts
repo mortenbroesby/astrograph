@@ -92,7 +92,7 @@ function createSyntheticResults() {
         targets: [
           {
             kind: "symbol",
-            value: "getContextBundle",
+            value: "getTaskContext",
             mode: "exact",
           },
         ],
@@ -110,7 +110,7 @@ function createSyntheticResults() {
           {
             target: {
               kind: "symbol",
-              value: "getContextBundle",
+              value: "getTaskContext",
               mode: "exact",
             },
             matched: false,

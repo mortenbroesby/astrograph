@@ -115,6 +115,7 @@ import {
   getContextBundleFromContext,
   getFileContentFromContext,
   getRankedContextFromContext,
+  getTaskContextFromContext,
   getSymbolSourceFromContext,
   queryCodeInContext,
   resolveQueryCodeIntent,
@@ -152,6 +153,8 @@ import type {
   QueryCodeOptions,
   QueryCodeResult,
   RankedContextResult,
+  TaskContextOptions,
+  TaskContextResult,
   RepoOutline,
   SearchSymbolsOptions,
   SearchSymbolsResult,
@@ -2476,6 +2479,17 @@ export async function getRankedContext(input: {
 
   try {
     return getRankedContextFromContext(context, input);
+  } finally {
+    closeEngineContext(context);
+  }
+}
+
+export async function getTaskContext(
+  input: TaskContextOptions,
+): Promise<TaskContextResult> {
+  const context = await createEngineContext(input);
+  try {
+    return getTaskContextFromContext(context, input);
   } finally {
     closeEngineContext(context);
   }

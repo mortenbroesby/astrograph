@@ -109,12 +109,12 @@
       "targets": [
         {
           "kind": "symbol",
-          "value": "bundleWorkflow",
+          "value": "taskContextWorkflow",
           "mode": "exact"
         },
         {
           "kind": "symbol",
-          "value": "getContextBundle",
+          "value": "getTaskContext",
           "mode": "exact"
         }
       ]

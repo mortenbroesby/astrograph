@@ -54,6 +54,7 @@ before implementation.
 | 7 | Pain-free global installation and repository usage | Makes the global install the normal one-time setup, with every repository using the global cache automatically. | Story 3 transparency | A clean-machine and multi-repository setup matrix proving no repo-local bootstrap is needed. |
 | 8 | Copilot CLI first-party global installation | Makes Copilot CLI a supported peer of Codex for global Astrograph-server installation and use. | Story 7 global workflow | A packed-package Copilot CLI matrix proving install, repair, and normal global use. |
 | 9 | Pre-v1 cache and codebase cleanup | Removes obsolete cache and compatibility debt once the intended global workflow is settled. | Stories 4–8 evidence gates | A bounded cache-lifecycle and code-smell inventory tied to exact files and tests. |
+| 10 | Tokenizer and token-estimator research | Makes token budgets and benchmark claims trustworthy before investing in compact transport or another context format. | Story 5 JSON evidence | A reproducible candidate matrix covering accuracy, runtime, package footprint, license, Node support, and maintenance risk. |
 
 ## Story 1: Global + Branch-Aware Immutable Artifact Reuse
 
@@ -170,8 +171,13 @@ precision@k, MRR, zero-result rate, warm latency, and storage delta.
 
 ## Story 5: Token-Budgeted Context and Compact Transport
 
-**Status:** Unselected — Story 4's prerequisite is complete, but Story 5 has
-not yet established its required payload, relevance, and latency baseline.
+**Status:** Active — the baseline on main commit `1efcc8f` showed that the
+three current context paths cannot produce the same bounded agent-visible
+payload: at 400 source tokens they selected no items for representative tasks,
+and at 8,000 they serialized 13.7k–30.8k tokens for 4,499 selected source
+tokens. The selected work is the bounded JSON task-context contract in the
+[delivery checklist](./token-budgeted-task-context-delivery-checklist.md).
+Compact transport remains deferred until that contract is measured.
 
 **Outcome:** Agents receive coherent, source-attributed task context inside a
 declared budget rather than broad file dumps.
@@ -300,6 +306,31 @@ inventory into a broad refactor campaign.
 moved aside without being read, indexed, or migrated; active caches and paths
 outside Astrograph-owned storage are never deleted. The selected cleanup list
 records each removal, its verification, and every intentionally deferred item.
+
+## Story 10: Tokenizer and Token-Estimator Research
+
+**Status:** Planned — use the dedicated
+[research checklist](../planned/tokenizer-estimator-research-delivery-checklist.md)
+before changing the production tokenizer or any token-budget contract.
+
+**Outcome:** Astrograph has an evidence-backed choice for exact token counting
+and an optional fast estimator, including clear bounds on what each metric
+means for agent-visible task-context payloads.
+
+**Scope:** Compare the current production tokenizer (`tiktoken`) and existing
+estimator (`tokenx`) with a small, current candidate set. Assess exactness for
+representative JSON/provenance/Unicode payloads, warm latency, package size,
+Node 22+ support, license, maintenance health, offline behavior, and native
+binary risk. Do not change the production dependency or token-budget contract
+until the checklist's decision gate is satisfied.
+
+**Selection gate:** Record a reproducible matrix on locked package versions
+and a corpus of task-context JSON plus empty/error and Unicode cases. Show a
+material accuracy, latency, or maintenance benefit over the current split.
+
+**Acceptance evidence:** The research record names one retained/replaced
+choice for exact counts and estimates, records the measurements and trade-offs,
+and includes focused regression fixtures if a dependency change is selected.
 
 ## Non-Goals
 

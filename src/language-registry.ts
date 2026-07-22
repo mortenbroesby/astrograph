@@ -35,8 +35,7 @@ const GRAPH_TOOL_AVAILABILITY: TierToolAvailability = {
     "suggest_initial_queries",
     "search_symbols",
     "get_symbol_source",
-    "get_context_bundle",
-    "get_ranked_context",
+    "get_task_context",
   ],
 };
 

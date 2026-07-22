@@ -9,14 +9,13 @@ import {
 } from "./command-registry.ts";
 import type { SupportedLanguage, SymbolKind } from "./types.ts";
 import {
-  validateContextBundleOptions,
   validateFindFilesOptions,
   validateFileSummaryOptions,
   validateProjectStatusOptions,
-  validateRankedContextOptions,
   validateSearchTextOptions,
   validateSearchSymbolsOptions,
   validateSymbolSourceOptions,
+  validateTaskContextOptions,
 } from "./validation.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
@@ -390,14 +389,15 @@ export const MCP_TOOL_DEFINITIONS = [
     },
   },
   {
-    name: COMMAND_REGISTRY.getContextBundle.mcpToolName,
-    description: COMMAND_REGISTRY.getContextBundle.description,
+    name: COMMAND_REGISTRY.getTaskContext.mcpToolName,
+    description: COMMAND_REGISTRY.getTaskContext.description,
     toolVersion: "1",
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
-      symbolIds: zod.array(stringSchema("Indexed symbol id")).describe("Optional indexed symbol ids").optional(),
-      query: stringSchema("Optional query seed").optional(),
-      tokenBudget: numberSchema("Optional bundle token budget").optional(),
+      symbolIds: zod.array(stringSchema("Indexed symbol id")).describe("Optional explicit symbol anchors").optional(),
+      query: stringSchema("Optional lexical task query").optional(),
+      intent: zod.enum(["explore", "debug", "refactor", "audit"]).describe("Optional local task intent hint").optional(),
+      payloadTokenBudget: numberSchema("Optional serialized response token budget").optional(),
       includeDependencies: booleanSchema("When true, expand through imported dependency symbols").optional(),
       includeImporters: booleanSchema("When true, expand through reverse importer symbols").optional(),
       includeReferences: booleanSchema("When true, expand through importer files that explicitly reference matched symbols").optional(),
@@ -408,44 +408,18 @@ export const MCP_TOOL_DEFINITIONS = [
         repoRoot: requireString(args, "repoRoot"),
         query: optionalString(args, "query"),
         symbolIds: optionalStringArray(args, "symbolIds"),
-        tokenBudget: optionalNumber(args, "tokenBudget"),
+        intent: optionalString(args, "intent") as "explore" | "debug" | "refactor" | "audit" | undefined,
+        payloadTokenBudget: optionalNumber(args, "payloadTokenBudget"),
         includeDependencies: optionalBoolean(args, "includeDependencies"),
         includeImporters: optionalBoolean(args, "includeImporters"),
         includeReferences: optionalBoolean(args, "includeReferences"),
         relationDepth: optionalNumber(args, "relationDepth"),
       };
-      const normalized = validateContextBundleOptions(input);
-      return COMMAND_REGISTRY.getContextBundle.execute(engine, {
+      const normalized = validateTaskContextOptions(input);
+      return COMMAND_REGISTRY.getTaskContext.execute(engine, {
         ...input,
         ...normalized,
       });
-    },
-  },
-  {
-    name: COMMAND_REGISTRY.getRankedContext.mcpToolName,
-    description: COMMAND_REGISTRY.getRankedContext.description,
-    toolVersion: "1",
-    inputSchema: {
-      repoRoot: stringSchema("Repository root path"),
-      query: stringSchema("Ranking query"),
-      tokenBudget: numberSchema("Optional bundle token budget").optional(),
-      includeDependencies: booleanSchema("When true, expand through imported dependency symbols").optional(),
-      includeImporters: booleanSchema("When true, expand through reverse importer symbols").optional(),
-      includeReferences: booleanSchema("When true, expand through importer files that explicitly reference matched symbols").optional(),
-      relationDepth: numberSchema("Optional bounded graph expansion depth for dependency/importer traversal").optional(),
-    },
-    execute: async (engine, args) => {
-      const input = {
-        repoRoot: requireString(args, "repoRoot"),
-        query: requireString(args, "query"),
-        tokenBudget: optionalNumber(args, "tokenBudget"),
-        includeDependencies: optionalBoolean(args, "includeDependencies"),
-        includeImporters: optionalBoolean(args, "includeImporters"),
-        includeReferences: optionalBoolean(args, "includeReferences"),
-        relationDepth: optionalNumber(args, "relationDepth"),
-      };
-      validateRankedContextOptions(input);
-      return COMMAND_REGISTRY.getRankedContext.execute(engine, input);
     },
   },
   {

@@ -77,22 +77,13 @@ const commands: Record<string, CliHandler> = {
     }),
   "query-code": async (args) =>
     COMMAND_REGISTRY.queryCode.execute(engine, parseQueryCodeCliInput(args)),
-  "get-context-bundle": async (args) =>
-    COMMAND_REGISTRY.getContextBundle.execute(engine, {
+  "get-task-context": async (args) =>
+    COMMAND_REGISTRY.getTaskContext.execute(engine, {
       repoRoot: required(args, "repo"),
       query: optional(args, "query"),
       symbolIds: optionalList(args, "symbols"),
-      tokenBudget: optionalNumber(args, "budget"),
-      includeDependencies: args["include-dependencies"] === "true",
-      includeImporters: args["include-importers"] === "true",
-      includeReferences: args["include-references"] === "true",
-      relationDepth: optionalNumber(args, "relation-depth"),
-    }),
-  "get-ranked-context": async (args) =>
-    COMMAND_REGISTRY.getRankedContext.execute(engine, {
-      repoRoot: required(args, "repo"),
-      query: required(args, "query"),
-      tokenBudget: optionalNumber(args, "budget"),
+      intent: optional(args, "intent") as "explore" | "debug" | "refactor" | "audit" | undefined,
+      payloadTokenBudget: optionalNumber(args, "payload-token-budget"),
       includeDependencies: args["include-dependencies"] === "true",
       includeImporters: args["include-importers"] === "true",
       includeReferences: args["include-references"] === "true",

@@ -122,11 +122,10 @@ target. Symlinked cache paths are rejected rather than traversed.
 Query indexed metadata:
 
 ```bash
-npx astrograph cli query-code \
+npx astrograph cli get-task-context \
   --repo /absolute/path/to/repo \
-  --intent assemble \
   --query "how does watch refresh remove deleted files?" \
-  --budget 8000 \
+  --payload-token-budget 1200 \
   --include-references
 ```
 
@@ -169,7 +168,9 @@ compares returned symbol items with all ranked matches before the result cap.
 
 `query-code` is a CLI and TypeScript-library convenience workflow. It is
 intentionally not an MCP tool; MCP clients should compose `search_symbols`,
-`get_symbol_source`, `get_context_bundle`, and `get_ranked_context` instead.
+`get_symbol_source`, and `get_task_context` instead. Use `get_task_context`
+only when the narrower discovery/source path cannot answer the task within its
+declared payload-token budget.
 
 `get-symbol-source` returns UTF-8 source provenance for every item: a
 SHA-256 hash of the returned source, zero-based/end-exclusive byte range,

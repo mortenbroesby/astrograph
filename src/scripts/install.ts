@@ -46,8 +46,7 @@ const MCP_TOOLS = [
   "suggest_initial_queries",
   "search_symbols",
   "get_symbol_source",
-  "get_context_bundle",
-  "get_ranked_context",
+  "get_task_context",
   "diagnostics",
 ] as const;
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
@@ -963,7 +962,7 @@ function agentsPolicyBlockForAgentsMd(): string {
     "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
     "- Before reading a symbol, use `get_symbol_source`; before reading a file, use `get_file_outline` or `get_file_summary`.",
     "- Before searching broadly, use `search_symbols`, `find_files`, or `search_text`.",
-    "- For bounded implementation context, use `get_context_bundle` or `get_ranked_context`.",
+    "- For bounded implementation context, use `get_task_context`.",
     "- Before exploring structure, use `get_file_tree` or `get_repo_outline`.",
     "- Use raw file reads or shell search only when Astrograph cannot answer the question.",
     AGENTS_POLICY_END,
@@ -982,7 +981,7 @@ function agentsPolicyBlockForCopilotInstructions(): string {
     "- Use `get_project_status` to check the index; run `index_folder` if stale.",
     "- Use `get_file_outline`, `get_file_summary`, or `get_symbol_source` before opening raw source.",
     "- Use `search_symbols`, `find_files`, or `search_text` for discovery.",
-    "- Use `get_context_bundle` or `get_ranked_context` for bounded implementation context.",
+    "- Use `get_task_context` for bounded implementation context.",
     "- Use `get_file_tree` or `get_repo_outline` to understand structure.",
     "- Fall back to raw file access only when Astrograph tools cannot answer the question.",
     AGENTS_POLICY_END,
