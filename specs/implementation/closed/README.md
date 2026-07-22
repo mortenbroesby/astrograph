@@ -61,3 +61,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Release on Main Merge Delivery Checklist](./release-on-main-merge-delivery-checklist.md)
   — closed after merge SHA `af943739` published as `astrograph@0.5.1-alpha.157`,
   with the publish-only retry and existing-tag rerun proving the guarded path.
+- [Human and Agent Onboarding Packs Delivery Checklist](./human-agent-onboarding-packs-delivery-checklist.md)
+  — closed after PR #70 added packed-package diagnostics coverage and
+  `astrograph@0.5.1-alpha.160` published from its immutable merge tag.

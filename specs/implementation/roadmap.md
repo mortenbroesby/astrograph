@@ -17,18 +17,17 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Human and agent onboarding packs](./active/0_human-agent-onboarding-packs-delivery-checklist.md)
-   - Goal: audit and improve first-time setup, diagnostics, and safe recovery
-     without duplicating existing global and repository-local paths.
-   - First action: record the current command-and-write matrix and verify the
-     packed-package diagnostics and setup behavior before selecting a code gap.
+1. [Process execution seam with `execa`](./active/1_npm-module-process-execution-delivery-checklist.md)
+   - Goal: replace generic process plumbing in three scripts with a narrow,
+     behavior-preserving internal seam.
+   - First action: record the selected scripts' current process contracts and
+     verify `execa`'s Node/license/synchronous API fit before changing source.
 
 ## Ready — detailed, but not selected
 
-2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) is ready for
-   a bounded Slice A evaluation of `execa`, `semver`, and `latest-version`.
-   It must preserve product-specific behavior; package-quality gates require a
-   CI cost review before selection.
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 1
+   selected; Stories 2–10 remain planned. Preserve product-specific behavior;
+   package-quality gates require a CI cost review before selection.
 3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
@@ -108,6 +107,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
   closed after `astrograph@0.5.1-alpha.157` published from its immutable merge
   tag; a publish-only retry and existing-tag rerun proved recovery and
   idempotence without expanding the Windows CI cost boundary.
+- [Human and Agent Onboarding Packs](./closed/human-agent-onboarding-packs-delivery-checklist.md)
+  closed after PR #70 added packed diagnostics coverage, Fast CI passed, and
+  `astrograph@0.5.1-alpha.160` was verified as npm `latest`.
 
 ## Maintaining this roadmap
 
