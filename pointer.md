@@ -8,21 +8,21 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [File-Type Support Coverage and Discovery Delivery
-Checklist](./specs/implementation/active/filetype-support-coverage-delivery-checklist.md),
+Execute Story 1 of the active [npm-Module Adoption Epic](./specs/implementation/active/npm-module-adoption-epic.md)
+through the [Process Execution with `execa` Delivery Checklist](./specs/implementation/active/npm-module-process-execution-delivery-checklist.md),
 starting at the first unchecked task.
 
 ## Required outcome
 
-Produce an evidence-backed, bounded cleanup decision and leave exactly one
-next goal ready to execute. Prefer a small proven cleanup; if none is safe,
-record that result and select the smallest missing evidence-gathering task.
+Produce an evidence-backed, behavior-preserving first process-execution slice.
+Do not expand into semver, registry lookup, package-quality, config, or local
+workflow stories until Story 1 is complete and explicitly selected.
 
 ## Hard boundaries
 
-- Do not implement deferred global artifact reuse, global-install recovery,
-  compact transport, semantic retrieval, Windows work, or release publication
-  merely because they are listed in an epic.
+- Do not implement Story 2 or later npm-module work, deferred global artifact
+  reuse, global-install recovery, compact transport, semantic retrieval,
+  Windows work, or release publication merely because it is listed in an epic.
 - Preserve canonical repository isolation, per-call `repoRoot`, local-first
   storage, and current user privacy.
 - Do not add a shared mutable index, daemon, network synchronization, hidden

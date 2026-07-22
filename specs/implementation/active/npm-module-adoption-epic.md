@@ -1,7 +1,7 @@
 # Reduce Astrograph Boilerplate with Proven npm Modules
 
-> **Status:** Planned — approved, but not selected. Create a delivery checklist
-> and move it to `../active/` before implementation.
+> **Status:** Active — Story 1 is selected. Follow its delivery checklist;
+> Stories 2–10 remain planned until explicitly selected.
 
 **Goal:** Replace generic bespoke tooling plumbing with mature npm modules where
 that reduces maintenance or strengthens package confidence, while preserving

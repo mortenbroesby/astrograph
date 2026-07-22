@@ -6,9 +6,10 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [File-Type Support Coverage and Discovery](./filetype-support-coverage-delivery-checklist.md)
-   — selected to verify and document the existing JavaScript-module and
-   fallback-file support matrix, then add only evidenced gaps.
+1. [npm-Module Adoption Epic](./npm-module-adoption-epic.md) — Story 1,
+   process execution with `execa`, is selected.
+2. [Process Execution with `execa` Delivery Checklist](./npm-module-process-execution-delivery-checklist.md)
+   — the only authorized implementation queue for the current goal.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

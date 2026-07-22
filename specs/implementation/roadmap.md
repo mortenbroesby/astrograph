@@ -17,17 +17,14 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [File-Type Support Coverage and Discovery](./active/filetype-support-coverage-delivery-checklist.md)
-   - Goal: verify/document current JavaScript-module and fallback-file support,
-     then add only evidence-backed missing extensions.
-   - First unchecked task: reproduce and classify the requested support.
+1. [npm-module adoption epic](./active/npm-module-adoption-epic.md), Story 1
+   - Goal: introduce a bounded `execa` process seam without changing script,
+     installer, release, CLI, or MCP behavior.
+   - First unchecked task: inventory current child-process call sites and their
+     test-backed behavior in the linked [delivery checklist](./active/npm-module-process-execution-delivery-checklist.md).
 
 ## Ready — detailed, but not selected
 
-- [npm-module adoption epic](./planned/npm-module-adoption-epic.md) is ready
-  for a bounded Slice A evaluation of `execa`, `semver`, and `latest-version`.
-  It must preserve product-specific command, MCP, installer, and release-policy
-  behavior; package-quality gates require a CI cost review before selection.
 - [Windows/release delivery roadmap](./planned/remaining-delivery-epic.md)
   and its [release-publication checklist](./planned/release-publication-evidence-delivery-checklist.md).
   The release path is built; the last proof requires a release-labelled PR
