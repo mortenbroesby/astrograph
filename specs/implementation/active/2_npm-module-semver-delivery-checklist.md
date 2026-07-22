@@ -23,14 +23,14 @@ and the existing release/installer/package smoke.
 `src/scripts/install.ts`, `src/scripts/release-agent.ts`, relevant tests,
 `package.json`, and this checklist.
 
-- [ ] Map each handwritten generic parser/comparator and classify it as either
+- [x] Map each handwritten generic parser/comparator and classify it as either
   generic semver handling or Astrograph-specific alpha/release policy. The
   known candidates are the installer comparable-version parser/orderer,
   `compareAstrographVersions`, and version validation helpers.
-- [ ] Verify the selected `semver` release supports Node `>=22.12.0`, has an
+- [x] Verify the selected `semver` release supports Node `>=22.12.0`, has an
   acceptable license, and provides the exact validation/comparison/prerelease
   APIs needed without coercing malformed Astrograph versions into acceptance.
-- [ ] Run focused release-policy, release-agent, installer/engine-contract,
+- [x] Run focused release-policy, release-agent, installer/engine-contract,
   CLI-boundary, and package-bin checks. Record invalid, legacy, prerelease,
   equal, newer-main, newer-registry, and unavailable-registry behavior before
   source changes.
@@ -40,15 +40,15 @@ and the existing release/installer/package smoke.
 **Files:** `package.json`, `pnpm-lock.yaml`, the classified source helpers,
 and focused tests.
 
-- [ ] Add `semver` at the verified version and centralize its use behind the
+- [x] Add `semver` at the verified version and centralize its use behind the
   smallest internal helper(s); do not add a public API or compatibility alias.
-- [ ] Replace generic parsing/ordering in installer update suggestions and
+- [x] Replace generic parsing/ordering in installer update suggestions and
   release transaction comparisons while preserving explicit Astrograph alpha
   validation and release-policy decisions.
-- [ ] Preserve rejection of malformed versions, legacy-baseline handling, and
+- [x] Preserve rejection of malformed versions, legacy-baseline handling, and
   user-facing registry/network failure behavior. Do not replace Story 3's
   `npm view` subprocesses in this slice.
-- [ ] Add focused tests that prove semantic equivalence for normal alpha
+- [x] Add focused tests that prove semantic equivalence for normal alpha
   versions, prerelease ordering, equal values, invalid values, and the
   monotonic alpha increment across patch/minor/major policy outcomes.
 
@@ -80,3 +80,16 @@ and focused tests.
   unavailable or returns malformed data.
 - Exact-head CI and a published-package check prove the change does not
   regress CLI, installer, release, or package behavior.
+
+## Baseline and implementation evidence (2026-07-22)
+
+- `semver@7.8.5` is ISC licensed and supports Node `>=10`, exceeding
+  Astrograph's `>=22.12.0` floor. Baseline type lint and 77 focused
+  release-policy, release-agent, installer/engine-contract, and CLI tests
+  passed from `80dfd3c`.
+- `src/scripts/install.ts` contained the generic permissive parser and a
+  string fallback that could misorder numeric prerelease identifiers. The
+  strict Astrograph alpha parser, legacy baseline parser, monotonic bump
+  assessment, release-kind policy, and registry refusal remain product code.
+- New focused tests prove generic numeric prerelease ordering, stable versus
+  prerelease ordering, and invalid-version rejection without coercion.

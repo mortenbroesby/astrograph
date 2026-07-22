@@ -20,6 +20,7 @@ import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import { runProcess } from "../lib/process.ts";
+import { compareGenericPackageVersions, normalizeGenericPackageVersion } from "../version.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
@@ -45,15 +46,6 @@ const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
 type InstalledObject = Record<string, unknown>;
-
-interface ParsedSemVer {
-  major: number;
-  minor: number;
-  patch: number;
-  prerelease: string | null;
-  alphaIncrement: number | null;
-  raw: string;
-}
 
 interface ParsedArgs {
   ides: RequestedIde[] | null;
@@ -164,100 +156,7 @@ interface AgentsPolicyResult {
   agentsPolicyPreview?: string;
 }
 
-function parseComparableVersion(rawValue: unknown): ParsedSemVer | null {
-  if (typeof rawValue !== "string") {
-    return null;
-  }
-  const value = rawValue.trim();
-  if (!value) {
-    return null;
-  }
-
-  const normalized = value[0] === "v" ? value.slice(1) : value;
-  const match = normalized.match(
-    /^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const major = Number.parseInt(match[1] ?? "0", 10);
-  const minor = Number.parseInt(match[2] ?? "0", 10);
-  const patch = Number.parseInt(match[3] ?? "0", 10);
-  if (
-    !Number.isFinite(major)
-    || !Number.isFinite(minor)
-    || !Number.isFinite(patch)
-  ) {
-    return null;
-  }
-
-  const prerelease = match[4];
-  if (!prerelease) {
-    return {
-      major,
-      minor,
-      patch,
-      prerelease: null,
-      alphaIncrement: null,
-      raw: normalized,
-    };
-  }
-
-  const alphaMatch = prerelease.match(/^alpha\.(\d+)$/);
-  return {
-    major,
-    minor,
-    patch,
-    prerelease,
-    alphaIncrement: alphaMatch && alphaMatch[1]
-      ? Number.parseInt(alphaMatch[1], 10)
-      : null,
-    raw: normalized,
-  };
-}
-
-function isVersionNewer(
-  compareTo: ParsedSemVer | null,
-  base: ParsedSemVer | null,
-): boolean {
-  if (!compareTo || !base) {
-    return false;
-  }
-  if (compareTo.major !== base.major) {
-    return compareTo.major > base.major;
-  }
-  if (compareTo.minor !== base.minor) {
-    return compareTo.minor > base.minor;
-  }
-  if (compareTo.patch !== base.patch) {
-    return compareTo.patch > base.patch;
-  }
-
-  if (base.prerelease === null && compareTo.prerelease === null) {
-    return false;
-  }
-  if (base.prerelease === null) {
-    return false;
-  }
-  if (compareTo.prerelease === null) {
-    return true;
-  }
-
-  if (
-    base.prerelease.startsWith("alpha.")
-    && compareTo.prerelease.startsWith("alpha.")
-    && base.alphaIncrement !== null
-    && compareTo.alphaIncrement !== null
-  ) {
-    return compareTo.alphaIncrement > base.alphaIncrement;
-  }
-
-  return compareTo.prerelease > base.prerelease;
-}
-
-function resolveLatestAstrographVersion(): ParsedSemVer | null {
+function resolveLatestAstrographVersion(): string | null {
   try {
     const invocation = packageManagerInvocation("npm", ["view", PACKAGE_NAME, "version"]);
     const latest = runProcess(
@@ -269,7 +168,7 @@ function resolveLatestAstrographVersion(): ParsedSemVer | null {
         timeout: 2_500,
       },
     ).stdout.trim();
-    return parseComparableVersion(latest);
+    return normalizeGenericPackageVersion(latest);
   } catch {
     return null;
   }
@@ -277,15 +176,14 @@ function resolveLatestAstrographVersion(): ParsedSemVer | null {
 
 function emitUpdateSuggestion(currentVersion: string): void {
   const latest = resolveLatestAstrographVersion();
-  const current = parseComparableVersion(currentVersion);
-
-  if (!latest || !current || !isVersionNewer(latest, current)) {
+  const comparison = latest === null ? null : compareGenericPackageVersions(latest, currentVersion);
+  if (comparison === null || comparison <= 0) {
     return;
   }
 
   const suggestion = `npm install ${PACKAGE_NAME}@latest`;
   process.stderr.write(
-    `A newer Astrograph version is available: ${latest.raw} (current: ${currentVersion}).\n` +
+    `A newer Astrograph version is available: ${latest} (current: ${currentVersion}).\n` +
     `To update, run: ${suggestion}\n` +
       `If you see stale behavior after update, clear local state and rebuild index:\n` +
       `  Git Bash: rm -rf .astrograph\n` +
