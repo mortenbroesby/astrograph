@@ -194,4 +194,58 @@ place. Automatic incompatible-cache recovery follows the same archive path.
   symlink/out-of-root rejection, lock rejection, collision, and failed moves.
 - `tests/engine-behavior.test.ts` proves incompatible local/global cache
   recovery archives stale contents without touching symlink targets.
+
+---
+
+## ADR-006: Publish From the Verified Merge Candidate
+
+**Date:** 2026-07-22
+**Status:** Accepted
+
+## Context
+
+The previous release loop required a `release` label, created a second
+release-only pull request after a product PR merged, then triggered a separate
+tag-publisher workflow. This made a normal release hard to understand and
+introduced failure states between the verified product merge and npm.
+
+## Decision
+
+- A release-worthy pull request owns its valid version bump before merge.
+- The post-merge release job receives the already-verified merge SHA, validates
+  the version, tag, npm registry, and optional `no-release` decision, then tags
+  and publishes that exact commit in one guarded transaction.
+- `no-release` is the explicit exception for a runtime-looking change that must
+  not publish; docs/spec/workflow-only changes naturally resolve to no release.
+- The release job never writes or pushes a commit to `main`, creates no
+  release-only PR, and does not dispatch another publishing workflow.
+- JSON decision output and a guarded manual plan/retry remain available, but
+  both use the same policy and transaction code.
+
+## Rationale
+
+- The version that passed PR CI is the version published to npm.
+- One job summary can show candidate SHA, version, tag, registry state, and
+  publish result without following a release branch or downstream run.
+- Keeping the release job after existing Fast CI preserves the current cost
+  boundary: no new broad trigger, runner, matrix, or scheduled work.
+
+## Consequences
+
+- PR authors must include a policy-valid bump for release-worthy source or
+  package changes before merge.
+- A failed post-merge registry or publish check leaves `main` unchanged and
+  fails visibly for recovery; it never creates a compensating version commit.
+- The tag remains the immutable release marker, while npm provenance comes from
+  the workflow that tagged it.
+
+## Verification
+
+- `tests/release-policy.test.ts` and release-agent fixtures cover eligible,
+  `no-release`, duplicate, stale, malformed, unavailable, and rerun states.
+- CI reports the PR decision without writing and publishes only after Fast CI
+  succeeds on `main`.
+- `docs/reference/release.md` and
+  `specs/implementation/planned/0_release-on-main-merge-delivery-checklist.md`
+  describe the same contract.
 - `tests/cli-boundary.test.ts` proves exact scope and `--yes` requirements.

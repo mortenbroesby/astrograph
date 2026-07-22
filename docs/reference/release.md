@@ -62,45 +62,28 @@ pnpm release:apply
 
 ## Agentic Release Flow
 
-1. Add the `release` label to a release-worthy pull request, then merge it to
-   `main`.
-2. The path-scoped `CI` workflow completes its required fast and Windows checks.
-3. After a successful `main` CI run, the release agent automatically runs in
-   apply mode only when the pushed commit is associated with that merged,
-   labelled pull request. It does not run for direct pushes, unlabelled PRs,
-   pull requests, or failed CI.
-4. The release agent:
-   - decides `none`, `increment`, `patch`, `minor`, or `major`
-   - updates the alpha version only for publishable patch, minor, or major releases
-   - commits the version change to `main` when needed
-   - pushes `v<package.version>`
-5. The release agent pushes the matching tag, then explicitly dispatches the
-   existing `Release` workflow at that tag. This explicit dispatch is required
-   because tags created by the default Actions token do not start a second
-   workflow through the normal push trigger. `Release` publishes to npm.
-
-The version-only release commit reruns CI, but its `Release <version>` commit
-message is explicitly excluded from automatic release-agent runs. This prevents
-a release loop even if CI observes the commit before its tag is visible.
+1. A release-worthy pull request includes its valid package version bump before
+   it is merged. Apply `no-release` only when a runtime-looking change must not
+   publish; docs, specs, and workflow-only changes are naturally no-ops.
+2. The path-scoped `CI` workflow completes Fast checks on the merge candidate.
+3. After Fast succeeds on `main`, one release job evaluates the merged SHA,
+   package version, matching tag, npm registry, and `no-release` exception.
+4. When accepted, that same job pushes `v<package.version>` and publishes the
+   checked-out merge candidate to npm with provenance. It never writes a
+   version commit to `main`, creates a release PR, or starts another workflow.
 
 The release agent performs no install, build, lint, or test steps. It relies on
 the successful CI gate and only decides the release, commits the version, and
 pushes its tag.
 
-This is a permanent, opt-in GitHub Actions cost: one existing
-`ubuntu-latest` release-agent job with a three-minute timeout and one existing
-tag-publisher invocation per labelled, merged release PR. It adds no runner or
-broad trigger; it waits for the existing fast and Windows gates, then dispatches
-the pre-existing Release workflow. The label and successful gates keep ordinary
-merges and direct pushes from consuming release-runner minutes.
+This replaces the prior release-agent plus tag-publisher pair with one
+post-Fast `ubuntu-latest` job for qualifying `main` merges. It adds no broad
+trigger, runner, matrix, schedule, or hosted Windows usage.
 
-`workflow_dispatch` remains available for a non-mutating `release_mode=plan`
-inspection or a guarded `release_mode=apply` release on `main`. Apply mode
-always requests a fresh patch version, then validates it against `main` and npm
-before it can commit or tag anything. Both modes first run the same fast and
-Windows jobs as a merged `main` change; the three-minute release agent runs
-only after those gates succeed and performs no install, build, lint, or test
-work itself.
+`pnpm release:plan` remains the local, non-mutating inspection command. The
+separate `Release` workflow is retry-only: dispatch it with an existing matching
+tag after a failed npm publication; it checks out that tag and cannot create or
+bump a version.
 
 ## Manual Release Flow
 
