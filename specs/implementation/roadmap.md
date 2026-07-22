@@ -24,6 +24,10 @@ roadmap explains everything else.
 
 ## Ready — detailed, but not selected
 
+- [npm-module adoption epic](./planned/npm-module-adoption-epic.md) is ready
+  for a bounded Slice A evaluation of `execa`, `semver`, and `latest-version`.
+  It must preserve product-specific command, MCP, installer, and release-policy
+  behavior; package-quality gates require a CI cost review before selection.
 - [Windows/release delivery roadmap](./planned/remaining-delivery-epic.md)
   and its [release-publication checklist](./planned/release-publication-evidence-delivery-checklist.md).
   The release path is built; the last proof requires a release-labelled PR

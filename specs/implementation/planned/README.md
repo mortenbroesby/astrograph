@@ -9,6 +9,10 @@ checklist, and then move it to `../active/` before implementation begins.
 - [Delivery Roadmap](../roadmap.md) — the canonical status dashboard; this
   directory holds only the detailed records behind its ready, parked, and idea
   categories.
+- [Reduce Astrograph Boilerplate with Proven npm Modules](./npm-module-adoption-epic.md)
+  — approved, dependency-ordered adoption of generic process, semver, registry,
+  package-quality, dependency-drift, and boundary tooling; it preserves
+  Astrograph-specific product behavior.
 - [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
   completed results plus deferred global/release candidates; no story is
   currently selected.
