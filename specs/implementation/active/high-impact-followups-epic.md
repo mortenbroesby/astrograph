@@ -1,9 +1,9 @@
 # High-Impact Product Follow-Ups Epic
 
-> **Status:** Active — Stories 1, 2, and 6 are evidence-backed deferrals;
-> Stories 3, 4, 5, 7, 8, and 9 are complete and CI-verified. Story 10 is the
-> active research work; it must establish token-estimation evidence before any
-> dependency or task-context-contract change.
+> **Status:** No selected active story — Stories 1, 2, and 6 remain
+> evidence-backed deferrals; Stories 3, 4, 5, 7, 8, 9, and 10 are complete and
+> CI-verified. Re-select a deferred story only when its recorded selection gate
+> has new evidence.
 >
 > **Builds on:** the completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md),
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
@@ -312,9 +312,11 @@ records each removal, its verification, and every intentionally deferred item.
 
 ## Story 10: Tokenizer and Token-Estimator Research
 
-**Status:** Active — use the dedicated
-[research checklist](./tokenizer-estimator-research-delivery-checklist.md)
-before changing the production tokenizer or any token-budget contract.
+**Status:** Complete — the reproducible candidate benchmark and retain decision
+merged as PR #36 (`fa8d2a9`) after exact-head Fast and Windows
+compatibility/package-smoke CI passed. See the closed
+[research checklist](../closed/tokenizer-estimator-research-delivery-checklist.md).
+No production tokenizer or token-budget contract change was selected.
 
 **Outcome:** Astrograph has an evidence-backed choice for exact token counting
 and an optional fast estimator, including clear bounds on what each metric

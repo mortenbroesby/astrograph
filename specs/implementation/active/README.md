@@ -1,19 +1,19 @@
 # Active Implementation Work
 
-This directory contains work that is currently selected for delivery. Start
-with the epic, then use its linked checklist for the next executable task.
+This directory contains selected delivery work. It currently has no executable
+story: all completed checklists are in `../closed/`, while remaining candidates
+are deferred pending their explicit selection gates.
 
 ## Current Queue
 
-1. [Tokenizer and Token-Estimator Research Delivery Checklist](./tokenizer-estimator-research-delivery-checklist.md)
-   — active Story 10 research: establish a reproducible evidence matrix before
-   changing the exact tokenizer, approximate estimator, or token-budget contract.
-2. [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
-   Stories 1, 2, and 6 are deferred; Stories 3, 4, 5, 7, 8, and 9 are closed.
-   Story 10 is active through the checklist above.
-3. [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
-   — Stories 1–3 are closed; compact transport remains deferred pending a
-   separately measured need.
+No story is selected for implementation.
+
+- [High-Impact Product Follow-Ups Epic](./high-impact-followups-epic.md) —
+  Stories 1, 2, and 6 are deferred; Stories 3, 4, 5, 7, 8, 9, and 10 are
+  closed. Compact transport remains deferred pending a separately measured need.
+- [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
+  — Stories 1–3 are closed; later candidate stories require their own evidence
+  gates before selection.
 
 The completed [Global Install and Cache Epic](../closed/global-install-and-cache-epic.md) is
 historical evidence, including its successful package release.

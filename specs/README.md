@@ -26,7 +26,7 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 Executable implementation queues, planned work, closed evidence, and internal
 subsystem references.
 
-- [Active Work](./implementation/active/README.md) - The selected delivery queue and its active checklist.
+- [Active Work](./implementation/active/README.md) - The selected delivery queue and deferred re-selection context.
 - [Planned Work](./implementation/planned/README.md) - Approved work that is not yet selected for delivery.
 - [Closed Records](./implementation/closed/README.md) - Completed and superseded implementation evidence.
 - [Standing References](./implementation/README.md#standing-references) - Spec-system, CI cost, and release workflow guidance.
