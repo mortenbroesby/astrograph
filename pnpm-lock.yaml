@@ -53,6 +53,9 @@ importers:
       rxjs:
         specifier: ^7.8.2
         version: 7.8.2
+      semver:
+        specifier: 7.8.5
+        version: 7.8.5
       tiktoken:
         specifier: ^1.0.22
         version: 1.0.22
@@ -84,6 +87,9 @@ importers:
       '@types/picomatch':
         specifier: ^4.0.3
         version: 4.0.3
+      '@types/semver':
+        specifier: 7.7.1
+        version: 7.7.1
       clinic:
         specifier: ^13.0.0
         version: 13.0.0
@@ -956,6 +962,9 @@ packages:
 
   '@types/seedrandom@2.4.34':
     resolution: {integrity: sha512-ytDiArvrn/3Xk6/vtylys5tlY6eo7Ane0hvcx++TKo6RxQXuVfW0AF/oeWqAj9dN29SyhtawuXstgmPlwNcv/A==}
+
+  '@types/semver@7.7.1':
+    resolution: {integrity: sha512-FmgJfu+MOcQ370SD0ev7EI8TlCAfKYU+B4m5T3yXc1CiRN94g/SZPtsCkk506aUDtlMnFZvasDwHHUcZUEaYuA==}
 
   '@types/webgl-ext@0.0.30':
     resolution: {integrity: sha512-LKVgNmBxN0BbljJrVUwkxwRYqzsAEPcZOe6S2T6ZaBDIrFp0qu4FNlpc5sM1tGbXUYFgdVQIoeLk1Y1UoblyEg==}
@@ -3291,8 +3300,8 @@ packages:
     resolution: {integrity: sha512-BR7VvDCVHO+q2xBEWskxS6DJE1qRnb7DxzUrogb71CWoSficBxYsiAGd+Kl0mmq/MprG9yArRkyrQxTO6XjMzA==}
     hasBin: true
 
-  semver@7.7.4:
-    resolution: {integrity: sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==}
+  semver@7.8.5:
+    resolution: {integrity: sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==}
     engines: {node: '>=10'}
     hasBin: true
 
@@ -4027,7 +4036,7 @@ snapshots:
       opn: 5.5.0
       pump: 3.0.4
       pumpify: 2.0.1
-      semver: 7.7.4
+      semver: 7.8.5
       single-line-log: 1.1.2
       split2: 4.2.0
       tachyons: 4.12.0
@@ -4060,7 +4069,7 @@ snapshots:
       opn: 5.5.0
       pump: 3.0.4
       pumpify: 2.0.1
-      semver: 7.7.4
+      semver: 7.8.5
       single-line-log: 1.1.2
       split2: 4.2.0
       tachyons: 4.12.0
@@ -4148,7 +4157,7 @@ snapshots:
       protocol-buffers: 4.2.0
       pump: 3.0.4
       pumpify: 2.0.1
-      semver: 7.7.4
+      semver: 7.8.5
       showdown: 1.9.1
       stream-template: 0.0.10
       streaming-json-stringify: 3.1.0
@@ -4754,6 +4763,8 @@ snapshots:
 
   '@types/seedrandom@2.4.34': {}
 
+  '@types/semver@7.7.1': {}
+
   '@types/webgl-ext@0.0.30': {}
 
   '@vitest/expect@2.1.9':
@@ -4941,7 +4952,7 @@ snapshots:
       progress: 2.0.3
       reinterval: 1.1.0
       retimer: 3.0.0
-      semver: 7.7.4
+      semver: 7.8.5
       subarg: 1.0.0
       timestring: 6.0.0
 
@@ -5370,7 +5381,7 @@ snapshots:
       json-schema-typed: 7.0.3
       onetime: 5.1.2
       pkg-up: 3.1.0
-      semver: 7.7.4
+      semver: 7.8.5
 
   confbox@0.1.8: {}
 
@@ -7409,7 +7420,7 @@ snapshots:
 
   semver@6.3.1: {}
 
-  semver@7.7.4: {}
+  semver@7.8.5: {}
 
   send@1.2.1:
     dependencies:
@@ -7962,7 +7973,7 @@ snapshots:
       is-yarn-global: 0.3.0
       latest-version: 5.1.0
       pupa: 2.1.1
-      semver: 7.7.4
+      semver: 7.8.5
       semver-diff: 3.1.1
       xdg-basedir: 4.0.0
 
