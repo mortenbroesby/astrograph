@@ -20,8 +20,9 @@ roadmap explains everything else.
 1. [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
    - Goal: replace the label-gated release loop with one verified,
      idempotent merge-to-npm transaction.
-   - First unchecked task: read the release decision skill and Actions cost
-     rule, then record the current workflow baseline.
+   - Next action: configure npm trusted publishing for `ci.yml` and the `npm`
+     environment, then retry the existing immutable tag
+     `v0.5.1-alpha.156` and record registry evidence.
 
 ## Ready — detailed, but not selected
 
@@ -53,8 +54,11 @@ roadmap explains everything else.
 
 ## Blocked — external prerequisite only
 
-No planned item is blocked. The release path is a ready design-and-delivery
-change, not a reason to wait for a specially labelled PR.
+- [Release on main merge](./planned/0_release-on-main-merge-delivery-checklist.md)
+  is waiting only for npm package settings to bind trusted publishing to
+  `mortenbroesby/astrograph`, workflow `ci.yml`, environment `npm`, with
+  publish permission. The matching tag already exists and must be retried, not
+  recreated.
 
 ## Ideas — not a commitment
 
