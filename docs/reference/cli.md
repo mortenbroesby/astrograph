@@ -96,10 +96,10 @@ incompatible storage marker causes Astrograph to archive the managed cache and
 rebuild it on the next operation. If a cache needs recovery, inspect status and
 use the scoped archive commands below.
 
-## Global Cache Commands
+## Cache Archive and Recovery Commands
 
-Global cache commands emit stable JSON envelopes with `schemaVersion: 1`.
-They are CLI-only; MCP has no destructive cache tools.
+Cache archive and recovery commands emit stable JSON envelopes with
+`schemaVersion: 1`. They are CLI-only; MCP has no destructive cache tools.
 
 `cache status` includes the canonical repository, selected storage location,
 and the persisted checkout that populated that cache. `checkout` is `null`
@@ -118,14 +118,24 @@ astrograph cache remove --repo /repo         # preview only
 astrograph cache remove --repo /repo --yes   # archive that global cache
 astrograph cache prune --all --max-bytes 1073741824       # preview only
 astrograph cache prune --all --max-bytes 1073741824 --yes # archive oldest inactive caches
+astrograph cache restore --repo /repo --receipt /path/to/archive.receipt.json # preview validation
 astrograph cache restore --repo /repo --receipt /path/to/archive.receipt.json --yes
 ```
 
 Before v1, a cache with a missing, malformed, older, or newer storage marker is
 archived and rebuilt automatically; Astrograph does not migrate it for
-compatibility. Every archive has a JSON receipt. `cache-remove` only accepts
-the canonical per-repository directory below the current user’s Astrograph
-cache root and requires `--yes` to mutate.
+compatibility. Every archive has a JSON receipt containing the original and
+archive paths, byte count, reason, timestamp, and a copy-paste restore command.
+`cache restore` validates that receipt and restores only into the absent,
+canonical cache directory for the selected repository. It rejects symlinks,
+out-of-root paths, malformed receipts, collisions, and active SQLite caches.
+
+Archives are retained until you explicitly inspect and handle them; Astrograph
+does not silently expire or permanently delete user cache data. Permanent
+deletion is deliberately not available through Astrograph's CLI or MCP while
+the format is pre-v1. `cache-remove` only accepts the canonical per-repository
+directory below the current user’s Astrograph cache root and requires `--yes`
+to mutate.
 
 `cache prune` is intentionally whole-user-cache scoped: it requires `--all`
 and a byte target, sorts repository cache directories by last modification time

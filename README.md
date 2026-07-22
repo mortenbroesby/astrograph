@@ -295,6 +295,7 @@ astrograph cache status --repo /absolute/path/to/repo
 astrograph cache remove --repo /absolute/path/to/repo --yes # archives; does not delete
 astrograph cache prune --all --max-bytes 1073741824
 astrograph cache prune --all --max-bytes 1073741824 --yes
+astrograph cache restore --repo /absolute/path/to/repo --receipt /path/to/archive.receipt.json --yes
 ```
 
 `cache status` reports the canonical repository, selected storage, and the

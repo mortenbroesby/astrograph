@@ -22,34 +22,34 @@ MCP.
 
 ## Task 1: Establish the safety baseline
 
-- [ ] Inventory every delete, remove, prune, overwrite, migration-reset, and
+- [x] Inventory every delete, remove, prune, overwrite, migration-reset, and
   cache-cleanup path. Record caller, root validation, dry-run behavior,
   confirmation requirement, and recovery behavior.
-- [ ] Reproduce the current cache remove/prune behavior in a disposable home
+- [x] Reproduce the current cache remove/prune behavior in a disposable home
   with normal directories, symlinks, active SQLite files, malformed markers,
   and paths outside the managed root.
-- [ ] Record comparable guidance: Codex/Claude permission boundaries and
+- [x] Record comparable guidance: Codex/Claude permission boundaries and
   editor filesystem APIs that prefer trash or explicit confirmation.
 
 ## Task 2: Define the archive-first public contract
 
-- [ ] Write an ADR before changing behavior: archive root, retention,
+- [x] Write an ADR before changing behavior: archive root, retention,
   collision handling, same-filesystem move requirement, receipt schema,
   restore command, failed-move behavior, and explicit permanent-delete gate.
-- [ ] Make dry-run the default for every cleanup command and require an exact
+- [x] Make dry-run the default for every cleanup command and require an exact
   scope plus `--yes` for an archive move.
-- [ ] Reject broad roots, symlinks, active databases, non-canonical paths, and
+- [x] Reject broad roots, symlinks, active databases, non-canonical paths, and
   targets outside Astrograph-owned state before any mutation.
-- [ ] Keep destructive cache controls out of MCP; MCP may report status and
+- [x] Keep destructive cache controls out of MCP; MCP may report status and
   recovery guidance only.
 
 ## Task 3: Implement and prove recoverability
 
-- [ ] Add archive/restore fixtures that assert bytes and metadata survive the
+- [x] Add archive/restore fixtures that assert bytes and metadata survive the
   round trip and unrelated files remain byte-for-byte unchanged.
 - [ ] Add failure-injection coverage for partial moves, collisions, permissions,
   malformed receipts, and concurrent index activity.
-- [ ] Document preview, archive, inspect, restore, retention, and the separate
+- [x] Document preview, archive, inspect, restore, retention, and the separate
   irreversible-delete procedure in plain language.
 
 ## Task 4: Verify and commit

@@ -124,7 +124,7 @@ const commands: Record<string, CliHandler> = {
     }
     return engine.pruneGlobalCaches(maxBytes, args.yes !== "true");
   },
-  "cache-restore": async (args) => engine.restoreGlobalCache(
+  "cache-restore": async (args) => engine.restoreCache(
     required(args, "repo"),
     required(args, "receipt"),
     args.yes !== "true",

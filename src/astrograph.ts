@@ -78,7 +78,7 @@ const commandArgs = mode === "cache"
   : mode === "--diagnostics"
     ? ["--diagnostics"]
   : args;
-if (mode === "cache" && !["status", "remove", "prune"].includes(args[0] ?? "")) {
+if (mode === "cache" && !["status", "remove", "prune", "restore"].includes(args[0] ?? "")) {
   usage();
   process.exit(1);
 }

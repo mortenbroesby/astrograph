@@ -61,6 +61,9 @@ If you are new to Astrograph, read these in order:
 - [Compact Output vs Internal Serialization Assessment — July 2026](./reviews/compact-output-vs-internal-serialization-2026-07-22.md)
   Measured MCP schema baseline, global-client policy finding, and selected core
   versus specialized-tool policy.
+- [Reversible Cache Cleanup Safety Baseline — July 2026](./reviews/reversible-cache-cleanup-safety-baseline-2026-07.md)
+  Mutation inventory, archive-first boundaries, and external safety-practice
+  references for managed cache recovery.
 
 ## Reading Strategy
 

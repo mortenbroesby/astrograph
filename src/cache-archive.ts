@@ -1,4 +1,4 @@
-import { lstat, mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export interface CacheArchiveReceipt {
@@ -7,9 +7,47 @@ export interface CacheArchiveReceipt {
   archivePath: string;
   reason: string;
   archivedAt: string;
+  bytes: number;
+  recoveryCommand: string;
 }
 
-export async function restoreManagedDirectory(input: {
+function assertDirectChild(root: string, target: string, label: string): void {
+  const relative = path.relative(root, target);
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative) || relative.includes(path.sep)) {
+    throw new Error(`Receipt has an invalid ${label} path.`);
+  }
+}
+
+function parseReceipt(value: unknown): CacheArchiveReceipt {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new Error("Receipt must be a JSON object.");
+  }
+  const receipt = value as Record<string, unknown>;
+  if (
+    receipt.schemaVersion !== 1
+    || typeof receipt.originalPath !== "string"
+    || typeof receipt.archivePath !== "string"
+    || typeof receipt.reason !== "string" || !receipt.reason
+    || typeof receipt.archivedAt !== "string" || Number.isNaN(Date.parse(receipt.archivedAt))
+    || typeof receipt.bytes !== "number" || !Number.isSafeInteger(receipt.bytes) || receipt.bytes < 0
+    || typeof receipt.recoveryCommand !== "string" || !receipt.recoveryCommand
+  ) {
+    throw new Error("Receipt has an invalid schema.");
+  }
+  return receipt as unknown as CacheArchiveReceipt;
+}
+
+async function directoryBytes(target: string): Promise<number> {
+  const entry = await lstat(target);
+  if (entry.isSymbolicLink()) throw new Error(`Refusing symlinked cache path: ${target}`);
+  if (entry.isFile()) return entry.size;
+  if (!entry.isDirectory()) return 0;
+  let bytes = 0;
+  for (const child of await readdir(target)) bytes += await directoryBytes(path.join(target, child));
+  return bytes;
+}
+
+export async function readManagedArchiveReceipt(input: {
   receiptPath: string;
   archiveRoot: string;
   originalRoot: string;
@@ -17,19 +55,36 @@ export async function restoreManagedDirectory(input: {
   const archiveRoot = path.resolve(input.archiveRoot);
   const originalRoot = path.resolve(input.originalRoot);
   const receiptPath = path.resolve(input.receiptPath);
-  const receiptRelative = path.relative(archiveRoot, receiptPath);
-  if (receiptRelative.startsWith("..") || path.isAbsolute(receiptRelative)) throw new Error("Receipt must be inside the managed archive root.");
-  const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as CacheArchiveReceipt;
+  assertDirectChild(archiveRoot, receiptPath, "receipt");
+  const receipt = parseReceipt(JSON.parse(await readFile(receiptPath, "utf8")));
   const archivePath = path.resolve(receipt.archivePath);
   const originalPath = path.resolve(receipt.originalPath);
-  for (const [root, target, label] of [[archiveRoot, archivePath, "archive"], [originalRoot, originalPath, "restore target"]] as const) {
-    const relative = path.relative(root, target);
-    if (!relative || relative.startsWith("..") || path.isAbsolute(relative) || relative.includes(path.sep)) throw new Error(`Receipt has an invalid ${label} path.`);
-  }
+  assertDirectChild(archiveRoot, archivePath, "archive");
+  assertDirectChild(originalRoot, originalPath, "restore target");
+  return receipt;
+}
+
+export async function restoreManagedDirectory(input: {
+  receiptPath: string;
+  archiveRoot: string;
+  originalRoot: string;
+}): Promise<CacheArchiveReceipt> {
+  const receipt = await validateManagedArchiveRestore(input);
+  await rename(path.resolve(receipt.archivePath), path.resolve(receipt.originalPath));
+  return receipt;
+}
+
+export async function validateManagedArchiveRestore(input: {
+  receiptPath: string;
+  archiveRoot: string;
+  originalRoot: string;
+}): Promise<CacheArchiveReceipt> {
+  const receipt = await readManagedArchiveReceipt(input);
+  const archivePath = path.resolve(receipt.archivePath);
+  const originalPath = path.resolve(receipt.originalPath);
   const archived = await lstat(archivePath).catch(() => null);
   if (!archived?.isDirectory() || archived.isSymbolicLink()) throw new Error("Archived cache directory is missing or unsafe.");
   if (await lstat(originalPath).catch(() => null)) throw new Error("Refusing to restore over an existing cache directory.");
-  await rename(archivePath, originalPath);
   return receipt;
 }
 
@@ -37,25 +92,39 @@ export async function archiveManagedDirectory(input: {
   target: string;
   archiveRoot: string;
   reason: string;
+  recoveryCommand: (receiptPath: string) => string;
 }): Promise<CacheArchiveReceipt> {
   const target = path.resolve(input.target);
   const archiveRoot = path.resolve(input.archiveRoot);
+  const parent = path.dirname(target);
+  assertDirectChild(parent, archiveRoot, "archive root");
   const targetEntry = await lstat(target).catch(() => null);
   if (!targetEntry) throw new Error(`Cannot archive missing cache path: ${target}`);
   if (!targetEntry.isDirectory() || targetEntry.isSymbolicLink()) {
     throw new Error(`Refusing to archive a non-directory or symlinked cache path: ${target}`);
   }
-  const relative = path.relative(path.dirname(target), archiveRoot);
-  if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new Error(`Archive root must be adjacent to the managed cache path: ${archiveRoot}`);
-  }
   await mkdir(archiveRoot, { recursive: true, mode: 0o700 });
-  if ((await lstat(archiveRoot)).isSymbolicLink()) throw new Error(`Refusing symlinked archive root: ${archiveRoot}`);
+  const archiveRootEntry = await lstat(archiveRoot);
+  if (!archiveRootEntry.isDirectory() || archiveRootEntry.isSymbolicLink()) throw new Error(`Refusing symlinked archive root: ${archiveRoot}`);
   const archivedAt = new Date().toISOString();
   const archivePath = path.join(archiveRoot, `${archivedAt.replace(/[:.]/g, "-")}-${path.basename(target)}`);
-  if (await lstat(archivePath).catch(() => null)) throw new Error(`Refusing archive collision: ${archivePath}`);
+  const receiptPath = `${archivePath}.receipt.json`;
+  if (await lstat(archivePath).catch(() => null) || await lstat(receiptPath).catch(() => null)) {
+    throw new Error(`Refusing archive collision: ${archivePath}`);
+  }
+  const bytes = await directoryBytes(target);
+  const receipt: CacheArchiveReceipt = {
+    schemaVersion: 1,
+    originalPath: target,
+    archivePath,
+    reason: input.reason,
+    archivedAt,
+    bytes,
+    recoveryCommand: input.recoveryCommand(receiptPath),
+  };
+  // Write the auditable receipt before moving data. If the move fails, the
+  // original remains in place and the receipt identifies the failed attempt.
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600, flag: "wx" });
   await rename(target, archivePath);
-  const receipt: CacheArchiveReceipt = { schemaVersion: 1, originalPath: target, archivePath, reason: input.reason, archivedAt };
-  await writeFile(`${archivePath}.receipt.json`, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
   return receipt;
 }
