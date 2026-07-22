@@ -26,3 +26,8 @@ checklist, and then move it to `../active/` before implementation begins.
 - [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md)
   — only Story 6's optional shared immutable artifact store remains deferred;
   it is not authorized for implementation.
+- Deferred high-impact checklists — [global/branch immutable artifact
+  reuse](./global-branch-artifact-reuse-delivery-checklist.md) and [global
+  installation health/recovery](./global-install-health-recovery-delivery-checklist.md)
+  have recorded negative evidence and must not be revived without their
+  selection gates.

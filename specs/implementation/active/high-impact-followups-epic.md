@@ -62,7 +62,7 @@ before implementation.
 **Status:** Deferred — the representative two-file global fixture duplicated
 four artifacts but took only 2.044 seconds for both indexes. That does not
 justify new cross-repository storage complexity. See the
-[delivery checklist](./global-branch-artifact-reuse-delivery-checklist.md).
+[delivery checklist](../planned/global-branch-artifact-reuse-delivery-checklist.md).
 
 **Outcome:** A user who indexes related checkouts or repositories avoids
 repeating validated immutable analysis, while each repository and checkout
@@ -98,7 +98,7 @@ without source content.
 preflight, dry-run, marker-owned idempotent writes, permission remediation,
 cache status, and packed-package proof. No distinct recovery contract is
 justified without a reproducible support gap. See the
-[delivery checklist](./global-install-health-recovery-delivery-checklist.md).
+[delivery checklist](../planned/global-install-health-recovery-delivery-checklist.md).
 
 **Outcome:** A user can diagnose and safely repair a global Astrograph setup
 without knowing config-file locations or risking unrelated MCP configuration.
