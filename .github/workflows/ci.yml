@@ -166,6 +166,7 @@ jobs:
       needs.fast.outputs.release_eligible == 'true' && !startsWith(github.event.head_commit.message, 'Release ')))
     permissions:
       contents: write
+      pull-requests: write
       actions: write
     env:
       RELEASE_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.release_mode }}
@@ -203,8 +204,11 @@ jobs:
           fi
           node --experimental-strip-types ./src/scripts/release-agent.ts "${release_args[@]}"
 
-      - name: Commit release version and push tag
+      - name: Create release pull request
+        id: release_pr
         if: env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -212,13 +216,31 @@ jobs:
           if ! git diff --cached --quiet; then
             node --experimental-strip-types ./src/scripts/check-version-bump.ts
             git commit -m "Release ${{ steps.release.outputs.target_version }}"
-            git push origin HEAD:main
+            release_branch="release/${{ steps.release.outputs.target_version }}"
+            git push origin "HEAD:${release_branch}"
+            gh pr create \
+              --base main \
+              --head "${release_branch}" \
+              --title "Release ${{ steps.release.outputs.target_version }}" \
+              --body "Automated release-version transaction. Merge after the required CI checks pass." \
+              --label release
+            echo "release_pr_created=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_pr_created=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Push release tag
+        if: >-
+          env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true' &&
+          steps.release_pr.outputs.release_pr_created == 'false'
+        run: |
           git tag "${{ steps.release.outputs.target_tag }}"
           git push origin "${{ steps.release.outputs.target_tag }}"
 
       - name: Trigger trusted npm publication
-        if: env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true'
+        if: >-
+          env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true' &&
+          steps.release_pr.outputs.release_pr_created == 'false'
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run Release --ref "${{ steps.release.outputs.target_tag }}"
