@@ -2,8 +2,10 @@
 
 > **Epic:** [High-Impact Product Follow-Ups Epic](../active/high-impact-followups-epic.md), Story 10
 >
-> **Status:** Planned — research only. Do not replace `tiktoken`, `tokenx`, or
-> any task-context contract until this checklist records a material benefit.
+> **Status:** Complete — retained `tiktoken` for exact budgets and `tokenx` as
+> the explicit estimate after PR #36 (`fa8d2a9`) passed exact-head Fast and
+> Windows compatibility/package-smoke CI. No production replacement was
+> selected because the material-benefit gate was not met.
 
 **Goal:** Select, retain, or reject exact tokenizers and fast token estimators
 using reproducible evidence for Astrograph's agent-visible JSON payloads.
@@ -42,7 +44,7 @@ and candidate libraries pinned in the lockfile only if selected for evaluation.
 **Files:**
 - Create or modify: a focused benchmark under `bench/`
 - Modify: `docs/reviews/tokenizer-estimator-research-<date>.md`
-- Test: `tests/tokenizer.test.ts`, benchmark tests
+- Test: `bench/tests/tokenizer.test.ts`, benchmark tests
 
 - [x] Measure exact-count agreement, estimation error distribution, warm
   latency, memory/package cost, and deterministic repeatability for every
@@ -66,10 +68,16 @@ the dependency and runtime risk.
 **Likely files:** `src/tokenizer.ts`, `bench/src/tokenizer.ts`, `package.json`,
 `pnpm-lock.yaml`, API/benchmark docs, and focused tokenizer/context tests.
 
-- [ ] Make the smallest direct pre-v1 replacement; do not ship compatibility
-  adapters for superseded tokenizer behavior.
-- [ ] Add regression fixtures for every accepted corpus case and update token
-  budget/benchmark claims to name the chosen metric.
-- [ ] Run `pnpm type-lint`, focused tokenizer/context/benchmark tests,
+- [x] No replacement was selected: `gpt-tokenizer`'s speed gain did not justify
+  its package cost, `js-tiktoken` had no resource advantage, and `tokenx`
+  remains too inaccurate for budget enforcement. No compatibility adapter or
+  production-tokenizer change is warranted.
+- [x] Add regression fixtures for every accepted corpus case and update token
+  budget/benchmark claims to name the chosen metric. The locked corpus and
+  deterministic candidate test are shipped in PR #36; exact counts remain
+  `tiktoken cl100k_base` and estimates remain explicitly labelled `tokenx`.
+- [x] Run `pnpm type-lint`, focused tokenizer/context/benchmark tests,
   `pnpm test:package-bin`, `pnpm check:version-bump`, `pnpm release:plan`, and
-  `git diff --check`. Commit only after the release decision is recorded.
+  `git diff --check`. The selected research change passed its focused/full
+  benchmark suite, type/version/release/diff checks, and exact-head hosted Fast
+  and Windows/package-smoke CI in PR #36.

@@ -23,9 +23,6 @@ checklist, and then move it to `../active/` before implementation begins.
   verification criteria recorded as complete before it can be closed.
 - [Spec System Backlog](./spec-system-backlog.md) — outstanding architecture,
   API-contract, and implementation-plan documentation coverage.
-- [Tokenizer and Token-Estimator Research Delivery Checklist](./tokenizer-estimator-research-delivery-checklist.md)
-  — a gated comparison of exact tokenizers and fast estimators before any
-  production budget or compact-transport dependency change.
 - [Global Install and Cache Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md)
   — only Story 6's optional shared immutable artifact store remains deferred;
   it is not authorized for implementation.

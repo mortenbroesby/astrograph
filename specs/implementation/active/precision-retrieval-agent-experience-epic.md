@@ -1,11 +1,9 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Active — [Remaining Delivery](../planned/remaining-delivery-epic.md)
-> has no independent executable work:
-> its sole unchecked release-publication proof is externally blocked and may
-> not halt independent delivery. Stories 1 and 2 are complete and closed;
-> Story 3 is complete and closed; compact transport remains deferred until a
-> separately measured need justifies it.
+> **Status:** No selected active story — [Remaining Delivery](../planned/remaining-delivery-epic.md)
+> has no independent executable work: its sole unchecked release-publication
+> proof is externally blocked and may not halt independent delivery. Stories
+> 1–3 are complete and closed; later stories remain evidence-gated candidates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 

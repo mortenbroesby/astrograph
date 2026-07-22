@@ -36,3 +36,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   — merged as PR #30 after exact-head Fast and Windows/package smoke evidence.
 - [Token-Budgeted Task Context Delivery Checklist](./token-budgeted-task-context-delivery-checklist.md)
   — merged as PR #34 after exact-head Fast and Windows/package smoke evidence.
+- [Tokenizer and Token-Estimator Research Delivery Checklist](./tokenizer-estimator-research-delivery-checklist.md)
+  — merged as PR #36 after exact-head Fast and Windows/package smoke evidence;
+  retained the existing exact tokenizer and labelled estimate.
