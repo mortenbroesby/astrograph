@@ -1,5 +1,5 @@
 import path from "node:path";
-import { writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -26,6 +26,10 @@ describe("machine result serialization", () => {
     const repoRoot = await createFixtureRepo();
     await writeFile(path.join(repoRoot, "README.md"), "# Fixture Repo\n\n## Start Here\n");
     await writeFile(path.join(repoRoot, "config.yaml"), "name: fixture\nmode: test\n");
+    await mkdir(path.join(repoRoot, "docs", "nested"), { recursive: true });
+    await writeFile(path.join(repoRoot, "docs", "nested", "GUIDE.MD"), "# Guide\n\n## Details\n");
+    await writeFile(path.join(repoRoot, "docs", "nested", "settings.YML"), "enabled: true\nmode: test\n");
+    await writeFile(path.join(repoRoot, "docs", "nested", "notes.TXT"), "First note\n\nSecond note\n");
     await indexFolder({ repoRoot });
 
     const diagnosticsResult = await diagnostics({ repoRoot });
@@ -39,6 +43,18 @@ describe("machine result serialization", () => {
     const yamlSummaryResult = await getFileSummary({
       repoRoot,
       filePath: "config.yaml",
+    });
+    const markdownSummaryResult = await getFileSummary({
+      repoRoot,
+      filePath: "docs/nested/GUIDE.MD",
+    });
+    const ymlSummaryResult = await getFileSummary({
+      repoRoot,
+      filePath: "docs/nested/settings.YML",
+    });
+    const textSummaryResult = await getFileSummary({
+      repoRoot,
+      filePath: "docs/nested/notes.TXT",
     });
     const projectStatusResult = await getProjectStatus({ repoRoot });
     const repoOutline = await getRepoOutline({ repoRoot });
@@ -62,6 +78,21 @@ describe("machine result serialization", () => {
     expect(JSON.parse(serializeToolResult("get_file_summary", yamlSummaryResult))).toEqual(
       yamlSummaryResult,
     );
+    expect(markdownSummaryResult).toMatchObject({
+      supportTier: "discovery",
+      summarySource: "markdown-headings",
+      support: { reason: "fallback-extension" },
+    });
+    expect(ymlSummaryResult).toMatchObject({
+      supportTier: "discovery",
+      summarySource: "yaml-top-level-keys",
+      support: { reason: "fallback-extension" },
+    });
+    expect(textSummaryResult).toMatchObject({
+      supportTier: "discovery",
+      summarySource: "text-lines",
+      support: { reason: "fallback-extension" },
+    });
     expect(JSON.parse(serializeToolResult("get_project_status", projectStatusResult))).toEqual(
       projectStatusResult,
     );

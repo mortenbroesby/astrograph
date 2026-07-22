@@ -138,7 +138,21 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm type-lint
-      - run: pnpm exec vitest run --no-file-parallelism tests/filesystem-scan.test.ts tests/engine-behavior.test.ts tests/git-checkout.test.ts tests/watch-backend.test.ts tests/watch-boundary.test.ts
+      - name: Windows filesystem scan
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/filesystem-scan.test.ts
+      - name: Windows engine behavior
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/engine-behavior.test.ts
+      - name: Windows Git checkout
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/git-checkout.test.ts
+      - name: Windows watch backend
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/watch-backend.test.ts
+      - name: Windows watch boundary
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/watch-boundary.test.ts
       - run: pnpm test:package-bin
 
   release_agent:
