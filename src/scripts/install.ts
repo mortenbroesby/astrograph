@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-import { execFileSync } from "node:child_process";
 import { constants as fsConstants, accessSync, existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
@@ -20,6 +19,7 @@ import { isMainModule } from "../entrypoint.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { packageManagerInvocation } from "../package-manager.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
+import { runProcess } from "../lib/process.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
@@ -260,7 +260,7 @@ function isVersionNewer(
 function resolveLatestAstrographVersion(): ParsedSemVer | null {
   try {
     const invocation = packageManagerInvocation("npm", ["view", PACKAGE_NAME, "version"]);
-    const latest = execFileSync(
+    const latest = runProcess(
       invocation.command,
       invocation.args,
       {
@@ -268,7 +268,7 @@ function resolveLatestAstrographVersion(): ParsedSemVer | null {
         stdio: ["ignore", "pipe", "ignore"],
         timeout: 2_500,
       },
-    ).trim();
+    ).stdout.trim();
     return parseComparableVersion(latest);
   } catch {
     return null;
@@ -708,11 +708,11 @@ function validateIdes(args: { ides: RequestedIde[] }): { ides: InstallIde[] } {
 function resolveRepoRoot(repoRoot: string): string {
   const absoluteRepoRoot = path.resolve(repoRoot);
   try {
-    return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    return runProcess("git", ["rev-parse", "--show-toplevel"], {
       cwd: absoluteRepoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
+    }).stdout.trim();
   } catch {
     return absoluteRepoRoot;
   }
@@ -721,7 +721,7 @@ function resolveRepoRoot(repoRoot: string): string {
 function hasLocalAstrographDependency(repoRoot: string): boolean {
   try {
     const packageData = JSON.parse(
-      execFileSync(
+      runProcess(
         "node",
         ["-e", "process.stdout.write(require('fs').readFileSync('package.json','utf8'))"],
         {
@@ -729,7 +729,7 @@ function hasLocalAstrographDependency(repoRoot: string): boolean {
           encoding: "utf8",
           stdio: ["ignore", "pipe", "ignore"],
         },
-      ),
+      ).stdout,
     ) as PackageJsonFile;
     return Boolean(
       packageData.dependencies?.[PACKAGE_NAME]

@@ -1,14 +1,11 @@
-import { spawnSync } from "node:child_process";
+import { runProcess } from "../lib/process.ts";
 
 const normalizedArgs = process.argv.slice(2);
 
-const result = spawnSync("vitest", ["run", ...normalizedArgs], {
+const result = runProcess("vitest", ["run", ...normalizedArgs], {
   stdio: "inherit",
   shell: process.platform === "win32",
+  reject: false,
 });
 
-if (result.error) {
-  throw result.error;
-}
-
-process.exitCode = result.status ?? 1;
+process.exitCode = result.exitCode ?? 1;

@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.5.1-alpha.160",
+  "version": "0.5.1-alpha.161",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -112,6 +112,7 @@
     "@vscode/ripgrep": "^1.17.1",
     "better-sqlite3": "^13.0.1",
     "commander": "^14.0.3",
+    "execa": "10.0.0",
     "fast-json-stringify": "^6.3.0",
     "fdir": "^6.5.0",
     "p-map": "^7.0.4",
