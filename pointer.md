@@ -20,8 +20,8 @@ record that result and select the smallest missing evidence-gathering task.
 
 ## Hard boundaries
 
-- Do not implement deferred global artifact reuse, global-install recovery,
-  compact transport, semantic retrieval, Windows work, or release publication
+- Do not implement deferred global artifact reuse, compact transport, semantic
+  retrieval, Windows work, or release publication
   merely because they are listed in an epic.
 - Preserve canonical repository isolation, per-call `repoRoot`, local-first
   storage, and current user privacy.
