@@ -175,6 +175,7 @@ async function main(): Promise<void> {
         "init",
         "--yes",
         "--agents",
+        "--json",
         "--repo",
         fixtureRepo,
       ],
@@ -202,7 +203,7 @@ async function main(): Promise<void> {
 
     const globalInstall = await run(
       "pnpm",
-      ["exec", "astrograph", "install", "--global", "--ide", "codex"],
+      ["exec", "astrograph", "install", "--global", "--ide", "codex", "--json"],
       installDir,
       {
         HOME: globalHome,
@@ -229,7 +230,7 @@ async function main(): Promise<void> {
 
     const globalCopilotInstall = await run(
       "pnpm",
-      ["exec", "astrograph", "install", "--global", "--ide", "copilot-cli"],
+      ["exec", "astrograph", "install", "--global", "--ide", "copilot-cli", "--json"],
       installDir,
       {
         HOME: globalHome,

@@ -129,9 +129,11 @@ Run the installer from the repository you want to index:
 npx astrograph init
 ```
 
-This writes MCP configuration for your target editor or agent client and
-preserves unrelated local config. `npx` downloads and runs Astrograph when it
-is not already installed locally.
+This shows a short setup progress indicator, then explains the selected
+clients, project-owned files, local index, and next step. It writes MCP
+configuration for your target editor or agent client and preserves unrelated
+local config. `npx` downloads and runs Astrograph when it is not already
+installed locally.
 
 If you want non-interactive setup:
 
@@ -146,6 +148,13 @@ npx astrograph init --ide codex
 npx astrograph init --ide copilot
 npx astrograph init --ide copilot-cli
 npx astrograph init --ide all
+```
+
+For scripts that need the complete generated configuration instead of the
+human-readable summary, opt into JSON explicitly:
+
+```bash
+npx astrograph init --yes --json
 ```
 
 For a fresh repository, create the initial index before first use:
@@ -178,6 +187,10 @@ astrograph --version
 astrograph --diagnostics
 ```
 
+The global install confirms the Astrograph version and prints the two client
+commands below. It does not change Codex, Copilot CLI, or any repository by
+itself; that choice stays explicit.
+
 ### 2) Register your global server
 
 By default, Astrograph registers Copilot CLI:
@@ -198,7 +211,9 @@ For Copilot CLI:
 astrograph install --global --ide copilot-cli
 ```
 
-The installer adds only Astrograph’s managed server entry to the client’s
+The installer shows a short progress indicator, then explains what is ready:
+local code exploration tools, one private global cache per repository, and no
+Astrograph files added to repositories. The installer adds only Astrograph’s managed server entry to the client’s
 user-level configuration: `~/.codex/config.toml` for Codex, or
 `~/.copilot/mcp-config.json` for Copilot CLI (`$COPILOT_HOME/mcp-config.json`
 when that variable is set). It also writes the global-storage preference to
@@ -216,6 +231,13 @@ To preview the changes without writing files:
 
 ```bash
 astrograph install --global --ide copilot-cli --dry-run
+```
+
+For scripts that need the complete configuration preview, request the original
+machine-readable result explicitly:
+
+```bash
+astrograph install --global --ide copilot-cli --dry-run --json
 ```
 
 ### 3) Use any repository — no repo setup

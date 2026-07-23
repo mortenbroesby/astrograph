@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Tree-Sitter Polyglot Language Support](./1_tree-sitter-polyglot-language-support-delivery-checklist.md)
-   — establish the full upstream grammar inventory, then deliver only
-   fixture-backed parser adapters and explicit support tiers.
+1. [Comforting Install Experience](./2_comforting-global-install-experience.md)
+   — make package installation plus global and repository-local client setup
+   understandable without hidden configuration writes.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories
