@@ -1,6 +1,7 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
+import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -434,6 +435,111 @@ describe("ai-context-engine behavior", () => {
       parsedFiles: 0,
       removedFiles: 1,
       staleStatus: "fresh",
+    });
+  });
+
+  it("reconciles an actual checkout switch with fresh checkout mappings", async () => {
+    const repoRoot = await createFixtureRepo();
+    for (const args of [
+      ["config", "user.email", "astrograph-tests@example.invalid"],
+      ["config", "user.name", "Astrograph Tests"],
+      ["add", "."],
+      ["commit", "-m", "initial fixture"],
+    ]) {
+      execFileSync("git", args, { cwd: repoRoot, stdio: "ignore" });
+    }
+    const initialHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
+
+    await indexFolder({ repoRoot });
+    execFileSync("git", ["checkout", "-b", "freshness-change"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    await writeFile(
+      path.join(repoRoot, "src", "math.ts"),
+      "export const checkoutSpecific = true;\n",
+    );
+    execFileSync("git", ["add", "src/math.ts"], { cwd: repoRoot, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "checkout change"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 1,
+      parsedFiles: 1,
+      reusedFiles: 1,
+      staleStatus: "fresh",
+    });
+
+    execFileSync("git", ["checkout", "--detach", initialHead], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 1,
+      parsedFiles: 0,
+      reusedFiles: 2,
+      staleStatus: "fresh",
+    });
+
+    const health = await diagnostics({ repoRoot, scanFreshness: true });
+    expect(health).toMatchObject({
+      staleStatus: "fresh",
+      freshnessMode: "scan",
+      staleReasons: [],
+    });
+    const db = new Database(resolveEnginePaths(repoRoot).databasePath, { readonly: true });
+    const checkout = db.prepare(
+      "SELECT head_oid, branch_ref FROM checkouts WHERE canonical_root = ?",
+    ).get(await realpath(repoRoot)) as { head_oid: string | null; branch_ref: string | null };
+    db.close();
+    expect(checkout).toEqual({ head_oid: initialHead, branch_ref: null });
+  });
+
+  it("keeps local freshness explicit when Git becomes unavailable", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+    const originalPath = process.env.PATH;
+    const emptyPath = await mkdtemp(path.join(os.tmpdir(), "astrograph-no-git-"));
+    process.env.PATH = emptyPath;
+    try {
+      await writeFile(
+        path.join(repoRoot, "src", "math.ts"),
+        "export const indexedWithoutGit = true;\n",
+      );
+      await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+        indexedFiles: 1,
+        parsedFiles: 1,
+        reusedFiles: 1,
+        staleStatus: "fresh",
+      });
+    } finally {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+      await rm(emptyPath, { recursive: true, force: true });
+    }
+
+    const db = new Database(resolveEnginePaths(repoRoot).databasePath, { readonly: true });
+    const checkout = db.prepare(
+      "SELECT git_mode, head_oid, branch_ref, git_diagnostic FROM checkouts WHERE canonical_root = ?",
+    ).get(await realpath(repoRoot)) as {
+      git_mode: string;
+      head_oid: string | null;
+      branch_ref: string | null;
+      git_diagnostic: string | null;
+    };
+    db.close();
+    expect(checkout.git_mode).toBe("git-unavailable");
+    expect(checkout.head_oid).toBeNull();
+    expect(checkout.branch_ref).toBeNull();
+    expect(checkout.git_diagnostic).toContain("git");
+    await expect(diagnostics({ repoRoot, scanFreshness: true })).resolves.toMatchObject({
+      staleStatus: "fresh",
+      freshnessMode: "scan",
     });
   });
 
@@ -3112,9 +3218,18 @@ export function circumference(radius: number): string {
     expect(closedHealth.watch.reindexCount).toBeGreaterThanOrEqual(1);
   });
 
-  it("uses repo-config watch defaults when explicit watch options are omitted", async () => {
+  it("uses the explicit polling fallback with observable delta work", async () => {
     const repoRoot = await createFixtureRepo();
-    const reindexEvents: Array<{ changedPaths: string[] }> = [];
+    const reindexEvents: Array<{
+      changedPaths: string[];
+      summary?: {
+        indexedFiles: number;
+        reusedFiles: number;
+        parsedFiles: number;
+        removedFiles: number;
+        staleStatus: string;
+      };
+    }> = [];
 
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
@@ -3132,6 +3247,15 @@ export function circumference(radius: number): string {
         if (event.type === "reindex") {
           reindexEvents.push({
             changedPaths: event.changedPaths,
+            summary: event.summary
+              ? {
+                  indexedFiles: event.summary.indexedFiles,
+                  reusedFiles: event.summary.reusedFiles,
+                  parsedFiles: event.summary.parsedFiles,
+                  removedFiles: event.summary.removedFiles,
+                  staleStatus: event.summary.staleStatus,
+                }
+              : undefined,
           });
         }
       },
@@ -3151,6 +3275,17 @@ export function circumference(radius: number): string {
       );
 
       await waitFor(() => reindexEvents.length >= 1, 4000);
+
+      expect(reindexEvents[0]).toMatchObject({
+        changedPaths: ["src/math.ts"],
+        summary: {
+          indexedFiles: 1,
+          reusedFiles: 0,
+          parsedFiles: 1,
+          removedFiles: 0,
+          staleStatus: "fresh",
+        },
+      });
 
       const health = await diagnostics({ repoRoot });
       expect(health.watch).toMatchObject({

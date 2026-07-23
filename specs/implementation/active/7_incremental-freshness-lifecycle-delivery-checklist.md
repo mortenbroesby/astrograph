@@ -30,7 +30,7 @@ scope.
 - [x] Run focused baseline coverage for refresh, watch, checkout, diagnostics,
   filesystem scan, and engine behavior. Record the commands and current
   outcomes before changing source.
-- [ ] Measure cold index, no-op refresh, one-file edit, rename, delete,
+- [x] Measure cold index, no-op refresh, one-file edit, rename, delete,
   checkout switch, unavailable-Git, and watcher-backend fallback on a pinned
   local fixture. Record elapsed time, parsed/reused/removed counts, and the
   returned freshness/reason fields.
@@ -68,6 +68,23 @@ scope.
   `parseMs=26.3`, and `sqliteWriteMsApprox=1100.8`. These numbers establish a
   reproducible starting point only; they do not yet measure rename, delete,
   checkout, unavailable-Git, or watcher-fallback deltas.
+- `pnpm bench:freshness-lifecycle` is the reproducible, pinned two-file
+  lifecycle baseline. On 2026-07-23 it measured: cold `957.1ms`
+  (`parsed=2,reused=0,removed=0`); no-op `678.4ms`
+  (`parsed=0,reused=2,removed=0`); edit `810.0ms`
+  (`parsed=1,reused=1,removed=0`); rename `780.1ms`
+  (`parsed=0,reused=2,removed=1`); delete `623.3ms`
+  (`parsed=0,reused=1,removed=1`). All returned `fresh`.
+- The same run measured checkout change `771.2ms`
+  (`parsed=1,reused=1,removed=0`) and checkout restore `761.4ms`
+  (`parsed=0,reused=2,removed=0`), with scan diagnostics `fresh` and no stale
+  reasons. Git-unavailable indexing took `504.1ms`
+  (`parsed=1,reused=1,removed=0`) and remained locally `fresh`; focused
+  integration coverage verifies its stored checkout mode is
+  `git-unavailable` with null Git identity and a diagnostic. The explicit
+  polling fallback took `280.4ms` (`parsed=1,reused=0,removed=0`), returned
+  `fresh`, and diagnostics reported `backend="polling"`. These are local
+  baselines, not cross-machine performance targets.
 - Indexing compares discovered canonical-relative paths with SQLite `files`
   rows. A matching size and truncated mtime reuses the row; otherwise it reads
   content, keys analysis by content hash plus parser/config/schema versions,
