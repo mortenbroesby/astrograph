@@ -6,12 +6,9 @@ import cpp from "tree-sitter-cpp";
 import css from "tree-sitter-css";
 import go from "tree-sitter-go";
 import html from "tree-sitter-html";
-import haskell from "tree-sitter-haskell";
 import javascript from "tree-sitter-javascript";
 import java from "tree-sitter-java";
 import json from "tree-sitter-json";
-import julia from "tree-sitter-julia";
-import ocamlBundle from "tree-sitter-ocaml";
 import phpBundle from "tree-sitter-php";
 import powershell from "tree-sitter-powershell";
 import python from "tree-sitter-python";
@@ -61,7 +58,4 @@ export const LANGUAGE_ADAPTERS: Record<SupportedLanguage, LanguageAdapter> = {
   ruby: structured(ruby),
   template: structured(template),
   scala: structured(scala),
-  ocaml: structured(ocamlBundle.ocaml),
-  haskell: structured(haskell),
-  julia: structured(julia),
 };

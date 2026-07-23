@@ -167,9 +167,6 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   { language: "ruby", extensions: [".rb", ".rake", ".gemspec"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
   { language: "template", extensions: [".erb", ".ejs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
   { language: "scala", extensions: [".scala", ".sc"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
-  { language: "ocaml", extensions: [".ml"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
-  { language: "haskell", extensions: [".hs", ".lhs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
-  { language: "julia", extensions: [".jl"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [

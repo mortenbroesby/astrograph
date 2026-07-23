@@ -37,9 +37,6 @@ deterministic symbols and ranges.
 | Structured | Ruby | `.rb`, `.rake`, `.gemspec` |
 | Structured | ERB/EJS | `.erb`, `.ejs` |
 | Structured | Scala | `.scala`, `.sc` |
-| Structured | OCaml | `.ml` |
-| Structured | Haskell | `.hs`, `.lhs` |
-| Structured | Julia | `.jl` |
 
 JSON emits top-level keys only to avoid noisy duplicate configuration symbols.
 ERB/EJS parsing is currently structure-only; embedded template text does not
@@ -55,6 +52,9 @@ grammar package will work in every Node binding. Astrograph currently excludes:
 - **Regex** and **JSDoc:** they parse in isolation but do not have a stable,
   standalone file-extension contract in Astrograph; JSDoc is normally embedded
   in JavaScript-family comments.
+- **OCaml**, **Haskell**, and **Julia:** intentionally excluded from the
+  default Java/.NET/React-oriented product set. They can be reconsidered as
+  separate specialist language packs rather than default native dependencies.
 
 These exclusions are recorded in the active implementation checklist and can
 be reconsidered only with compatible runtime evidence and a user-facing file

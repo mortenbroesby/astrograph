@@ -298,24 +298,6 @@ export const render = () => <button>run</button>;
         content: "class Greeter { def hello(): Unit = {} }\n",
         symbols: ["Greeter", "Greeter.hello"],
       },
-      {
-        language: "ocaml",
-        relativePath: "services/greet.ml",
-        content: "let hello () = 1\n",
-        symbols: ["hello"],
-      },
-      {
-        language: "haskell",
-        relativePath: "services/Greet.hs",
-        content: "hello = 1\n",
-        symbols: ["hello"],
-      },
-      {
-        language: "julia",
-        relativePath: "services/greet.jl",
-        content: "function hello()\nend\n",
-        symbols: ["hello"],
-      },
     ] as const;
 
     for (const fixture of fixtures) {

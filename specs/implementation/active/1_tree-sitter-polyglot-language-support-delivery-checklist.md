@@ -82,9 +82,11 @@ park it, never to infer a `graph` tier.
   `php` grammar export rather than its non-language default bundle; PHP and
   Ruby class/method fixtures, Scala class/function fixtures, and parser-backed
   empty ERB/EJS symbol fixtures pass. They remain structured-only.
-- [x] **Batch 5 — OCaml, Haskell, Julia:** OCaml uses its explicit `ocaml`
-  grammar export; all three have native-load and deterministic function-symbol
-  fixtures. They remain structured-only.
+- [ ] **Excluded by product scope — OCaml, Haskell, Julia:** their grammar
+  packages were evaluated successfully, then removed from the default product
+  because they do not fit the Java/.NET/React-oriented monorepo target and add
+  disproportionate native package cost. Reconsider them only as specialist
+  language packs.
 - [ ] **Parked — Verilog and Agda:** `tree-sitter-verilog@1.0.0` and
   `tree-sitter-agda@1.3.1` install but their Node exports are rejected as
   invalid language objects by `tree-sitter@0.25.0`. Do not add either to the
