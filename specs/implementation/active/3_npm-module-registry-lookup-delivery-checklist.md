@@ -31,9 +31,12 @@ npm, and the packed-package smoke.
   malformed-value requirements. Version 9.0.0 supports Node `>=18` and is MIT
   licensed, but its public options expose registry selection without a timeout
   or cancellation control; native Node `fetch` was selected instead.
-- [x] Run focused installer, release-agent, release-policy, engine-contract,
-  CLI-boundary, and package-bin tests plus `pnpm type-lint`. Record unavailable
-  registry and malformed-version behavior before source changes.
+- [x] Run the focused installer, release-agent, release-policy,
+  engine-contract, and CLI-boundary tests plus `pnpm type-lint`. Record
+  unavailable registry and malformed-version behavior before source changes.
+- [ ] Obtain a passing packed-package smoke in an environment that matches its
+  platform-specific cache-root expectation; the current macOS fixture mismatch
+  is separately recorded below.
 
 ## Baseline evidence (2026-07-23)
 
@@ -57,7 +60,7 @@ npm, and the packed-package smoke.
   unavailable npm rejects the transaction; strict parser coverage proves a
   malformed registry version is not accepted. A local macOS package-smoke
   fixture has the separately recorded cache-root assertion mismatch; Linux CI
-  remains the package baseline for this bounded dependency decision.
+  remains the package baseline for this bounded lookup change.
 - Native Node `fetch` supports `AbortController` cancellation on Astrograph's
   Node floor. A read-only probe of npm's `/-/package/astrograph/dist-tags`
   endpoint returned the current `latest` version under a 2.5-second signal.
@@ -75,8 +78,8 @@ npm, and the packed-package smoke.
 - [x] Migrate release-agent lookup while preserving package name, registry
   error text, unavailable-registry rejection, and custom release policy.
 - [x] Add deterministic tests for success, unavailable registry, malformed
-  registry value, timeout/error propagation, and unchanged decisions after
-  normalization.
+  registry value, timeout/error propagation, and normalized latest-version
+  handling.
 
 ## Implementation evidence (2026-07-23)
 
@@ -91,7 +94,7 @@ npm, and the packed-package smoke.
   parsing and unavailable-registry transaction refusal remain unchanged.
 - `tests/npm-registry.test.ts` covers default/custom registry URLs, scoped
   package encoding, HTTP and malformed responses, and abort-driven timeout.
-  The focused suite passed 81 tests with type lint and version policy at
+  The focused suite passed 82 tests with type lint and version policy at
   `0.5.1-alpha.163`.
 - The packed-package smoke reached the installer and both global install paths
   with the new lookup. Its final diagnostics assertion still fails on macOS
@@ -119,8 +122,8 @@ npm, and the packed-package smoke.
 
 ## Acceptance evidence
 
-- Generic registry lookup is dependency-backed without changing Astrograph's
-  product-specific decision policy.
+- Generic registry lookup uses private native `fetch` without changing
+  Astrograph's product-specific decision policy.
 - Unavailable, malformed, and timed-out responses retain safe refusal or
   no-update behavior with actionable wording.
 - The helper stays private and does not broaden MCP, CLI, or library APIs.
