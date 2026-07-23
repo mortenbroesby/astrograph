@@ -1,6 +1,10 @@
 # Incremental Freshness Lifecycle Delivery Checklist
 
-> **Status:** Active — selected Story 7 of the
+> **Status:** Complete — merged as PR #77 (`5698ca0`) after exact-head Fast
+> CI, post-merge Fast/package/MCP checks, and publication of
+> `astrograph@0.6.0-alpha.164` from `v0.6.0-alpha.164`.
+>
+> **Epic:** Story 7 of the
 > [Precision Retrieval and Agent Experience epic](../planned/1_precision-retrieval-agent-experience-epic.md).
 > This is Astrograph's Munch-inspired next product slice: reliable, explicit
 > local freshness after real repository changes.
@@ -139,7 +143,7 @@ checklist.
   backends and full refresh as explicit fallbacks.
 - [x] Run focused Vitest coverage, `pnpm type-lint`, `pnpm check:version-bump`,
   `pnpm build`, and `git diff --check`. Record cold/no-op/delta evidence.
-- [ ] Commit with the required alpha version decision, push a review branch,
+- [x] Commit with the required alpha version decision, push a review branch,
   obtain exact-head Fast/package evidence, then close this checklist or retain
   the next unchecked lifecycle gap as the only active work.
 
@@ -169,3 +173,12 @@ checklist.
   is an additive runtime feature: `0.6.0-alpha.164` / `v0.6.0-alpha.164`.
   The npm registry confirmed `0.5.1-alpha.163`; the guarded main-only release
   workflow must make the version/tag after merge.
+
+## Mainline closure evidence (2026-07-23)
+
+- PR #77 merged as `5698ca0b634516821687e6ffd83bc32f0f0d2d7b`.
+- Exact-head Fast CI passed on `7e5ef2c`; post-merge Fast CI passed on
+  `5698ca0`, including package and MCP smoke plus main version policy.
+- The guarded release job tagged `v0.6.0-alpha.164` and published
+  `astrograph@0.6.0-alpha.164` to npm. Windows remains intentionally skipped
+  by the documented hosted-runner cost policy.

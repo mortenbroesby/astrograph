@@ -1,9 +1,9 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Active — Story 7 (Incremental Freshness Lifecycle) is selected
-> through its [delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md).
-> Stories 1–3, 5, and 6 are closed. Story 4 is the required token-efficient
-> output end-cap after Story 7; later stories require their own evidence gates.
+> **Status:** Active — Story 4 (Token-Efficient Agent Output) is selected
+> through its [delivery checklist](../active/4_token-efficient-agent-output-delivery-checklist.md).
+> Stories 1–3 and 5–7 are closed. Story 4 is the required token-efficient
+> output end-cap; later stories require their own evidence gates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -31,7 +31,7 @@ has been explicitly parked or descoped with a recorded evidence gate.
 | 4: token-efficient agent output | Required end-cap | Must deliver measured compact or otherwise token-efficient agent-visible output before epic closure |
 | 5: small MCP core | Complete | PR #39, merge `54971f6` |
 | 6: onboarding packs | Complete | PR #70, merge `45cbc63` |
-| 7: incremental freshness lifecycle | Active | [active delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md) |
+| 7: incremental freshness lifecycle | Complete | PR #77, merge `5698ca0`, `v0.6.0-alpha.164` |
 | 8–10: semantic, reporting, internal serialization | Planned or parked | Their individual evidence gates remain authoritative |
 
 **Definition of done:** every selected story has a closed checklist linking to
@@ -122,7 +122,7 @@ it.
 
 ## Story 4 — Token-Efficient Agent Output
 
-**Status:** Required end-cap — do not start it ahead of Story 7, but do not
+**Status:** Active — selected after Story 7 merged as PR #77. Do not
 close this epic until it produces a measured compact or otherwise
 token-efficient agent-visible output on `main`. Compact, versioned JSON remains
 the preferred candidate. The baseline must still establish repeatable material

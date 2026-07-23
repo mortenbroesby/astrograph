@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Incremental Freshness Lifecycle](./7_incremental-freshness-lifecycle-delivery-checklist.md)
-   — selected Munch-inspired product slice: establish and then improve the
-   explicit local freshness lifecycle for edits, checkouts, and watch fallback.
+1. [Token-Efficient Agent Output](./4_token-efficient-agent-output-delivery-checklist.md)
+   — required Munch end-cap: measure and deliver a lossless, agent-visible
+   response-token reduction before the Precision epic can close.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories
