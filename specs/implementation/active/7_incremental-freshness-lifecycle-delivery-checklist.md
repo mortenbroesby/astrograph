@@ -56,6 +56,18 @@ scope.
   live drift. The next task is to capture comparable cold/no-op/edit/rename/
   delete/checkout/unavailable-Git/fallback measurements and map their returned
   freshness reasons before choosing a code seam.
+- The existing `pnpm bench:perf:index -- --repo <this checkout>` harness cannot
+  yet measure Astrograph itself: `copyCleanRepo()` preserves the root
+  `astrograph.config.ts` but excludes `dist/`, so the copied config's
+  self-import of `astrograph` cannot resolve `dist/index.js`. This is a real
+  benchmark-fixture boundary to address or explicitly exclude in Task 2; it
+  must not be hidden by treating the failed run as a product freshness result.
+- The same harness on a pinned five-file, configless local fixture measured
+  `coldIndexMs=1255.6`, `warmNoopRefreshMs=765.9`,
+  `warmChangedRefreshMs=814.2`, `fileDiscoveryMs=126.1`, `hashingMs=2.4`,
+  `parseMs=26.3`, and `sqliteWriteMsApprox=1100.8`. These numbers establish a
+  reproducible starting point only; they do not yet measure rename, delete,
+  checkout, unavailable-Git, or watcher-fallback deltas.
 
 ## Task 2: Specify the smallest safe delta lifecycle
 
