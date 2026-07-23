@@ -17,17 +17,18 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Registry lookup with native `fetch`](./active/3_npm-module-registry-lookup-delivery-checklist.md)
-   - Goal: replace only generic npm registry lookup while retaining explicit
-     registry-unavailable refusal and existing installer messaging.
-   - First action: record the installer and release-agent lookup call sites,
-     their offline/error behavior, and native fetch cancellation behavior.
+1. [Package-confidence CI cost review](./active/4_npm-module-package-confidence-cost-review-checklist.md)
+   - Goal: establish whether one package-quality gate can be selected without a
+     material GitHub-hosted Actions cost increase.
+   - First action: record the successful merged-main Fast CI, package-smoke
+     baseline, and candidate command cost without changing a workflow.
 
 ## Ready — detailed, but not selected
 
-2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 3
-   selected; Stories 4–10 remain planned. Preserve product-specific behavior;
-   package-quality gates require a CI cost review before selection.
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
+   1–3 complete; Stories 4–6 remain behind the active CI-cost review. Preserve
+   product-specific behavior; package-quality gates require an explicit cost
+   decision before selection.
 3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
@@ -116,6 +117,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Generic Version Handling with `semver`](./closed/npm-module-semver-delivery-checklist.md)
   closed after PR #74 passed exact-head Fast/package evidence and
   `astrograph@0.5.1-alpha.162` was verified as npm `latest`.
+- [Registry Lookup with Native `fetch`](./closed/npm-module-registry-lookup-delivery-checklist.md)
+  closed after PR #75 passed exact-head Fast/package evidence and
+  `astrograph@0.5.1-alpha.163` was verified as npm `latest`.
 
 ## Maintaining this roadmap
 

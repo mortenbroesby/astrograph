@@ -70,3 +70,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Generic Version Handling with `semver` Delivery Checklist](./npm-module-semver-delivery-checklist.md)
   — closed after PR #74 passed exact-head Fast/package evidence and
   `astrograph@0.5.1-alpha.162` published from its immutable merge tag.
+- [Registry Lookup with Native `fetch` Delivery Checklist](./npm-module-registry-lookup-delivery-checklist.md)
+  — closed after PR #75 passed exact-head Fast/package evidence and
+  `astrograph@0.5.1-alpha.163` published from its immutable merge tag.

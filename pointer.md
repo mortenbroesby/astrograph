@@ -8,33 +8,27 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Registry Lookup with Native `fetch` Delivery
-Checklist](./specs/implementation/active/3_npm-module-registry-lookup-delivery-checklist.md),
-starting with its lookup and failure-policy baseline.
+Execute the active [Package-Confidence CI Cost Review
+Checklist](./specs/implementation/active/4_npm-module-package-confidence-cost-review-checklist.md),
+starting with the successful merged-main Fast CI and package-smoke baseline.
 
 ## Required outcome
 
-Replace only generic npm registry-version lookup when the baseline proves
-native `fetch` can preserve Astrograph's explicit unavailable-registry
-refusal, installer update wording, timeout behavior, and release-safety
-transaction. Leave exactly one next goal ready only after this checklist closes.
+Decide whether one package-confidence story can be selected without materially
+increasing GitHub-hosted Actions minutes. Produce a bounded evidence record;
+do not add a dependency or change a workflow until the cost gate is explicit.
 
 ## Hard boundaries
 
-- Do not implement compact transport, semantic retrieval, Windows work, shared
-  artifact reuse, release publication changes, or another npm-module story
-  merely because it is listed in an epic.
-- Preserve Astrograph's custom alpha-increment, legacy-baseline,
-  release-decision, registry-unavailable, and installer-recovery behavior. Do
-  not replace release policy with a dependency or turn lookup helpers into a
-  public API.
-- Do not add a shared mutable index, daemon, network synchronization, hidden
-  routing, compatibility shim, destructive MCP cache operation, registry
-  selection change, or broad release-policy redesign.
-- Use an isolated worktree for source changes. Require exact-head Fast and
-  package-smoke evidence before merging source changes to `main`; hosted
-  Windows remains disabled under the cost rule until its explicit re-enable
-  condition is met.
+- Do not edit `.github/workflows/**`, add `publint` or
+  `@arethetypeswrong/cli`, publish a package, or change package metadata in
+  this evidence-gathering checklist.
+- Preserve scoped triggers, dependency caching, PR concurrency cancellation,
+  the fast-required versus expensive-optional split, and the disabled hosted
+  Windows boundary.
+- Do not treat a local package command as authorization to increase hosted
+  runner minutes. Any material cost increase requires the explicit policy
+  bypass and its documented estimate.
 
 ## Completion and update rule
 

@@ -13,7 +13,8 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    — highest product impact: trustworthy, token-efficient retrieval in small,
    evidence-gated slices. Select a story only after its checklist is ready.
 2. [Reduce Astrograph Boilerplate with Proven npm Modules](./2_npm-module-adoption-epic.md)
-   — Story 3 is active in the delivery queue; later stories remain bounded,
+   — Stories 1–3 are complete. Package-confidence Stories 4–6 need the active
+   CI-cost review before one may be selected; later stories remain bounded,
    planned maintenance improvements that preserve product-specific behavior.
 3. [Remaining Delivery Epic](./3_remaining-delivery-epic.md) — parked Windows
    support sequence. Hosted Windows CI is disabled for cost; retain its code
