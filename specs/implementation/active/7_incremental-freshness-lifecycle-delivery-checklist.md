@@ -120,7 +120,7 @@ checklist.
   a safe fallback reason. Preserve existing path and separator behavior.
 - [x] Implement the smallest behavior-preserving delta path; keep watcher
   backends and full refresh as explicit fallbacks.
-- [ ] Run focused Vitest coverage, `pnpm type-lint`, `pnpm check:version-bump`,
+- [x] Run focused Vitest coverage, `pnpm type-lint`, `pnpm check:version-bump`,
   `pnpm build`, and `git diff --check`. Record cold/no-op/delta evidence.
 - [ ] Commit with the required alpha version decision, push a review branch,
   obtain exact-head Fast/package evidence, then close this checklist or retain
@@ -136,3 +136,19 @@ checklist.
   fallback have an explicit, tested safe action and diagnostic explanation.
 - No global mutable index, background service, remote synchronization, or MCP
   routing expansion is introduced.
+
+## Vertical-slice verification (2026-07-23)
+
+- `pnpm exec vitest run tests/index-refresh.test.ts
+  tests/engine-behavior.test.ts tests/serialization.test.ts
+  tests/interface.test.ts` passed. The focused lifecycle fixture proves cold
+  `parsedFiles=2`, no-op `reusedFiles=2`, one-file edit
+  `parsedFiles=1,reusedFiles=1`, and delete
+  `removedFiles=1,reusedFiles=1`, each with `staleStatus="fresh"` on its
+  healthy local fixture.
+- `pnpm type-lint`, `pnpm check:version-bump`, `pnpm build`, and
+  `git diff --check` passed before commit `2d6666a`.
+- The committed-history release plan selects a **minor** release because this
+  is an additive runtime feature: `0.6.0-alpha.164` / `v0.6.0-alpha.164`.
+  The npm registry confirmed `0.5.1-alpha.163`; the guarded main-only release
+  workflow must make the version/tag after merge.
