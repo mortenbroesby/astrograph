@@ -8,10 +8,10 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Comforting Global Install Experience Implementation
+Execute the active [Comforting Install Experience Implementation
 Plan](./specs/implementation/active/2_comforting-global-install-experience.md),
-starting with readable global-install feedback while preserving explicit,
-idempotent configuration.
+starting with readable global and repository-local setup feedback while
+preserving explicit, idempotent configuration.
 
 ## Completion and update rule
 

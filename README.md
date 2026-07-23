@@ -129,9 +129,11 @@ Run the installer from the repository you want to index:
 npx astrograph init
 ```
 
-This writes MCP configuration for your target editor or agent client and
-preserves unrelated local config. `npx` downloads and runs Astrograph when it
-is not already installed locally.
+This shows a short setup progress indicator, then explains the selected
+clients, project-owned files, local index, and next step. It writes MCP
+configuration for your target editor or agent client and preserves unrelated
+local config. `npx` downloads and runs Astrograph when it is not already
+installed locally.
 
 If you want non-interactive setup:
 
@@ -146,6 +148,13 @@ npx astrograph init --ide codex
 npx astrograph init --ide copilot
 npx astrograph init --ide copilot-cli
 npx astrograph init --ide all
+```
+
+For scripts that need the complete generated configuration instead of the
+human-readable summary, opt into JSON explicitly:
+
+```bash
+npx astrograph init --yes --json
 ```
 
 For a fresh repository, create the initial index before first use:

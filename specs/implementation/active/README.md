@@ -6,8 +6,8 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Comforting Global Install Experience](./2_comforting-global-install-experience.md)
-   — make global package installation and explicit client configuration
+1. [Comforting Install Experience](./2_comforting-global-install-experience.md)
+   — make package installation plus global and repository-local client setup
    understandable without hidden configuration writes.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,

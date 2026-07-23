@@ -1,7 +1,7 @@
-# Comforting Global Install Experience Implementation Plan
+# Comforting Install Experience Implementation Plan
 
-**Goal:** Make global Astrograph setup understandable and reassuring, while
-preserving its existing idempotent configuration behavior.
+**Goal:** Make global and repository-local Astrograph setup understandable and
+reassuring, while preserving existing idempotent configuration behavior.
 
 **Architecture:** Keep `setupGlobalForCodex` and `setupGlobalForCopilotCli` as
 the sole writers. Add a human-oriented CLI renderer around their existing
@@ -41,12 +41,27 @@ pnpm, and Vitest.
 - [x] Explain the two-step global flow in the README: install the executable,
   then explicitly choose and configure a client.
 
-## Task 3: Verify and ship
+## Task 3: Render repository-local setup for people
 
-- [x] Run `pnpm exec vitest run tests/engine-contract.test.ts tests/global-install-message.test.ts` — 50 tests passed on Node 22.23.1.
-- [x] Run `pnpm test:package-bin`, `pnpm type-lint`, `pnpm build`,
+**Files:** `src/scripts/install.ts`, `src/astrograph.ts`, `README.md`,
+`tests/engine-contract.test.ts`.
+
+- [x] Replace repository-local `init` result dumps with a concise summary of
+  selected clients, project-owned files, local indexing, dependency changes,
+  and the one next action.
+- [x] Reuse the same interactive-only Clack progress and explicit `--json`
+  escape hatch as global setup. Preserve `--yes`, `--dry-run`, and `--agents`.
+- [x] Verify a local setup preview cannot expose the generated MCP/config
+  contents in normal terminal output.
+
+## Task 4: Verify and ship
+
+- [x] Run `pnpm exec vitest run tests/engine-contract.test.ts tests/global-install-message.test.ts` — 51 tests passed on Node 22.23.1.
+- [x] Run `pnpm test`, `pnpm test:package-bin`, `pnpm type-lint`, `pnpm build`,
   `pnpm check:version-bump`, and `git diff --check`.
 - [x] Apply the release policy: `pnpm release:plan` classifies the combined
-  runtime feature set as minor and targets `0.8.0-alpha.167`.
+  runtime feature set as minor. The post-merge release transaction currently
+  targets `0.8.0-alpha.169`; this branch's second feature commit uses the
+  required intermediate `0.8.0-alpha.168` increment.
 - [ ] Commit, push, open a draft PR, and record CI evidence before closing this
   plan.

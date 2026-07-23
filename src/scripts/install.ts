@@ -52,6 +52,7 @@ interface ParsedArgs {
   ides: RequestedIde[] | null;
   repo: string;
   dryRun: boolean;
+  json: boolean;
   nonInteractive: boolean;
   agentsPolicy: boolean;
   hasExplicitArgs: boolean;
@@ -93,6 +94,7 @@ interface SetupResult {
 interface CliOptions {
   ide?: string;
   dryRun?: boolean;
+  json?: boolean;
   repo?: string;
   yes?: boolean;
   agents?: boolean;
@@ -180,6 +182,49 @@ export function formatGlobalInstallation(
   ].join("\n");
 }
 
+export function formatRepositoryInstallation(
+  result: SetupResult | SetupResult[],
+  options: { dryRun?: boolean } = {},
+): string {
+  const results = Array.isArray(result) ? result : [result];
+  const first = results[0];
+  const clients = results.map((entry) => {
+    if (entry.ide === "codex") return "Codex";
+    if (entry.ide === "copilot") return "GitHub Copilot";
+    return "GitHub Copilot CLI";
+  }).join(", ");
+  const heading = options.dryRun
+    ? "Preview complete — no files were changed."
+    : "Astrograph is ready in this repository.";
+  const dependency = first.packageDependencyReason === "package.json not found"
+    ? "No package.json was found, so Astrograph did not add a dependency."
+    : `Package: ${first.packageDependencyReason}.`;
+  const policy = first.agentsPolicyReason === "not requested"
+    ? null
+    : `Agent guidance: ${first.agentsPolicyReason}.`;
+
+  return [
+    heading,
+    `Astrograph ${first.packageVersion} is connected to ${clients}.`,
+    "",
+    "You get, out of the box:",
+    "  • Project-owned MCP configuration for your selected client",
+    "  • A local index that stays with this repository",
+    "  • Local code search, symbols, file summaries, and task context",
+    "",
+    `Repository: ${first.repoRoot}`,
+    ...results.map((entry) => `Managed client config: ${entry.configPath}`),
+    `Astrograph project config: ${first.engineConfigPath}`,
+    dependency,
+    ...(policy ? [policy] : []),
+    "",
+    options.dryRun
+      ? "Next: run `astrograph init --yes` when you are ready to write these files."
+      : "Next: restart your selected client, then run `index_folder` to create the first index.",
+    "For a machine-readable result, add `--json`.",
+  ].join("\n");
+}
+
 interface AgentsPolicyResult {
   agentsPolicyPath: string;
   agentsPolicyUpdated: boolean;
@@ -219,7 +264,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run]",
+      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -235,6 +280,7 @@ function usage(): void {
       "  npx astrograph init",
       "  npx astrograph init --yes",
       "  npx astrograph init --yes --ide all",
+      "  npx astrograph init --yes --json",
     ].join("\n") + "\n",
   );
 }
@@ -295,6 +341,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       ides: null,
       repo: process.cwd(),
       dryRun: false,
+      json: false,
       nonInteractive: false,
       agentsPolicy: false,
       hasExplicitArgs: false,
@@ -306,6 +353,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--yes",
     "--agents",
     "--dry-run",
+    "--json",
     "--repo",
     "--ide",
     "--help",
@@ -340,6 +388,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--yes", "Run setup with defaults and without prompts."))
     .addOption(new Option("--agents", "Add a tailored agent instruction file for the selected IDE."))
     .addOption(new Option("--dry-run", "Preview changes only."))
+    .addOption(new Option("--json", "Print the machine-readable setup result."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined));
 
@@ -354,6 +403,7 @@ function parseArgs(argv: string[]): ParsedArgs {
         ides: null,
         repo: process.cwd(),
         dryRun: false,
+        json: false,
         nonInteractive: false,
         agentsPolicy: false,
         hasExplicitArgs: false,
@@ -368,6 +418,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       ides: null,
       repo: process.cwd(),
       dryRun: false,
+      json: false,
       nonInteractive: false,
       agentsPolicy: false,
       hasExplicitArgs: false,
@@ -384,12 +435,14 @@ function parseArgs(argv: string[]): ParsedArgs {
       : null,
     repo: options.repo ?? process.cwd(),
     dryRun: Boolean(options.dryRun),
+    json: Boolean(options.json),
     nonInteractive: Boolean(options.yes),
     agentsPolicy: Boolean(options.agents),
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("agents") ||
       hasFlag("dry-run") ||
+      hasFlag("json") ||
       hasFlag("repo") ||
       hasFlag("ide"),
     showHelp: false,
@@ -429,6 +482,7 @@ async function promptForSetupArgs(): Promise<{
   ides: RequestedIde[];
   repo: string;
   dryRun: boolean;
+  json: boolean;
   agentsPolicy: boolean;
 }> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -480,12 +534,11 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
-  outro("Running setup.");
-
   return {
     ides: [ide as RequestedIde],
     repo: resolvedRepo,
     dryRun: false,
+    json: false,
     agentsPolicy: Boolean(agentsPolicy),
   };
 }
@@ -1272,10 +1325,16 @@ async function main(): Promise<void> {
       ...validateIdes({ ides: normalizedArgs.ides ?? [] }),
       repo: normalizedArgs.repo,
       dryRun: normalizedArgs.dryRun,
+      json: normalizedArgs.json,
       agentsPolicy: normalizedArgs.agentsPolicy,
     }
     : await promptForSetupArgs();
 
+  const interactive = !args.json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  const progress = interactive ? spinner() : null;
+  if (progress) {
+    progress.start(args.dryRun ? "Previewing repository setup…" : "Setting up Astrograph…");
+  }
   const result = await setupForAllIdes(args.repo, {
     ides: args.ides,
     dryRun: args.dryRun,
@@ -1283,7 +1342,14 @@ async function main(): Promise<void> {
   });
 
   await emitUpdateSuggestion(PACKAGE_VERSION);
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  if (progress) {
+    progress.stop(args.dryRun ? "Preview ready" : "Repository ready");
+    outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));
+  } else if (args.json) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } else {
+    process.stdout.write(`${formatRepositoryInstallation(result, { dryRun: args.dryRun })}\n`);
+  }
 }
 
 if (isMainModule(import.meta.url)) {

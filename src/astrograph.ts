@@ -28,7 +28,7 @@ function usage() {
     "  astrograph --version",
     "  astrograph --diagnostics",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
-    "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--dry-run]",
+    "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--dry-run] [--json]",
     "  astrograph install --global [--ide copilot-cli|codex] [--dry-run] [--json]",
     "  astrograph init --ide codex",
   ].join("\n") + "\n",
