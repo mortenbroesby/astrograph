@@ -8,15 +8,16 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Generic Version Handling with `semver` Delivery
-Checklist](./specs/implementation/active/2_npm-module-semver-delivery-checklist.md),
-starting with its version-semantics baseline.
+Execute the active [Registry Lookup with `latest-version` Delivery
+Checklist](./specs/implementation/active/3_npm-module-registry-lookup-delivery-checklist.md),
+starting with its lookup and failure-policy baseline.
 
 ## Required outcome
 
-Replace generic semantic-version mechanics only when the baseline proves
-`semver` preserves Astrograph's alpha-release and release-safety behavior. Leave
-exactly one next goal ready only after this checklist closes.
+Replace only generic npm registry-version lookup when the baseline proves
+`latest-version` can preserve Astrograph's explicit unavailable-registry
+refusal, installer update wording, timeout behavior, and release-safety
+transaction. Leave exactly one next goal ready only after this checklist closes.
 
 ## Hard boundaries
 
@@ -25,10 +26,11 @@ exactly one next goal ready only after this checklist closes.
   merely because it is listed in an epic.
 - Preserve Astrograph's custom alpha-increment, legacy-baseline,
   release-decision, registry-unavailable, and installer-recovery behavior. Do
-  not turn generic version helpers into a public API.
+  not replace release policy with a dependency or turn lookup helpers into a
+  public API.
 - Do not add a shared mutable index, daemon, network synchronization, hidden
-  routing, compatibility shim, destructive MCP cache operation, registry-lookup
-  rewrite, or broad release-policy redesign.
+  routing, compatibility shim, destructive MCP cache operation, registry
+  selection change, or broad release-policy redesign.
 - Use an isolated worktree for source changes. Require exact-head Fast and
   package-smoke evidence before merging source changes to `main`; hosted
   Windows remains disabled under the cost rule until its explicit re-enable

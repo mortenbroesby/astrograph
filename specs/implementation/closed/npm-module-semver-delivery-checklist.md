@@ -1,6 +1,7 @@
 # Generic Version Handling with `semver` Delivery Checklist
 
-> **Status:** Active — selected Story 2 of the [npm-module adoption
+> **Status:** Closed — merged in PR #74 and published as
+> `astrograph@0.5.1-alpha.162`. This was Story 2 of the [npm-module adoption
 > epic](../planned/2_npm-module-adoption-epic.md).
 
 **Goal:** Replace generic semantic-version parsing and ordering with the
@@ -54,19 +55,19 @@ and focused tests.
 
 ## Task 3: Verify release and installer safety
 
-- [ ] Run focused semver, release-policy, release-agent, installer/engine,
+- [x] Run focused semver, release-policy, release-agent, installer/engine,
   CLI, and package-bin tests; run `pnpm type-lint`, `pnpm check:version-bump`,
   and `git diff --check`.
-- [ ] Exercise an unavailable-registry path and a malformed registry version
+- [x] Exercise an unavailable-registry path and a malformed registry version
   without accepting an unsafe update or release transaction.
-- [ ] Obtain exact-head Fast CI and the current package/platform cost-boundary
+- [x] Obtain exact-head Fast CI and the current package/platform cost-boundary
   evidence before merging source changes.
 
 ## Task 4: Close and select the next goal
 
-- [ ] Verify the merged package from a clean temporary directory where the
+- [x] Verify the merged package from a clean temporary directory where the
   installer update/version path is observable.
-- [ ] Move this checklist to `../closed/`, update the roadmap/indexes and
+- [x] Move this checklist to `../closed/`, update the roadmap/indexes and
   `pointer.md`, and select Story 3 (`latest-version` registry lookup) only if
   semver behavior, package evidence, and release safety are complete.
 
@@ -93,3 +94,22 @@ and focused tests.
   assessment, release-kind policy, and registry refusal remain product code.
 - New focused tests prove generic numeric prerelease ordering, stable versus
   prerelease ordering, and invalid-version rejection without coercion.
+
+## Closure evidence (2026-07-23)
+
+- PR #74 passed exact-head Fast CI at
+  `3c9a9660de44feefae832f197b87a3be949c0d15`: build, type lint, runtime
+  script, packaged-bin, MCP stdio, and version policy all passed. Hosted
+  Windows remained intentionally skipped under the existing cost rule.
+- The squash merge `4009285560f7912b03b3d8614fd2346ba36d32b5` is tagged
+  `v0.5.1-alpha.162`; the npm registry resolves
+  `astrograph@0.5.1-alpha.162` to that published version.
+- A local re-run on the exact source passed 80 focused semver/release/installer
+  and CLI tests, `pnpm type-lint`, and `pnpm check:version-bump`. Its
+  packaged-bin fixture reached the clean temporary consumer install and both
+  global installer paths, but its final diagnostics assertion is Linux-shaped:
+  on macOS `resolveGlobalCacheRoot` deliberately uses `ASTROGRAPH_HOME` rather
+  than `ASTROGRAPH_CACHE_HOME`. That unrelated fixture portability mismatch is
+  not a semver behavior regression; the exact-head Linux package smoke above
+  remains the package evidence for this story.
+- The next selected goal is Story 3: registry lookup with `latest-version`.

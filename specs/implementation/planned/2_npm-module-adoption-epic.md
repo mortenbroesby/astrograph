@@ -1,8 +1,10 @@
 # Reduce Astrograph Boilerplate with Proven npm Modules
 
-> **Status:** Active in Slice A — Story 2 is selected in the
-> [semver delivery checklist](../active/2_npm-module-semver-delivery-checklist.md).
-> Stories 3–10 remain planned until their individual selection gates pass.
+> **Status:** Active in Slice A — Story 2 is complete in the
+> [closed semver delivery checklist](../closed/npm-module-semver-delivery-checklist.md).
+> Story 3 is selected in its
+> [registry-lookup delivery checklist](../active/3_npm-module-registry-lookup-delivery-checklist.md);
+> Stories 4–10 remain planned until their individual selection gates pass.
 
 **Goal:** Replace generic bespoke tooling plumbing with mature npm modules where
 that reduces maintenance or strengthens package confidence, while preserving
@@ -64,6 +66,9 @@ Astrograph alpha-release policy and its decision rules.
 unchanged, and installer/release tests pass.
 
 ## Story 3 — Registry lookup with `latest-version`
+
+**Status:** Active — execute only the bounded checklist in
+[`../active/3_npm-module-registry-lookup-delivery-checklist.md`](../active/3_npm-module-registry-lookup-delivery-checklist.md).
 
 **Targets:** `package.json`, release-agent and installer lookup paths, focused
 offline/error tests.
