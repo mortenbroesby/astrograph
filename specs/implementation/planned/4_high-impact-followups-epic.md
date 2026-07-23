@@ -9,7 +9,7 @@
 > [Branch-Aware Incremental Index Epic](../closed/branch-aware-incremental-index-epic.md),
 > and [Astrograph Feedback Consolidation Epic](../closed/astro-feedback-epic.md).
 > It complements—rather than replaces—the parked [Remaining Delivery Epic](./3_remaining-delivery-epic.md)
-> and [Precision Retrieval and Agent Experience Epic](./1_precision-retrieval-agent-experience-epic.md).
+> and [Precision Retrieval and Agent Experience Epic](../closed/precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Turn the largest completed platform investments into the next
 meaningful user outcomes: faster safe work across repositories and checkouts,
@@ -157,7 +157,7 @@ and [ranking checklist](../closed/deterministic-lexical-ranking-delivery-checkli
 before any optional semantic system is considered.
 
 **Scope:** Select and execute Stories 1–2 of the
-  [Precision Retrieval and Agent Experience Epic](./1_precision-retrieval-agent-experience-epic.md):
+  [Precision Retrieval and Agent Experience Epic](../closed/precision-retrieval-agent-experience-epic.md):
 stable source/symbol provenance followed by deterministic lexical ranking.
 Do not begin semantic retrieval, remote embeddings, or a vector service in
 this story.
@@ -350,7 +350,7 @@ without learning a sprawling MCP catalog, while advanced operations remain
 available only when they have a distinct, evidence-backed purpose.
 
 **Scope:** Select and execute the existing Precision Epic
-[Story 5: Small MCP Core and Guided Routing](./1_precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing).
+[Story 5: Small MCP Core and Guided Routing](../closed/precision-retrieval-agent-experience-epic.md#story-5--small-mcp-core-and-guided-routing).
 Audit each current CLI/MCP command's task intent, composition frequency,
 schema-token cost, and overlap. Compare the result with jCodeMunch's documented
 surface only to identify useful discoverability patterns—not as a tool-count

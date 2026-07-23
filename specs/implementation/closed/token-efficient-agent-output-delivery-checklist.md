@@ -1,7 +1,7 @@
 # Token-Efficient Agent Output Delivery Checklist
 
-> **Status:** Active — selected Story 4 end-cap of the
-> [Precision Retrieval and Agent Experience epic](../planned/1_precision-retrieval-agent-experience-epic.md).
+> **Status:** Closed — completed Story 4 end-cap of the
+> [Precision Retrieval and Agent Experience epic](./precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Deliver a measured, inspectable, agent-visible token-efficiency result
 on `main` while ordinary JSON remains the stable default and failures fall back
@@ -92,8 +92,23 @@ Update this checklist before implementation.
 - [x] Run focused Vitest, `pnpm type-lint`, `pnpm build`, and `git diff --check`.
 - [x] Stage and run `pnpm check:version-bump`, then obtain exact-head
   Fast/package evidence.
-- [ ] Commit, push, merge, and record the merged main commit and release result
+- [x] Commit, push, merge, and record the merged main commit and release result
   here. Only then may the Precision/Munch epic be considered for closure.
+
+## Closure evidence (2026-07-23)
+
+- PR [#79](https://github.com/mortenbroesby/astrograph/pull/79) merged the
+  implementation commit `2ac14f3` into `main` as squash merge
+  `3a8fa04a71e855c2eace9e587ea42ee7d14ea2b7`.
+- Exact-head PR CI run `30028856824` passed Fast required checks in 58 seconds;
+  the cost-scoped Windows and retry jobs were intentionally skipped. Merged-main
+  run `30028967067` passed its Fast job in 58 seconds, including package and
+  MCP stdio smoke.
+- The guarded release created `v0.7.0-alpha.165` for the merged commit, but its
+  npm publication failed with registry `E404`/permission denied at job
+  `89280716957`. `npm view astrograph@0.7.0-alpha.165` confirms the version is
+  not published. This is a tracked release-operation exception, not a source or
+  contract failure; retry publication only after npm registry access is fixed.
 
 ## Acceptance evidence
 

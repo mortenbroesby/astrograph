@@ -76,3 +76,9 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Incremental Freshness Lifecycle Delivery Checklist](./incremental-freshness-lifecycle-delivery-checklist.md)
   — closed after PR #77, exact-head/post-merge Fast and package/MCP evidence,
   and publication of `astrograph@0.6.0-alpha.164`.
+- [Token-Efficient Agent Output Delivery Checklist](./token-efficient-agent-output-delivery-checklist.md)
+  — closed after PR #79 merged `agc1` compact MCP output with exact-head and
+  merged-main Fast evidence. Its `v0.7.0-alpha.165` tag exists; npm publication
+  is separately recorded as a registry-permission recovery item.
+- [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md)
+  — closed after its required Story 4 end-cap merged in PR #79.
