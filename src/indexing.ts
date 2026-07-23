@@ -32,6 +32,7 @@ export type AnalyzedFileIndexResult =
     kind: "symbol-limit-exceeded";
     existing: TrackedFileRow | undefined;
     symbolCount: number;
+    analysisReused: boolean;
   }
   | {
     kind: "content-unchanged";
@@ -41,6 +42,7 @@ export type AnalyzedFileIndexResult =
     symbolSignatureHash: string;
     importHash: string;
     artifactKey: string;
+    analysisReused: boolean;
   }
   | {
     kind: "reindexed";
@@ -50,6 +52,7 @@ export type AnalyzedFileIndexResult =
     symbolSignatureHash: string;
     importHash: string;
     artifactKey: string;
+    analysisReused: boolean;
   };
 
 function persistedSymbolCount(db: IndexBackendConnection, fileId: number): number {
@@ -71,11 +74,20 @@ function clearFileSearchRows(
 export function persistFileIndexResult(
   db: IndexBackendConnection,
   analyzed: AnalyzedFileIndexResult,
-): { indexed: boolean; symbolCount: number } {
+): {
+  indexed: boolean;
+  symbolCount: number;
+  reusedFiles: number;
+  parsedFiles: number;
+  removedFiles: number;
+} {
   if (analyzed.kind === "unchanged") {
     return {
       indexed: false,
       symbolCount: persistedSymbolCount(db, analyzed.existing.id),
+      reusedFiles: 1,
+      parsedFiles: 0,
+      removedFiles: 0,
     };
   }
 
@@ -88,6 +100,9 @@ export function persistFileIndexResult(
     return {
       indexed: false,
       symbolCount: 0,
+      reusedFiles: analyzed.analysisReused ? 1 : 0,
+      parsedFiles: analyzed.analysisReused ? 0 : 1,
+      removedFiles: analyzed.existing ? 1 : 0,
     };
   }
 
@@ -110,6 +125,9 @@ export function persistFileIndexResult(
     return {
       indexed: false,
       symbolCount: persistedSymbolCount(db, analyzed.existing.id),
+      reusedFiles: 1,
+      parsedFiles: 0,
+      removedFiles: 0,
     };
   }
 
@@ -242,6 +260,9 @@ export function persistFileIndexResult(
   return {
     indexed: true,
     symbolCount: reparsed.symbols.length,
+    reusedFiles: analyzed.analysisReused ? 1 : 0,
+    parsedFiles: analyzed.analysisReused ? 0 : 1,
+    removedFiles: 0,
   };
 }
 

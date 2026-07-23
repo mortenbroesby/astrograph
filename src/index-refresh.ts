@@ -4,6 +4,9 @@ import type { IndexSummary, SummaryStrategy } from "./types.ts";
 export type RefreshedFileCounts = {
   indexedFiles: number;
   indexedSymbols: number;
+  reusedFiles: number;
+  parsedFiles: number;
+  removedFiles: number;
 };
 
 export type RefreshFilePathInput = {
@@ -53,6 +56,9 @@ export async function refreshFileSetWithDependents(input: {
   const dependentPaths = new Set<string>();
   let indexedFiles = 0;
   let indexedSymbols = 0;
+  let reusedFiles = 0;
+  let parsedFiles = 0;
+  let removedFiles = 0;
 
   for (const filePath of changedPaths) {
     for (const importerPath of input.loadDirectImporterPaths(input.db, filePath)) {
@@ -72,6 +78,9 @@ export async function refreshFileSetWithDependents(input: {
     });
     indexedFiles += result.indexedFiles;
     indexedSymbols += result.indexedSymbols;
+    reusedFiles += result.reusedFiles;
+    parsedFiles += result.parsedFiles;
+    removedFiles += result.removedFiles;
   }
 
   for (const dependentPath of [...dependentPaths].sort()) {
@@ -86,6 +95,9 @@ export async function refreshFileSetWithDependents(input: {
     });
     indexedFiles += result.indexedFiles;
     indexedSymbols += result.indexedSymbols;
+    reusedFiles += result.reusedFiles;
+    parsedFiles += result.parsedFiles;
+    removedFiles += result.removedFiles;
   }
 
   const staleStatus = await input.finalizeIndex({
@@ -98,6 +110,9 @@ export async function refreshFileSetWithDependents(input: {
   return {
     indexedFiles,
     indexedSymbols,
+    reusedFiles,
+    parsedFiles,
+    removedFiles,
     staleStatus,
   };
 }

@@ -31,6 +31,7 @@ describe("machine result serialization", () => {
     await writeFile(path.join(repoRoot, "docs", "nested", "settings.YML"), "enabled: true\nmode: test\n");
     await writeFile(path.join(repoRoot, "docs", "nested", "notes.TXT"), "First note\n\nSecond note\n");
     await indexFolder({ repoRoot });
+    const indexSummary = await indexFolder({ repoRoot });
 
     const diagnosticsResult = await diagnostics({ repoRoot });
     const findFilesResult = await findFiles({ repoRoot, query: "strings" });
@@ -62,6 +63,9 @@ describe("machine result serialization", () => {
 
     expect(JSON.parse(serializeToolResult("diagnostics", diagnosticsResult))).toEqual(
       diagnosticsResult,
+    );
+    expect(JSON.parse(serializeToolResult("index_folder", indexSummary))).toEqual(
+      indexSummary,
     );
     expect(JSON.parse(serializeToolResult("find_files", findFilesResult))).toEqual(
       findFilesResult,

@@ -396,6 +396,47 @@ describe("ai-context-engine behavior", () => {
     expect(fileTree.map((file) => file.path)).not.toContain("src/ignored.ts");
   });
 
+  it("reports parsed, reused, and removed work for incremental folder refreshes", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 2,
+      reusedFiles: 0,
+      parsedFiles: 2,
+      removedFiles: 0,
+      staleStatus: "fresh",
+    });
+
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 0,
+      reusedFiles: 2,
+      parsedFiles: 0,
+      removedFiles: 0,
+      staleStatus: "fresh",
+    });
+
+    await writeFile(
+      path.join(repoRoot, "src", "math.ts"),
+      "export const refreshed = true;\n",
+    );
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 1,
+      reusedFiles: 1,
+      parsedFiles: 1,
+      removedFiles: 0,
+      staleStatus: "fresh",
+    });
+
+    await rm(path.join(repoRoot, "src", "math.ts"));
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 0,
+      reusedFiles: 1,
+      parsedFiles: 0,
+      removedFiles: 1,
+      staleStatus: "fresh",
+    });
+  });
+
   it("indexes .mjs files as JavaScript source", async () => {
     const repoRoot = await createFixtureRepo();
 
