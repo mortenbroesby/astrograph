@@ -17,16 +17,16 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Generic version handling with `semver`](./active/2_npm-module-semver-delivery-checklist.md)
-   - Goal: replace generic version mechanics while retaining Astrograph's
-     explicit alpha-release and safe release-transaction policy.
-   - First action: classify generic parser/comparator call sites against
-     product-specific alpha policy before selecting a library-backed seam.
+1. [Registry lookup with native `fetch`](./active/3_npm-module-registry-lookup-delivery-checklist.md)
+   - Goal: replace only generic npm registry lookup while retaining explicit
+     registry-unavailable refusal and existing installer messaging.
+   - First action: record the installer and release-agent lookup call sites,
+     their offline/error behavior, and native fetch cancellation behavior.
 
 ## Ready — detailed, but not selected
 
-2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 2
-   selected; Stories 3–10 remain planned. Preserve product-specific behavior;
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 3
+   selected; Stories 4–10 remain planned. Preserve product-specific behavior;
    package-quality gates require a CI cost review before selection.
 3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
@@ -113,6 +113,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Process Execution Seam with `execa`](./closed/npm-module-process-execution-delivery-checklist.md)
   closed after PR #72 passed exact-head Fast/package evidence and
   `astrograph@0.5.1-alpha.161` was verified as npm `latest`.
+- [Generic Version Handling with `semver`](./closed/npm-module-semver-delivery-checklist.md)
+  closed after PR #74 passed exact-head Fast/package evidence and
+  `astrograph@0.5.1-alpha.162` was verified as npm `latest`.
 
 ## Maintaining this roadmap
 

@@ -17,9 +17,9 @@ import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
-import { packageManagerInvocation } from "../package-manager.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import { runProcess } from "../lib/process.ts";
+import { fetchLatestNpmVersion } from "../lib/npm-registry.ts";
 import { compareGenericPackageVersions, normalizeGenericPackageVersion } from "../version.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
@@ -156,26 +156,17 @@ interface AgentsPolicyResult {
   agentsPolicyPreview?: string;
 }
 
-function resolveLatestAstrographVersion(): string | null {
+async function resolveLatestAstrographVersion(): Promise<string | null> {
   try {
-    const invocation = packageManagerInvocation("npm", ["view", PACKAGE_NAME, "version"]);
-    const latest = runProcess(
-      invocation.command,
-      invocation.args,
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-        timeout: 2_500,
-      },
-    ).stdout.trim();
+    const latest = await fetchLatestNpmVersion({ packageName: PACKAGE_NAME, timeoutMs: 2_500 });
     return normalizeGenericPackageVersion(latest);
   } catch {
     return null;
   }
 }
 
-function emitUpdateSuggestion(currentVersion: string): void {
-  const latest = resolveLatestAstrographVersion();
+async function emitUpdateSuggestion(currentVersion: string): Promise<void> {
+  const latest = await resolveLatestAstrographVersion();
   const comparison = latest === null ? null : compareGenericPackageVersions(latest, currentVersion);
   if (comparison === null || comparison <= 0) {
     return;
@@ -1246,7 +1237,7 @@ async function main(): Promise<void> {
     agentsPolicy: args.agentsPolicy,
   });
 
-  emitUpdateSuggestion(PACKAGE_VERSION);
+  await emitUpdateSuggestion(PACKAGE_VERSION);
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 

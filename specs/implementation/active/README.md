@@ -6,9 +6,10 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Generic Version Handling with `semver`](./2_npm-module-semver-delivery-checklist.md)
-   — selected Story 2 of npm-module adoption: replace generic version mechanics
-   while preserving Astrograph's alpha-release and registry-safety policy.
+1. [Registry Lookup with Native `fetch`](./3_npm-module-registry-lookup-delivery-checklist.md)
+   — selected Story 3 of npm-module adoption: replace only generic npm version
+   lookup while preserving offline refusal, installer wording, and release
+   transaction policy.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

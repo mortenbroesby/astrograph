@@ -67,3 +67,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Process Execution Seam with `execa` Delivery Checklist](./npm-module-process-execution-delivery-checklist.md)
   — closed after PR #72 passed exact-head package/CI evidence and
   `astrograph@0.5.1-alpha.161` published from its immutable merge tag.
+- [Generic Version Handling with `semver` Delivery Checklist](./npm-module-semver-delivery-checklist.md)
+  — closed after PR #74 passed exact-head Fast/package evidence and
+  `astrograph@0.5.1-alpha.162` published from its immutable merge tag.
