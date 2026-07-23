@@ -16,6 +16,7 @@ import {
 } from "../release-transaction.ts";
 import { parseAstrographVersion } from "../version.ts";
 import { runProcess } from "../lib/process.ts";
+import { fetchLatestNpmVersion } from "../lib/npm-registry.ts";
 
 interface ReleaseAgentOptions {
   apply: boolean;
@@ -134,20 +135,11 @@ function readPackageVersionAtRefMaybe(ref: string): string | null {
   }
 }
 
-function readRegistryVersion(): AstrographRegistryVersionState {
+async function readRegistryVersion(): Promise<AstrographRegistryVersionState> {
   try {
-    const output = runProcess("npm", ["view", "astrograph", "version", "--json"], {
-      cwd: packageRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 15_000,
-    }).stdout.trim();
-    const parsed = JSON.parse(output) as unknown;
-    if (typeof parsed !== "string") {
-      throw new Error("npm returned a non-string version.");
-    }
-    parseAstrographVersion(parsed);
-    return { status: "available", version: parsed };
+    const version = await fetchLatestNpmVersion({ packageName: "astrograph", timeoutMs: 15_000 });
+    parseAstrographVersion(version);
+    return { status: "available", version };
   } catch (error) {
     return {
       status: "unavailable",
@@ -226,7 +218,7 @@ function printDecision(decision: ReleaseDecision): void {
   console.log(JSON.stringify(decision, null, 2));
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const baseRef = options.base || findLatestReleaseTag();
   const currentVersion = readWorkingPackageVersion();
@@ -268,7 +260,7 @@ function main(): void {
     .length > 0;
   const mainVersion = readPackageVersionAtRefMaybe("origin/main");
   const registry = shouldPublish
-    ? readRegistryVersion()
+    ? await readRegistryVersion()
     : {
       status: "unavailable" as const,
       reason: "Registry lookup is not required for a non-publish decision.",
@@ -333,10 +325,8 @@ function main(): void {
   printDecision(decision);
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);
   process.exit(1);
-}
+});

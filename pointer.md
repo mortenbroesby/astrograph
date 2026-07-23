@@ -8,14 +8,14 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Registry Lookup with `latest-version` Delivery
+Execute the active [Registry Lookup with Native `fetch` Delivery
 Checklist](./specs/implementation/active/3_npm-module-registry-lookup-delivery-checklist.md),
 starting with its lookup and failure-policy baseline.
 
 ## Required outcome
 
 Replace only generic npm registry-version lookup when the baseline proves
-`latest-version` can preserve Astrograph's explicit unavailable-registry
+native `fetch` can preserve Astrograph's explicit unavailable-registry
 refusal, installer update wording, timeout behavior, and release-safety
 transaction. Leave exactly one next goal ready only after this checklist closes.
 

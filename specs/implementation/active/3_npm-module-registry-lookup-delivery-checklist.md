@@ -1,22 +1,21 @@
-# Registry Lookup with `latest-version` Delivery Checklist
+# Registry Lookup with Native `fetch` Delivery Checklist
 
 > **Status:** Active — selected Story 3 of the [npm-module adoption
-> epic](../planned/2_npm-module-adoption-epic.md). Its baseline has found a
-> dependency-fit decision: do not adopt `latest-version` without an explicit
-> bounded-timeout design or a different approved candidate.
+> epic](../planned/2_npm-module-adoption-epic.md). Native Node `fetch` is the
+> approved replacement after `latest-version` could not preserve cancellation.
 
 **Goal:** Replace only generic npm registry-version subprocess calls with a
-small `latest-version` seam while retaining explicit offline refusal, installer
+small native `fetch` seam while retaining explicit offline refusal, installer
 update wording, timeout behavior, and release-transaction policy.
 
-**Architecture:** `latest-version` may answer the generic latest-published
-version question. Astrograph retains package identity, the installer's safe
+**Architecture:** A private native `fetch` helper reads the npm dist-tags
+endpoint with `AbortController` cancellation. Astrograph retains package identity, the installer's safe
 no-update fallback, the release agent's unavailable-registry rejection, custom
 alpha-version parsing/comparison, and all release decisions. Do not change
 registry choice, publishing, global installation, or the process seam.
 
-**Tech stack:** TypeScript, Node.js `>=22.12.0`, pnpm, Vitest,
-`latest-version`, npm, and the packed-package smoke.
+**Tech stack:** TypeScript, Node.js `>=22.12.0`, pnpm, Vitest, native `fetch`,
+npm, and the packed-package smoke.
 
 ---
 
@@ -31,7 +30,7 @@ registry choice, publishing, global installation, or the process seam.
 - [x] Evaluate `latest-version` against Node, license, registry, timeout, and
   malformed-value requirements. Version 9.0.0 supports Node `>=18` and is MIT
   licensed, but its public options expose registry selection without a timeout
-  or cancellation control; do not add it without an explicit safe design.
+  or cancellation control; native Node `fetch` was selected instead.
 - [x] Run focused installer, release-agent, release-policy, engine-contract,
   CLI-boundary, and package-bin tests plus `pnpm type-lint`. Record unavailable
   registry and malformed-version behavior before source changes.
@@ -59,22 +58,46 @@ registry choice, publishing, global installation, or the process seam.
   malformed registry version is not accepted. A local macOS package-smoke
   fixture has the separately recorded cache-root assertion mismatch; Linux CI
   remains the package baseline for this bounded dependency decision.
+- Native Node `fetch` supports `AbortController` cancellation on Astrograph's
+  Node floor. A read-only probe of npm's `/-/package/astrograph/dist-tags`
+  endpoint returned the current `latest` version under a 2.5-second signal.
 
 ## Task 2: Add the smallest private lookup seam
 
-**Files:** `package.json`, `pnpm-lock.yaml`, `src/lib/**` (new only if needed),
+**Files:** `package.json`, `src/lib/**` (new only if needed),
 `src/scripts/install.ts`, `src/scripts/release-agent.ts`, and focused tests.
 
-- [ ] Add the verified dependency and centralize only generic latest-version
-  retrieval behind a private helper. Do not expose it through library, CLI, or
+- [x] Add the private native `fetch` helper with explicit registry URL and
+  `AbortController` timeout handling. Do not expose it through library, CLI, or
   MCP APIs.
-- [ ] Migrate installer lookup while preserving update messaging, installed
+- [x] Migrate installer lookup while preserving update messaging, installed
   version comparison, timeout, and its safe no-update fallback.
-- [ ] Migrate release-agent lookup while preserving package name, registry
+- [x] Migrate release-agent lookup while preserving package name, registry
   error text, unavailable-registry rejection, and custom release policy.
-- [ ] Add deterministic tests for success, unavailable registry, malformed
+- [x] Add deterministic tests for success, unavailable registry, malformed
   registry value, timeout/error propagation, and unchanged decisions after
   normalization.
+
+## Implementation evidence (2026-07-23)
+
+- `src/lib/npm-registry.ts` is a private native-fetch helper for npm's
+  dist-tags endpoint. It honors `npm_config_registry` when supplied, defaults
+  to the public registry, URL-encodes package names, validates the `latest`
+  dist-tag, and aborts the underlying request at the caller-provided timeout.
+- The installer now awaits the helper with its existing 2.5-second limit and
+  keeps every lookup, transport, HTTP, JSON, and normalization failure as the
+  existing no-update result. The release agent is now an async entrypoint and
+  awaits the helper with its existing 15-second limit; strict Astrograph-version
+  parsing and unavailable-registry transaction refusal remain unchanged.
+- `tests/npm-registry.test.ts` covers default/custom registry URLs, scoped
+  package encoding, HTTP and malformed responses, and abort-driven timeout.
+  The focused suite passed 81 tests with type lint and version policy at
+  `0.5.1-alpha.163`.
+- The packed-package smoke reached the installer and both global install paths
+  with the new lookup. Its final diagnostics assertion still fails on macOS
+  because the fixture expects the Linux `ASTROGRAPH_CACHE_HOME` layout while
+  macOS intentionally resolves `ASTROGRAPH_HOME`; this pre-existing unrelated
+  mismatch remains outside the registry lookup change.
 
 ## Task 3: Verify release and installer safety
 

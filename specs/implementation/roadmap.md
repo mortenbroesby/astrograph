@@ -17,11 +17,11 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Registry lookup with `latest-version`](./active/3_npm-module-registry-lookup-delivery-checklist.md)
+1. [Registry lookup with native `fetch`](./active/3_npm-module-registry-lookup-delivery-checklist.md)
    - Goal: replace only generic npm registry lookup while retaining explicit
      registry-unavailable refusal and existing installer messaging.
    - First action: record the installer and release-agent lookup call sites,
-     their offline/error behavior, and `latest-version`'s Node/license fit.
+     their offline/error behavior, and native fetch cancellation behavior.
 
 ## Ready — detailed, but not selected
 

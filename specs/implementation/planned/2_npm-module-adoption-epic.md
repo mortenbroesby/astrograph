@@ -65,7 +65,7 @@ Astrograph alpha-release policy and its decision rules.
 **Done when:** generic version ordering is library-backed, alpha behavior is
 unchanged, and installer/release tests pass.
 
-## Story 3 — Registry lookup with `latest-version`
+## Story 3 — Registry lookup with native `fetch`
 
 **Status:** Active — execute only the bounded checklist in
 [`../active/3_npm-module-registry-lookup-delivery-checklist.md`](../active/3_npm-module-registry-lookup-delivery-checklist.md).
@@ -73,7 +73,8 @@ unchanged, and installer/release tests pass.
 **Targets:** `package.json`, release-agent and installer lookup paths, focused
 offline/error tests.
 
-**Tasks:** replace appropriate `npm view … version` subprocess calls; keep an
+**Tasks:** replace appropriate `npm view … version` subprocess calls with a
+private timeout-bounded native helper; keep an
 explicit registry-unavailable policy and existing update wording.
 
 **Done when:** lookup is simpler/testable, failures degrade safely, and user
