@@ -25,6 +25,7 @@ pnpm --filter astrograph bench:perf -- --repo /abs/repo --runs 10
 pnpm --filter astrograph bench:perf:index -- --repo /abs/repo
 pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
 pnpm --filter astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
+pnpm --filter astrograph bench:freshness-lifecycle
 ```
 
 Those cover the main performance surfaces:
@@ -34,6 +35,15 @@ Those cover the main performance surfaces:
 - warm changed-file refresh
 - `query_code` latency
 - serialization gates
+- the deterministic freshness lifecycle fixture: cold/no-op/edit/rename/delete,
+  checkout change/restore, unavailable Git, and explicit polling fallback
+
+`bench:freshness-lifecycle` creates and removes its own two-file, repo-local
+Git fixtures. Its JSON output records elapsed time plus `reusedFiles`,
+`parsedFiles`, `removedFiles`, and `staleStatus` for each action. It is a
+correctness-oriented baseline, not a real-repository throughput benchmark:
+compare its counts and fallback state across changes, then use
+`bench:perf:index` for larger corpus timing.
 
 ## What Actually Moves Performance
 

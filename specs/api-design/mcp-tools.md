@@ -44,6 +44,12 @@ router, hidden tool selection, or compatibility alias layer.
   invalidation calls, or cache-backed response semantics. Any future cache
   design requires a separate post-v1 plan.
 - Compact schema variants remain disabled in v1 for predictable parsing and easier migration.
+- `index_folder` and `index_file` return additive aggregate lifecycle counts:
+  `reusedFiles`, `parsedFiles`, and `removedFiles`. They reveal no paths or
+  source content. A reused file avoided source analysis through an indexed row
+  or artifact; a parsed file required source analysis; a removed file was no
+  longer indexable. `indexedFiles` remains the count of index rows written,
+  and none of these counts override `staleStatus` or diagnostics.
 - Results must be bounded by config limits or explicit options.
 - Diagnostic and readiness state must distinguish `fresh`, `stale`, and `unknown`.
 - Source-returning tools should support exact source verification where applicable.

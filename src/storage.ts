@@ -1054,6 +1054,7 @@ async function analyzeFileIndexResult(input: {
       kind: "symbol-limit-exceeded",
       existing: input.existing,
       symbolCount: reparsed.symbols.length,
+      analysisReused: cachedAnalysis !== null,
     };
   }
 
@@ -1066,6 +1067,7 @@ async function analyzeFileIndexResult(input: {
       symbolSignatureHash,
       importHash,
       artifactKey,
+      analysisReused: cachedAnalysis !== null,
     };
   }
 
@@ -1077,6 +1079,7 @@ async function analyzeFileIndexResult(input: {
     symbolSignatureHash,
     importHash,
     artifactKey,
+    analysisReused: cachedAnalysis !== null,
   };
 }
 
@@ -1446,10 +1449,11 @@ async function indexFolderDirect(input: {
     const trackedRows = new Map(tracked.map((row) => [row.path, row]));
     const trackedPaths = new Set(tracked.map((row) => row.path));
     const nextPaths = new Set(supportedFiles);
+    let removedFiles = 0;
 
     for (const stalePath of trackedPaths) {
-      if (!nextPaths.has(stalePath)) {
-        removeFileIndex(db, stalePath);
+      if (!nextPaths.has(stalePath) && removeFileIndex(db, stalePath)) {
+        removedFiles += 1;
       }
     }
 
@@ -1463,6 +1467,8 @@ async function indexFolderDirect(input: {
 
     let indexedFiles = 0;
     let indexedSymbols = 0;
+    let reusedFiles = 0;
+    let parsedFiles = 0;
     const analyzedFiles = await pMap(
       supportedFiles,
       async (filePath) => {
@@ -1494,6 +1500,9 @@ async function indexFolderDirect(input: {
         indexedFiles += 1;
         indexedSymbols += result.symbolCount;
       }
+      reusedFiles += result.reusedFiles;
+      parsedFiles += result.parsedFiles;
+      removedFiles += result.removedFiles;
     }
 
     const indexedAt = new Date().toISOString();
@@ -1511,6 +1520,9 @@ async function indexFolderDirect(input: {
     return {
       indexedFiles,
       indexedSymbols,
+      reusedFiles,
+      parsedFiles,
+      removedFiles,
       staleStatus,
     };
   } finally {
@@ -1563,31 +1575,49 @@ async function refreshIndexedFilePath(db: IndexBackendConnection, input: {
     enabled: boolean;
     maxWorkers: number;
   };
-}): Promise<{ indexedFiles: number; indexedSymbols: number }> {
+}): Promise<{
+  indexedFiles: number;
+  indexedSymbols: number;
+  reusedFiles: number;
+  parsedFiles: number;
+  removedFiles: number;
+}> {
   const absolutePath = path.join(input.repoRoot, input.filePath);
   const fileExists = await stat(absolutePath)
     .then((entry) => entry.isFile())
     .catch(() => false);
 
   if (!fileExists) {
+    const removed = removeFileIndex(db, input.filePath);
     return {
-      indexedFiles: removeFileIndex(db, input.filePath) ? 1 : 0,
+      indexedFiles: removed ? 1 : 0,
       indexedSymbols: 0,
+      reusedFiles: 0,
+      parsedFiles: 0,
+      removedFiles: removed ? 1 : 0,
     };
   }
 
   if (!supportedLanguageForFile(input.filePath) || isGitIgnored(input.repoRoot, input.filePath)) {
+    const removed = removeFileIndex(db, input.filePath);
     return {
-      indexedFiles: removeFileIndex(db, input.filePath) ? 1 : 0,
+      indexedFiles: removed ? 1 : 0,
       indexedSymbols: 0,
+      reusedFiles: 0,
+      parsedFiles: 0,
+      removedFiles: removed ? 1 : 0,
     };
   }
 
   const fileMetadata = await readRepoFileMetadata(input.repoRoot, input.filePath);
   if (exceedsMaxFileBytes(fileMetadata.size, input.maxFileBytes)) {
+    const removed = removeFileIndex(db, input.filePath);
     return {
-      indexedFiles: removeFileIndex(db, input.filePath) ? 1 : 0,
+      indexedFiles: removed ? 1 : 0,
       indexedSymbols: 0,
+      reusedFiles: 0,
+      parsedFiles: 0,
+      removedFiles: removed ? 1 : 0,
     };
   }
 
@@ -1603,6 +1633,9 @@ async function refreshIndexedFilePath(db: IndexBackendConnection, input: {
   return {
     indexedFiles: result.indexed ? 1 : 0,
     indexedSymbols: result.symbolCount,
+    reusedFiles: result.reusedFiles,
+    parsedFiles: result.parsedFiles,
+    removedFiles: result.removedFiles,
   };
 }
 export async function indexFolder(input: {

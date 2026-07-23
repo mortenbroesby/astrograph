@@ -22,6 +22,9 @@ const indexSummarySchema = {
   properties: {
     indexedFiles: { type: "integer" },
     indexedSymbols: { type: "integer" },
+    reusedFiles: { type: "integer" },
+    parsedFiles: { type: "integer" },
+    removedFiles: { type: "integer" },
     staleStatus: { type: "string" },
   },
 } as const;

@@ -3,6 +3,12 @@ import type { StaleStatus, SummaryStrategy } from "./config.ts";
 export interface IndexSummary {
   indexedFiles: number;
   indexedSymbols: number;
+  /** Files whose existing indexed analysis was reused during this refresh. */
+  reusedFiles: number;
+  /** Files analyzed from source rather than an existing index/artifact. */
+  parsedFiles: number;
+  /** Previously indexed files removed because they are no longer indexable. */
+  removedFiles: number;
   staleStatus: StaleStatus;
 }
 

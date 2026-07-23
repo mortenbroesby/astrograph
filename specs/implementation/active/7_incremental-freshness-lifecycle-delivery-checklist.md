@@ -30,11 +30,11 @@ scope.
 - [x] Run focused baseline coverage for refresh, watch, checkout, diagnostics,
   filesystem scan, and engine behavior. Record the commands and current
   outcomes before changing source.
-- [ ] Measure cold index, no-op refresh, one-file edit, rename, delete,
+- [x] Measure cold index, no-op refresh, one-file edit, rename, delete,
   checkout switch, unavailable-Git, and watcher-backend fallback on a pinned
   local fixture. Record elapsed time, parsed/reused/removed counts, and the
   returned freshness/reason fields.
-- [ ] Map the current invalidation keys and source of truth: canonical path,
+- [x] Map the current invalidation keys and source of truth: canonical path,
   content hash, parser/config/artifact version, checkout identity, watch event,
   and filesystem snapshot. Identify precisely where a stale or unknown result
   can be misreported.
@@ -68,32 +68,76 @@ scope.
   `parseMs=26.3`, and `sqliteWriteMsApprox=1100.8`. These numbers establish a
   reproducible starting point only; they do not yet measure rename, delete,
   checkout, unavailable-Git, or watcher-fallback deltas.
+- `pnpm bench:freshness-lifecycle` is the reproducible, pinned two-file
+  lifecycle baseline. On 2026-07-23 it measured: cold `957.1ms`
+  (`parsed=2,reused=0,removed=0`); no-op `678.4ms`
+  (`parsed=0,reused=2,removed=0`); edit `810.0ms`
+  (`parsed=1,reused=1,removed=0`); rename `780.1ms`
+  (`parsed=0,reused=2,removed=1`); delete `623.3ms`
+  (`parsed=0,reused=1,removed=1`). All returned `fresh`.
+- The same run measured checkout change `771.2ms`
+  (`parsed=1,reused=1,removed=0`) and checkout restore `761.4ms`
+  (`parsed=0,reused=2,removed=0`), with scan diagnostics `fresh` and no stale
+  reasons. Git-unavailable indexing took `504.1ms`
+  (`parsed=1,reused=1,removed=0`) and remained locally `fresh`; focused
+  integration coverage verifies its stored checkout mode is
+  `git-unavailable` with null Git identity and a diagnostic. The explicit
+  polling fallback took `280.4ms` (`parsed=1,reused=0,removed=0`), returned
+  `fresh`, and diagnostics reported `backend="polling"`. These are local
+  baselines, not cross-machine performance targets.
+- Indexing compares discovered canonical-relative paths with SQLite `files`
+  rows. A matching size and truncated mtime reuses the row; otherwise it reads
+  content, keys analysis by content hash plus parser/config/schema versions,
+  and reindexes only when content differs. Folder refresh removes paths absent
+  from discovery; file/watch refresh removes a missing, ignored, or oversized
+  target, then refreshes its direct importers. Finalization rebuilds dependency
+  and checkout mappings before it reports `fresh` or `stale`.
+- No reviewed path turns a failed Git or watcher probe into a fresh diagnostic:
+  Git is recorded as `git-unavailable`, while watcher failures emit an error
+  before polling fallback. The observable gap is that index responses only
+  expose `indexedFiles` and `indexedSymbols`, hiding no-op reuse and removals.
 
 ## Task 2: Specify the smallest safe delta lifecycle
 
 **Files:** this checklist; `specs/architecture/core-principles.md`,
 `specs/api-design/mcp-tools.md`, and `docs/guides/performance.md` as needed.
 
-- [ ] Write the behavior table for no-op, edit, rename, delete, checkout
+- [x] Write the behavior table for no-op, edit, rename, delete, checkout
   switch, unavailable Git, and watcher failure: invalidation action, returned
   freshness state, safe fallback, and diagnostic reason.
-- [ ] Choose the narrow implementation seam only after the baseline. Keep
+- [x] Choose the narrow implementation seam only after the baseline. Keep
   canonical paths, content hashes, checkout mappings, and single-writer SQLite
   transactions authoritative; do not introduce a daemon or shared index.
-- [ ] Define additive, privacy-safe delta metrics (`reused`, `parsed`,
+- [x] Define additive, privacy-safe delta metrics (`reused`, `parsed`,
   `removed`, elapsed time) and the exact CLI/MCP contracts/tests that prove
   them. Update the architecture/API docs before any public contract change.
 
+| Scenario | Invalidation action | Safe result / reason |
+| --- | --- | --- |
+| No-op | Size + mtime match reuses the row. | Finalizes `fresh` only when dependency/checkouts are healthy; report reuse. |
+| Edit | Read/hash/reindex changed content and direct importers. | Preserve `fresh`/`stale` from finalization and unresolved-import reasons. |
+| Rename/delete | Remove missing old path; discover/index new path on folder refresh. | Never retain the old path; report removal. |
+| Checkout | Compare folder paths and record checkout identity/mappings. | Full folder refresh is reconciliation; incomplete mappings stay stale. |
+| Git unavailable | Continue local filesystem indexing and record `git-unavailable`. | Do not infer a Git identity; preserve probe diagnostic. |
+| Watch failure | Emit error and use explicit polling fallback. | Polling follows the same targeted refresh; failure is retained in diagnostics. |
+
+**Selected seam:** add additive, path-free `reusedFiles`, `parsedFiles`, and
+`removedFiles` to `IndexSummary`, then propagate them through folder/file
+refresh, watch events, CLI JSON, and MCP results. This does not change
+invalidation, SQLite ownership, checkout mappings, or fallback behavior.
+
 ## Task 3: Implement and prove one vertical slice
 
-**Files:** Exact source and test paths selected by Task 2; update this
-checklist before editing them.
+**Files:** `src/types/watch.ts`, `src/indexing.ts`, `src/index-refresh.ts`,
+`src/storage.ts`, `src/serialization.ts`, `tests/index-refresh.test.ts`,
+`tests/engine-behavior.test.ts`, `specs/api-design/mcp-tools.md`, and this
+checklist.
 
-- [ ] Add focused fixtures and tests for the selected lifecycle gap, including
+- [x] Add focused fixtures and tests for the selected lifecycle gap, including
   a safe fallback reason. Preserve existing path and separator behavior.
-- [ ] Implement the smallest behavior-preserving delta path; keep watcher
+- [x] Implement the smallest behavior-preserving delta path; keep watcher
   backends and full refresh as explicit fallbacks.
-- [ ] Run focused Vitest coverage, `pnpm type-lint`, `pnpm check:version-bump`,
+- [x] Run focused Vitest coverage, `pnpm type-lint`, `pnpm check:version-bump`,
   `pnpm build`, and `git diff --check`. Record cold/no-op/delta evidence.
 - [ ] Commit with the required alpha version decision, push a review branch,
   obtain exact-head Fast/package evidence, then close this checklist or retain
@@ -109,3 +153,19 @@ checklist before editing them.
   fallback have an explicit, tested safe action and diagnostic explanation.
 - No global mutable index, background service, remote synchronization, or MCP
   routing expansion is introduced.
+
+## Vertical-slice verification (2026-07-23)
+
+- `pnpm exec vitest run tests/index-refresh.test.ts
+  tests/engine-behavior.test.ts tests/serialization.test.ts
+  tests/interface.test.ts` passed. The focused lifecycle fixture proves cold
+  `parsedFiles=2`, no-op `reusedFiles=2`, one-file edit
+  `parsedFiles=1,reusedFiles=1`, and delete
+  `removedFiles=1,reusedFiles=1`, each with `staleStatus="fresh"` on its
+  healthy local fixture.
+- `pnpm type-lint`, `pnpm check:version-bump`, `pnpm build`, and
+  `git diff --check` passed before commit `2d6666a`.
+- The committed-history release plan selects a **minor** release because this
+  is an additive runtime feature: `0.6.0-alpha.164` / `v0.6.0-alpha.164`.
+  The npm registry confirmed `0.5.1-alpha.163`; the guarded main-only release
+  workflow must make the version/tag after merge.
