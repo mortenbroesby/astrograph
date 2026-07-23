@@ -9,9 +9,13 @@ import javascript from "tree-sitter-javascript";
 import java from "tree-sitter-java";
 import json from "tree-sitter-json";
 import html from "tree-sitter-html";
+import phpBundle from "tree-sitter-php";
 import powershell from "tree-sitter-powershell";
 import python from "tree-sitter-python";
 import rust from "tree-sitter-rust";
+import ruby from "tree-sitter-ruby";
+import scala from "tree-sitter-scala";
+import template from "tree-sitter-embedded-template";
 import tsLanguages from "tree-sitter-typescript";
 
 import { getLanguageSupport } from "../language-registry.ts";
@@ -72,6 +76,14 @@ function languageFor(language: SupportedLanguage): Parser.Language {
       return c as unknown as Parser.Language;
     case "cpp":
       return cpp as unknown as Parser.Language;
+    case "php":
+      return phpBundle.php as unknown as Parser.Language;
+    case "ruby":
+      return ruby as unknown as Parser.Language;
+    case "template":
+      return template as unknown as Parser.Language;
+    case "scala":
+      return scala as unknown as Parser.Language;
   }
 }
 
@@ -138,6 +150,8 @@ const NAME_NODE_TYPES = new Set([
   "string",
   "tag_name",
   "class_name",
+  "name",
+  "constant",
 ]);
 
 function findIdentifierDescendant(node: Parser.SyntaxNode): Parser.SyntaxNode | null {
@@ -305,6 +319,7 @@ function pushClassMembers(
         "function_definition",
         "class_method_definition",
         "method_declaration",
+        "method",
       ].includes(child.type)
     ) {
       if (!ownsNode(child, offset, ownedLines)) {
@@ -361,6 +376,21 @@ function visitDeclarationNode(
       );
       if (symbol) {
         symbols.push(symbol);
+      }
+      return;
+    }
+    case "method": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "method", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) symbols.push(symbol);
+      return;
+    }
+    case "class": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "class", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) {
+        symbols.push(symbol);
+        pushClassMembers(node, sourceText, relativePath, symbol.name, summaryStrategy, symbols, offset, ownedLines);
       }
       return;
     }
@@ -593,6 +623,8 @@ const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
   "struct_specifier",
   "rule_set",
   "element",
+  "class",
+  "method",
 ]);
 
 function visitStructuredNode(

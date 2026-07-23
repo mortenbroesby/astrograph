@@ -78,6 +78,10 @@ park it, never to infer a `graph` tier.
   and C++ classes/methods/functions. Header extension overlap is deterministic:
   `.h` belongs to C while C++ uses `.hh`, `.hpp`, and `.hxx`. All remain
   structured-only pending language-specific relation evidence.
+- [x] **Batch 4 — PHP, Ruby, ERB/EJS, Scala:** PHP uses the package's explicit
+  `php` grammar export rather than its non-language default bundle; PHP and
+  Ruby class/method fixtures, Scala class/function fixtures, and parser-backed
+  empty ERB/EJS symbol fixtures pass. They remain structured-only.
 
 ---
 

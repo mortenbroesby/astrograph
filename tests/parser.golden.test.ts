@@ -274,6 +274,30 @@ export const render = () => <button>run</button>;
         content: "class Greeter { void hello() {} }; void start() {}\n",
         symbols: ["Greeter", "Greeter.hello", "start"],
       },
+      {
+        language: "php",
+        relativePath: "services/Greeter.php",
+        content: "<?php class Greeter { function hello() {} }\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "ruby",
+        relativePath: "services/greet.rb",
+        content: "class Greeter\n  def hello; end\nend\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "template",
+        relativePath: "web/greet.erb",
+        content: "<h1><%= title %></h1>\n",
+        symbols: [],
+      },
+      {
+        language: "scala",
+        relativePath: "services/Greeter.scala",
+        content: "class Greeter { def hello(): Unit = {} }\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
     ] as const;
 
     for (const fixture of fixtures) {

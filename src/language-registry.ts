@@ -163,6 +163,10 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
     toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
   },
+  { language: "php", extensions: [".php"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "ruby", extensions: [".rb", ".rake", ".gemspec"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "template", extensions: [".erb", ".ejs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "scala", extensions: [".scala", ".sc"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [

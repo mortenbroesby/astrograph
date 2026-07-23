@@ -14,7 +14,11 @@ export type SupportedLanguage =
   | "html"
   | "css"
   | "c"
-  | "cpp";
+  | "cpp"
+  | "php"
+  | "ruby"
+  | "template"
+  | "scala";
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";
