@@ -1,10 +1,14 @@
 import Parser from "tree-sitter";
 import bash from "tree-sitter-bash";
+import c from "tree-sitter-c";
 import csharp from "tree-sitter-c-sharp";
+import cpp from "tree-sitter-cpp";
+import css from "tree-sitter-css";
 import go from "tree-sitter-go";
 import javascript from "tree-sitter-javascript";
 import java from "tree-sitter-java";
 import json from "tree-sitter-json";
+import html from "tree-sitter-html";
 import powershell from "tree-sitter-powershell";
 import python from "tree-sitter-python";
 import rust from "tree-sitter-rust";
@@ -60,6 +64,14 @@ function languageFor(language: SupportedLanguage): Parser.Language {
       return rust as unknown as Parser.Language;
     case "json":
       return json as unknown as Parser.Language;
+    case "html":
+      return html as unknown as Parser.Language;
+    case "css":
+      return css as unknown as Parser.Language;
+    case "c":
+      return c as unknown as Parser.Language;
+    case "cpp":
+      return cpp as unknown as Parser.Language;
   }
 }
 
@@ -115,26 +127,42 @@ function resolveSummary(input: {
   };
 }
 
+const NAME_NODE_TYPES = new Set([
+  "identifier",
+  "property_identifier",
+  "type_identifier",
+  "word",
+  "function_name",
+  "simple_name",
+  "field_identifier",
+  "string",
+  "tag_name",
+  "class_name",
+]);
+
+function findIdentifierDescendant(node: Parser.SyntaxNode): Parser.SyntaxNode | null {
+  for (const child of node.namedChildren) {
+    if (NAME_NODE_TYPES.has(child.type)) return child;
+    const nested = findIdentifierDescendant(child);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): string | null {
+  if (NAME_NODE_TYPES.has(node.type)) {
+    const name = nodeText(sourceText, node.startIndex, node.endIndex);
+    return node.type === "string" ? name.replace(/^"|"$/g, "") : name;
+  }
+
   const nameNode =
     node.childForFieldName("name") ??
     node.namedChildren.find((child) =>
-      [
-        "identifier",
-        "property_identifier",
-        "type_identifier",
-        "word",
-        "function_name",
-        "simple_name",
-        "field_identifier",
-        "string",
-      ].includes(child.type),
+      NAME_NODE_TYPES.has(child.type),
     ) ??
     null;
 
-  if (!nameNode) {
-    return null;
-  }
+  if (!nameNode) return findIdentifierDescendant(node) ? extractIdentifierName(findIdentifierDescendant(node)!, sourceText) : null;
 
   const name = nodeText(sourceText, nameNode.startIndex, nameNode.endIndex);
   return nameNode.type === "string" ? name.replace(/^"|"$/g, "") : name;
@@ -334,6 +362,23 @@ function visitDeclarationNode(
       if (symbol) {
         symbols.push(symbol);
       }
+      return;
+    }
+    case "class_specifier":
+    case "struct_specifier": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "class", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) {
+        symbols.push(symbol);
+        pushClassMembers(node, sourceText, relativePath, symbol.name, summaryStrategy, symbols, offset, ownedLines);
+      }
+      return;
+    }
+    case "rule_set":
+    case "element": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "constant", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) symbols.push(symbol);
       return;
     }
     case "class_declaration":
@@ -544,6 +589,10 @@ const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
   "struct_item",
   "method_declaration",
   "pair",
+  "class_specifier",
+  "struct_specifier",
+  "rule_set",
+  "element",
 ]);
 
 function visitStructuredNode(

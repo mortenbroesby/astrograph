@@ -250,6 +250,30 @@ export const render = () => <button>run</button>;
         content: "{\"name\": \"astrograph\", \"scripts\": {\"test\": \"vitest\"}}\n",
         symbols: ["name", "scripts"],
       },
+      {
+        language: "html",
+        relativePath: "web/index.html",
+        content: "<main><h1>Hello</h1></main>\n",
+        symbols: ["main"],
+      },
+      {
+        language: "css",
+        relativePath: "web/app.css",
+        content: ".card { color: red; }\n",
+        symbols: ["card"],
+      },
+      {
+        language: "c",
+        relativePath: "native/greet.c",
+        content: "struct Greeter {}; void hello(void) {}\n",
+        symbols: ["Greeter", "hello"],
+      },
+      {
+        language: "cpp",
+        relativePath: "native/greet.cpp",
+        content: "class Greeter { void hello() {} }; void start() {}\n",
+        symbols: ["Greeter", "Greeter.hello", "start"],
+      },
     ] as const;
 
     for (const fixture of fixtures) {

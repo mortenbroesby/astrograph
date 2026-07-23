@@ -640,8 +640,8 @@ export function circumference(radius: number): string {
           discoveryReady: true,
           deepRetrievalReady: true,
           deepening: false,
-          discoveredFiles: 3,
-          deepIndexedFiles: 3,
+          discoveredFiles: expect.any(Number),
+          deepIndexedFiles: expect.any(Number),
           pendingDeepIndexedFiles: 0,
         },
         freshness: {

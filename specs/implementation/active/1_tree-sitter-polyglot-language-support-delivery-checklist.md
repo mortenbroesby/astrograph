@@ -73,6 +73,11 @@ park it, never to infer a `graph` tier.
   discovery fallback to structured indexing; nested keys intentionally remain
   out of the symbol list to avoid noisy duplicate configuration symbols. No
   Batch 2 language claims import/relation graph support.
+- [x] **Batch 3 — HTML, CSS, C, C++:** native parser loading and structured
+  fixtures pass for HTML elements, CSS rule selectors, C structs/functions,
+  and C++ classes/methods/functions. Header extension overlap is deterministic:
+  `.h` belongs to C while C++ uses `.hh`, `.hpp`, and `.hxx`. All remain
+  structured-only pending language-specific relation evidence.
 
 ---
 

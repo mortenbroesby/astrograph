@@ -135,6 +135,34 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
     toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
   },
+  {
+    language: "html",
+    extensions: [".html", ".htm"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "css",
+    extensions: [".css"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "c",
+    extensions: [".c", ".h"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "cpp",
+    extensions: [".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [

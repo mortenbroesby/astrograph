@@ -10,7 +10,11 @@ export type SupportedLanguage =
   | "java"
   | "go"
   | "rust"
-  | "json";
+  | "json"
+  | "html"
+  | "css"
+  | "c"
+  | "cpp";
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";
