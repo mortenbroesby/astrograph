@@ -22,6 +22,9 @@ roadmap explains everything else.
      edits, checkout changes, and watcher fallback.
    - First action: measure current cold/no-op/delta behavior and map the
      freshness/diagnostic contract before selecting a source change.
+   - The broader [Precision Retrieval and Agent Experience epic](./planned/1_precision-retrieval-agent-experience-epic.md)
+     remains open; its closure rule requires every selected story and this
+     roadmap/pointer transition to be merged to `main` with recorded evidence.
 
 ## Ready — detailed, but not selected
 

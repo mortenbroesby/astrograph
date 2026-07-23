@@ -16,6 +16,32 @@
 
 **Tech Stack:** TypeScript, Node.js 22, SQLite/FTS5, tree-sitter, Vitest, pnpm, MCP stdio, Git, and optional local/provider embeddings.
 
+## Delivery Integrity and Epic Closure Rule
+
+This epic is **not ready to close**. Its completed Munch-inspired product
+stories are already merged into `main`, while Story 7 remains the sole active
+implementation goal. Do not describe the epic as delivered, or move it to
+closed records, until its selected remaining work has merged source, tests, and
+user-facing contract documentation to `main` with exact-head verification—or
+has been explicitly parked or descoped with a recorded evidence gate.
+
+| Story | Delivery state | Mainline evidence |
+| --- | --- | --- |
+| 1–2: provenance and lexical ranking | Complete | PR #26, merge `32248d3` |
+| 3: token-budgeted task context | Complete | PR #34, merge `b5837a7` |
+| 4: compact transport | Parked | Requires measured agent-visible envelope savings |
+| 5: small MCP core | Complete | PR #39, merge `54971f6` |
+| 6: onboarding packs | Complete | PR #70, merge `45cbc63` |
+| 7: incremental freshness lifecycle | Active | [active delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md) |
+| 8–10: semantic, reporting, internal serialization | Planned or parked | Their individual evidence gates remain authoritative |
+
+**Definition of done:** every selected story has a closed checklist linking to
+its merged `main` commit, exact-head checks, and any required package/contract
+evidence; `pointer.md`, the roadmap, this epic, and the closed-record index are
+merged to `main` in the same transition. Future stories that do not pass their
+selection gates must be explicitly parked or descoped rather than silently
+treated as delivered.
+
 ## Principles and Evidence Gates
 
 - Separate payload-token reduction, task quality, latency, indexing cost, and end-to-end model spend. One cannot prove another.
