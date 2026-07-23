@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.7.0-alpha.166",
+  "version": "0.8.0-alpha.167",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -39,6 +39,7 @@
     "dist",
     "src/astrograph.ts",
     "src/scripts/check-version-bump.ts",
+    "src/scripts/global-install-message.mjs",
     "src/scripts/git-smart-refresh.ts",
     "src/scripts/install.ts",
     "src/scripts/release-agent.ts",
@@ -90,7 +91,8 @@
     "hooks:post-merge": "node ./scripts/post-merge-hook.mjs",
     "ralph:init": "node scripts/ralph/init.mjs",
     "ralph:loop": "node scripts/ralph/loop.mjs",
-    "prepack": "pnpm run build"
+    "prepack": "pnpm run build",
+    "postinstall": "node ./src/scripts/global-install-message.mjs"
   },
   "devDependencies": {
     "0x": "^6.0.0",

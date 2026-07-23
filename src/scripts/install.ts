@@ -6,6 +6,7 @@ import {
   isCancel,
   intro,
   outro,
+  spinner,
   select,
   confirm,
 } from "@clack/prompts";
@@ -147,6 +148,36 @@ export interface GlobalInstallationDiagnostics {
   };
   clients: Array<{ ide: "copilot-cli" | "codex"; configPath: string; configured: boolean }>;
   nextStep: string;
+}
+
+export function formatGlobalInstallation(
+  result: GlobalSetupResult,
+  options: { dryRun?: boolean } = {},
+): string {
+  const client = result.ide === "codex" ? "Codex" : "GitHub Copilot CLI";
+  const command = `astrograph install --global --ide ${result.ide}`;
+  const heading = options.dryRun
+    ? "Preview complete — no files were changed."
+    : "Astrograph is ready.";
+  const nextStep = options.dryRun
+    ? `Run \`${command}\` when you are ready to connect ${client}.`
+    : `Restart ${client}, open any repository, then use Astrograph normally. Run \`index_folder\` when that repository has no index yet.`;
+
+  return [
+    heading,
+    `Astrograph ${PACKAGE_VERSION} is connected to ${client}.`,
+    "",
+    "You get, out of the box:",
+    "  • Local code search, symbols, file summaries, and task context",
+    "  • One private, isolated index per repository",
+    "  • No Astrograph config files added to the repositories you open",
+    "",
+    `Managed client config: ${result.configPath}`,
+    `Astrograph storage settings: ${result.engineConfigPath}`,
+    "",
+    `Next: ${nextStep}`,
+    `For a machine-readable result, add \`--json\`.`,
+  ].join("\n");
 }
 
 interface AgentsPolicyResult {
@@ -1193,19 +1224,33 @@ async function main(): Promise<void> {
     if (process.env.ASTROGRAPH_ENTRY_MODE !== "install") {
       throw new Error("Use `astrograph install --global [--ide copilot-cli|codex]`; `astrograph init` is repository-scoped.");
     }
-    const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run"]);
+    const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run", "--json"]);
     if (argv.some((entry) => !allowed.has(entry))) {
-      throw new Error("astrograph install --global accepts only --ide copilot-cli|codex and --dry-run.");
+      throw new Error("astrograph install --global accepts only --ide copilot-cli|codex, --dry-run, and --json.");
     }
     const ideIndex = argv.indexOf("--ide");
     const ide = ideIndex >= 0 ? argv[ideIndex + 1] : DEFAULT_GLOBAL_INSTALL_IDE;
     if (ide !== "codex" && ide !== "copilot-cli") {
       throw new Error("astrograph install --global currently supports only --ide codex or --ide copilot-cli");
     }
+    const dryRun = argv.includes("--dry-run");
+    const json = argv.includes("--json");
+    const interactive = !json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
+    const progress = interactive ? spinner() : null;
+    if (progress) {
+      progress.start(dryRun ? `Previewing ${ide} setup…` : `Connecting Astrograph to ${ide}…`);
+    }
     const result = ide === "copilot-cli"
-      ? await setupGlobalForCopilotCli({ dryRun: argv.includes("--dry-run") })
-      : await setupGlobalForCodex({ dryRun: argv.includes("--dry-run") });
-    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      ? await setupGlobalForCopilotCli({ dryRun })
+      : await setupGlobalForCodex({ dryRun });
+    if (progress) {
+      progress.stop(dryRun ? "Preview ready" : "Connection ready");
+      outro(formatGlobalInstallation(result, { dryRun }));
+    } else if (json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${formatGlobalInstallation(result, { dryRun })}\n`);
+    }
     return;
   }
 

@@ -178,6 +178,10 @@ astrograph --version
 astrograph --diagnostics
 ```
 
+The global install confirms the Astrograph version and prints the two client
+commands below. It does not change Codex, Copilot CLI, or any repository by
+itself; that choice stays explicit.
+
 ### 2) Register your global server
 
 By default, Astrograph registers Copilot CLI:
@@ -198,7 +202,9 @@ For Copilot CLI:
 astrograph install --global --ide copilot-cli
 ```
 
-The installer adds only Astrograph’s managed server entry to the client’s
+The installer shows a short progress indicator, then explains what is ready:
+local code exploration tools, one private global cache per repository, and no
+Astrograph files added to repositories. The installer adds only Astrograph’s managed server entry to the client’s
 user-level configuration: `~/.codex/config.toml` for Codex, or
 `~/.copilot/mcp-config.json` for Copilot CLI (`$COPILOT_HOME/mcp-config.json`
 when that variable is set). It also writes the global-storage preference to
@@ -216,6 +222,13 @@ To preview the changes without writing files:
 
 ```bash
 astrograph install --global --ide copilot-cli --dry-run
+```
+
+For scripts that need the complete configuration preview, request the original
+machine-readable result explicitly:
+
+```bash
+astrograph install --global --ide copilot-cli --dry-run --json
 ```
 
 ### 3) Use any repository — no repo setup

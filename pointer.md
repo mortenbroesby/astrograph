@@ -8,10 +8,10 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Tree-Sitter Polyglot Language Support Delivery
-Checklist](./specs/implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md),
-starting with the upstream grammar, native-ABI, extension, licence, and current
-four-language baseline inventory.
+Execute the active [Comforting Global Install Experience Implementation
+Plan](./specs/implementation/active/2_comforting-global-install-experience.md),
+starting with readable global-install feedback while preserving explicit,
+idempotent configuration.
 
 ## Completion and update rule
 

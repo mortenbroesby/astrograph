@@ -48,6 +48,7 @@ import {
   setupForAllIdes,
   setupForCodex,
   setupForIde,
+  formatGlobalInstallation,
   getGlobalInstallationDiagnostics,
   setupGlobalForCodex,
   setupGlobalForCopilotCli,
@@ -993,6 +994,29 @@ describe("ai-context-engine contract", () => {
     expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
       storageLocation: "global",
     });
+  });
+
+  it("explains global setup without exposing managed configuration contents", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-install-message-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-install-message-config-"));
+    tempDirs.push(homeDir, configHome);
+
+    const result = await setupGlobalForCodex({
+      dryRun: true,
+      environment: {
+        platform: "linux",
+        env: { XDG_CONFIG_HOME: configHome },
+        homeDir: () => homeDir,
+      },
+      executableAvailable: true,
+    });
+
+    const output = formatGlobalInstallation(result, { dryRun: true });
+    expect(output).toContain("Preview complete — no files were changed.");
+    expect(output).toContain(`Astrograph ${ASTROGRAPH_PACKAGE_VERSION} is connected to Codex.`);
+    expect(output).toContain("One private, isolated index per repository");
+    expect(output).toContain("astrograph install --global --ide codex");
+    expect(output).not.toContain(result.configPreview);
   });
 
   it("reports the default Copilot CLI global setup and cache location without writing state", async () => {
