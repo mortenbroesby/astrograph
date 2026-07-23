@@ -1,7 +1,9 @@
 # Registry Lookup with `latest-version` Delivery Checklist
 
 > **Status:** Active — selected Story 3 of the [npm-module adoption
-> epic](../planned/2_npm-module-adoption-epic.md).
+> epic](../planned/2_npm-module-adoption-epic.md). Its baseline has found a
+> dependency-fit decision: do not adopt `latest-version` without an explicit
+> bounded-timeout design or a different approved candidate.
 
 **Goal:** Replace only generic npm registry-version subprocess calls with a
 small `latest-version` seam while retaining explicit offline refusal, installer
@@ -23,15 +25,40 @@ registry choice, publishing, global installation, or the process seam.
 **Files:** `package.json`, `src/scripts/install.ts`,
 `src/scripts/release-agent.ts`, focused tests, and this checklist.
 
-- [ ] Record both current `npm view … version` call sites, their arguments,
+- [x] Record both current `npm view … version` call sites, their arguments,
   working directory, timeout, success parsing, and error fallback. Preserve the
   installer's no-update behavior and the release agent's unavailable state.
-- [ ] Verify the selected `latest-version` release supports Node
-  `>=22.12.0`, has an acceptable license, exposes bounded timeout/registry
-  configuration, and does not silently coerce malformed registry values.
-- [ ] Run focused installer, release-agent, release-policy, engine-contract,
+- [x] Evaluate `latest-version` against Node, license, registry, timeout, and
+  malformed-value requirements. Version 9.0.0 supports Node `>=18` and is MIT
+  licensed, but its public options expose registry selection without a timeout
+  or cancellation control; do not add it without an explicit safe design.
+- [x] Run focused installer, release-agent, release-policy, engine-contract,
   CLI-boundary, and package-bin tests plus `pnpm type-lint`. Record unavailable
   registry and malformed-version behavior before source changes.
+
+## Baseline evidence (2026-07-23)
+
+- `src/scripts/install.ts` invokes `npm view astrograph version` through the
+  process seam with piped stdout, ignored stderr, and a 2.5-second timeout.
+  Any command, transport, or normalization failure returns `null`, producing no
+  update suggestion.
+- `src/scripts/release-agent.ts` invokes `npm view astrograph version --json`
+  from the package root with captured stdout/stderr and a 15-second timeout.
+  It requires a JSON string and strict Astrograph version parsing; every error
+  becomes the explicit `registry: unavailable` state that release policy
+  rejects.
+- `latest-version@9.0.0` reports Node `>=18`, MIT licensing, and only
+  `package-json` as a runtime dependency. Its published API documents
+  `version`, `registryUrl`, and `omitDeprecated` options, but no timeout,
+  signal, or cancellation option. A `Promise.race` wrapper would not cancel the
+  underlying request and would be a new asynchronous policy, not a transparent
+  subprocess replacement.
+- The exact semver source head passed 80 focused release/installer/CLI tests,
+  type lint, and Fast CI's packed-package smoke. Release-policy coverage proves
+  unavailable npm rejects the transaction; strict parser coverage proves a
+  malformed registry version is not accepted. A local macOS package-smoke
+  fixture has the separately recorded cache-root assertion mismatch; Linux CI
+  remains the package baseline for this bounded dependency decision.
 
 ## Task 2: Add the smallest private lookup seam
 
