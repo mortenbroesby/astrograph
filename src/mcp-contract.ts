@@ -18,6 +18,7 @@ import {
   validateTaskContextOptions,
 } from "./validation.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
+import type { McpOutputFormat } from "./compact-mcp.ts";
 
 type EngineModule = typeof import("./index.ts");
 
@@ -83,6 +84,10 @@ function booleanSchema(description: string) {
 function stringArraySchema(description: string) {
   return zod.array(zod.string()).describe(description);
 }
+
+const outputFormatSchema = zod
+  .enum(["json", "compact", "auto"] satisfies McpOutputFormat[])
+  .describe("Optional MCP response format; JSON remains the default");
 
 const symbolKindSchema = zod
   .enum(["function", "class", "method", "constant", "type"])
@@ -308,6 +313,7 @@ export const MCP_TOOL_DEFINITIONS = [
     toolVersion: "1",
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
+      format: outputFormatSchema.optional(),
     },
     execute: async (engine, args) =>
       COMMAND_REGISTRY.getFileTree.execute(engine, {
@@ -321,6 +327,7 @@ export const MCP_TOOL_DEFINITIONS = [
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       filePath: stringSchema("Path relative to the repository root"),
+      format: outputFormatSchema.optional(),
     },
     execute: async (engine, args) =>
       COMMAND_REGISTRY.getFileOutline.execute(engine, {
@@ -347,6 +354,7 @@ export const MCP_TOOL_DEFINITIONS = [
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       query: stringSchema("Symbol name or signature query"),
+      format: outputFormatSchema.optional(),
       kind: symbolKindSchema.optional(),
       language: supportedLanguageSchema.optional(),
       filePattern: stringSchema("Optional glob-like file path filter").optional(),

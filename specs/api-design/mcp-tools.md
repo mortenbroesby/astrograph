@@ -43,7 +43,12 @@ router, hidden tool selection, or compatibility alias layer.
 - MCP v1 exposes no cache behavior: no cache tools, cache-hit metadata, cache
   invalidation calls, or cache-backed response semantics. Any future cache
   design requires a separate post-v1 plan.
-- Compact schema variants remain disabled in v1 for predictable parsing and easier migration.
+- `search_symbols`, `get_file_tree`, and `get_file_outline` accept an optional
+  `format: "json" | "compact" | "auto"`. Omitted and `"json"` preserve the
+  ordinary strict v1 envelope. `"compact"` opts into the documented lossless
+  `agc1` JSON array. `"auto"` selects it only when it saves at least 20
+  `cl100k_base` tokens and 25% of the ordinary serialized JSON response;
+  otherwise it returns JSON. All other tools remain JSON-only.
 - `index_folder` and `index_file` return additive aggregate lifecycle counts:
   `reusedFiles`, `parsedFiles`, and `removedFiles`. They reveal no paths or
   source content. A reused file avoided source analysis through an indexed row
@@ -103,6 +108,40 @@ router, hidden tool selection, or compatibility alias layer.
   },
 }
 ```
+
+## Compact MCP Results (`agc1`)
+
+Only successful `search_symbols`, `get_file_tree`, and `get_file_outline`
+calls may return compact output, and only when their `format` requests it. The
+compact value is still UTF-8 JSON, not a binary transport:
+
+```ts
+["agc1", toolName, payload, ["1", tokenBudgetUsed, dataFreshness]]
+```
+
+`toolName` is one of the three selected tool names. `payload` uses the
+following lossless positional mappings:
+
+- `search_symbols`: `[SymbolSummaryRow[], truncated, refinementHints, tokenSavings]`
+- `get_file_tree`: `Array<[path, language, symbolCount]>`
+- `get_file_outline`: `[filePath, SymbolSummaryRow[]]`
+
+`SymbolSummaryRow` uses this exact order:
+
+```ts
+[
+  id, name, qualifiedName, kind, filePath, signature, summary, summarySource,
+  startLine, endLine, startByte, endByte, exported,
+]
+```
+
+Use the exported `decodeCompactMcpEnvelope` reference decoder to restore the
+ordinary success envelope. It rejects unknown versions, tool names, and invalid
+rows. `format: "compact"` never changes errors: invalid requests, execution
+errors, and compact encoding failures return the ordinary strict v1 JSON error
+envelope. `get_task_context` does not implement compact output; its
+`payloadTokenBudget` and `meta.tokenBudgetUsed` continue to account for the
+ordinary `data` payload, regardless of a caller's unrelated format preference.
 
 ## Explicit Retrieval Tools
 

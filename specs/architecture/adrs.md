@@ -249,3 +249,68 @@ introduced failure states between the verified product merge and npm.
   `specs/implementation/planned/0_release-on-main-merge-delivery-checklist.md`
   describe the same contract.
 - `tests/cli-boundary.test.ts` proves exact scope and `--yes` requirements.
+
+---
+
+## ADR-007: Offer Versioned Compact JSON for Repetitive MCP Results
+
+**Date:** 2026-07-23
+**Status:** Accepted
+
+## Context
+
+MCP clients receive the serialized v1 envelope as text. The normal JSON shape
+is intentionally explicit and remains the safest default, but repeated object
+keys in `search_symbols`, `get_file_tree`, and `get_file_outline` consume a
+material share of an agent's context window. A deterministic two-file fixture
+measured the complete agent-visible success envelopes at 414, 105, and 322
+`cl100k_base` tokens respectively.
+
+## Decision
+
+Add an opt-in `format` request property to only those three tools:
+
+- Omitted or `"json"` returns the existing strict v1 JSON envelope unchanged.
+- `"compact"` returns a lossless JSON array beginning with `"agc1"`; the tool
+  name, positional field tables, and v1 metadata are encoded in a documented,
+  versioned order.
+- `"auto"` returns compact only when it saves at least 20 tokens *and* 25% of
+  the ordinary serialized JSON response. Otherwise it returns ordinary JSON.
+
+Compact encoding is used only for successful selected-tool results. Invalid
+arguments, tool failures, unsupported tools, and any compact-encoding failure
+return the ordinary strict v1 error or JSON envelope. A public reference decoder
+reconstructs the normal envelope; compact output does not introduce a binary
+transport, a hidden routing layer, cache, daemon, or shared state.
+
+## Rationale
+
+- The same fixture's lossless implementation saved 230/414 tokens (55.6%) for
+  successful `search_symbols`, 78/136 (57.4%) for an empty search, 70/105
+  (66.7%) for `get_file_tree`, and 190/322 (59.0%) for `get_file_outline`.
+- The smallest measured selected response saved 70 tokens and 55.6%; the
+  20-token / 25% `auto` gate is therefore evidence-based and conservative.
+- Keeping JSON default and publishing a decoder preserves v1 compatibility and
+  makes the compact contract inspectable by agents and human clients.
+- `get_task_context` is deliberately excluded: its value is bounded source and
+  provenance content, not repeated response keys. Its existing payload-budget
+  accounting remains unchanged for every requested format.
+
+## Consequences
+
+- Clients that want the smaller shape must opt in and either use the reference
+  decoder or implement the published `agc1` table mapping.
+- `auto` may return either documented shape, so clients that require one shape
+  must request `json` or `compact` explicitly.
+- Compact response metrics are emitted in local MCP observability data, while
+  the compact payload stays focused on the lossless result.
+
+## Verification
+
+- `pnpm bench:mcp-envelopes` captures the real envelopes, byte/token counts,
+  and the lossless compact comparison on a deterministic fixture.
+- Focused interface tests prove JSON-default compatibility, selected compact
+  round trips (including Unicode and empty results), `auto` fallback, and
+  strict JSON errors.
+- `specs/api-design/mcp-tools.md` documents the request, envelope, decoder,
+  failure fallback, and unchanged `get_task_context` budget contract.
