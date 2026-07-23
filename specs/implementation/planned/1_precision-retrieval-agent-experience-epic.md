@@ -2,9 +2,8 @@
 
 > **Status:** Active — Story 7 (Incremental Freshness Lifecycle) is selected
 > through its [delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md).
-> Stories 1–3, 5, and 6 are closed. Story 4 remains deferred pending a
-> separately measured compact-transport need; later stories require their own
-> evidence gates.
+> Stories 1–3, 5, and 6 are closed. Story 4 is the required token-efficient
+> output end-cap after Story 7; later stories require their own evidence gates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
