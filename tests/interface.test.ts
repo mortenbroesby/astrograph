@@ -11,6 +11,7 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { afterEach, describe, expect, it as baseIt } from "vitest";
 
 import { handleCli } from "../src/cli.ts";
+import { decodeCompactMcpEnvelope } from "../src/compact-mcp.ts";
 import { MCP_SERVER_NAME, MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { dispatchTool } from "../src/mcp.ts";
 import { ASTROGRAPH_PACKAGE_VERSION, indexFolder } from "../src/index.ts";
@@ -429,6 +430,16 @@ export function circumference(radius: number): string {
           limit: 1,
         },
       });
+      const compactDiscoverResult = await client.callTool({
+        name: "search_symbols",
+        arguments: {
+          repoRoot,
+          query: "Greeter",
+          kind: "class",
+          limit: 1,
+          format: "compact",
+        },
+      });
       const filteredSearchResult = await client.callTool({
         name: "search_symbols",
         arguments: {
@@ -522,6 +533,19 @@ export function circumference(radius: number): string {
         content: Array<{ type: string; text: string }>;
         },
       );
+      const compactDiscoverPayload = parseMcpToolResult(
+        compactDiscoverResult as {
+          content: Array<{ type: string; text: string }>;
+        },
+      );
+      expect(Array.isArray(compactDiscoverPayload)).toBe(true);
+      expect(decodeCompactMcpEnvelope(compactDiscoverPayload)).toMatchObject({
+        ok: true,
+        data: {
+          items: [expect.objectContaining({ name: "Greeter", kind: "class" })],
+        },
+        meta: { toolVersion: "1" },
+      });
       expect(discoverPayload).toMatchObject({
         ok: true,
         meta: {

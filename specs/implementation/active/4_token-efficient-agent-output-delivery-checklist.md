@@ -25,14 +25,31 @@ routing, semantic retrieval, a daemon, or shared mutable state.
 `src/tool-observability.ts`, `scripts/perf-serialize.mjs`,
 `tests/serialization.test.ts`, `tests/interface.test.ts`, and this checklist.
 
-- [ ] Capture deterministic successful, empty, error, and provenance-heavy
+- [x] Capture deterministic successful, empty, error, and provenance-heavy
   MCP envelopes for `search_symbols`, `get_file_tree`, `get_file_outline`, and
   bounded `get_task_context`.
-- [ ] Record serialized bytes, exact declared tokenizer count, readability, and
+- [x] Record serialized bytes, exact declared tokenizer count, readability, and
   encode/decode latency for each envelope. Keep retrieval/source-token savings
   separate from response-encoding savings.
-- [ ] Add a reproducible benchmark fixture and command; record the baseline in
+- [x] Add a reproducible benchmark fixture and command; record the baseline in
   this checklist before changing the public contract.
+
+## Baseline evidence (2026-07-23)
+
+- `pnpm bench:mcp-envelopes` creates and removes a deterministic two-file
+  TypeScript fixture, dispatches real MCP v1 tools, normalizes only the
+  fixture's temporary absolute path to `/fixture`, and prints the complete,
+  readable JSON envelopes. It measures full agent-visible envelope bytes,
+  `cl100k_base` tokens, and dispatch-plus-serialization latency.
+- The initial baseline recorded: `search_symbols` success `1,457 bytes / 414
+  tokens / 142.490ms`; empty `433 / 136 / 147.770ms`; strict invalid-argument
+  error `234 / 72 / 111.509ms`; `get_file_tree` `312 / 105 / 151.374ms`;
+  `get_file_outline` `1,106 / 322 / 156.886ms`; and provenance-heavy bounded
+  `get_task_context` `1,881 / 523 / 173.403ms`.
+- These are baseline measurements only. They prove the repetitive response
+  shapes worth evaluating; the command output also records JSON encode latency
+  and compact encode/reference-decode latency. The next task must compare a
+  lossless draft against the same stabilized envelopes.
 
 ## Task 2: Select and specify one lossless reduction
 
@@ -40,28 +57,41 @@ routing, semantic retrieval, a daemon, or shared mutable state.
 `specs/architecture/`, `specs/api-design/mcp-tools.md`, and
 `docs/guides/performance.md`.
 
-- [ ] Benchmark a table/path-interned, versioned compact JSON draft against the
+- [x] Benchmark a table/path-interned, versioned compact JSON draft against the
   baseline. Set any `auto` threshold only from measured savings; do not assume
   a fixed percentage.
-- [ ] If compact JSON is not the best measured result, select a different
+- [x] If compact JSON is not the best measured result, select a different
   inspectable, lossless, agent-visible reduction instead; do not close this
   story without a delivered result.
-- [ ] Record the ADR and public contract: selected tools, `json|compact|auto`
+- [x] Record the ADR and public contract: selected tools, `json|compact|auto`
   behavior if used, versioned envelope, reference decoder, JSON fallback,
   error behavior, and `get_task_context` budget accounting per format.
+
+## Selected reduction (2026-07-23)
+
+- The same stabilized fixture round-tripped a versioned `agc1` compact JSON
+  implementation exactly for `search_symbols`, `get_file_tree`, and
+  `get_file_outline`. It saved `230 / 414` tokens (55.6%) for successful
+  search, `78 / 136` (57.4%) for empty search, `70 / 105` (66.7%) for the tree,
+  and `190 / 322` (59.0%) for the outline. `get_task_context` was not compacted.
+- ADR-007 selects opt-in compact output for those measured shapes only. JSON is
+  the default; compact failures and all strict errors use ordinary JSON. `auto`
+  must save at least 20 tokens and 25%, thresholds below the smallest measured
+  selected saving (70 tokens / 55.6%).
 
 ## Task 3: Implement and prove the vertical slice
 
 **Files:** Exact files selected by Task 2, plus focused tests and benchmarks.
 Update this checklist before implementation.
 
-- [ ] Add round-trip/reference-decoder tests for Unicode, empty/error payloads,
+- [x] Add round-trip/reference-decoder tests for Unicode, empty/error payloads,
   nested provenance, and default-JSON compatibility.
-- [ ] Implement only the selected measured shapes. Emit format selection,
+- [x] Implement only the selected measured shapes. Emit format selection,
   bytes, response-token savings, and encode/decode latency without exposing
   private source content.
-- [ ] Run focused Vitest, `pnpm type-lint`, `pnpm check:version-bump`,
-  `pnpm build`, `git diff --check`, then obtain exact-head Fast/package evidence.
+- [x] Run focused Vitest, `pnpm type-lint`, `pnpm build`, and `git diff --check`.
+- [x] Stage and run `pnpm check:version-bump`, then obtain exact-head
+  Fast/package evidence.
 - [ ] Commit, push, merge, and record the merged main commit and release result
   here. Only then may the Precision/Munch epic be considered for closure.
 

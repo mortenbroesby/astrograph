@@ -15,6 +15,7 @@ import {
   MCP_SERVER_VERSION,
   MCP_TOOL_DEFINITIONS,
 } from "./mcp-contract.ts";
+import { formatMcpEnvelope, type McpOutputFormat } from "./compact-mcp.ts";
 import { emitEngineEvent } from "./event-sink.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
@@ -28,12 +29,12 @@ type EngineModule = typeof import("./index.ts");
 let engineModulePromise: Promise<EngineModule> | null = null;
 const logger = getLogger({ component: "mcp" });
 
-function asTextResult(value: unknown) {
+function asTextResult(text: string) {
   return {
     content: [
       {
         type: "text" as const,
-        text: JSON.stringify(value, null, 2),
+        text,
       },
     ],
   };
@@ -511,8 +512,23 @@ export function createMcpServer() {
     server.registerTool(tool.name, {
       description: tool.description,
       inputSchema: tool.inputSchema,
-    }, async (args: Record<string, unknown>) =>
-      asTextResult(await dispatchTool(tool.name, args)));
+    }, async (args: Record<string, unknown>) => {
+      const envelope = await dispatchTool(tool.name, args);
+      const requestedFormat = args.format as McpOutputFormat | undefined;
+      const formatted = formatMcpEnvelope(tool.name, requestedFormat, envelope);
+      const repoRoot = typeof args.repoRoot === "string" ? args.repoRoot : undefined;
+      if (repoRoot) {
+        emitEngineEvent({
+          repoRoot,
+          source: "mcp",
+          event: "mcp.tool.response_formatted",
+          level: "debug",
+          correlationId: randomUUID(),
+          data: { toolName: tool.name, ...formatted.metrics },
+        });
+      }
+      return asTextResult(formatted.serialized);
+    });
   }
 
   return server;

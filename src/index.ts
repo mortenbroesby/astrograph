@@ -71,6 +71,20 @@ export {
   readRecentEngineEvents,
 } from "./event-sink.ts";
 export {
+  COMPACT_MCP_AUTO_MIN_SAVED_PERCENT,
+  COMPACT_MCP_AUTO_MIN_SAVED_TOKENS,
+  COMPACT_MCP_VERSION,
+  decodeCompactMcpEnvelope,
+  formatMcpEnvelope,
+} from "./compact-mcp.ts";
+export type {
+  CompactMcpEnvelope,
+  CompactMcpToolName,
+  FormattedMcpEnvelope,
+  McpOutputFormat,
+  McpOutputMetrics,
+} from "./compact-mcp.ts";
+export {
   cacheStatus,
   pruneGlobalCaches,
   removeGlobalCache,
