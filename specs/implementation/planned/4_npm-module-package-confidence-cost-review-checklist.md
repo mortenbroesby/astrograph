@@ -1,8 +1,10 @@
 # Package-Confidence CI Cost Review Checklist
 
-> **Status:** Active — evidence-gathering prerequisite for Stories 4–6 of the
-> [npm-module adoption epic](../planned/2_npm-module-adoption-epic.md). This is
-> not authorization to edit a workflow or add a package dependency.
+> **Status:** Parked — evidence-gathering prerequisite for Stories 4–6 of the
+> [npm-module adoption epic](./2_npm-module-adoption-epic.md). User value from
+> the Munch-inspired freshness work takes priority; do not resume this review
+> until third-party CLI execution is explicitly approved and package confidence
+> becomes the selected product focus.
 
 **Goal:** Decide whether Astrograph can select a package-confidence story
 without exceeding its GitHub Actions cost policy, beginning with `publint` and
@@ -16,6 +18,11 @@ otherwise record it as blocked with the evidence needed to revisit it.
 
 **Tech stack:** pnpm, npm pack, `publint`, `@arethetypeswrong/cli`, GitHub
 Actions metadata, and Markdown implementation records.
+
+**Resume gate:** Explicit approval to run `publint` and
+`@arethetypeswrong/cli` ephemerally against a packed Astrograph tarball, plus
+an explicit decision that package-confidence work outranks the active
+Incremental Freshness Lifecycle checklist.
 
 ---
 

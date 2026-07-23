@@ -8,27 +8,26 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Package-Confidence CI Cost Review
-Checklist](./specs/implementation/active/4_npm-module-package-confidence-cost-review-checklist.md),
-starting with the successful merged-main Fast CI and package-smoke baseline.
+Execute the active [Incremental Freshness Lifecycle Delivery
+Checklist](./specs/implementation/active/7_incremental-freshness-lifecycle-delivery-checklist.md),
+starting with the current refresh, checkout, watch, and diagnostics baseline.
 
 ## Required outcome
 
-Decide whether one package-confidence story can be selected without materially
-increasing GitHub-hosted Actions minutes. Produce a bounded evidence record;
-do not add a dependency or change a workflow until the cost gate is explicit.
+Make Astrograph's local retrieval freshness correct and observable after real
+repository changes. Establish the measured contract before selecting the
+smallest incremental invalidation and diagnostics slice.
 
 ## Hard boundaries
 
-- Do not edit `.github/workflows/**`, add `publint` or
-  `@arethetypeswrong/cli`, publish a package, or change package metadata in
-  this evidence-gathering checklist.
-- Preserve scoped triggers, dependency caching, PR concurrency cancellation,
-  the fast-required versus expensive-optional split, and the disabled hosted
-  Windows boundary.
-- Do not treat a local package command as authorization to increase hosted
-  runner minutes. Any material cost increase requires the explicit policy
-  bypass and its documented estimate.
+- Do not implement compact transport, semantic retrieval, Windows work, shared
+  artifact reuse, a daemon, remote synchronization, hidden routing, or a
+  shared mutable index.
+- Preserve canonical paths, content hashes, checkout mappings, explicit
+  freshness states, single-writer SQLite transactions, and full refresh as a
+  safe fallback.
+- Do not claim an index is fresh after a failed Git, filesystem, or watcher
+  probe. Expose the fallback reason through the existing diagnostics surface.
 
 ## Completion and update rule
 

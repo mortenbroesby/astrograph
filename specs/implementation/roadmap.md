@@ -17,18 +17,18 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Package-confidence CI cost review](./active/4_npm-module-package-confidence-cost-review-checklist.md)
-   - Goal: establish whether one package-quality gate can be selected without a
-     material GitHub-hosted Actions cost increase.
-   - First action: record the successful merged-main Fast CI, package-smoke
-     baseline, and candidate command cost without changing a workflow.
+1. [Incremental Freshness Lifecycle](./active/7_incremental-freshness-lifecycle-delivery-checklist.md)
+   - Goal: make local retrieval freshness explicit and safely incremental after
+     edits, checkout changes, and watcher fallback.
+   - First action: measure current cold/no-op/delta behavior and map the
+     freshness/diagnostic contract before selecting a source change.
 
 ## Ready — detailed, but not selected
 
 2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
-   1–3 complete; Stories 4–6 remain behind the active CI-cost review. Preserve
-   product-specific behavior; package-quality gates require an explicit cost
-   decision before selection.
+   1–3 complete; Stories 4–6 remain parked behind their CI-cost and
+   third-party-command evidence gates. Preserve product-specific behavior;
+   package-quality gates require an explicit renewed selection.
 3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
@@ -47,6 +47,10 @@ roadmap explains everything else.
   `analysis_artifacts` JSON, deduplicated layout, size, latency, and debuggability.
 - [Optional shared immutable artifact store](./planned/6_global-install-and-cache-deferred-stories.md#story-6-shared-immutable-artifact-store--optional-and-deferred):
   never shares mutable repository indexes and remains optional.
+- [Package-confidence CI cost review](./planned/4_npm-module-package-confidence-cost-review-checklist.md):
+  baseline evidence is recorded, but product priority moved to Incremental
+  Freshness Lifecycle before the temporary candidate-CLI evaluation. Resume
+  only with explicit approval and a renewed product-priority decision.
 
 ## Blocked — external prerequisite only
 

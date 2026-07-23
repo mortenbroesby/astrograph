@@ -4,8 +4,9 @@
 > [closed semver delivery checklist](../closed/npm-module-semver-delivery-checklist.md),
 > and Story 3 is complete in the
 > [closed registry-lookup delivery checklist](../closed/npm-module-registry-lookup-delivery-checklist.md).
-> The active [package-confidence CI-cost review](../active/4_npm-module-package-confidence-cost-review-checklist.md)
-> determines whether one of Stories 4–6 can be selected; Stories 7–10 remain planned.
+> The [package-confidence CI-cost review](./4_npm-module-package-confidence-cost-review-checklist.md)
+> is parked while the Munch-inspired freshness work has product priority.
+> Stories 4–10 remain planned until their individual selection gates pass.
 
 **Goal:** Replace generic bespoke tooling plumbing with mature npm modules where
 that reduces maintenance or strengthens package confidence, while preserving

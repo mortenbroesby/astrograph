@@ -1,9 +1,10 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Active — Story 6 (Human and Agent Onboarding Packs) is selected
-> through its [delivery checklist](../active/0_human-agent-onboarding-packs-delivery-checklist.md).
-> Stories 1–3 and 5 are closed. Story 4 remains deferred pending a separately
-> measured compact-transport need; later stories require their own evidence gates.
+> **Status:** Active — Story 7 (Incremental Freshness Lifecycle) is selected
+> through its [delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md).
+> Stories 1–3, 5, and 6 are closed. Story 4 remains deferred pending a
+> separately measured compact-transport need; later stories require their own
+> evidence gates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -157,8 +158,9 @@ hidden tier, or tool removal was justified. See the
 
 ## Story 6 — Human and Agent Onboarding Packs
 
-**Status:** Active — baseline and gap assessment are the first required steps;
-do not assume a new `init` implementation is needed before measured evidence.
+**Status:** Complete — merged as PR #70 and published as
+`astrograph@0.5.1-alpha.160`; see the closed
+[delivery checklist](../closed/human-agent-onboarding-packs-delivery-checklist.md).
 
 **Vision:** Setup, validation, and recovery require no internal command knowledge.
 
