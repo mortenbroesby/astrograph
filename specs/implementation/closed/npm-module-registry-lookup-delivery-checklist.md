@@ -1,8 +1,8 @@
 # Registry Lookup with Native `fetch` Delivery Checklist
 
-> **Status:** Active — selected Story 3 of the [npm-module adoption
-> epic](../planned/2_npm-module-adoption-epic.md). Native Node `fetch` is the
-> approved replacement after `latest-version` could not preserve cancellation.
+> **Status:** Closed — merged as [PR #75](https://github.com/mortenbroesby/astrograph/pull/75)
+> at `f3caddd` and published as `astrograph@0.5.1-alpha.163`. Native Node
+> `fetch` was selected after `latest-version` could not preserve cancellation.
 
 **Goal:** Replace only generic npm registry-version subprocess calls with a
 small native `fetch` seam while retaining explicit offline refusal, installer
@@ -34,7 +34,7 @@ npm, and the packed-package smoke.
 - [x] Run the focused installer, release-agent, release-policy,
   engine-contract, and CLI-boundary tests plus `pnpm type-lint`. Record
   unavailable registry and malformed-version behavior before source changes.
-- [ ] Obtain a passing packed-package smoke in an environment that matches its
+- [x] Obtain a passing packed-package smoke in an environment that matches its
   platform-specific cache-root expectation; the current macOS fixture mismatch
   is separately recorded below.
 
@@ -104,21 +104,38 @@ npm, and the packed-package smoke.
 
 ## Task 3: Verify release and installer safety
 
-- [ ] Run focused lookup, release-agent, release-policy, installer/engine,
+- [x] Run focused lookup, release-agent, release-policy, installer/engine,
   CLI, and package-bin tests; run `pnpm type-lint`,
   `pnpm check:version-bump`, and `git diff --check`.
-- [ ] Exercise unavailable and malformed registry responses without suggesting
+- [x] Exercise unavailable and malformed registry responses without suggesting
   an unsafe update or allowing a release transaction.
-- [ ] Obtain exact-head Fast CI and current package/platform cost-boundary
+- [x] Obtain exact-head Fast CI and current package/platform cost-boundary
   evidence before merging source changes.
 
 ## Task 4: Close and select the next goal
 
-- [ ] Verify the merged package from a clean temporary directory where the
+- [x] Verify the merged package from a clean temporary directory where the
   installer version-check and release lookup paths are observable.
-- [ ] Move this checklist to `../closed/`, update roadmap/indexes and
+- [x] Move this checklist to `../closed/`, update roadmap/indexes and
   `pointer.md`, and select the next story only if behavior, package evidence,
   and release safety are complete.
+
+## Closure evidence (2026-07-23)
+
+- PR #75 merged at `f3caddd0c8eec9b38a0091a1c7b62866140b553f`. Its exact PR
+  head `6b5de99df8f72b34e6879708173a52656c94e000` passed Fast required checks
+  in CI run `30016616006`; the merged-main CI run `30016862772` also passed
+  Fast required checks and the guarded tag-and-publish job.
+- The release tag `v0.5.1-alpha.163` points to the immutable merge commit.
+  npm reports the same version as `latest`; a freshly created temporary npm
+  consumer downloaded the tarball, installed it, and ran the packaged CLI at
+  `0.5.1-alpha.163`.
+- Linux Fast CI supplied the passing packed-package smoke. The local macOS
+  fixture's cache-root assertion remains a pre-existing platform mismatch and
+  did not block the bounded registry-lookup delivery.
+- The next executable goal is the package-confidence CI-cost review. It gathers
+  evidence before selecting any workflow or dependency change, preserving the
+  GitHub Actions cost boundary.
 
 ## Acceptance evidence
 

@@ -13,8 +13,13 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    — highest product impact: trustworthy, token-efficient retrieval in small,
    evidence-gated slices. Select a story only after its checklist is ready.
 2. [Reduce Astrograph Boilerplate with Proven npm Modules](./2_npm-module-adoption-epic.md)
-   — Story 3 is active in the delivery queue; later stories remain bounded,
+   — Stories 1–3 are complete. The package-confidence CI-cost review is parked
+   until it regains product priority and its temporary CLI evaluation is
+   approved; later stories remain bounded,
    planned maintenance improvements that preserve product-specific behavior.
+   - [Package-Confidence CI Cost Review](./4_npm-module-package-confidence-cost-review-checklist.md)
+     — parked evidence record for Stories 4–6; resume only when the stated
+     product-priority and third-party CLI-execution gates are met.
 3. [Remaining Delivery Epic](./3_remaining-delivery-epic.md) — parked Windows
    support sequence. Hosted Windows CI is disabled for cost; retain its code
    and re-enable only with budget and local/container proof.

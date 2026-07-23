@@ -1,9 +1,11 @@
 # Reduce Astrograph Boilerplate with Proven npm Modules
 
-> **Status:** Active in Slice A — Story 2 is complete in the
-> [closed semver delivery checklist](../closed/npm-module-semver-delivery-checklist.md).
-> Story 3 is selected in its
-> [registry-lookup delivery checklist](../active/3_npm-module-registry-lookup-delivery-checklist.md);
+> **Status:** Slice A complete — Story 2 is complete in the
+> [closed semver delivery checklist](../closed/npm-module-semver-delivery-checklist.md),
+> and Story 3 is complete in the
+> [closed registry-lookup delivery checklist](../closed/npm-module-registry-lookup-delivery-checklist.md).
+> The [package-confidence CI-cost review](./4_npm-module-package-confidence-cost-review-checklist.md)
+> is parked while the Munch-inspired freshness work has product priority.
 > Stories 4–10 remain planned until their individual selection gates pass.
 
 **Goal:** Replace generic bespoke tooling plumbing with mature npm modules where
@@ -67,8 +69,9 @@ unchanged, and installer/release tests pass.
 
 ## Story 3 — Registry lookup with native `fetch`
 
-**Status:** Active — execute only the bounded checklist in
-[`../active/3_npm-module-registry-lookup-delivery-checklist.md`](../active/3_npm-module-registry-lookup-delivery-checklist.md).
+**Status:** Complete — merged in PR #75 and published as
+`astrograph@0.5.1-alpha.163`; see the
+[`../closed/npm-module-registry-lookup-delivery-checklist.md`](../closed/npm-module-registry-lookup-delivery-checklist.md).
 
 **Targets:** `package.json`, release-agent and installer lookup paths, focused
 offline/error tests.

@@ -1,9 +1,10 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Active — Story 6 (Human and Agent Onboarding Packs) is selected
-> through its [delivery checklist](../active/0_human-agent-onboarding-packs-delivery-checklist.md).
-> Stories 1–3 and 5 are closed. Story 4 remains deferred pending a separately
-> measured compact-transport need; later stories require their own evidence gates.
+> **Status:** Active — Story 7 (Incremental Freshness Lifecycle) is selected
+> through its [delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md).
+> Stories 1–3, 5, and 6 are closed. Story 4 remains deferred pending a
+> separately measured compact-transport need; later stories require their own
+> evidence gates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -14,6 +15,35 @@
 **Architecture:** SQLite remains local durable storage, tree-sitter remains the parser, and checkout-aware artifacts remain the source of truth. Stable symbol identities, content hashes, and exact ranges support an FTS/BM25-style lexical layer and token-budgeted assembler. Semantic scoring is optional, explicitly configured, and never requires a separate always-on vector service.
 
 **Tech Stack:** TypeScript, Node.js 22, SQLite/FTS5, tree-sitter, Vitest, pnpm, MCP stdio, Git, and optional local/provider embeddings.
+
+## Delivery Integrity and Epic Closure Rule
+
+This epic is **not ready to close**. Its completed Munch-inspired product
+stories are already merged into `main`, while Story 7 remains the sole active
+implementation goal. Do not describe the epic as delivered, or move it to
+closed records, until its selected remaining work has merged source, tests, and
+user-facing contract documentation to `main` with exact-head verification—or
+has been explicitly parked or descoped with a recorded evidence gate.
+
+| Story | Delivery state | Mainline evidence |
+| --- | --- | --- |
+| 1–2: provenance and lexical ranking | Complete | PR #26, merge `32248d3` |
+| 3: token-budgeted task context | Complete | PR #34, merge `b5837a7` |
+| 4: token-efficient agent output | Required end-cap | Must deliver measured compact or otherwise token-efficient agent-visible output before epic closure |
+| 5: small MCP core | Complete | PR #39, merge `54971f6` |
+| 6: onboarding packs | Complete | PR #70, merge `45cbc63` |
+| 7: incremental freshness lifecycle | Active | [active delivery checklist](../active/7_incremental-freshness-lifecycle-delivery-checklist.md) |
+| 8–10: semantic, reporting, internal serialization | Planned or parked | Their individual evidence gates remain authoritative |
+
+**Definition of done:** every selected story has a closed checklist linking to
+its merged `main` commit, exact-head checks, and any required package/contract
+evidence; `pointer.md`, the roadmap, this epic, and the closed-record index are
+merged to `main` in the same transition. Before the epic closes, Story 4 must
+also deliver a measured compact or otherwise token-efficient **agent-visible
+output** on `main`; recording that compact output was not worthwhile is not a
+substitute for an end-user token-efficiency result. Future stories that do not
+pass their selection gates must be explicitly parked or descoped rather than
+silently treated as delivered.
 
 ## Principles and Evidence Gates
 
@@ -91,19 +121,23 @@ it.
 
 **Acceptance evidence:** A single request returns source-attributed task context inside its stated budget.
 
-## Story 4 — Compact, Versioned Transport
+## Story 4 — Token-Efficient Agent Output
 
-**Status:** Parked — agent-facing compaction is the highest-priority token
-efficiency candidate after the active file-type work, but implementation is
-not justified until the exact agent-visible MCP envelopes show repeatable,
-material savings. See the [ingested assessment](../../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md).
+**Status:** Required end-cap — do not start it ahead of Story 7, but do not
+close this epic until it produces a measured compact or otherwise
+token-efficient agent-visible output on `main`. Compact, versioned JSON remains
+the preferred candidate. The baseline must still establish repeatable material
+savings before choosing its exact envelope; if it is unsuitable, select another
+inspectable, lossless agent-visible output reduction rather than declaring the
+epic complete without one. See the [ingested assessment](../../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md).
 
 **Vision:** Retrieval saves tokens in selection and in response encoding.
 
-**Goal:** Add an opt-in, versioned compact *JSON* response format for selected
-repetitive MCP result shapes while ordinary JSON remains default and fail-open.
-This is the agent-facing successor to token-budgeted retrieval; it is not a
-binary transport change.
+**Goal:** Deliver an opt-in, versioned compact *JSON* response format for
+selected repetitive MCP result shapes—or a proven equivalent agent-visible
+token-efficiency result—while ordinary JSON remains default and fail-open. This
+is the agent-facing successor to token-budgeted retrieval; it is not a binary
+transport change.
 
 **Likely files:** `src/serialization.ts`, `src/mcp.ts`, `src/mcp-contract.ts`,
 `src/types/**`, MCP/CLI contracts, API docs, benchmarks, and
@@ -116,18 +150,22 @@ serialization/interface tests.
 - [ ] Benchmark a deterministic table/path-interned draft against the current
   pretty JSON envelope. Set any `auto` savings threshold from that evidence;
   do not assume 15% or another fixed value in advance.
-- [ ] Write an ADR and public contract decision before enabling compact output:
-  current MCP v1 explicitly disables compact schema variants. Specify selected
-  tools, `format=json|compact|auto`, versioned envelope, reference decoder,
-  JSON fallback, and `get_task_context` budget accounting in each format.
-- [ ] Implement an opt-in compact JSON envelope only for selected tools;
-  preserve default JSON, strict v1 errors, and inspectable fail-open behavior.
+- [ ] Write an ADR and public contract decision before enabling the selected
+  token-efficient output: current MCP v1 explicitly disables compact schema
+  variants. Specify selected tools, `format=json|compact|auto` when compact
+  JSON wins, versioned envelope, reference decoder, JSON fallback, and
+  `get_task_context` budget accounting in each format.
+- [ ] Implement the selected agent-visible token-efficiency result for only the
+  measured tools; preserve default JSON, strict v1 errors, and inspectable
+  fail-open behavior.
 - [ ] Add reference decode/round-trip tests for Unicode, errors, nested provenance.
 - [ ] Report format selection, bytes, agent-visible token savings, and
   encode/decode latency separately from retrieval and source-token savings.
 - [ ] Verify contracts/type/version/diff, commit/push/review/merge.
 
-**Acceptance evidence:** Compact format round-trips losslessly and has reproducible savings where selected.
+**Acceptance evidence:** The selected agent-visible output round-trips or
+otherwise preserves the public contract, has reproducible token savings for the
+measured tools, and is merged to `main` before this epic can close.
 
 ## Story 5 — Small MCP Core and Guided Routing
 
@@ -157,8 +195,9 @@ hidden tier, or tool removal was justified. See the
 
 ## Story 6 — Human and Agent Onboarding Packs
 
-**Status:** Active — baseline and gap assessment are the first required steps;
-do not assume a new `init` implementation is needed before measured evidence.
+**Status:** Complete — merged as PR #70 and published as
+`astrograph@0.5.1-alpha.160`; see the closed
+[delivery checklist](../closed/human-agent-onboarding-packs-delivery-checklist.md).
 
 **Vision:** Setup, validation, and recovery require no internal command knowledge.
 
@@ -260,7 +299,7 @@ gain with no public MCP-format change and no loss of normal debugging ability.
 
 ## Order and Completion
 
-Order: 1 → 2 → 3; Story 7 can start after Story 1; then 5 → 6 → 4 → 9 → 10; Story 8 only after Stories 2 and 9 prove it is justified. A blocked story records owner/evidence/retry condition and defers behind independent work.
+Order: 1 → 2 → 3; Story 7 can start after Story 1; then 5 → 6 → 7 → 4 → 9 → 10; Story 8 only after Stories 2 and 9 prove it is justified. Story 4 is the required token-efficient end-cap before epic closure. A blocked story records owner/evidence/retry condition and defers behind independent work.
 
 - [ ] Provenance/freshness is a stable retrieval contract.
 - [ ] Lexical ranking and bounded context are deterministic and measured.

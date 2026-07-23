@@ -17,35 +17,44 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Registry lookup with native `fetch`](./active/3_npm-module-registry-lookup-delivery-checklist.md)
-   - Goal: replace only generic npm registry lookup while retaining explicit
-     registry-unavailable refusal and existing installer messaging.
-   - First action: record the installer and release-agent lookup call sites,
-     their offline/error behavior, and native fetch cancellation behavior.
+1. [Incremental Freshness Lifecycle](./active/7_incremental-freshness-lifecycle-delivery-checklist.md)
+   - Goal: make local retrieval freshness explicit and safely incremental after
+     edits, checkout changes, and watcher fallback.
+   - First action: measure current cold/no-op/delta behavior and map the
+     freshness/diagnostic contract before selecting a source change.
+   - The broader [Precision Retrieval and Agent Experience epic](./planned/1_precision-retrieval-agent-experience-epic.md)
+     remains open; its closure rule requires every selected story and this
+     roadmap/pointer transition to be merged to `main` with recorded evidence.
 
 ## Ready — detailed, but not selected
 
-2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Story 3
-   selected; Stories 4–10 remain planned. Preserve product-specific behavior;
-   package-quality gates require a CI cost review before selection.
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
+   1–3 complete; Stories 4–6 remain parked behind their CI-cost and
+   third-party-command evidence gates. Preserve product-specific behavior;
+   package-quality gates require an explicit renewed selection.
 3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
+4. [Token-Efficient Agent Output](./planned/1_precision-retrieval-agent-experience-epic.md#story-4--token-efficient-agent-output)
+   is the required end-cap for the active Precision/Munch epic after Story 7.
+   It must deliver measured compact or otherwise token-efficient agent-visible
+   output on `main` before that epic can close.
 
 ## Parked — revisit only with new evidence
 
 - [Global + branch-aware immutable artifact reuse](./planned/5_global-branch-artifact-reuse-delivery-checklist.md):
   a representative run took 2.044 seconds for both indexes, so the measured
   duplication did not justify cross-repository storage complexity.
-- [Compact versioned transport](./planned/1_precision-retrieval-agent-experience-epic.md#story-4--compact-versioned-transport):
-  measure complete agent-visible MCP envelopes before selecting an opt-in,
-  versioned compact JSON format for repetitive result shapes.
 - [Internal artifact serialization efficiency](./planned/1_precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
   MessagePack is only a selective internal candidate after measurements compare
   `analysis_artifacts` JSON, deduplicated layout, size, latency, and debuggability.
 - [Optional shared immutable artifact store](./planned/6_global-install-and-cache-deferred-stories.md#story-6-shared-immutable-artifact-store--optional-and-deferred):
   never shares mutable repository indexes and remains optional.
+- [Package-confidence CI cost review](./planned/4_npm-module-package-confidence-cost-review-checklist.md):
+  baseline evidence is recorded, but product priority moved to Incremental
+  Freshness Lifecycle before the temporary candidate-CLI evaluation. Resume
+  only with explicit approval and a renewed product-priority decision.
 
 ## Blocked — external prerequisite only
 
@@ -116,6 +125,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Generic Version Handling with `semver`](./closed/npm-module-semver-delivery-checklist.md)
   closed after PR #74 passed exact-head Fast/package evidence and
   `astrograph@0.5.1-alpha.162` was verified as npm `latest`.
+- [Registry Lookup with Native `fetch`](./closed/npm-module-registry-lookup-delivery-checklist.md)
+  closed after PR #75 passed exact-head Fast/package evidence and
+  `astrograph@0.5.1-alpha.163` was verified as npm `latest`.
 
 ## Maintaining this roadmap
 

@@ -6,10 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Registry Lookup with Native `fetch`](./3_npm-module-registry-lookup-delivery-checklist.md)
-   — selected Story 3 of npm-module adoption: replace only generic npm version
-   lookup while preserving offline refusal, installer wording, and release
-   transaction policy.
+1. [Incremental Freshness Lifecycle](./7_incremental-freshness-lifecycle-delivery-checklist.md)
+   — selected Munch-inspired product slice: establish and then improve the
+   explicit local freshness lifecycle for edits, checkouts, and watch fallback.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

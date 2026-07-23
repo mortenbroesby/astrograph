@@ -8,33 +8,26 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Registry Lookup with Native `fetch` Delivery
-Checklist](./specs/implementation/active/3_npm-module-registry-lookup-delivery-checklist.md),
-starting with its lookup and failure-policy baseline.
+Execute the active [Incremental Freshness Lifecycle Delivery
+Checklist](./specs/implementation/active/7_incremental-freshness-lifecycle-delivery-checklist.md),
+starting with the current refresh, checkout, watch, and diagnostics baseline.
 
 ## Required outcome
 
-Replace only generic npm registry-version lookup when the baseline proves
-native `fetch` can preserve Astrograph's explicit unavailable-registry
-refusal, installer update wording, timeout behavior, and release-safety
-transaction. Leave exactly one next goal ready only after this checklist closes.
+Make Astrograph's local retrieval freshness correct and observable after real
+repository changes. Establish the measured contract before selecting the
+smallest incremental invalidation and diagnostics slice.
 
 ## Hard boundaries
 
 - Do not implement compact transport, semantic retrieval, Windows work, shared
-  artifact reuse, release publication changes, or another npm-module story
-  merely because it is listed in an epic.
-- Preserve Astrograph's custom alpha-increment, legacy-baseline,
-  release-decision, registry-unavailable, and installer-recovery behavior. Do
-  not replace release policy with a dependency or turn lookup helpers into a
-  public API.
-- Do not add a shared mutable index, daemon, network synchronization, hidden
-  routing, compatibility shim, destructive MCP cache operation, registry
-  selection change, or broad release-policy redesign.
-- Use an isolated worktree for source changes. Require exact-head Fast and
-  package-smoke evidence before merging source changes to `main`; hosted
-  Windows remains disabled under the cost rule until its explicit re-enable
-  condition is met.
+  artifact reuse, a daemon, remote synchronization, hidden routing, or a
+  shared mutable index.
+- Preserve canonical paths, content hashes, checkout mappings, explicit
+  freshness states, single-writer SQLite transactions, and full refresh as a
+  safe fallback.
+- Do not claim an index is fresh after a failed Git, filesystem, or watcher
+  probe. Expose the fallback reason through the existing diagnostics surface.
 
 ## Completion and update rule
 
