@@ -27,7 +27,7 @@ scope.
 `src/repo-meta.ts`, `src/diagnostics.ts`, `src/watch-backend.ts`,
 `src/types.ts`, `docs/guides/performance.md`, and this checklist.
 
-- [ ] Run focused baseline coverage for refresh, watch, checkout, diagnostics,
+- [x] Run focused baseline coverage for refresh, watch, checkout, diagnostics,
   filesystem scan, and engine behavior. Record the commands and current
   outcomes before changing source.
 - [ ] Measure cold index, no-op refresh, one-file edit, rename, delete,
@@ -38,6 +38,24 @@ scope.
   content hash, parser/config/artifact version, checkout identity, watch event,
   and filesystem snapshot. Identify precisely where a stale or unknown result
   can be misreported.
+
+## Baseline evidence (2026-07-23)
+
+- `pnpm exec vitest run tests/index-refresh.test.ts tests/watch-backend.test.ts
+  tests/watch-boundary.test.ts tests/git-checkout.test.ts
+  tests/filesystem-scan.test.ts` passed 21 focused checks after the
+  watch-boundary test ran with its intended user-private cache permission. The
+  sandbox-only failure to create that cache directory was environmental, not a
+  product failure.
+- `pnpm exec vitest run tests/engine-behavior.test.ts -t 'can refresh a single
+  file without a full rebuild|removes stale index entries when single-file
+  refresh targets a deleted or renamed file|surfaces live freshness drift after
+  the repository changes'` passed all 3 selected engine checks.
+- Current covered behavior already includes single-file refresh, deleted/renamed
+  file removal, watch refresh, checkout mapping, backend normalization, and
+  live drift. The next task is to capture comparable cold/no-op/edit/rename/
+  delete/checkout/unavailable-Git/fallback measurements and map their returned
+  freshness reasons before choosing a code seam.
 
 ## Task 2: Specify the smallest safe delta lifecycle
 
