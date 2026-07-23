@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-No implementation checklist is selected. The Munch/Precision epic is closed;
-do not revive a parked or planned checklist without satisfying its recorded
-selection gate and updating `pointer.md`.
+1. [Tree-Sitter Polyglot Language Support](./1_tree-sitter-polyglot-language-support-delivery-checklist.md)
+   — establish the full upstream grammar inventory, then deliver only
+   fixture-backed parser adapters and explicit support tiers.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

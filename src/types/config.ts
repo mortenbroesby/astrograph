@@ -1,4 +1,24 @@
-export type SupportedLanguage = "ts" | "tsx" | "js" | "jsx";
+export type SupportedLanguage =
+  | "ts"
+  | "tsx"
+  | "js"
+  | "jsx"
+  | "python"
+  | "bash"
+  | "powershell"
+  | "csharp"
+  | "java"
+  | "go"
+  | "rust"
+  | "json"
+  | "html"
+  | "css"
+  | "c"
+  | "cpp"
+  | "php"
+  | "ruby"
+  | "template"
+  | "scala";
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";

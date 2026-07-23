@@ -86,6 +86,28 @@ paths without changing the core local-storage model.
 - `fast-json-stringify`
   Serialization benchmarking candidate, not the default public JSON path.
 
+## Tree-sitter Grammar Cost
+
+Parser grammars are native dependencies, so their cost must be measured rather
+than assumed. On the macOS/Node 24 development baseline recorded on 2026-07-24,
+cold module imports ranged from about **5 ms** (Go/C) to **40 ms** (PowerShell).
+Installed package footprints varied much more: JSON was about **0.5 MB**, while
+OCaml was about **200 MB**; Julia, C#, Scala, Haskell, C++, Ruby, and PHP were
+also materially larger than the small grammar packages.
+
+These figures are not cross-platform guarantees. Before a release that changes
+grammar dependencies, measure the target package set on the supported Node and
+platform matrix, then record:
+
+- installed package size and packed tarball size
+- cold grammar import/load time
+- representative indexing latency for each added extension
+- whether the native build uses a prebuild or local compiler
+
+Do not retain a grammar package that is not exposed through the evidence-gated
+language registry. See [Language Support](../reference/language-support.md) for
+the current public set and deliberate exclusions.
+
 Profiling-only tools:
 
 - `clinic`

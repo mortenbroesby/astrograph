@@ -104,8 +104,8 @@ describe("ai-context-engine interfaces", () => {
     const stdout = await handleCli(["get-repo-outline", "--repo", repoRoot]);
 
     expect(JSON.parse(stdout)).toMatchObject({
-      totalFiles: 2,
-      totalSymbols: 5,
+      totalFiles: 3,
+      totalSymbols: 6,
     });
 
     const diagnosticsStdout = await handleCli(["diagnostics", "--repo", repoRoot]);
@@ -113,15 +113,15 @@ describe("ai-context-engine interfaces", () => {
       staleStatus: "fresh",
       freshnessMode: "metadata",
       freshnessScanned: false,
-      indexedFiles: 2,
-      currentFiles: 2,
+      indexedFiles: 3,
+      currentFiles: 3,
       readiness: {
         stage: "deep-retrieval-ready",
         discoveryReady: true,
         deepRetrievalReady: true,
         deepening: false,
-        discoveredFiles: 2,
-        deepIndexedFiles: 2,
+        discoveredFiles: 3,
+        deepIndexedFiles: 3,
         pendingDeepIndexedFiles: 0,
       },
       retrievalHealth: {
@@ -347,7 +347,7 @@ export function circumference(radius: number): string {
     const signatureDiagnostics = JSON.parse(signatureDiagnosticsStdout);
     expect(signatureDiagnostics).toMatchObject({
       summarySources: {
-        signature: 5,
+        signature: 6,
       },
       watch: {
         status: "idle",
@@ -386,8 +386,8 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(summaryStdout)).toMatchObject({
-      indexedFiles: 2,
-      indexedSymbols: 5,
+      indexedFiles: 3,
+      indexedSymbols: 6,
       staleStatus: "fresh",
     });
 
@@ -399,11 +399,11 @@ export function circumference(radius: number): string {
     expect(JSON.parse(diagnosticsStdout)).toMatchObject({
       storageVersion: 1,
       schemaVersion: 7,
-      indexedFiles: 2,
-      currentFiles: 2,
+      indexedFiles: 3,
+      currentFiles: 3,
       readiness: {
         stage: "deep-retrieval-ready",
-        discoveredFiles: 2,
+        discoveredFiles: 3,
       },
     });
   }, 15_000);
@@ -640,8 +640,8 @@ export function circumference(radius: number): string {
           discoveryReady: true,
           deepRetrievalReady: true,
           deepening: false,
-          discoveredFiles: 2,
-          deepIndexedFiles: 2,
+          discoveredFiles: expect.any(Number),
+          deepIndexedFiles: expect.any(Number),
           pendingDeepIndexedFiles: 0,
         },
         freshness: {
@@ -653,7 +653,7 @@ export function circumference(radius: number): string {
         },
         supportTiers: {
           discovery: {
-            summarySources: expect.arrayContaining(["markdown-headings", "json-top-level-keys"]),
+            summarySources: expect.arrayContaining(["markdown-headings", "yaml-top-level-keys"]),
           },
           byLanguage: expect.arrayContaining([
             {

@@ -40,6 +40,12 @@ const GRAPH_TOOL_AVAILABILITY: TierToolAvailability = {
 };
 
 const GRAPH_SUMMARY_STRATEGIES: SummaryStrategy[] = [...SUMMARY_STRATEGIES];
+const STRUCTURED_SUMMARY_STRATEGIES: SummaryStrategy[] = [...SUMMARY_STRATEGIES];
+const STRUCTURED_TOOL_AVAILABILITY: TierToolAvailability = {
+  discovery: [...DISCOVERY_TOOL_AVAILABILITY.discovery],
+  structured: ["get_file_summary"],
+  graph: [],
+};
 const SUPPORT_TIER_RANK = new Map(
   SUPPORT_TIERS.map((tier, index) => [tier, index] as const),
 );
@@ -73,6 +79,94 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
     summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
     toolAvailability: GRAPH_TOOL_AVAILABILITY,
   },
+  {
+    language: "python",
+    extensions: [".py", ".pyi"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "bash",
+    extensions: [".sh", ".bash", ".zsh"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "powershell",
+    extensions: [".ps1", ".psm1", ".psd1"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "csharp",
+    extensions: [".cs"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "java",
+    extensions: [".java"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "go",
+    extensions: [".go"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "rust",
+    extensions: [".rs"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "json",
+    extensions: [".json"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "html",
+    extensions: [".html", ".htm"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "css",
+    extensions: [".css"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "c",
+    extensions: [".c", ".h"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "cpp",
+    extensions: [".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  { language: "php", extensions: [".php"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "ruby", extensions: [".rb", ".rake", ".gemspec"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "template", extensions: [".erb", ".ejs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "scala", extensions: [".scala", ".sc"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
@@ -86,12 +180,6 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
     extension: ".mdx",
     tiers: ["discovery"],
     summarySource: "markdown-headings",
-    toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
-  },
-  {
-    extension: ".json",
-    tiers: ["discovery"],
-    summarySource: "json-top-level-keys",
     toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
   },
   {
@@ -113,12 +201,6 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
     toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
   },
   {
-    extension: ".sh",
-    tiers: ["discovery"],
-    summarySource: "shell-functions",
-    toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
-  },
-  {
     extension: ".txt",
     tiers: ["discovery"],
     summarySource: "text-lines",
@@ -126,12 +208,28 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
   },
 ];
 
-const LANGUAGE_BY_EXTENSION = new Map<string, SupportedLanguage>();
-for (const entry of LANGUAGE_SUPPORT_REGISTRY) {
-  for (const extension of entry.extensions) {
-    LANGUAGE_BY_EXTENSION.set(extension, entry.language);
+export function createLanguageByExtension(
+  entries: readonly LanguageSupportDescriptor[] = LANGUAGE_SUPPORT_REGISTRY,
+): Map<string, SupportedLanguage> {
+  const byExtension = new Map<string, SupportedLanguage>();
+
+  for (const entry of entries) {
+    for (const extension of entry.extensions) {
+      const normalized = extension.toLowerCase();
+      const owner = byExtension.get(normalized);
+      if (owner && owner !== entry.language) {
+        throw new Error(
+          `Ambiguous language extension ${normalized}: ${owner} and ${entry.language}`,
+        );
+      }
+      byExtension.set(normalized, entry.language);
+    }
   }
+
+  return byExtension;
 }
+
+const LANGUAGE_BY_EXTENSION = createLanguageByExtension();
 
 const LANGUAGE_SUPPORT_BY_LANGUAGE = new Map(
   LANGUAGE_SUPPORT_REGISTRY.map((entry) => [entry.language, entry] as const),

@@ -142,7 +142,7 @@ async function main(): Promise<void> {
     );
 
     const summary = JSON.parse(stdout);
-    if (summary.indexedFiles !== 1 || summary.indexedSymbols < 2) {
+    if (summary.indexedFiles !== 2 || summary.indexedSymbols < 4) {
       throw new Error(`Unexpected packaged bin result: ${stdout}`);
     }
 

@@ -1,9 +1,7 @@
 import Parser from "tree-sitter";
-import javascript from "tree-sitter-javascript";
-import tsLanguages from "tree-sitter-typescript";
 
-import { getLanguageSupport } from "../language-registry.ts";
-import type { SummarySource, SummaryStrategy, SupportedLanguage, SymbolKind } from "../types.ts";
+import type { SummarySource, SummaryStrategy, SymbolKind } from "../types.ts";
+import { LANGUAGE_ADAPTERS } from "./language-adapters.ts";
 import {
   buildParsedFile,
   buildSymbolId,
@@ -25,18 +23,6 @@ const CHUNK_RECOVERY_FALLBACK_REASON = "tree-sitter-chunk-recovery";
 
 function isRecoverableParseFailure(error: unknown): boolean {
   return error instanceof Error && error.message === "Invalid argument";
-}
-
-function languageFor(language: SupportedLanguage) {
-  switch (getLanguageSupport(language).language) {
-    case "ts":
-      return tsLanguages.typescript;
-    case "tsx":
-      return tsLanguages.tsx;
-    case "js":
-    case "jsx":
-      return javascript;
-  }
 }
 
 function extractLeadingCommentSummary(
@@ -91,23 +77,52 @@ function resolveSummary(input: {
   };
 }
 
+const NAME_NODE_TYPES = new Set([
+  "identifier",
+  "property_identifier",
+  "type_identifier",
+  "word",
+  "function_name",
+  "simple_name",
+  "field_identifier",
+  "string",
+  "tag_name",
+  "class_name",
+  "name",
+  "constant",
+  "value_name",
+  "variable",
+]);
+
+function findIdentifierDescendant(node: Parser.SyntaxNode): Parser.SyntaxNode | null {
+  for (const child of node.namedChildren) {
+    if (NAME_NODE_TYPES.has(child.type)) return child;
+    const nested = findIdentifierDescendant(child);
+    if (nested) return nested;
+  }
+  return null;
+}
+
 function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): string | null {
+  if (NAME_NODE_TYPES.has(node.type)) {
+    const name = nodeText(sourceText, node.startIndex, node.endIndex);
+    return node.type === "string" ? name.replace(/^"|"$/g, "") : name;
+  }
+
   const nameNode =
     node.childForFieldName("name") ??
     node.namedChildren.find((child) =>
-      [
-        "identifier",
-        "property_identifier",
-        "type_identifier",
-      ].includes(child.type),
+      NAME_NODE_TYPES.has(child.type),
     ) ??
     null;
 
   if (!nameNode) {
-    return null;
+    const descendant = findIdentifierDescendant(node);
+    return descendant ? extractIdentifierName(descendant, sourceText) : null;
   }
 
-  return nodeText(sourceText, nameNode.startIndex, nameNode.endIndex);
+  const name = nodeText(sourceText, nameNode.startIndex, nameNode.endIndex);
+  return nameNode.type === "string" ? name.replace(/^"|"$/g, "") : name;
 }
 
 function createSymbol(
@@ -238,13 +253,18 @@ function pushClassMembers(
   offset: ParseOffset = { byte: 0, line: 0 },
   ownedLines?: OwnedLineRange,
 ) {
-  const body = node.childForFieldName("body");
-  if (!body) {
-    return;
-  }
+  const body = node.childForFieldName("body") ?? node;
 
   for (const child of body.namedChildren) {
-    if (child.type === "method_definition") {
+    if (
+      [
+        "method_definition",
+        "function_definition",
+        "class_method_definition",
+        "method_declaration",
+        "method",
+      ].includes(child.type)
+    ) {
       if (!ownsNode(child, offset, ownedLines)) {
         continue;
       }
@@ -279,7 +299,10 @@ function visitDeclarationNode(
   ownedLines?: OwnedLineRange,
 ) {
   switch (node.type) {
-    case "function_declaration": {
+    case "function_declaration":
+    case "function_definition":
+    case "function_statement":
+    case "function_item": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -299,7 +322,48 @@ function visitDeclarationNode(
       }
       return;
     }
-    case "class_declaration": {
+    case "value_definition":
+    case "bind": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "function", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) symbols.push(symbol);
+      return;
+    }
+    case "method": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "method", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) symbols.push(symbol);
+      return;
+    }
+    case "class": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "class", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) {
+        symbols.push(symbol);
+        pushClassMembers(node, sourceText, relativePath, symbol.name, summaryStrategy, symbols, offset, ownedLines);
+      }
+      return;
+    }
+    case "class_specifier":
+    case "struct_specifier": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "class", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) {
+        symbols.push(symbol);
+        pushClassMembers(node, sourceText, relativePath, symbol.name, summaryStrategy, symbols, offset, ownedLines);
+      }
+      return;
+    }
+    case "rule_set":
+    case "element": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "constant", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) symbols.push(symbol);
+      return;
+    }
+    case "class_declaration":
+    case "class_definition":
+    case "class_statement": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -329,9 +393,70 @@ function visitDeclarationNode(
       }
       return;
     }
+    case "struct_item": {
+      if (!ownsNode(node, offset, ownedLines)) {
+        return;
+      }
+      const symbol = createSymbol(
+        node,
+        sourceText,
+        relativePath,
+        "class",
+        exported,
+        summaryStrategy,
+        undefined,
+        rangeNode,
+        offset,
+      );
+      if (symbol) {
+        symbols.push(symbol);
+      }
+      return;
+    }
+    case "method_declaration": {
+      if (!ownsNode(node, offset, ownedLines)) {
+        return;
+      }
+      const symbol = createSymbol(
+        node,
+        sourceText,
+        relativePath,
+        "method",
+        exported,
+        summaryStrategy,
+        undefined,
+        rangeNode,
+        offset,
+      );
+      if (symbol) {
+        symbols.push(symbol);
+      }
+      return;
+    }
+    case "pair": {
+      if (!ownsNode(node, offset, ownedLines)) {
+        return;
+      }
+      const symbol = createSymbol(
+        node,
+        sourceText,
+        relativePath,
+        "constant",
+        exported,
+        summaryStrategy,
+        undefined,
+        rangeNode,
+        offset,
+      );
+      if (symbol) {
+        symbols.push(symbol);
+      }
+      return;
+    }
     case "interface_declaration":
     case "type_alias_declaration":
-    case "enum_declaration": {
+    case "enum_declaration":
+    case "struct_declaration": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -430,8 +555,59 @@ function visitNode(
   }
 }
 
+const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
+  "function_definition",
+  "function_statement",
+  "function_declaration",
+  "function_item",
+  "class_declaration",
+  "class_definition",
+  "class_statement",
+  "interface_declaration",
+  "enum_declaration",
+  "struct_declaration",
+  "struct_item",
+  "method_declaration",
+  "pair",
+  "class_specifier",
+  "struct_specifier",
+  "rule_set",
+  "element",
+  "class",
+  "method",
+  "value_definition",
+  "bind",
+]);
+
+function visitStructuredNode(
+  node: Parser.SyntaxNode,
+  sourceText: string,
+  relativePath: string,
+  summaryStrategy: SummaryStrategy,
+  symbols: ParsedSymbol[],
+  imports: ParsedImport[],
+) {
+  if (STRUCTURED_DECLARATION_NODE_TYPES.has(node.type)) {
+    visitDeclarationNode(
+      node,
+      sourceText,
+      relativePath,
+      false,
+      summaryStrategy,
+      symbols,
+      imports,
+    );
+    return;
+  }
+
+  for (const child of node.namedChildren) {
+    visitStructuredNode(child, sourceText, relativePath, summaryStrategy, symbols, imports);
+  }
+}
+
 export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
-  parser.setLanguage(languageFor(input.language));
+  const adapter = LANGUAGE_ADAPTERS[input.language];
+  parser.setLanguage(adapter.grammar);
   const symbols: ParsedSymbol[] = [];
   const imports: ParsedImport[] = [];
   const summaryStrategy = input.summaryStrategy ?? "doc-comments-first";
@@ -440,15 +616,26 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   try {
     const tree = parser.parse(input.content);
     for (const child of tree.rootNode.namedChildren) {
-      visitNode(
-        child,
-        input.content,
-        input.relativePath,
-        false,
-        summaryStrategy,
-        symbols,
-        imports,
-      );
+      if (adapter.traversal === "javascript") {
+        visitNode(
+          child,
+          input.content,
+          input.relativePath,
+          false,
+          summaryStrategy,
+          symbols,
+          imports,
+        );
+      } else {
+        visitStructuredNode(
+          child,
+          input.content,
+          input.relativePath,
+          summaryStrategy,
+          symbols,
+          imports,
+        );
+      }
     }
   } catch (error) {
     if (!isRecoverableParseFailure(error)) {
