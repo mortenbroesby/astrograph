@@ -314,3 +314,56 @@ transport, a hidden routing layer, cache, daemon, or shared state.
   strict JSON errors.
 - `specs/api-design/mcp-tools.md` documents the request, envelope, decoder,
   failure fallback, and unchanged `get_task_context` budget contract.
+
+---
+
+## ADR-008: Use Evidence-Gated Tree-Sitter Language Adapters
+
+**Date:** 2026-07-23
+**Status:** Accepted
+
+## Context
+
+Astrograph currently installs two Tree-sitter grammar packages and exposes four
+JavaScript-family languages. Its extraction code is coupled to JavaScript and
+TypeScript node names, while Tree-sitter provides each other language as a
+separate generated grammar. Installing a long dependency list alone would make
+the registry overstate symbol, import, and graph support.
+
+## Decision
+
+Astrograph will support the parsers currently listed in Tree-sitter's upstream
+organization through explicit static language adapters. Every adapter owns its
+grammar loading, extensions, node-shape extraction, and declared support tier.
+The registry exposes a language only after fixture-backed parser loading and
+deterministic symbol/range evidence.
+
+`graph` support requires language-specific import/relation tests. An adapter
+without that evidence is `structured` only; it may produce symbols and
+outlines but does not claim dependency expansion. Astrograph will pin verified
+native grammar packages compatible with its Node Tree-sitter binding and will
+not dynamically download grammars or claim all community grammars are covered.
+
+## Rationale
+
+- Tree-sitter's official parser list is a bounded, auditable initial target;
+  its community grammar catalog is intentionally open-ended.
+- Adapters prevent the JavaScript AST switch from becoming an opaque, brittle
+  multi-language branch and make node-shape differences testable.
+- Tiered disclosure preserves the local-first, inspectable retrieval contract:
+  a parsed outline is useful, but it is not evidence for a dependency graph.
+
+## Consequences
+
+- This is a multi-batch feature with native dependency and package-size cost;
+  each grammar needs ABI, licence, platform-load, and fixture evidence.
+- New public `SupportedLanguage` values and diagnostics entries are additive,
+  but parser behavior remains compatibility-sensitive and release-worthy.
+- Future community grammars require the same adapter and evidence gate rather
+  than being included by a broad “Tree-sitter support” claim.
+
+## Verification
+
+- The active [polyglot delivery checklist](../implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
+  records the inventory, adapter migration, fixtures, package measurements,
+  public contract tests, and release evidence.

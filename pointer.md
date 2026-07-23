@@ -8,17 +8,13 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-No executable implementation checklist is selected. The Token-Efficient Agent
-Output checklist and its Precision/Munch epic are closed records.
-
-Before starting another delivery change, choose a ready story through the
-[Delivery Roadmap](./specs/implementation/roadmap.md) and move only its
-qualified checklist into `specs/implementation/active/`. The remaining
-package-confidence evidence checklist is parked behind explicit CI-cost and
-third-party-command approval, so it must not be selected automatically.
+Execute the active [Tree-Sitter Polyglot Language Support Delivery
+Checklist](./specs/implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md),
+starting with the upstream grammar, native-ABI, extension, licence, and current
+four-language baseline inventory.
 
 ## Completion and update rule
 
-When a selected checklist completes, update this file in the same change to
+When the selected checklist completes, update this file in the same change to
 name the next selected checklist. If no next story passes its selection gate,
 state that no goal is selected and point to the roadmap rather than guessing.

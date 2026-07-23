@@ -17,10 +17,13 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-No implementation checklist is selected. The completed Munch/Precision epic is
-historical evidence. Select new work explicitly from a ready item only after
-its own gate is met; do not treat an old checklist as executable merely because
-it is numbered first.
+1. [Tree-Sitter Polyglot Language Support](./active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
+   - Goal: expand from JavaScript-family parsing to the bounded set of parsers
+     listed by Tree-sitter's upstream organization.
+   - First action: freeze the package/ABI/extension/licence inventory and the
+     current four-language baseline before adding a grammar dependency.
+   - Architecture: adapters and explicit `structured`/`graph` support tiers;
+     do not claim the open-ended community grammar ecosystem.
 
 ## Ready — detailed, but not selected
 
