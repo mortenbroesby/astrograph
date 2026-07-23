@@ -1,25 +1,7 @@
 import Parser from "tree-sitter";
-import bash from "tree-sitter-bash";
-import c from "tree-sitter-c";
-import csharp from "tree-sitter-c-sharp";
-import cpp from "tree-sitter-cpp";
-import css from "tree-sitter-css";
-import go from "tree-sitter-go";
-import javascript from "tree-sitter-javascript";
-import java from "tree-sitter-java";
-import json from "tree-sitter-json";
-import html from "tree-sitter-html";
-import phpBundle from "tree-sitter-php";
-import powershell from "tree-sitter-powershell";
-import python from "tree-sitter-python";
-import rust from "tree-sitter-rust";
-import ruby from "tree-sitter-ruby";
-import scala from "tree-sitter-scala";
-import template from "tree-sitter-embedded-template";
-import tsLanguages from "tree-sitter-typescript";
 
-import { getLanguageSupport } from "../language-registry.ts";
-import type { SummarySource, SummaryStrategy, SupportedLanguage, SymbolKind } from "../types.ts";
+import type { SummarySource, SummaryStrategy, SymbolKind } from "../types.ts";
+import { LANGUAGE_ADAPTERS } from "./language-adapters.ts";
 import {
   buildParsedFile,
   buildSymbolId,
@@ -41,50 +23,6 @@ const CHUNK_RECOVERY_FALLBACK_REASON = "tree-sitter-chunk-recovery";
 
 function isRecoverableParseFailure(error: unknown): boolean {
   return error instanceof Error && error.message === "Invalid argument";
-}
-
-function languageFor(language: SupportedLanguage): Parser.Language {
-  switch (getLanguageSupport(language).language) {
-    case "ts":
-      return tsLanguages.typescript as unknown as Parser.Language;
-    case "tsx":
-      return tsLanguages.tsx as unknown as Parser.Language;
-    case "js":
-    case "jsx":
-      return javascript as unknown as Parser.Language;
-    case "python":
-      return python as unknown as Parser.Language;
-    case "bash":
-      return bash as unknown as Parser.Language;
-    case "powershell":
-      return powershell as unknown as Parser.Language;
-    case "csharp":
-      return csharp as unknown as Parser.Language;
-    case "java":
-      return java as unknown as Parser.Language;
-    case "go":
-      return go as unknown as Parser.Language;
-    case "rust":
-      return rust as unknown as Parser.Language;
-    case "json":
-      return json as unknown as Parser.Language;
-    case "html":
-      return html as unknown as Parser.Language;
-    case "css":
-      return css as unknown as Parser.Language;
-    case "c":
-      return c as unknown as Parser.Language;
-    case "cpp":
-      return cpp as unknown as Parser.Language;
-    case "php":
-      return phpBundle.php as unknown as Parser.Language;
-    case "ruby":
-      return ruby as unknown as Parser.Language;
-    case "template":
-      return template as unknown as Parser.Language;
-    case "scala":
-      return scala as unknown as Parser.Language;
-  }
 }
 
 function extractLeadingCommentSummary(
@@ -152,6 +90,8 @@ const NAME_NODE_TYPES = new Set([
   "class_name",
   "name",
   "constant",
+  "value_name",
+  "variable",
 ]);
 
 function findIdentifierDescendant(node: Parser.SyntaxNode): Parser.SyntaxNode | null {
@@ -176,7 +116,10 @@ function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): str
     ) ??
     null;
 
-  if (!nameNode) return findIdentifierDescendant(node) ? extractIdentifierName(findIdentifierDescendant(node)!, sourceText) : null;
+  if (!nameNode) {
+    const descendant = findIdentifierDescendant(node);
+    return descendant ? extractIdentifierName(descendant, sourceText) : null;
+  }
 
   const name = nodeText(sourceText, nameNode.startIndex, nameNode.endIndex);
   return nameNode.type === "string" ? name.replace(/^"|"$/g, "") : name;
@@ -377,6 +320,13 @@ function visitDeclarationNode(
       if (symbol) {
         symbols.push(symbol);
       }
+      return;
+    }
+    case "value_definition":
+    case "bind": {
+      if (!ownsNode(node, offset, ownedLines)) return;
+      const symbol = createSymbol(node, sourceText, relativePath, "function", exported, summaryStrategy, undefined, rangeNode, offset);
+      if (symbol) symbols.push(symbol);
       return;
     }
     case "method": {
@@ -625,6 +575,8 @@ const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
   "element",
   "class",
   "method",
+  "value_definition",
+  "bind",
 ]);
 
 function visitStructuredNode(
@@ -654,7 +606,8 @@ function visitStructuredNode(
 }
 
 export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
-  parser.setLanguage(languageFor(input.language));
+  const adapter = LANGUAGE_ADAPTERS[input.language];
+  parser.setLanguage(adapter.grammar);
   const symbols: ParsedSymbol[] = [];
   const imports: ParsedImport[] = [];
   const summaryStrategy = input.summaryStrategy ?? "doc-comments-first";
@@ -663,7 +616,7 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   try {
     const tree = parser.parse(input.content);
     for (const child of tree.rootNode.namedChildren) {
-      if (["ts", "tsx", "js", "jsx"].includes(input.language)) {
+      if (adapter.traversal === "javascript") {
         visitNode(
           child,
           input.content,

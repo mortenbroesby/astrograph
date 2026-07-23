@@ -47,6 +47,8 @@ If you are new to Astrograph, read these in order:
   Command groups, common examples, config shape, and development commands.
 - [Config Reference](./reference/config.md)
   The repo-level `astrograph.config.ts` surface and the knobs that matter.
+- [Language Support](./reference/language-support.md)
+  Exact parser-backed languages, tiers, extensions, and evidence-based exclusions.
 - [Release Reference](./reference/release.md)
   How Astrograph versions, plans, and publishes npm releases.
 

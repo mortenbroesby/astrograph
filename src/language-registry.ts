@@ -167,6 +167,9 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   { language: "ruby", extensions: [".rb", ".rake", ".gemspec"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
   { language: "template", extensions: [".erb", ".ejs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
   { language: "scala", extensions: [".scala", ".sc"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "ocaml", extensions: [".ml"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "haskell", extensions: [".hs", ".lhs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  { language: "julia", extensions: [".jl"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
@@ -208,12 +211,28 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
   },
 ];
 
-const LANGUAGE_BY_EXTENSION = new Map<string, SupportedLanguage>();
-for (const entry of LANGUAGE_SUPPORT_REGISTRY) {
-  for (const extension of entry.extensions) {
-    LANGUAGE_BY_EXTENSION.set(extension, entry.language);
+export function createLanguageByExtension(
+  entries: readonly LanguageSupportDescriptor[] = LANGUAGE_SUPPORT_REGISTRY,
+): Map<string, SupportedLanguage> {
+  const byExtension = new Map<string, SupportedLanguage>();
+
+  for (const entry of entries) {
+    for (const extension of entry.extensions) {
+      const normalized = extension.toLowerCase();
+      const owner = byExtension.get(normalized);
+      if (owner && owner !== entry.language) {
+        throw new Error(
+          `Ambiguous language extension ${normalized}: ${owner} and ${entry.language}`,
+        );
+      }
+      byExtension.set(normalized, entry.language);
+    }
   }
+
+  return byExtension;
 }
+
+const LANGUAGE_BY_EXTENSION = createLanguageByExtension();
 
 const LANGUAGE_SUPPORT_BY_LANGUAGE = new Map(
   LANGUAGE_SUPPORT_REGISTRY.map((entry) => [entry.language, entry] as const),

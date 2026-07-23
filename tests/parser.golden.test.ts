@@ -298,6 +298,24 @@ export const render = () => <button>run</button>;
         content: "class Greeter { def hello(): Unit = {} }\n",
         symbols: ["Greeter", "Greeter.hello"],
       },
+      {
+        language: "ocaml",
+        relativePath: "services/greet.ml",
+        content: "let hello () = 1\n",
+        symbols: ["hello"],
+      },
+      {
+        language: "haskell",
+        relativePath: "services/Greet.hs",
+        content: "hello = 1\n",
+        symbols: ["hello"],
+      },
+      {
+        language: "julia",
+        relativePath: "services/greet.jl",
+        content: "function hello()\nend\n",
+        symbols: ["hello"],
+      },
     ] as const;
 
     for (const fixture of fixtures) {
@@ -311,6 +329,31 @@ export const render = () => <button>run</button>;
         second.symbols.map((symbol) => symbol.id),
       );
     }
+  });
+
+  it("keeps structured parsing bounded and deterministic for Unicode, CRLF, and syntax errors", () => {
+    const unicode = parseSourceFile({
+      relativePath: "services/hej.py",
+      language: "python",
+      content: "def héj():\r\n  return 1\r\n",
+    });
+    const malformed = parseSourceFile({
+      relativePath: "config/broken.json",
+      language: "json",
+      content: '{"näme": }\n',
+    });
+
+    expect(unicode.fallbackUsed).toBe(false);
+    expect(unicode.symbols).toEqual([
+      expect.objectContaining({
+        name: "héj",
+        qualifiedName: "héj",
+        startLine: 1,
+        endLine: 2,
+      }),
+    ]);
+    expect(malformed.fallbackUsed).toBe(false);
+    expect(malformed.symbols.map((symbol) => symbol.name)).toEqual(["näme"]);
   });
 
   it("does not report chunk recovery when the parser handles a large file directly", () => {

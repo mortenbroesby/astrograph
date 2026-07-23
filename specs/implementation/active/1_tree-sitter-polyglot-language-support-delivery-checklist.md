@@ -82,6 +82,17 @@ park it, never to infer a `graph` tier.
   `php` grammar export rather than its non-language default bundle; PHP and
   Ruby class/method fixtures, Scala class/function fixtures, and parser-backed
   empty ERB/EJS symbol fixtures pass. They remain structured-only.
+- [x] **Batch 5 — OCaml, Haskell, Julia:** OCaml uses its explicit `ocaml`
+  grammar export; all three have native-load and deterministic function-symbol
+  fixtures. They remain structured-only.
+- [ ] **Parked — Verilog and Agda:** `tree-sitter-verilog@1.0.0` and
+  `tree-sitter-agda@1.3.1` install but their Node exports are rejected as
+  invalid language objects by `tree-sitter@0.25.0`. Do not add either to the
+  registry unless a compatible package/version passes the native-load gate.
+- [ ] **Parked — Regex and JSDoc:** both parse in isolation, but neither has a
+  stable standalone source-file extension contract in Astrograph; JSDoc is
+  normally embedded in JavaScript-family comments. Do not infer a public
+  adapter until a user-facing file contract and fixture value are defined.
 
 ---
 

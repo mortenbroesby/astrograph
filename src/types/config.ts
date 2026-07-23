@@ -18,7 +18,10 @@ export type SupportedLanguage =
   | "php"
   | "ruby"
   | "template"
-  | "scala";
+  | "scala"
+  | "ocaml"
+  | "haskell"
+  | "julia";
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";
