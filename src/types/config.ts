@@ -6,7 +6,11 @@ export type SupportedLanguage =
   | "python"
   | "bash"
   | "powershell"
-  | "csharp";
+  | "csharp"
+  | "java"
+  | "go"
+  | "rust"
+  | "json";
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";

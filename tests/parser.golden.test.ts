@@ -200,7 +200,7 @@ export const render = () => <button>run</button>;
     }
   });
 
-  it("extracts deterministic structured symbols for the first polyglot batch", () => {
+  it("extracts deterministic structured symbols for polyglot language batches", () => {
     const fixtures = [
       {
         language: "python",
@@ -225,6 +225,30 @@ export const render = () => <button>run</button>;
         relativePath: "services/Greeter.cs",
         content: "public class Greeter { public void Hello() {} }\n",
         symbols: ["Greeter", "Greeter.Hello"],
+      },
+      {
+        language: "java",
+        relativePath: "services/Greeter.java",
+        content: "class Greeter { void hello() {} }\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "go",
+        relativePath: "services/greet.go",
+        content: "package greeting\nfunc Start() {}\n",
+        symbols: ["Start"],
+      },
+      {
+        language: "rust",
+        relativePath: "services/greet.rs",
+        content: "struct Greeter {}\nfn start() {}\n",
+        symbols: ["Greeter", "start"],
+      },
+      {
+        language: "json",
+        relativePath: "package.json",
+        content: "{\"name\": \"astrograph\", \"scripts\": {\"test\": \"vitest\"}}\n",
+        symbols: ["name", "scripts"],
       },
     ] as const;
 

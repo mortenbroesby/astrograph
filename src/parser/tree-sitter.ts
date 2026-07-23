@@ -1,9 +1,13 @@
 import Parser from "tree-sitter";
 import bash from "tree-sitter-bash";
 import csharp from "tree-sitter-c-sharp";
+import go from "tree-sitter-go";
 import javascript from "tree-sitter-javascript";
+import java from "tree-sitter-java";
+import json from "tree-sitter-json";
 import powershell from "tree-sitter-powershell";
 import python from "tree-sitter-python";
+import rust from "tree-sitter-rust";
 import tsLanguages from "tree-sitter-typescript";
 
 import { getLanguageSupport } from "../language-registry.ts";
@@ -48,6 +52,14 @@ function languageFor(language: SupportedLanguage): Parser.Language {
       return powershell as unknown as Parser.Language;
     case "csharp":
       return csharp as unknown as Parser.Language;
+    case "java":
+      return java as unknown as Parser.Language;
+    case "go":
+      return go as unknown as Parser.Language;
+    case "rust":
+      return rust as unknown as Parser.Language;
+    case "json":
+      return json as unknown as Parser.Language;
   }
 }
 
@@ -114,6 +126,8 @@ function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): str
         "word",
         "function_name",
         "simple_name",
+        "field_identifier",
+        "string",
       ].includes(child.type),
     ) ??
     null;
@@ -122,7 +136,8 @@ function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): str
     return null;
   }
 
-  return nodeText(sourceText, nameNode.startIndex, nameNode.endIndex);
+  const name = nodeText(sourceText, nameNode.startIndex, nameNode.endIndex);
+  return nameNode.type === "string" ? name.replace(/^"|"$/g, "") : name;
 }
 
 function createSymbol(
@@ -300,7 +315,8 @@ function visitDeclarationNode(
   switch (node.type) {
     case "function_declaration":
     case "function_definition":
-    case "function_statement": {
+    case "function_statement":
+    case "function_item": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -349,6 +365,66 @@ function visitDeclarationNode(
           offset,
           ownedLines,
         );
+      }
+      return;
+    }
+    case "struct_item": {
+      if (!ownsNode(node, offset, ownedLines)) {
+        return;
+      }
+      const symbol = createSymbol(
+        node,
+        sourceText,
+        relativePath,
+        "class",
+        exported,
+        summaryStrategy,
+        undefined,
+        rangeNode,
+        offset,
+      );
+      if (symbol) {
+        symbols.push(symbol);
+      }
+      return;
+    }
+    case "method_declaration": {
+      if (!ownsNode(node, offset, ownedLines)) {
+        return;
+      }
+      const symbol = createSymbol(
+        node,
+        sourceText,
+        relativePath,
+        "method",
+        exported,
+        summaryStrategy,
+        undefined,
+        rangeNode,
+        offset,
+      );
+      if (symbol) {
+        symbols.push(symbol);
+      }
+      return;
+    }
+    case "pair": {
+      if (!ownsNode(node, offset, ownedLines)) {
+        return;
+      }
+      const symbol = createSymbol(
+        node,
+        sourceText,
+        relativePath,
+        "constant",
+        exported,
+        summaryStrategy,
+        undefined,
+        rangeNode,
+        offset,
+      );
+      if (symbol) {
+        symbols.push(symbol);
       }
       return;
     }
@@ -457,12 +533,17 @@ function visitNode(
 const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
   "function_definition",
   "function_statement",
+  "function_declaration",
+  "function_item",
   "class_declaration",
   "class_definition",
   "class_statement",
   "interface_declaration",
   "enum_declaration",
   "struct_declaration",
+  "struct_item",
+  "method_declaration",
+  "pair",
 ]);
 
 function visitStructuredNode(

@@ -20,13 +20,38 @@ PowerShell is an additional user-selected, community-maintained grammar. It is
 not counted as proof that the unbounded community catalog is supported; it
 must meet the same ABI and fixture gate as an upstream parser.
 
-**Tech Stack:** TypeScript, Node.js `>=22.12.0`, `tree-sitter@0.21.1`,
+**Tech Stack:** TypeScript, Node.js `>=22.12.0`, `tree-sitter@0.25.0`,
 Tree-sitter grammar adapters, SQLite, pnpm, and Vitest.
 
 **Boundaries:** Do not claim the unbounded community grammar ecosystem is
 fully supported. Do not add a parser download service, dynamic grammar loading,
 network access, a daemon, or a hidden fallback that labels unsupported imports
 as graph evidence. Preserve the current four-language JSON/MCP behavior.
+
+## Risk and unknowns gate
+
+Before a language moves from installed to public support, record evidence for
+each of these cases. An unknown is a reason to keep the language private or
+park it, never to infer a `graph` tier.
+
+- [ ] **Runtime and platforms:** supported Node 22/24 installation, native ABI
+  load, macOS/Linux/Windows package behavior or an explicit platform limit,
+  and package licence/provenance. Re-test clean installs rather than relying on
+  one developer's warmed package store.
+- [ ] **Grammar correctness:** valid and invalid syntax, error nodes, empty
+  files, very large files/chunk recovery, Unicode identifiers, CRLF input, and
+  generated/minified input remain deterministic and bounded.
+- [ ] **Language semantics:** fixtures cover the declarations that users
+  expect, nested declarations/namespaces/modules, overloads or duplicate
+  names, comments/docstrings, and import forms. Claims outside those fixtures
+  stay unavailable.
+- [ ] **Repository integration:** extension collisions and case sensitivity,
+  ignored/generated/binary files, file-size limits, worker concurrency, cache
+  invalidation, existing database rows, CLI filters, MCP validation, and
+  diagnostics snapshots preserve their v1 behavior.
+- [ ] **Cost and rollback:** measure native package and indexing cost per
+  batch; pin compatible versions; document a safe exclusion/rollback for a
+  grammar that fails CI or a supported platform.
 
 ## Delivery log
 
@@ -42,6 +67,12 @@ as graph evidence. Preserve the current four-language JSON/MCP behavior.
   release. Local Node 24 source builds require the temporary
   `CXXFLAGS=-std=c++20` workaround because `tree-sitter@0.25.0` declares a
   C++17 build setting while Node 24 headers require C++20.
+- [x] **Batch 2 — Java, Go, Rust, JSON:** native parser loading and
+  deterministic structured fixtures pass for Java classes/methods, Go
+  functions, Rust structs/functions, and JSON top-level keys. JSON moved from
+  discovery fallback to structured indexing; nested keys intentionally remain
+  out of the symbol list to avoid noisy duplicate configuration symbols. No
+  Batch 2 language claims import/relation graph support.
 
 ---
 
@@ -121,6 +152,10 @@ and `specs/api-design/mcp-tools.md`.
   runtime upgrade removed the former large-TypeScript-file chunk-recovery
   fallback for the 900-symbol regression fixture; the test now proves that
   improved behavior rather than reporting a false fallback.
+- [x] Complete Batch 2 with native-load checks, registry entries, deterministic
+  structured fixtures, and CLI/MCP/diagnostics contract updates. Keep its
+  platform, Unicode, malformed-input, and performance evidence open under the
+  risk-and-unknowns gate until explicitly measured.
 - [ ] For each language, add a representative fixture with Unicode identifiers
   where grammar permits; assert parser load, deterministic symbol IDs, UTF-8
   byte/line ranges, `get_file_outline`, `get_file_tree`, search filtering, and

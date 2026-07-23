@@ -107,6 +107,34 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
     toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
   },
+  {
+    language: "java",
+    extensions: [".java"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "go",
+    extensions: [".go"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "rust",
+    extensions: [".rs"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "json",
+    extensions: [".json"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
@@ -120,12 +148,6 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
     extension: ".mdx",
     tiers: ["discovery"],
     summarySource: "markdown-headings",
-    toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
-  },
-  {
-    extension: ".json",
-    tiers: ["discovery"],
-    summarySource: "json-top-level-keys",
     toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
   },
   {
