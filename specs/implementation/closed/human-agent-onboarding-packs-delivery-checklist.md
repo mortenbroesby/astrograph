@@ -2,7 +2,7 @@
 
 > **Status:** Closed — completed in PR #70 and published as
 > `astrograph@0.5.1-alpha.160`. This was Story 6 of the [Precision Retrieval
-> and Agent Experience Epic](../planned/1_precision-retrieval-agent-experience-epic.md).
+> and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md).
 
 **Goal:** Make a first-time Astrograph setup and recovery path understandable,
 inspectable, idempotent, and safe for people and agents without requiring

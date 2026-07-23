@@ -8,28 +8,17 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Token-Efficient Agent Output Delivery
-Checklist](./specs/implementation/active/4_token-efficient-agent-output-delivery-checklist.md),
-starting with deterministic agent-visible MCP envelope and tokenizer baselines.
+No executable implementation checklist is selected. The Token-Efficient Agent
+Output checklist and its Precision/Munch epic are closed records.
 
-## Required outcome
-
-Deliver a measured, lossless, agent-visible response-token reduction for the
-selected MCP result shapes while ordinary JSON remains the safe default.
-
-## Hard boundaries
-
-- Do not implement binary transport, semantic retrieval, Windows work, shared
-  artifact reuse, a daemon, remote synchronization, hidden routing, or a
-  shared mutable index.
-- Preserve ordinary JSON as default, strict MCP v1 errors, inspectable
-  lossless decoding, explicit format fallback, and existing source-token
-  accounting.
-- Do not claim token savings without measuring the actual agent-visible
-  envelope, declared tokenizer count, and encode/decode latency.
+Before starting another delivery change, choose a ready story through the
+[Delivery Roadmap](./specs/implementation/roadmap.md) and move only its
+qualified checklist into `specs/implementation/active/`. The remaining
+package-confidence evidence checklist is parked behind explicit CI-cost and
+third-party-command approval, so it must not be selected automatically.
 
 ## Completion and update rule
 
-When the selected checklist completes, update this file in the same change to
+When a selected checklist completes, update this file in the same change to
 name the next selected checklist. If no next story passes its selection gate,
-point to the evidence-gathering checklist rather than guessing.
+state that no goal is selected and point to the roadmap rather than guessing.

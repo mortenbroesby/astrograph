@@ -1,9 +1,8 @@
 # Precision Retrieval and Agent Experience Epic
 
-> **Status:** Active — Story 4 (Token-Efficient Agent Output) is selected
-> through its [delivery checklist](../active/4_token-efficient-agent-output-delivery-checklist.md).
-> Stories 1–3 and 5–7 are closed. Story 4 is the required token-efficient
-> output end-cap; later stories require their own evidence gates.
+> **Status:** Closed — Stories 1–7 are delivered. Story 4 completed the
+> required measured token-efficient output end-cap; Stories 8–10 remain
+> separately planned or parked behind their own evidence gates.
 >
 > **Inspiration, not a cloning target:** jCodeMunch demonstrates useful patterns—tree-sitter structure, persistent lexical search, byte-accurate slices, optional semantics, compact results, and polished setup. Astrograph will retain a small deterministic local-first surface, not copy a 90-tool catalog or unverified marketing claims.
 
@@ -17,32 +16,27 @@
 
 ## Delivery Integrity and Epic Closure Rule
 
-This epic is **not ready to close**. Its completed Munch-inspired product
-stories are already merged into `main`, while Story 7 remains the sole active
-implementation goal. Do not describe the epic as delivered, or move it to
-closed records, until its selected remaining work has merged source, tests, and
-user-facing contract documentation to `main` with exact-head verification—or
-has been explicitly parked or descoped with a recorded evidence gate.
+This epic is **closed**. All selected Munch-inspired product stories are merged
+into `main` with source, tests, and user-facing contract documentation. Future
+semantic, reporting, and internal-serialization candidates remain individually
+planned or parked; they are not silently included in this completed epic.
 
 | Story | Delivery state | Mainline evidence |
 | --- | --- | --- |
 | 1–2: provenance and lexical ranking | Complete | PR #26, merge `32248d3` |
 | 3: token-budgeted task context | Complete | PR #34, merge `b5837a7` |
-| 4: token-efficient agent output | Required end-cap | Must deliver measured compact or otherwise token-efficient agent-visible output before epic closure |
+| 4: token-efficient agent output | Complete | PR #79, merge `3a8fa04`; measured opt-in `agc1` MCP JSON saves 55.6–66.7% on the deterministic fixture |
 | 5: small MCP core | Complete | PR #39, merge `54971f6` |
 | 6: onboarding packs | Complete | PR #70, merge `45cbc63` |
 | 7: incremental freshness lifecycle | Complete | PR #77, merge `5698ca0`, `v0.6.0-alpha.164` |
 | 8–10: semantic, reporting, internal serialization | Planned or parked | Their individual evidence gates remain authoritative |
 
 **Definition of done:** every selected story has a closed checklist linking to
-its merged `main` commit, exact-head checks, and any required package/contract
-evidence; `pointer.md`, the roadmap, this epic, and the closed-record index are
-merged to `main` in the same transition. Before the epic closes, Story 4 must
-also deliver a measured compact or otherwise token-efficient **agent-visible
-output** on `main`; recording that compact output was not worthwhile is not a
-substitute for an end-user token-efficiency result. Future stories that do not
-pass their selection gates must be explicitly parked or descoped rather than
-silently treated as delivered.
+its merged `main` commit, exact-head checks, and required contract evidence.
+Story 4 delivered a measured compact, agent-visible result on `main`; its
+release tag exists, while npm publication remains an explicitly recorded
+registry-permission follow-up. Future stories that do not pass their selection
+gates remain planned or parked rather than silently treated as delivered.
 
 ## Principles and Evidence Gates
 
@@ -122,13 +116,11 @@ it.
 
 ## Story 4 — Token-Efficient Agent Output
 
-**Status:** Active — selected after Story 7 merged as PR #77. Do not
-close this epic until it produces a measured compact or otherwise
-token-efficient agent-visible output on `main`. Compact, versioned JSON remains
-the preferred candidate. The baseline must still establish repeatable material
-savings before choosing its exact envelope; if it is unsuitable, select another
-inspectable, lossless agent-visible output reduction rather than declaring the
-epic complete without one. See the [ingested assessment](../../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md).
+**Status:** Complete — PR #79 merged the versioned opt-in `agc1` JSON
+implementation as `3a8fa04` after exact-head Fast checks. The deterministic
+fixture measured 55.6–66.7% response-token savings for the selected MCP
+responses. See the closed [delivery checklist](../closed/token-efficient-agent-output-delivery-checklist.md)
+and the [ingested assessment](../../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md).
 
 **Vision:** Retrieval saves tokens in selection and in response encoding.
 
@@ -142,25 +134,25 @@ transport change.
 `src/types/**`, MCP/CLI contracts, API docs, benchmarks, and
 serialization/interface tests.
 
-- [ ] Capture raw successful, empty, error, and provenance-heavy *agent-visible*
+- [x] Capture raw successful, empty, error, and provenance-heavy *agent-visible*
   envelopes for `search_symbols`, `get_file_tree`, `get_file_outline`, and a
   bounded `get_task_context`; measure bytes, the declared tokenizer count,
   readability, and encode/decode latency.
-- [ ] Benchmark a deterministic table/path-interned draft against the current
+- [x] Benchmark a deterministic table/path-interned draft against the current
   pretty JSON envelope. Set any `auto` savings threshold from that evidence;
   do not assume 15% or another fixed value in advance.
-- [ ] Write an ADR and public contract decision before enabling the selected
+- [x] Write an ADR and public contract decision before enabling the selected
   token-efficient output: current MCP v1 explicitly disables compact schema
   variants. Specify selected tools, `format=json|compact|auto` when compact
   JSON wins, versioned envelope, reference decoder, JSON fallback, and
   `get_task_context` budget accounting in each format.
-- [ ] Implement the selected agent-visible token-efficiency result for only the
+- [x] Implement the selected agent-visible token-efficiency result for only the
   measured tools; preserve default JSON, strict v1 errors, and inspectable
   fail-open behavior.
-- [ ] Add reference decode/round-trip tests for Unicode, errors, nested provenance.
-- [ ] Report format selection, bytes, agent-visible token savings, and
+- [x] Add reference decode/round-trip tests for Unicode, errors, nested provenance.
+- [x] Report format selection, bytes, agent-visible token savings, and
   encode/decode latency separately from retrieval and source-token savings.
-- [ ] Verify contracts/type/version/diff, commit/push/review/merge.
+- [x] Verify contracts/type/version/diff, commit/push/review/merge.
 
 **Acceptance evidence:** The selected agent-visible output round-trips or
 otherwise preserves the public contract, has reproducible token savings for the

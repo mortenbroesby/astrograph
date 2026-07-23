@@ -17,14 +17,10 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Token-Efficient Agent Output](./active/4_token-efficient-agent-output-delivery-checklist.md)
-   - Goal: deliver a measured, inspectable token-efficiency result in the
-     agent-visible response path while default JSON remains safe and stable.
-   - First action: capture deterministic MCP envelopes and their bytes, exact
-     token counts, and encode/decode latency before choosing a compact format.
-   - The broader [Precision Retrieval and Agent Experience epic](./planned/1_precision-retrieval-agent-experience-epic.md)
-     remains open; its closure rule requires every selected story and this
-     roadmap/pointer transition to be merged to `main` with recorded evidence.
+No implementation checklist is selected. The completed Munch/Precision epic is
+historical evidence. Select new work explicitly from a ready item only after
+its own gate is met; do not treat an old checklist as executable merely because
+it is numbered first.
 
 ## Ready — detailed, but not selected
 
@@ -42,7 +38,7 @@ roadmap explains everything else.
 - [Global + branch-aware immutable artifact reuse](./planned/5_global-branch-artifact-reuse-delivery-checklist.md):
   a representative run took 2.044 seconds for both indexes, so the measured
   duplication did not justify cross-repository storage complexity.
-- [Internal artifact serialization efficiency](./planned/1_precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
+- [Internal artifact serialization efficiency](./closed/precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
   MessagePack is only a selective internal candidate after measurements compare
   `analysis_artifacts` JSON, deduplicated layout, size, latency, and debuggability.
 - [Optional shared immutable artifact store](./planned/6_global-install-and-cache-deferred-stories.md#story-6-shared-immutable-artifact-store--optional-and-deferred):
@@ -54,12 +50,14 @@ roadmap explains everything else.
 
 ## Blocked — external prerequisite only
 
-No selected item is blocked. The release-on-main path is now verified and
-recorded as completed evidence.
+- `astrograph@0.7.0-alpha.165` has tag `v0.7.0-alpha.165` but is not published:
+  post-merge release job `89280716957` received npm `E404`/permission denied.
+  Restore npm registry access, then use the existing tagged-release retry; do
+  not create another source release or reopen the Munch implementation.
 
 ## Ideas — not a commitment
 
-- [Later precision retrieval candidates](./planned/1_precision-retrieval-agent-experience-epic.md):
+- [Later precision retrieval candidates](./closed/precision-retrieval-agent-experience-epic.md):
   onboarding packs, incremental freshness, optional semantic/hybrid retrieval,
   and honest benchmark/reporting. Each needs its own evidence gate.
 - [Spec-system backlog](./planned/7_spec-system-backlog.md): architecture/API
@@ -127,6 +125,13 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Incremental Freshness Lifecycle](./closed/incremental-freshness-lifecycle-delivery-checklist.md)
   closed after PR #77 merged with exact-head and post-merge Fast/package/MCP
   evidence; `astrograph@0.6.0-alpha.164` published from `v0.6.0-alpha.164`.
+- [Token-Efficient Agent Output](./closed/token-efficient-agent-output-delivery-checklist.md)
+  closed after PR #79 merged `3a8fa04`, passing exact-head and merged-main Fast
+  checks. The public `agc1` contract and benchmark show 55.6–66.7% savings for
+  measured selected MCP envelopes; npm publication is recorded above as blocked.
+- [Precision Retrieval and Agent Experience Epic](./closed/precision-retrieval-agent-experience-epic.md)
+  — closed after Story 4 completed the measured agent-visible token-efficiency
+  end-cap in PR #79.
 
 ## Maintaining this roadmap
 

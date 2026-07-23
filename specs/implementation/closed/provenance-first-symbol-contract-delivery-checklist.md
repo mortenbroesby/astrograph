@@ -1,6 +1,6 @@
 # Provenance-First Symbol Contract Delivery Checklist
 
-> **Epic:** [Precision Retrieval and Agent Experience Epic](../planned/1_precision-retrieval-agent-experience-epic.md), Story 1
+> **Epic:** [Precision Retrieval and Agent Experience Epic](./precision-retrieval-agent-experience-epic.md), Story 1
 >
 > **Selected by:** [High-Impact Product Follow-Ups Epic](../planned/4_high-impact-followups-epic.md), Story 4
 >

@@ -5,7 +5,7 @@
 > `astrograph@0.6.0-alpha.164` from `v0.6.0-alpha.164`.
 >
 > **Epic:** Story 7 of the
-> [Precision Retrieval and Agent Experience epic](../planned/1_precision-retrieval-agent-experience-epic.md).
+> [Precision Retrieval and Agent Experience epic](./precision-retrieval-agent-experience-epic.md).
 > This is Astrograph's Munch-inspired next product slice: reliable, explicit
 > local freshness after real repository changes.
 
