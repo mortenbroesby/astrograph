@@ -73,3 +73,6 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 - [Registry Lookup with Native `fetch` Delivery Checklist](./npm-module-registry-lookup-delivery-checklist.md)
   — closed after PR #75 passed exact-head Fast/package evidence and
   `astrograph@0.5.1-alpha.163` published from its immutable merge tag.
+- [Incremental Freshness Lifecycle Delivery Checklist](./incremental-freshness-lifecycle-delivery-checklist.md)
+  — closed after PR #77, exact-head/post-merge Fast and package/MCP evidence,
+  and publication of `astrograph@0.6.0-alpha.164`.

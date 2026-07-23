@@ -17,11 +17,11 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Incremental Freshness Lifecycle](./active/7_incremental-freshness-lifecycle-delivery-checklist.md)
-   - Goal: make local retrieval freshness explicit and safely incremental after
-     edits, checkout changes, and watcher fallback.
-   - First action: measure current cold/no-op/delta behavior and map the
-     freshness/diagnostic contract before selecting a source change.
+1. [Token-Efficient Agent Output](./active/4_token-efficient-agent-output-delivery-checklist.md)
+   - Goal: deliver a measured, inspectable token-efficiency result in the
+     agent-visible response path while default JSON remains safe and stable.
+   - First action: capture deterministic MCP envelopes and their bytes, exact
+     token counts, and encode/decode latency before choosing a compact format.
    - The broader [Precision Retrieval and Agent Experience epic](./planned/1_precision-retrieval-agent-experience-epic.md)
      remains open; its closure rule requires every selected story and this
      roadmap/pointer transition to be merged to `main` with recorded evidence.
@@ -36,10 +36,6 @@ roadmap explains everything else.
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
-4. [Token-Efficient Agent Output](./planned/1_precision-retrieval-agent-experience-epic.md#story-4--token-efficient-agent-output)
-   is the required end-cap for the active Precision/Munch epic after Story 7.
-   It must deliver measured compact or otherwise token-efficient agent-visible
-   output on `main` before that epic can close.
 
 ## Parked — revisit only with new evidence
 
@@ -128,6 +124,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Registry Lookup with Native `fetch`](./closed/npm-module-registry-lookup-delivery-checklist.md)
   closed after PR #75 passed exact-head Fast/package evidence and
   `astrograph@0.5.1-alpha.163` was verified as npm `latest`.
+- [Incremental Freshness Lifecycle](./closed/incremental-freshness-lifecycle-delivery-checklist.md)
+  closed after PR #77 merged with exact-head and post-merge Fast/package/MCP
+  evidence; `astrograph@0.6.0-alpha.164` published from `v0.6.0-alpha.164`.
 
 ## Maintaining this roadmap
 
