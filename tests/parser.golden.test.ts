@@ -200,7 +200,48 @@ export const render = () => <button>run</button>;
     }
   });
 
-  it("marks tree-sitter chunk recovery as parser fallback metadata", () => {
+  it("extracts deterministic structured symbols for the first polyglot batch", () => {
+    const fixtures = [
+      {
+        language: "python",
+        relativePath: "services/greeting.py",
+        content: "class Greeter:\n  def hello(self):\n    return 1\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "bash",
+        relativePath: "scripts/greet.sh",
+        content: "greet() { echo hi; }\n",
+        symbols: ["greet"],
+      },
+      {
+        language: "powershell",
+        relativePath: "scripts/Greet.ps1",
+        content: "class Greeter { [void] Hello() {} }\nfunction Start-Greeting { Write-Host hi }\n",
+        symbols: ["Greeter", "Greeter.Hello", "Start-Greeting"],
+      },
+      {
+        language: "csharp",
+        relativePath: "services/Greeter.cs",
+        content: "public class Greeter { public void Hello() {} }\n",
+        symbols: ["Greeter", "Greeter.Hello"],
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const first = parseSourceFile(fixture);
+      const second = parseSourceFile(fixture);
+
+      expect(first.fallbackUsed).toBe(false);
+      expect(first.imports).toEqual([]);
+      expect(first.symbols.map((symbol) => symbol.qualifiedName)).toEqual(fixture.symbols);
+      expect(first.symbols.map((symbol) => symbol.id)).toEqual(
+        second.symbols.map((symbol) => symbol.id),
+      );
+    }
+  });
+
+  it("does not report chunk recovery when the parser handles a large file directly", () => {
     const content = Array.from({ length: 900 }, (_, index) =>
       `export function helper${index}(value: number): number { return value + ${index}; }`,
     ).join("\n");
@@ -212,8 +253,8 @@ export const render = () => <button>run</button>;
     });
 
     expect(parsed.backend).toBe("tree-sitter");
-    expect(parsed.fallbackUsed).toBe(true);
-    expect(parsed.fallbackReason).toBe("tree-sitter-chunk-recovery");
+    expect(parsed.fallbackUsed).toBe(false);
+    expect(parsed.fallbackReason).toBeNull();
     expect(parsed.symbols).toHaveLength(900);
     expect(parsed.symbols).toEqual(
       expect.arrayContaining([

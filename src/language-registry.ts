@@ -40,6 +40,12 @@ const GRAPH_TOOL_AVAILABILITY: TierToolAvailability = {
 };
 
 const GRAPH_SUMMARY_STRATEGIES: SummaryStrategy[] = [...SUMMARY_STRATEGIES];
+const STRUCTURED_SUMMARY_STRATEGIES: SummaryStrategy[] = [...SUMMARY_STRATEGIES];
+const STRUCTURED_TOOL_AVAILABILITY: TierToolAvailability = {
+  discovery: [...DISCOVERY_TOOL_AVAILABILITY.discovery],
+  structured: ["get_file_summary"],
+  graph: [],
+};
 const SUPPORT_TIER_RANK = new Map(
   SUPPORT_TIERS.map((tier, index) => [tier, index] as const),
 );
@@ -72,6 +78,34 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
     tiers: ["discovery", "structured", "graph"],
     summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
     toolAvailability: GRAPH_TOOL_AVAILABILITY,
+  },
+  {
+    language: "python",
+    extensions: [".py", ".pyi"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "bash",
+    extensions: [".sh", ".bash", ".zsh"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "powershell",
+    extensions: [".ps1", ".psm1", ".psd1"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "csharp",
+    extensions: [".cs"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
   },
 ];
 
@@ -110,12 +144,6 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
     extension: ".sql",
     tiers: ["discovery"],
     summarySource: "sql-schema-objects",
-    toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
-  },
-  {
-    extension: ".sh",
-    tiers: ["discovery"],
-    summarySource: "shell-functions",
     toolAvailability: DISCOVERY_TOOL_AVAILABILITY,
   },
   {

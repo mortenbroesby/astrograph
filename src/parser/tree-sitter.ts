@@ -1,5 +1,9 @@
 import Parser from "tree-sitter";
+import bash from "tree-sitter-bash";
+import csharp from "tree-sitter-c-sharp";
 import javascript from "tree-sitter-javascript";
+import powershell from "tree-sitter-powershell";
+import python from "tree-sitter-python";
 import tsLanguages from "tree-sitter-typescript";
 
 import { getLanguageSupport } from "../language-registry.ts";
@@ -27,15 +31,23 @@ function isRecoverableParseFailure(error: unknown): boolean {
   return error instanceof Error && error.message === "Invalid argument";
 }
 
-function languageFor(language: SupportedLanguage) {
+function languageFor(language: SupportedLanguage): Parser.Language {
   switch (getLanguageSupport(language).language) {
     case "ts":
-      return tsLanguages.typescript;
+      return tsLanguages.typescript as unknown as Parser.Language;
     case "tsx":
-      return tsLanguages.tsx;
+      return tsLanguages.tsx as unknown as Parser.Language;
     case "js":
     case "jsx":
-      return javascript;
+      return javascript as unknown as Parser.Language;
+    case "python":
+      return python as unknown as Parser.Language;
+    case "bash":
+      return bash as unknown as Parser.Language;
+    case "powershell":
+      return powershell as unknown as Parser.Language;
+    case "csharp":
+      return csharp as unknown as Parser.Language;
   }
 }
 
@@ -99,6 +111,9 @@ function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): str
         "identifier",
         "property_identifier",
         "type_identifier",
+        "word",
+        "function_name",
+        "simple_name",
       ].includes(child.type),
     ) ??
     null;
@@ -238,13 +253,17 @@ function pushClassMembers(
   offset: ParseOffset = { byte: 0, line: 0 },
   ownedLines?: OwnedLineRange,
 ) {
-  const body = node.childForFieldName("body");
-  if (!body) {
-    return;
-  }
+  const body = node.childForFieldName("body") ?? node;
 
   for (const child of body.namedChildren) {
-    if (child.type === "method_definition") {
+    if (
+      [
+        "method_definition",
+        "function_definition",
+        "class_method_definition",
+        "method_declaration",
+      ].includes(child.type)
+    ) {
       if (!ownsNode(child, offset, ownedLines)) {
         continue;
       }
@@ -279,7 +298,9 @@ function visitDeclarationNode(
   ownedLines?: OwnedLineRange,
 ) {
   switch (node.type) {
-    case "function_declaration": {
+    case "function_declaration":
+    case "function_definition":
+    case "function_statement": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -299,7 +320,9 @@ function visitDeclarationNode(
       }
       return;
     }
-    case "class_declaration": {
+    case "class_declaration":
+    case "class_definition":
+    case "class_statement": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -331,7 +354,8 @@ function visitDeclarationNode(
     }
     case "interface_declaration":
     case "type_alias_declaration":
-    case "enum_declaration": {
+    case "enum_declaration":
+    case "struct_declaration": {
       if (!ownsNode(node, offset, ownedLines)) {
         return;
       }
@@ -430,6 +454,43 @@ function visitNode(
   }
 }
 
+const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
+  "function_definition",
+  "function_statement",
+  "class_declaration",
+  "class_definition",
+  "class_statement",
+  "interface_declaration",
+  "enum_declaration",
+  "struct_declaration",
+]);
+
+function visitStructuredNode(
+  node: Parser.SyntaxNode,
+  sourceText: string,
+  relativePath: string,
+  summaryStrategy: SummaryStrategy,
+  symbols: ParsedSymbol[],
+  imports: ParsedImport[],
+) {
+  if (STRUCTURED_DECLARATION_NODE_TYPES.has(node.type)) {
+    visitDeclarationNode(
+      node,
+      sourceText,
+      relativePath,
+      false,
+      summaryStrategy,
+      symbols,
+      imports,
+    );
+    return;
+  }
+
+  for (const child of node.namedChildren) {
+    visitStructuredNode(child, sourceText, relativePath, summaryStrategy, symbols, imports);
+  }
+}
+
 export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   parser.setLanguage(languageFor(input.language));
   const symbols: ParsedSymbol[] = [];
@@ -440,15 +501,26 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   try {
     const tree = parser.parse(input.content);
     for (const child of tree.rootNode.namedChildren) {
-      visitNode(
-        child,
-        input.content,
-        input.relativePath,
-        false,
-        summaryStrategy,
-        symbols,
-        imports,
-      );
+      if (["ts", "tsx", "js", "jsx"].includes(input.language)) {
+        visitNode(
+          child,
+          input.content,
+          input.relativePath,
+          false,
+          summaryStrategy,
+          symbols,
+          imports,
+        );
+      } else {
+        visitStructuredNode(
+          child,
+          input.content,
+          input.relativePath,
+          summaryStrategy,
+          symbols,
+          imports,
+        );
+      }
     }
   } catch (error) {
     if (!isRecoverableParseFailure(error)) {

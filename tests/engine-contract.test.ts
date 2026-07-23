@@ -148,7 +148,7 @@ describe("ai-context-engine contract", () => {
 
     expect(config).toMatchObject({
       repoRoot: "/tmp/playground",
-      languages: ["ts", "tsx", "js", "jsx"],
+      languages: ["ts", "tsx", "js", "jsx", "python", "bash", "powershell", "csharp"],
       respectGitIgnore: true,
       storageMode: "wal",
       storageLocation: "repo-local",

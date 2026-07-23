@@ -16,6 +16,9 @@ The target baseline is the 24 upstream parsers named by Tree-sitter: Agda,
 Bash, C, C++, C#, CSS, ERB/EJS, Go, Haskell, HTML, Java, JavaScript, JSDoc,
 JSON, Julia, OCaml, PHP, Python, Regex, Ruby, Rust, Scala, TypeScript, and
 Verilog. JavaScript and TypeScript already cover `js`, `jsx`, `ts`, and `tsx`.
+PowerShell is an additional user-selected, community-maintained grammar. It is
+not counted as proof that the unbounded community catalog is supported; it
+must meet the same ABI and fixture gate as an upstream parser.
 
 **Tech Stack:** TypeScript, Node.js `>=22.12.0`, `tree-sitter@0.21.1`,
 Tree-sitter grammar adapters, SQLite, pnpm, and Vitest.
@@ -24,6 +27,21 @@ Tree-sitter grammar adapters, SQLite, pnpm, and Vitest.
 fully supported. Do not add a parser download service, dynamic grammar loading,
 network access, a daemon, or a hidden fallback that labels unsupported imports
 as graph evidence. Preserve the current four-language JSON/MCP behavior.
+
+## Delivery log
+
+- [x] **Batch 1 — Python, Bash, PowerShell, C#:** upgraded the Node binding
+  from `tree-sitter@0.21.1` to `0.25.0`, and verified native parser loading
+  with `tree-sitter-python@0.25.0`, `tree-sitter-bash@0.25.1`,
+  `tree-sitter-powershell@0.26.4`, and `tree-sitter-c-sharp@0.23.5`.
+  JavaScript was upgraded to `tree-sitter-javascript@0.25.0`; the existing
+  TypeScript grammar loads successfully on the new runtime. Python, Bash,
+  PowerShell, and C# are now fixture-backed `structured` adapters with no
+  import/relation claim.
+- [ ] Verify the upgraded runtime through the repository's Node 22 CI before
+  release. Local Node 24 source builds require the temporary
+  `CXXFLAGS=-std=c++20` workaround because `tree-sitter@0.25.0` declares a
+  C++17 build setting while Node 24 headers require C++20.
 
 ---
 
@@ -79,6 +97,30 @@ and `specs/api-design/mcp-tools.md`.
   compatible versions. Cover the 24 upstream parser identities across batches
   while preserving the same adapter contract; do not ship a package that cannot
   load on the supported Node platforms.
+- [ ] Use this value-first, sequential installation order. Deno projects use
+  the already-supported JavaScript/TypeScript adapters, so Deno needs no
+  separate grammar package. A failed package load, incompatible native ABI, or
+  disproportionately complex adapter is recorded as **parked** in this
+  checklist and does not block the other languages in its batch:
+
+  | Batch | Languages | Why this order |
+  | --- | --- | --- |
+  | 0 — already available | JavaScript, JSX, TypeScript, TSX | React and Deno source is covered now. |
+  | 1 — active quick wins | Python, Bash, PowerShell, C# | Common automation and services alongside the requested .NET backend. |
+  | 2 | Java, Go, Rust, JSON | Common backend/services plus ubiquitous monorepo configuration. |
+  | 3 | HTML, CSS, C, C++ | Front-end assets and native/tooling code. |
+  | 4 | PHP, Ruby, ERB/EJS, Scala | Common product stacks and templating. |
+  | 5 | OCaml, Haskell, Julia, Verilog | Specialist services, research, and hardware work. |
+  | 6 | Agda, Regex, JSDoc | Niche/source-embedded grammars; validate the user-facing file value before shipping. |
+
+  Each batch is installed, load-tested, adapted, and reviewed before the next
+  batch begins. A parked language is revisited only after the remaining quick
+  wins are complete or new compatibility evidence appears.
+- [x] Complete Batch 1 with parser-load tests, deterministic symbol/range
+  fixtures, registry entries, and structured-only tier disclosure. The
+  runtime upgrade removed the former large-TypeScript-file chunk-recovery
+  fallback for the 900-symbol regression fixture; the test now proves that
+  improved behavior rather than reporting a false fallback.
 - [ ] For each language, add a representative fixture with Unicode identifiers
   where grammar permits; assert parser load, deterministic symbol IDs, UTF-8
   byte/line ranges, `get_file_outline`, `get_file_tree`, search filtering, and

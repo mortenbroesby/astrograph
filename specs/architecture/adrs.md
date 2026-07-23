@@ -338,6 +338,11 @@ grammar loading, extensions, node-shape extraction, and declared support tier.
 The registry exposes a language only after fixture-backed parser loading and
 deterministic symbol/range evidence.
 
+PowerShell is a separately selected community grammar for the initial
+value-first batch. It is an explicit exception to the upstream-list scope, not
+a broad commitment to community grammars, and is subject to the same evidence
+gate.
+
 `graph` support requires language-specific import/relation tests. An adapter
 without that evidence is `structured` only; it may produce symbols and
 outlines but does not claim dependency expansion. Astrograph will pin verified
