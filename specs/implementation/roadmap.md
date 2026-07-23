@@ -36,15 +36,16 @@ roadmap explains everything else.
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
+4. [Token-Efficient Agent Output](./planned/1_precision-retrieval-agent-experience-epic.md#story-4--token-efficient-agent-output)
+   is the required end-cap for the active Precision/Munch epic after Story 7.
+   It must deliver measured compact or otherwise token-efficient agent-visible
+   output on `main` before that epic can close.
 
 ## Parked — revisit only with new evidence
 
 - [Global + branch-aware immutable artifact reuse](./planned/5_global-branch-artifact-reuse-delivery-checklist.md):
   a representative run took 2.044 seconds for both indexes, so the measured
   duplication did not justify cross-repository storage complexity.
-- [Compact versioned transport](./planned/1_precision-retrieval-agent-experience-epic.md#story-4--compact-versioned-transport):
-  measure complete agent-visible MCP envelopes before selecting an opt-in,
-  versioned compact JSON format for repetitive result shapes.
 - [Internal artifact serialization efficiency](./planned/1_precision-retrieval-agent-experience-epic.md#story-10--internal-artifact-serialization-efficiency):
   MessagePack is only a selective internal candidate after measurements compare
   `analysis_artifacts` JSON, deduplicated layout, size, latency, and debuggability.
