@@ -378,7 +378,7 @@ not dynamically download grammars or claim all community grammars are covered.
 ## ADR-008: Extend Compact Output with an Astrograph-Owned Table Format
 
 **Date:** 2026-07-24
-**Status:** Proposed
+**Status:** Accepted
 
 ## Context
 
@@ -393,15 +393,20 @@ weaken the strict v1 error contract.
 
 ## Decision
 
-Propose additive `agc2` compact tables for evidence-selected discovery tools.
+Replace `agc1` with `agc2` compact tables for evidence-selected discovery tools.
 An `agc2` envelope remains UTF-8 JSON and contains a version, tool name,
 ordered columns, optional per-column string dictionaries, rows, scalar fields,
 and the existing v1 metadata tuple. Dictionary-backed columns use zero-based
 indexes; all other cells retain JSON scalar types.
 
-`agc1` remains supported unchanged. JSON remains default; errors and any
+`agc1` encoding and decoding are removed. JSON remains default; errors and any
 invalid compact candidate remain ordinary strict v1 JSON. `auto` continues to
 require at least 20 exact `cl100k_base` tokens and 25% savings.
+
+The storage and cache marker becomes v2. A cache is automatically archived and
+rebuilt only when its marker is valid and explicitly identifies known v1
+storage/cache data. Missing, malformed, and future/unknown markers are not
+altered automatically: Astrograph reports explicit recovery guidance instead.
 
 ## Rationale
 
@@ -414,11 +419,12 @@ require at least 20 exact `cl100k_base` tokens and 25% savings.
 
 ## Consequences
 
-- `format: "compact"` becomes version-polymorphic for tools that add `agc2`;
-  clients requiring ordinary objects must continue to request `json`.
+- Compact clients must switch from `agc1` to `agc2`; clients requiring
+  ordinary objects continue to request `json`.
 - Each new tool mapping needs fixture, round-trip, malformed-input, and exact
   token evidence before it becomes eligible for `auto`.
-- The first implementation is limited to `find_files` and `search_text`.
+- The first implementation includes `find_files`, `search_text`, and migration
+  of the former three `agc1` mappings.
 
 ## Verification
 

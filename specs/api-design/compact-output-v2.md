@@ -17,9 +17,9 @@ Selected MCP tools continue to accept the existing optional `format` argument:
 - `"auto"`: return compact only when the candidate saves at least 20 exact
   `cl100k_base` tokens and 25% of ordinary JSON tokens.
 
-The first `agc2` slice is limited to `find_files` and `search_text`. Existing
-`agc1` mappings for `search_symbols`, `get_file_tree`, and `get_file_outline`
-remain valid and unchanged.
+`agc2` replaces `agc1`. Every successful compact-capable tool emits `agc2`;
+the former `agc1` encoder and decoder are removed. This is an intentional
+breaking contract change paired with the storage/cache v2 boundary.
 
 ## `agc2` envelope
 
@@ -50,8 +50,8 @@ versions, invalid dictionary indexes, and malformed row widths.
 
 ## Compatibility
 
-- `agc1` remains a supported public decoder contract.
-- `agc2` is additive; clients that require ordinary objects request `json`.
+- `agc2` is the only supported compact decoder contract. Clients that require
+  ordinary objects request `json`.
 - `auto` is deliberately polymorphic. Clients that require a single compact
   version request `compact` only after supporting the documented tool mapping.
 - Failed calls never use a compact envelope.

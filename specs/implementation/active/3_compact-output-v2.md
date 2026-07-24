@@ -3,11 +3,12 @@
 **Goal:** Expand Astrograph's measured compact MCP output with an original,
 lossless `agc2` table representation for repetitive discovery results.
 
-**Architecture:** Keep the strict MCP v1 JSON envelope as the default. Add a
-separate `agc2` decoder and per-tool compact mappings only where real
-Astrograph fixtures prove a material exact-token saving. `agc1` remains
-unchanged; this work must neither import third-party code nor emulate a
-third-party wire contract.
+**Architecture:** Keep the strict MCP v1 JSON envelope as the default. Replace
+`agc1` with one `agc2` decoder and per-tool compact mappings only where real
+Astrograph fixtures prove a material exact-token saving. Bump storage and cache
+markers to v2: only a valid known v1 marker is archived and rebuilt
+automatically; missing, malformed, and future markers are preserved and fail
+with explicit recovery guidance.
 
 **Tech Stack:** TypeScript, Node 22+, `tiktoken`, Vitest, and the existing MCP
 envelope benchmark.
@@ -25,12 +26,15 @@ envelope benchmark.
 - [x] Do not implement a mapping that fails the existing `20 tokens + 25%`
   auto-selection gate.
 
-## Task 2: Implement the bounded codec
+## Task 2: Implement the breaking v2 boundary
 
-- [x] Add a distinct `agc2` table encoder/decoder for the selected tools.
-- [x] Preserve JSON default, strict error JSON, Unicode, empty results, and
+- [ ] Replace `agc1` with one `agc2` encoder/decoder for every selected tool.
+- [ ] Preserve JSON default, strict error JSON, Unicode, empty results, and
   reference-decoder round trips.
-- [x] Keep `agc1` byte-for-byte compatible for its current three mappings.
+- [ ] Bump storage/cache markers to v2 and archive/rebuild only caches with a
+  valid known v1 marker.
+- [ ] Preserve missing, malformed, and future markers; report explicit
+  recovery guidance without altering cache contents.
 
 ## Task 3: Verify and publish evidence
 

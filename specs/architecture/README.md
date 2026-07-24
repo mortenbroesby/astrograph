@@ -24,6 +24,9 @@ Planned deep dives:
 - MCP and CLI runtime boundaries
 - Privacy, events, and local diagnostics
 
+- [Compact Output and Storage v2](./compact-output-v2-storage-v2.md) - Breaking
+  compact-format and cache-recovery design.
+
 ## See Also
 
 - [API Design](../api-design/README.md)
