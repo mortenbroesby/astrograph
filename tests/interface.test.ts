@@ -48,6 +48,7 @@ async function withMcpClient<T>(
       ...process.env,
       HOME: isolatedHome,
       XDG_CONFIG_HOME: path.join(isolatedHome, ".config"),
+      ASTROGRAPH_HOME: isolatedHome,
       ASTROGRAPH_USE_SOURCE: "1",
     },
   });
@@ -397,7 +398,7 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(diagnosticsStdout)).toMatchObject({
-      storageVersion: 1,
+      storageVersion: 2,
       schemaVersion: 7,
       indexedFiles: 3,
       currentFiles: 3,
@@ -789,7 +790,7 @@ export function circumference(radius: number): string {
         data: {
           engineVersion: ASTROGRAPH_PACKAGE_VERSION,
           storageDir: path.join(canonicalRepoRoot, ".astrograph"),
-          storageVersion: 1,
+          storageVersion: 2,
           schemaVersion: 7,
           readiness: {
             stage: "not-ready",

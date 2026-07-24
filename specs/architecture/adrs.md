@@ -372,3 +372,63 @@ not dynamically download grammars or claim all community grammars are covered.
 - The active [polyglot delivery checklist](../implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
   records the inventory, adapter migration, fixtures, package measurements,
   public contract tests, and release evidence.
+
+---
+
+## ADR-008: Extend Compact Output with an Astrograph-Owned Table Format
+
+**Date:** 2026-07-24
+**Status:** Accepted
+
+## Context
+
+ADR-007 established `agc1` as a deliberately narrow positional format for
+three repetitive MCP success results. It proved substantial exact-token savings
+while preserving JSON as the safe default, but it cannot represent additional
+discovery results without a new mapping for every object shape.
+
+The next format must be independently designed and owned by Astrograph. It
+must not claim third-party wire compatibility, import external codec code, or
+weaken the strict v1 error contract.
+
+## Decision
+
+Replace `agc1` with `agc2` compact tables for evidence-selected discovery tools.
+An `agc2` envelope remains UTF-8 JSON and contains a version, tool name,
+ordered columns, optional per-column string dictionaries, rows, scalar fields,
+and the existing v1 metadata tuple. Dictionary-backed columns use zero-based
+indexes; all other cells retain JSON scalar types.
+
+`agc1` encoding and decoding are removed. JSON remains default; errors and any
+invalid compact candidate remain ordinary strict v1 JSON. `auto` continues to
+require at least 20 exact `cl100k_base` tokens and 25% savings.
+
+The storage and cache marker becomes v2. A cache is automatically archived and
+rebuilt only when its marker is valid and explicitly identifies known v1
+storage/cache data. Missing, malformed, and future/unknown markers are not
+altered automatically: Astrograph reports explicit recovery guidance instead.
+
+## Rationale
+
+- Column dictionaries remove repeated values without a binary transport or
+  opaque compression library.
+- A table is inspectable in ordinary JSON and can be losslessly reference
+  decoded in TypeScript.
+- Retaining the existing gate means compactness is measured per actual
+  Astrograph envelope, not inferred from external claims or byte heuristics.
+
+## Consequences
+
+- Compact clients must switch from `agc1` to `agc2`; clients requiring
+  ordinary objects continue to request `json`.
+- Each new tool mapping needs fixture, round-trip, malformed-input, and exact
+  token evidence before it becomes eligible for `auto`.
+- The first implementation includes `find_files`, `search_text`, and migration
+  of the former three `agc1` mappings.
+
+## Verification
+
+- [Compact Output v2 API](../api-design/compact-output-v2.md) defines the
+  public mapping and compatibility rules.
+- The active [delivery plan](../implementation/active/3_compact-output-v2.md)
+  records fixture, contract, benchmark, and package verification.

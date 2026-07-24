@@ -43,10 +43,11 @@ router, hidden tool selection, or compatibility alias layer.
 - MCP v1 exposes no cache behavior: no cache tools, cache-hit metadata, cache
   invalidation calls, or cache-backed response semantics. Any future cache
   design requires a separate post-v1 plan.
-- `search_symbols`, `get_file_tree`, and `get_file_outline` accept an optional
+- `search_symbols`, `get_file_tree`, `get_file_outline`, `find_files`, and
+  `search_text` accept an optional
   `format: "json" | "compact" | "auto"`. Omitted and `"json"` preserve the
   ordinary strict v1 envelope. `"compact"` opts into the documented lossless
-  `agc1` JSON array. `"auto"` selects it only when it saves at least 20
+  `agc2` JSON array. `"auto"` selects it only when it saves at least 20
   `cl100k_base` tokens and 25% of the ordinary serialized JSON response;
   otherwise it returns JSON. All other tools remain JSON-only.
 - `index_folder` and `index_file` return additive aggregate lifecycle counts:
@@ -109,22 +110,26 @@ router, hidden tool selection, or compatibility alias layer.
 }
 ```
 
-## Compact MCP Results (`agc1`)
+## Compact MCP Results (`agc2`)
 
-Only successful `search_symbols`, `get_file_tree`, and `get_file_outline`
-calls may return compact output, and only when their `format` requests it. The
-compact value is still UTF-8 JSON, not a binary transport:
+Only successful `search_symbols`, `get_file_tree`, `get_file_outline`,
+`find_files`, and `search_text` calls may return compact output, and only when
+their `format` requests it. The compact value is still UTF-8 JSON, not a binary
+transport:
 
 ```ts
-["agc1", toolName, payload, ["1", tokenBudgetUsed, dataFreshness]]
+["agc2", toolName, payload, ["1", tokenBudgetUsed, dataFreshness]]
 ```
 
-`toolName` is one of the three selected tool names. `payload` uses the
-following lossless positional mappings:
+`toolName` is one of the five selected tool names. `payload` uses lossless
+per-tool mappings:
 
 - `search_symbols`: `[SymbolSummaryRow[], truncated, refinementHints, tokenSavings]`
 - `get_file_tree`: `Array<[path, language, symbolCount]>`
 - `get_file_outline`: `[filePath, SymbolSummaryRow[]]`
+- `find_files` and `search_text`: `[columns, dictionaries, rows]`, where
+  `columns` establishes object-field order, dictionaries are optional
+  zero-based string tables for repeated columns, and rows retain scalar values.
 
 `SymbolSummaryRow` uses this exact order:
 
@@ -136,12 +141,15 @@ following lossless positional mappings:
 ```
 
 Use the exported `decodeCompactMcpEnvelope` reference decoder to restore the
-ordinary success envelope. It rejects unknown versions, tool names, and invalid
-rows. `format: "compact"` never changes errors: invalid requests, execution
-errors, and compact encoding failures return the ordinary strict v1 JSON error
-envelope. `get_task_context` does not implement compact output; its
+ordinary success envelope. It rejects unknown versions (including `agc1`), tool
+names, and invalid rows. `format: "compact"` never changes errors: invalid
+requests, execution errors, and compact encoding failures return the ordinary
+strict v1 JSON error envelope. `get_task_context` does not implement compact output; its
 `payloadTokenBudget` and `meta.tokenBudgetUsed` continue to account for the
 ordinary `data` payload, regardless of a caller's unrelated format preference.
+
+The complete [`agc2` compact contract](./compact-output-v2.md) defines the
+format boundary and migration rules.
 
 ## Explicit Retrieval Tools
 

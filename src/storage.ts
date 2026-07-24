@@ -22,6 +22,7 @@ import {
 
 import {
   createDefaultEngineConfig,
+  ENGINE_CACHE_VERSION,
   ENGINE_SCHEMA_VERSION,
   ENGINE_STORAGE_VERSION,
   loadRepoEngineConfig,
@@ -625,25 +626,38 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
 async function ensureStorageVersion(
   config: ReturnType<typeof createDefaultEngineConfig>,
 ) {
-  const currentVersion = await readStorageVersion(config.paths.storageVersionPath);
+  const marker = await readStorageVersion(config.paths.storageVersionPath);
 
-  if (currentVersion === ENGINE_STORAGE_VERSION) {
+  if (marker.state === "current") {
     return;
   }
 
-  if (currentVersion === null) {
+  if (marker.state === "missing") {
     if (!await storageDirHasContents(config.paths.storageDir)) {
       await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
       return;
     }
-    await discardObsoleteStorage(config, "missing-or-malformed");
+  }
+
+  if (marker.state === "legacy") {
+    await discardObsoleteStorage(config, "1");
     return;
   }
 
-  await discardObsoleteStorage(config, String(currentVersion));
+  throw new Error(
+    `Astrograph cache marker is ${marker.state}; preserving ${config.paths.storageDir}. ` +
+    `Run \`astrograph cache remove --repo ${JSON.stringify(config.repoRoot)} --yes\` to archive and rebuild it.`,
+  );
 }
 
-async function readStorageVersion(storageVersionPath: string): Promise<number | null> {
+type StorageMarker =
+  | { state: "current" }
+  | { state: "legacy" }
+  | { state: "missing" }
+  | { state: "malformed" }
+  | { state: "unknown" };
+
+async function readStorageVersion(storageVersionPath: string): Promise<StorageMarker> {
   const contents = await readFile(storageVersionPath, "utf8").catch((error: unknown) => {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
       return null;
@@ -652,16 +666,22 @@ async function readStorageVersion(storageVersionPath: string): Promise<number | 
   });
 
   if (contents === null) {
-    return null;
+    return { state: "missing" };
   }
 
   try {
-    const parsed = JSON.parse(contents) as { version?: unknown };
-    return typeof parsed.version === "number" && Number.isInteger(parsed.version)
-      ? parsed.version
-      : null;
+    const parsed = JSON.parse(contents) as {
+      version?: unknown;
+      storageVersion?: unknown;
+      cacheVersion?: unknown;
+    };
+    if (parsed.version === 1) return { state: "legacy" };
+    if (parsed.storageVersion === ENGINE_STORAGE_VERSION && parsed.cacheVersion === ENGINE_CACHE_VERSION) {
+      return { state: "current" };
+    }
+    return { state: "unknown" };
   } catch {
-    return null;
+    return { state: "malformed" };
   }
 }
 
@@ -673,7 +693,8 @@ async function writeStorageVersion(
     storageVersionPath,
     `${JSON.stringify(
       {
-        version,
+        storageVersion: version,
+        cacheVersion: ENGINE_CACHE_VERSION,
         updatedAt: new Date().toISOString(),
       },
       null,

@@ -3,7 +3,7 @@ import { performance } from "node:perf_hooks";
 import type { McpEnvelope, McpResponseEnvelope } from "./mcp-contract.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 
-export const COMPACT_MCP_VERSION = "agc1";
+export const COMPACT_MCP_VERSION = "agc2";
 export const COMPACT_MCP_AUTO_MIN_SAVED_TOKENS = 20;
 export const COMPACT_MCP_AUTO_MIN_SAVED_PERCENT = 25;
 
@@ -25,10 +25,18 @@ const SYMBOL_FIELDS = [
 
 export type McpOutputFormat = "json" | "compact" | "auto";
 export type CompactMcpToolName = "search_symbols" | "get_file_tree" | "get_file_outline";
+export type CompactTableMcpToolName = "find_files" | "search_text";
 export type CompactMcpEnvelope = readonly [
   typeof COMPACT_MCP_VERSION,
   CompactMcpToolName,
   unknown,
+  readonly ["1", number | null, "fresh" | "stale" | "unknown"],
+];
+
+export type CompactTableMcpEnvelope = readonly [
+  typeof COMPACT_MCP_VERSION,
+  CompactTableMcpToolName,
+  readonly [readonly string[], readonly unknown[][], readonly unknown[][]],
   readonly ["1", number | null, "fresh" | "stale" | "unknown"],
 ];
 
@@ -52,6 +60,10 @@ export interface FormattedMcpEnvelope {
 
 function isCompactToolName(value: string): value is CompactMcpToolName {
   return value === "search_symbols" || value === "get_file_tree" || value === "get_file_outline";
+}
+
+function isCompactTableToolName(value: string): value is CompactTableMcpToolName {
+  return value === "find_files" || value === "search_text";
 }
 
 function compactSymbol(symbol: Record<string, unknown>): unknown[] {
@@ -118,13 +130,66 @@ function compactSuccessEnvelope(
   ];
 }
 
-/** Restores an `agc1` successful result to the ordinary strict v1 envelope. */
+function dictionaryColumn(rows: Array<Record<string, unknown>>, field: string): [unknown[], number[]] {
+  const dictionary: unknown[] = [];
+  const indexes = new Map<unknown, number>();
+  const encoded = rows.map((row) => {
+    const value = row[field] ?? null;
+    const existing = indexes.get(value);
+    if (existing !== undefined) return existing;
+    const index = dictionary.length;
+    dictionary.push(value);
+    indexes.set(value, index);
+    return index;
+  });
+  return [dictionary, encoded];
+}
+
+function compactTableSuccessEnvelope(
+  toolName: CompactTableMcpToolName,
+  envelope: McpResponseEnvelope<unknown>,
+): CompactTableMcpEnvelope | null {
+  if (!Array.isArray(envelope.data)) return null;
+  const rows = envelope.data as Array<Record<string, unknown>>;
+  const meta = [
+    envelope.meta.toolVersion,
+    envelope.meta.tokenBudgetUsed,
+    envelope.meta.dataFreshness,
+  ] as const;
+  const columns = toolName === "find_files"
+    ? ["filePath", "fileName", "language", "supportTier", "indexed", "matchReason"]
+    : ["filePath", "line", "preview"];
+  const dictionaryFields = toolName === "find_files"
+    ? ["language", "supportTier", "indexed", "matchReason"]
+    : ["filePath"];
+  const dictionaries: unknown[][] = [];
+  const dictionaryValues = new Map<string, number[]>();
+  for (const field of dictionaryFields) {
+    const [dictionary, values] = dictionaryColumn(rows, field);
+    dictionaries.push(dictionary);
+    dictionaryValues.set(field, values);
+  }
+  return [
+    COMPACT_MCP_VERSION,
+    toolName,
+    [
+      columns,
+      dictionaries,
+      rows.map((row, rowIndex) => columns.map((field) =>
+        dictionaryValues.get(field)?.[rowIndex] ?? row[field] ?? null,
+      )),
+    ],
+    meta,
+  ];
+}
+
+/** Restores an `agc2` successful result to the ordinary strict v1 envelope. */
 export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<unknown> {
-  if (!Array.isArray(value) || value.length !== 4 || value[0] !== COMPACT_MCP_VERSION) {
+  if (!Array.isArray(value) || value.length !== 4) {
     throw new Error("Invalid compact MCP envelope version");
   }
   const [, toolName, payload, meta] = value;
-  if (!isCompactToolName(String(toolName)) || !Array.isArray(meta) || meta.length !== 3) {
+  if ((!isCompactToolName(String(toolName)) && !isCompactTableToolName(String(toolName))) || !Array.isArray(meta) || meta.length !== 3) {
     throw new Error("Invalid compact MCP envelope header");
   }
   const [toolVersion, tokenBudgetUsed, dataFreshness] = meta;
@@ -137,7 +202,44 @@ export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<un
   }
 
   let data: unknown;
-  if (toolName === "search_symbols") {
+  if (value[0] !== COMPACT_MCP_VERSION) {
+    throw new Error("Invalid compact MCP envelope version");
+  }
+
+  if (isCompactTableToolName(String(toolName))) {
+    if (!Array.isArray(payload) || payload.length !== 3) {
+      throw new Error("Invalid compact table payload");
+    }
+    const [columns, dictionaries, rows] = payload;
+    if (!Array.isArray(columns) || !Array.isArray(dictionaries) || !Array.isArray(rows)) {
+      throw new Error("Invalid compact table payload");
+    }
+    const dictionaryFields = toolName === "find_files"
+      ? new Set(["language", "supportTier", "indexed", "matchReason"])
+      : new Set(["filePath"]);
+    let dictionaryIndex = 0;
+    const dictionaryByField = new Map<string, unknown[]>();
+    for (const column of columns) {
+      if (!dictionaryFields.has(String(column))) continue;
+      const dictionary = dictionaries[dictionaryIndex];
+      if (!Array.isArray(dictionary)) throw new Error("Invalid compact table dictionary");
+      dictionaryByField.set(String(column), dictionary);
+      dictionaryIndex += 1;
+    }
+    if (dictionaryIndex !== dictionaries.length) throw new Error("Invalid compact table dictionary");
+    data = rows.map((row) => {
+      if (!Array.isArray(row) || row.length !== columns.length) throw new Error("Invalid compact table row");
+      return Object.fromEntries(columns.map((column, index) => {
+        const dictionary = dictionaryByField.get(String(column));
+        const cell = row[index];
+        if (!dictionary) return [column, cell];
+        if (!Number.isInteger(cell) || cell < 0 || cell >= dictionary.length) {
+          throw new Error("Invalid compact table dictionary index");
+        }
+        return [column, dictionary[cell]];
+      }));
+    });
+  } else if (toolName === "search_symbols") {
     if (!Array.isArray(payload) || payload.length !== 4 || !Array.isArray(payload[0])) {
       throw new Error("Invalid compact search_symbols payload");
     }
@@ -205,12 +307,14 @@ export function formatMcpEnvelope(
   const format = requestedFormat ?? "json";
   const startedAt = performance.now();
   const json = serializeJson(envelope);
-  if (format === "json" || !envelope.ok || !isCompactToolName(toolName)) {
+  if (format === "json" || !envelope.ok || (!isCompactToolName(toolName) && !isCompactTableToolName(toolName))) {
     return metricsForJson(json, format, performance.now() - startedAt);
   }
 
   try {
-    const compact = compactSuccessEnvelope(toolName, envelope);
+    const compact = isCompactToolName(toolName)
+      ? compactSuccessEnvelope(toolName, envelope)
+      : compactTableSuccessEnvelope(toolName, envelope);
     if (!compact) return metricsForJson(json, format, performance.now() - startedAt);
     const compactSerialized = JSON.stringify(compact);
     const jsonTokens = countTokens(json);

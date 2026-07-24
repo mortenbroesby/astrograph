@@ -643,7 +643,7 @@ module.exports = {
     expect(health.databasePath).toBe(
       path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
     );
-    expect(health.storageVersion).toBe(1);
+    expect(health.storageVersion).toBe(2);
     expect(health.schemaVersion).toBe(7);
 
     const db = new Database(health.databasePath, { readonly: true });
@@ -915,7 +915,7 @@ module.exports = {
     await fs.mkdir(paths.storageDir, { recursive: true });
     await fs.writeFile(
       paths.storageVersionPath,
-      JSON.stringify({ version: 0, updatedAt: "2026-07-18T00:00:00.000Z" }),
+      JSON.stringify({ version: 1, updatedAt: "2026-07-18T00:00:00.000Z" }),
     );
     const stalePath = path.join(paths.storageDir, "stale-artifact.json");
     const staleWalPath = `${paths.databasePath}-wal`;
@@ -934,13 +934,13 @@ module.exports = {
     await expect(fs.readFile(staleWalPath, "utf8")).resolves.not.toBe("stale wal");
     await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
-      .resolves.toContain('"version": 1');
+      .resolves.toContain('"storageVersion": 2');
   });
 
-  it("discards missing and malformed storage markers before opening cache contents", async () => {
+  it("preserves ambiguous storage markers before opening cache contents", async () => {
     const fs = await import("node:fs/promises");
 
-    for (const marker of [null, "not-json"]) {
+    for (const marker of [null, "not-json", JSON.stringify({ storageVersion: 2 }), JSON.stringify({ storageVersion: 3, cacheVersion: 3 })]) {
       const repoRoot = await createFixtureRepo({
         directoryPrefix: "astrograph obsolete marker-",
       });
@@ -953,10 +953,8 @@ module.exports = {
       const obsoletePath = path.join(paths.storageDir, "obsolete-payload");
       await fs.writeFile(obsoletePath, "do not read");
 
-      await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
-      await expect(fs.access(obsoletePath)).rejects.toMatchObject({ code: "ENOENT" });
-      await expect(fs.readFile(paths.storageVersionPath, "utf8"))
-        .resolves.toContain('"version": 1');
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/cache marker is (missing|malformed|unknown); preserving/i);
+      await expect(fs.readFile(obsoletePath, "utf8")).resolves.toBe("do not read");
     }
   });
 
@@ -976,14 +974,14 @@ module.exports = {
       );
       const paths = resolveEnginePaths(await realpath(repoRoot), { storageLocation: "global" });
       await fs.mkdir(paths.storageDir, { recursive: true });
-      await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+      await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 1 }));
       const obsoletePath = path.join(paths.storageDir, "obsolete.json");
       await fs.writeFile(obsoletePath, "obsolete");
 
       await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
       await expect(fs.access(obsoletePath)).rejects.toMatchObject({ code: "ENOENT" });
       await expect(fs.readFile(paths.storageVersionPath, "utf8"))
-        .resolves.toContain('"version": 1');
+        .resolves.toContain('"storageVersion": 2');
     } finally {
       clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
@@ -999,7 +997,7 @@ module.exports = {
     const paths = resolveEnginePaths(repoRoot);
     const fs = await import("node:fs/promises");
     await fs.mkdir(paths.storageDir, { recursive: true });
-    await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+    await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 1 }));
     await fs.writeFile(path.join(paths.storageDir, "preserve.txt"), "locked cache");
     const lock = new Database(paths.databasePath);
     lock.exec("BEGIN EXCLUSIVE");
@@ -1030,7 +1028,7 @@ module.exports = {
       const paths = resolveEnginePaths(await realpath(repoRoot), { storageLocation: "global" });
       const outsidePayload = path.join(outside, "outside.txt");
       await fs.writeFile(outsidePayload, "do not remove");
-      await fs.writeFile(path.join(outside, "storage-version.json"), JSON.stringify({ version: 0 }));
+      await fs.writeFile(path.join(outside, "storage-version.json"), JSON.stringify({ version: 1 }));
       await fs.mkdir(path.dirname(paths.storageDir), { recursive: true });
       await fs.symlink(outside, paths.storageDir, "dir");
 
@@ -1133,7 +1131,7 @@ module.exports = {
       paths.repoMetaPath,
       `${JSON.stringify({
         repoRoot,
-        storageVersion: 1,
+        storageVersion: 2,
         indexedAt: new Date().toISOString(),
         indexedFiles: 2,
         indexedSymbols: 5,

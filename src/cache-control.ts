@@ -74,8 +74,10 @@ function archiveRootFor(status: CacheStatus): string {
 
 async function readVersion(storageDir: string): Promise<number | null> {
   try {
-    const parsed = JSON.parse(await readFile(path.join(storageDir, "storage-version.json"), "utf8")) as { version?: unknown };
-    return typeof parsed.version === "number" && Number.isInteger(parsed.version) ? parsed.version : null;
+    const parsed = JSON.parse(await readFile(path.join(storageDir, "storage-version.json"), "utf8")) as { storageVersion?: unknown };
+    return typeof parsed.storageVersion === "number" && Number.isInteger(parsed.storageVersion)
+      ? parsed.storageVersion
+      : null;
   } catch {
     return null;
   }
