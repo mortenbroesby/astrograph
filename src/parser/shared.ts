@@ -276,38 +276,3 @@ export function splitSourceIntoChunks(sourceText: string): SourceChunk[] {
 
   return chunks;
 }
-
-export function buildLineOffsets(sourceText: string): number[] {
-  const offsets = [0];
-  for (let index = 0; index < sourceText.length; index += 1) {
-    if (sourceText[index] === "\n") {
-      offsets.push(index + 1);
-    }
-  }
-  return offsets;
-}
-
-export function lineFromOffset(lineOffsets: number[], offset: number): number {
-  let low = 0;
-  let high = lineOffsets.length - 1;
-
-  while (low <= high) {
-    const middle = Math.floor((low + high) / 2);
-    const current = lineOffsets[middle];
-    const next = lineOffsets[middle + 1] ?? Number.POSITIVE_INFINITY;
-
-    if (offset < current) {
-      high = middle - 1;
-      continue;
-    }
-
-    if (offset >= next) {
-      low = middle + 1;
-      continue;
-    }
-
-    return middle + 1;
-  }
-
-  return lineOffsets.length;
-}

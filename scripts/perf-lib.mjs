@@ -18,7 +18,6 @@ import {
 } from "../src/index.ts";
 import { listSupportedFiles } from "../src/filesystem-scan.ts";
 import { parseSourceFile, supportedLanguageForFile } from "../src/parser.ts";
-import { serializeToolResult } from "../src/serialization.ts";
 
 export const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -318,65 +317,6 @@ export async function collectQueryPerfMetrics(sourceRepoRoot, runs) {
       measuredAt: new Date().toISOString(),
       runs,
       metrics: queryMetrics,
-    };
-  } finally {
-    await cleanupBenchRoot(benchRoot);
-  }
-}
-
-function measureSerializationLoop(iterations, serialize) {
-  const startedAt = performance.now();
-  let bytes = 0;
-
-  for (let index = 0; index < iterations; index += 1) {
-    bytes += serialize().length;
-  }
-
-  return {
-    ms: round(performance.now() - startedAt),
-    bytes,
-  };
-}
-
-export async function collectSerializationPerfMetrics(sourceRepoRoot, runs) {
-  const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
-
-  try {
-    await indexFolder({ repoRoot: targetRoot });
-
-    const samples = {
-      diagnostics: await diagnostics({ repoRoot: targetRoot }),
-      get_repo_outline: await getRepoOutline({ repoRoot: targetRoot }),
-      get_file_tree: await getFileTree({ repoRoot: targetRoot }),
-    };
-
-    const metrics = Object.fromEntries(
-      Object.entries(samples).map(([toolName, value]) => {
-        const nativeCompact = measureSerializationLoop(runs, () => JSON.stringify(value));
-        const optimized = measureSerializationLoop(
-          runs,
-          () => serializeToolResult(toolName, value),
-        );
-
-        return [
-          toolName,
-          {
-            iterations: runs,
-            nativeCompactMs: nativeCompact.ms,
-            optimizedMs: optimized.ms,
-            bytesPerIteration: Math.round(optimized.bytes / runs),
-          },
-        ];
-      }),
-    );
-
-    return {
-      schemaVersion: "1.0",
-      sourceRepoRoot,
-      repoRoot: targetRoot,
-      commit: getGitCommit(sourceRepoRoot),
-      measuredAt: new Date().toISOString(),
-      metrics,
     };
   } finally {
     await cleanupBenchRoot(benchRoot);

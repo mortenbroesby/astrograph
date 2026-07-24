@@ -257,13 +257,6 @@ export function getLanguageSupport(
   return support;
 }
 
-export function getLanguageSupportForFile(
-  filePath: string,
-): LanguageSupportDescriptor | null {
-  const language = supportedLanguageForFile(filePath);
-  return language ? getLanguageSupport(language) : null;
-}
-
 export function getFallbackSupportForFile(
   filePath: string,
 ): FallbackSupportDescriptor | null {
