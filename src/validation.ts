@@ -164,23 +164,6 @@ export function parseCliOptionalNumber(
   return parsed.data;
 }
 
-export function parseMcpOptionalNumber(
-  params: Record<string, unknown>,
-  key: string,
-): number | undefined {
-  const value = params[key];
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const parsed = finiteNumberSchema.safeParse(value);
-  if (!parsed.success) {
-    throw new Error(`Invalid numeric argument: ${key}`);
-  }
-
-  return parsed.data;
-}
-
 export function requirePositiveNumber(value: number, name: string): number {
   const parsed = positiveNumberSchema.safeParse(value);
   if (!parsed.success) {

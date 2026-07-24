@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.8.0-alpha.168",
+  "version": "0.8.0-alpha.169",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -70,7 +70,6 @@
     "bench:perf": "node --experimental-strip-types ./scripts/perf.mjs",
     "bench:perf:index": "node --experimental-strip-types ./scripts/perf-index.mjs",
     "bench:perf:query": "node --experimental-strip-types ./scripts/perf-query.mjs",
-    "bench:perf:serialize": "node --experimental-strip-types ./scripts/perf-serialize.mjs",
     "bench:freshness-lifecycle": "node --experimental-strip-types ./scripts/measure-freshness-lifecycle.mjs",
     "bench:mcp-envelopes": "node --experimental-strip-types ./scripts/measure-mcp-envelopes.mjs",
     "profile:index:clinic": "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./scripts/perf-index.mjs",
@@ -118,7 +117,6 @@
     "better-sqlite3": "^13.0.1",
     "commander": "^14.0.3",
     "execa": "10.0.0",
-    "fast-json-stringify": "^6.3.0",
     "fdir": "^6.5.0",
     "p-map": "^7.0.4",
     "picomatch": "^4.0.4",
