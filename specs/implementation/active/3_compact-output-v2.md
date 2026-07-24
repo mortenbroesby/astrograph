@@ -34,7 +34,7 @@ envelope benchmark.
 
 ## Task 3: Verify and publish evidence
 
-- [ ] Run focused compact and MCP-interface tests, `pnpm type-lint`, `pnpm
+- [x] Run focused compact and MCP-interface tests, `pnpm type-lint`, `pnpm
   build`, `pnpm test:package-bin`, and `git diff --check`.
-- [ ] Run `pnpm check:version-bump` before commit.
-- [ ] Include benchmark output and any rejected mappings in the pull request.
+- [x] Run `pnpm check:version-bump` before commit.
+- [x] Include benchmark output and any rejected mappings in the pull request.
