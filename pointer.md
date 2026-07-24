@@ -8,10 +8,9 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Comforting Install Experience Implementation
-Plan](./specs/implementation/active/2_comforting-global-install-experience.md),
-starting with readable global and repository-local setup feedback while
-preserving explicit, idempotent configuration.
+Execute the active [Compact Output v2 Implementation Plan](./specs/implementation/active/3_compact-output-v2.md),
+starting with measured `find_files` and `search_text` envelopes while
+preserving strict JSON default behavior and the existing `agc1` contract.
 
 ## Completion and update rule
 

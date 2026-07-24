@@ -10,6 +10,7 @@ or changing MCP tools, CLI commands, or TypeScript exports.
 The stdio MCP server is the primary agent integration surface.
 
 - [MCP Tools](./mcp-tools.md)
+- [Compact Output v2](./compact-output-v2.md)
 
 ### 2. CLI Commands
 

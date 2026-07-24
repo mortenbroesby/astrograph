@@ -143,6 +143,10 @@ envelope. `get_task_context` does not implement compact output; its
 `payloadTokenBudget` and `meta.tokenBudgetUsed` continue to account for the
 ordinary `data` payload, regardless of a caller's unrelated format preference.
 
+The planned additive [`agc2` compact table contract](./compact-output-v2.md)
+extends only selected discovery results after fixture evidence proves it meets
+the existing exact-token gate. It does not change this `agc1` mapping.
+
 ## Explicit Retrieval Tools
 
 ### `search_symbols`

@@ -98,6 +98,12 @@ try {
     capture("search-symbols-success", "search_symbols", { repoRoot, query: "area" }, repoRoot),
     capture("search-symbols-empty", "search_symbols", { repoRoot, query: "no-such-symbol" }, repoRoot),
     capture("search-symbols-error", "search_symbols", { repoRoot }, repoRoot),
+    capture("find-files-success", "find_files", { repoRoot, query: "src" }, repoRoot),
+    capture("find-files-empty", "find_files", { repoRoot, query: "no-such-file" }, repoRoot),
+    capture("find-files-error", "find_files", { repoRoot }, repoRoot),
+    capture("search-text-success", "search_text", { repoRoot, query: "export" }, repoRoot),
+    capture("search-text-empty", "search_text", { repoRoot, query: "no-such-text" }, repoRoot),
+    capture("search-text-error", "search_text", { repoRoot }, repoRoot),
     capture("file-tree", "get_file_tree", { repoRoot }, repoRoot),
     capture("file-outline", "get_file_outline", { repoRoot, filePath: "src/math.ts" }, repoRoot),
     capture("task-context", "get_task_context", {

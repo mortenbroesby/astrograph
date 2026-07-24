@@ -17,13 +17,13 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Tree-Sitter Polyglot Language Support](./active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
-   - Goal: expand from JavaScript-family parsing to the bounded set of parsers
-     listed by Tree-sitter's upstream organization.
-   - First action: freeze the package/ABI/extension/licence inventory and the
-     current four-language baseline before adding a grammar dependency.
-   - Architecture: adapters and explicit `structured`/`graph` support tiers;
-     do not claim the open-ended community grammar ecosystem.
+1. [Compact Output v2](./active/3_compact-output-v2.md)
+   - Goal: expand agent-visible compact output with an Astrograph-owned,
+     lossless JSON table format.
+   - First action: capture real `find_files` and `search_text` envelopes and
+     implement only mappings that meet the existing exact-token gate.
+   - Architecture: strict JSON remains default; `agc1` remains supported; no
+     third-party wire compatibility, binary transport, or shared state.
 
 ## Ready — detailed, but not selected
 
