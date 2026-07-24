@@ -10,6 +10,9 @@ multiple skills just because they exist.
 ## Default
 
 - Start without loading a skill when the task is tiny, obvious, and local.
+- For implementation work, the always-on Ponytail rule still applies; load the
+  `ponytail` skill in full mode before changing code, configuration, tests,
+  docs, or workflows.
 - Use `pnpm skills:route "<task>"` when you want a cheap bootstrap classifier
   before reading any full `SKILL.md` bodies.
 - Load one primary skill first when the task has a clear dominant mode.
@@ -50,6 +53,9 @@ multiple skills just because they exist.
 
 ## Specialist Triggers
 
+- Load `ponytail` for every repository change. It supplies the default
+  smallest-reliable-solution posture; pair it with the task's dominant workflow
+  or specialist skill rather than replacing verification or domain guidance.
 - Load `api-and-interface-design` when changing shared contracts, payloads,
   types, module boundaries, or mount interfaces.
 - Load `debugging-and-error-recovery` when reproducing failures or recovering
