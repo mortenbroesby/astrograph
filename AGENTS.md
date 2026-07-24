@@ -18,6 +18,8 @@ referenced `zyncbase/specs` setup:
 - `specs/templates/` for reusable authoring templates
 
 For general agent tasks, use the repo-local commands in `.agents/commands/` and shared guidance in `.agents/references/`.
+For any repository change, follow the always-on Ponytail policy in
+`.agents/rules/ponytail.md`; its full skill body lives in `.skills/ponytail/`.
 
 Before creating or changing specs, use the repo-local skills in `.skills/`:
 

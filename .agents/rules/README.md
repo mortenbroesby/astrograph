@@ -6,6 +6,7 @@ Shared instruction rules for agents working in this repository.
   verification policy.
 - `skill-routing.md`: always-on guidance for when to load which on-demand
   skills.
+- `ponytail.md`: always-on minimal, root-cause-first implementation posture.
 - `frontend.md`: path-scoped frontend implementation and design policy.
 - `agent-infrastructure.md`: path-scoped policy for hooks, rules, skills, and
   agent configuration.
