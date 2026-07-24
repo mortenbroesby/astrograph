@@ -3,8 +3,7 @@ import { performance } from "node:perf_hooks";
 import type { McpEnvelope, McpResponseEnvelope } from "./mcp-contract.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 
-export const COMPACT_MCP_VERSION = "agc1";
-export const COMPACT_TABLE_MCP_VERSION = "agc2";
+export const COMPACT_MCP_VERSION = "agc2";
 export const COMPACT_MCP_AUTO_MIN_SAVED_TOKENS = 20;
 export const COMPACT_MCP_AUTO_MIN_SAVED_PERCENT = 25;
 
@@ -35,7 +34,7 @@ export type CompactMcpEnvelope = readonly [
 ];
 
 export type CompactTableMcpEnvelope = readonly [
-  typeof COMPACT_TABLE_MCP_VERSION,
+  typeof COMPACT_MCP_VERSION,
   CompactTableMcpToolName,
   readonly [readonly string[], readonly unknown[][], readonly unknown[][]],
   readonly ["1", number | null, "fresh" | "stale" | "unknown"],
@@ -171,7 +170,7 @@ function compactTableSuccessEnvelope(
     dictionaryValues.set(field, values);
   }
   return [
-    COMPACT_TABLE_MCP_VERSION,
+    COMPACT_MCP_VERSION,
     toolName,
     [
       columns,
@@ -184,7 +183,7 @@ function compactTableSuccessEnvelope(
   ];
 }
 
-/** Restores an `agc1` successful result to the ordinary strict v1 envelope. */
+/** Restores an `agc2` successful result to the ordinary strict v1 envelope. */
 export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<unknown> {
   if (!Array.isArray(value) || value.length !== 4) {
     throw new Error("Invalid compact MCP envelope version");
@@ -203,8 +202,12 @@ export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<un
   }
 
   let data: unknown;
-  if (value[0] === COMPACT_TABLE_MCP_VERSION) {
-    if (!isCompactTableToolName(String(toolName)) || !Array.isArray(payload) || payload.length !== 3) {
+  if (value[0] !== COMPACT_MCP_VERSION) {
+    throw new Error("Invalid compact MCP envelope version");
+  }
+
+  if (isCompactTableToolName(String(toolName))) {
+    if (!Array.isArray(payload) || payload.length !== 3) {
       throw new Error("Invalid compact table payload");
     }
     const [columns, dictionaries, rows] = payload;
@@ -236,8 +239,6 @@ export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<un
         return [column, dictionary[cell]];
       }));
     });
-  } else if (value[0] !== COMPACT_MCP_VERSION) {
-    throw new Error("Invalid compact MCP envelope version");
   } else if (toolName === "search_symbols") {
     if (!Array.isArray(payload) || payload.length !== 4 || !Array.isArray(payload[0])) {
       throw new Error("Invalid compact search_symbols payload");

@@ -32,7 +32,8 @@ import {
 } from "./types.ts";
 
 export const ENGINE_STORAGE_DIRNAME = ".astrograph";
-export const ENGINE_STORAGE_VERSION = 1;
+export const ENGINE_STORAGE_VERSION = 2;
+export const ENGINE_CACHE_VERSION = 2;
 export const ENGINE_SCHEMA_VERSION = 7;
 export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
 export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";
@@ -251,7 +252,9 @@ export function resolveGlobalCacheRoot(
     const explicitGlobalHome = env.ASTROGRAPH_HOME;
     const globalHome = explicitGlobalHome && path.isAbsolute(explicitGlobalHome)
       ? explicitGlobalHome
-      : path.join(homeDir(), ENGINE_STORAGE_DIRNAME);
+      : env.ASTROGRAPH_CACHE_HOME && path.isAbsolute(env.ASTROGRAPH_CACHE_HOME)
+        ? path.join(env.ASTROGRAPH_CACHE_HOME, ENGINE_DISPLAY_NAME)
+        : path.join(homeDir(), ENGINE_STORAGE_DIRNAME);
     return path.join(globalHome, "cache");
   }
 

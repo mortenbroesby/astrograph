@@ -422,20 +422,6 @@ export async function dispatchTool(
     toolName: name,
     argKeys: Object.keys(args).sort(),
   });
-  if (repoRoot) {
-    emitEngineEvent({
-      repoRoot,
-      source: "mcp",
-      event: "mcp.tool.started",
-      level: "debug",
-      correlationId,
-      data: {
-        toolName: name,
-        argKeys: Object.keys(args).sort(),
-      },
-    });
-  }
-
   const engine = await loadEngineModule();
   try {
     const result = await tool.execute(engine, args);

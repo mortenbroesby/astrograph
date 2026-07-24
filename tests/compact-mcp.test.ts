@@ -62,6 +62,28 @@ describe("compact MCP output", () => {
     }
   });
 
+  it("emits agc2 for every former agc1 tool", () => {
+    const envelopes: Array<["search_symbols" | "get_file_tree" | "get_file_outline", McpEnvelope<unknown>]> = [
+      ["search_symbols", searchEnvelope([unicodeSymbol])],
+      ["get_file_tree", {
+        ok: true,
+        data: [{ path: "src/math.ts", language: "ts", symbolCount: 1 }],
+        meta: { toolVersion: "1", tokenBudgetUsed: 1, dataFreshness: "fresh" },
+      }],
+      ["get_file_outline", {
+        ok: true,
+        data: { filePath: "src/math.ts", symbols: [unicodeSymbol] },
+        meta: { toolVersion: "1", tokenBudgetUsed: 1, dataFreshness: "fresh" },
+      }],
+    ];
+
+    for (const [toolName, envelope] of envelopes) {
+      const formatted = formatMcpEnvelope(toolName, "compact", envelope);
+      expect(JSON.parse(formatted.serialized)[0]).toBe("agc2");
+      expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(envelope);
+    }
+  });
+
   it("uses JSON for errors and unsupported auto requests", () => {
     const error: McpEnvelope<unknown> = {
       ok: false,
@@ -102,9 +124,9 @@ describe("compact MCP output", () => {
   });
 
   it("rejects unknown compact versions and malformed rows", () => {
-    expect(() => decodeCompactMcpEnvelope(["agc2"])).toThrow("version");
+    expect(() => decodeCompactMcpEnvelope(["agc1"])).toThrow("version");
     expect(() => decodeCompactMcpEnvelope([
-      "agc1",
+      "agc2",
       "get_file_tree",
       [["src/a.ts"]],
       ["1", 0, "fresh"],
