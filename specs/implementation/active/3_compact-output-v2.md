@@ -28,12 +28,12 @@ envelope benchmark.
 
 ## Task 2: Implement the breaking v2 boundary
 
-- [ ] Replace `agc1` with one `agc2` encoder/decoder for every selected tool.
-- [ ] Preserve JSON default, strict error JSON, Unicode, empty results, and
+- [x] Replace `agc1` with one `agc2` encoder/decoder for every selected tool.
+- [x] Preserve JSON default, strict error JSON, Unicode, empty results, and
   reference-decoder round trips.
-- [ ] Bump storage/cache markers to v2 and archive/rebuild only caches with a
+- [x] Bump storage/cache markers to v2 and archive/rebuild only caches with a
   valid known v1 marker.
-- [ ] Preserve missing, malformed, and future markers; report explicit
+- [x] Preserve missing, malformed, and future markers; report explicit
   recovery guidance without altering cache contents.
 
 ## Task 3: Verify and publish evidence
