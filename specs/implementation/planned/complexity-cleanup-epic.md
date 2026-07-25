@@ -99,11 +99,14 @@ one glob wrapper.
 - [x] Baseline: `pnpm type-lint` and focused interface/config/watch/path tests.
 - [x] Run each story’s red-green or characterization verification before moving
   to the next story.
-- [ ] Run `pnpm test`, `pnpm build`, `pnpm test:package-bin`,
-  `pnpm check:version-bump`, and `git diff --check`.
-- [ ] Decide the release classification with `pnpm release:plan`.
-- [ ] Review the final diff, commit only epic files, push the epic branch, and
-  open one PR with story-by-story evidence.
+- [x] Run `pnpm test`, `pnpm build`, `pnpm test:package-bin`, and
+  `pnpm check:version-bump`. The scoped staged diff check passed; an unrelated
+  pre-existing `README.md` conflict marker prevents a whole-worktree check.
+- [x] Decide the release classification with `pnpm release:plan`: patch-class
+  runtime work; publication stays guarded for `main`.
+- [x] Review the final diff, commit only epic files, push the epic branch, and
+  open [PR #89](https://github.com/mortenbroesby/astrograph/pull/89) with
+  story-by-story evidence.
 
 ## Rollback
 
