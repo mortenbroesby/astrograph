@@ -485,7 +485,16 @@ nor a compatible payload and imports no reference codec code.
 
 ## Verification
 
-- The active [AGC2 R&D epic](../implementation/active/4_agc2-munch-informed-rnd-epic.md)
+- The closed [AGC2 R&D epic](../implementation/closed/agc2-compact-output-rnd-epic.md)
   defines fixture, codec, fuzzing, and release evidence.
 - `pnpm bench:compact-output-matrix --json` will record normalized JSON, AGC1,
   and AGC2 candidate token/byte/latency comparisons per capture.
+
+## Outcome — 2026-07-26
+
+The complete corpus rejected every AGC2 candidate. Packed rows achieved 3.90%
+weighted saving across all 16 AGC1-comparable captures but had five non-wins;
+the prefix-legend candidate achieved 5.97% across its smaller eligible subset
+and tied on the small fixture. Schema, typed, and generic rows regressed their
+comparable captures. The production contract therefore retains AGC1 and strict
+JSON; AGC2 remains non-serving research code.

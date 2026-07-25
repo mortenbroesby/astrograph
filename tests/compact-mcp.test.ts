@@ -53,7 +53,7 @@ describe("compact MCP output", () => {
     expect(JSON.parse(formatted.serialized)).toEqual(envelope);
   });
 
-  it("losslessly round-trips packed repeated symbol results", () => {
+  it("losslessly round-trips the retained AGC1 compact result", () => {
     const repeated = Array.from({ length: 8 }, (_, index) => ({
       ...unicodeSymbol,
       id: `sym-${index}`,
@@ -73,7 +73,7 @@ describe("compact MCP output", () => {
     }
   });
 
-  it("emits agc2 only when the table is smaller than agc1", () => {
+  it("keeps the packed-row experiment separate from the serving AGC1 codec", () => {
     const envelopes: Array<["search_symbols" | "get_file_tree" | "get_file_outline", McpEnvelope<unknown>]> = [
       ["search_symbols", searchEnvelope([unicodeSymbol])],
       ["get_file_tree", {
@@ -93,12 +93,12 @@ describe("compact MCP output", () => {
       expect(comparison?.agc2Wins).toBe(true);
       expect(comparison?.agc2Tokens).toBeLessThan(comparison!.agc1Tokens!);
       const formatted = formatMcpEnvelope(toolName, "compact", envelope);
-      expect(JSON.parse(formatted.serialized)[0]).toBe("agc2");
+      expect(JSON.parse(formatted.serialized)[0]).toBe("agc1");
       expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(envelope);
     }
   });
 
-  it("keeps JSON when agc2 cannot beat agc1", () => {
+  it("uses the retained AGC1 codec for an empty explicit compact request", () => {
     const formatted = formatMcpEnvelope("search_symbols", "compact", searchEnvelope([]));
 
     expect(measureCompactMcpCandidate("search_symbols", searchEnvelope([]))).toMatchObject({
@@ -106,7 +106,8 @@ describe("compact MCP output", () => {
       agc2Tokens: 58,
       agc1Tokens: 58,
     });
-    expect(formatted.metrics.selectedFormat).toBe("json");
+    expect(formatted.metrics.selectedFormat).toBe("compact");
+    expect(JSON.parse(formatted.serialized)[0]).toBe("agc1");
   });
 
   it("uses JSON for errors and unsupported auto requests", () => {
@@ -148,17 +149,17 @@ describe("compact MCP output", () => {
     expect(JSON.parse(formatted.serialized)).toEqual(context);
   });
 
-  it("rejects unknown compact versions and malformed rows", () => {
-    expect(() => decodeCompactMcpEnvelope(["agc1"])).toThrow("version");
+  it("rejects AGC2 and malformed AGC1 rows from the serving decoder", () => {
+    expect(() => decodeCompactMcpEnvelope(["agc2"])).toThrow("version");
     expect(() => decodeCompactMcpEnvelope([
-      "agc2",
+      "agc1",
       "get_file_tree",
       [["src/a.ts"]],
       ["1", 0, "fresh"],
-    ])).toThrow("payload");
+    ])).toThrow("row");
   });
 
-  it("losslessly compacts discovery tables with dictionary-backed columns", () => {
+  it("keeps discovery tables on strict JSON until a successor passes the corpus gate", () => {
     const envelope: McpEnvelope<unknown> = {
       ok: true,
       data: [
@@ -183,17 +184,16 @@ describe("compact MCP output", () => {
     };
     const formatted = formatMcpEnvelope("find_files", "compact", envelope);
 
-    expect(formatted.metrics.selectedFormat).toBe("compact");
-    expect(JSON.parse(formatted.serialized)[0]).toBe("agc2");
-    expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(envelope);
+    expect(formatted.metrics.selectedFormat).toBe("json");
+    expect(JSON.parse(formatted.serialized)).toEqual(envelope);
   });
 
-  it("rejects malformed compact table dictionary indexes", () => {
+  it("rejects non-AGC1 compact table payloads", () => {
     expect(() => decodeCompactMcpEnvelope([
-      "agc2",
+      "agc1",
       "search_text",
       [[["src/math.ts"]], [[2, 1, "export const PI = 3.14;"]]],
       ["1", 10, "fresh"],
-    ])).toThrow("dictionary index");
+    ])).toThrow();
   });
 });

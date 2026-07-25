@@ -1,7 +1,7 @@
 # AGC2 Encoding and Benchmark Redesign
 
 **Status:** Superseded by the selected [AGC2 Compact Output Research and
-Development Epic](../active/4_agc2-munch-informed-rnd-epic.md).
+Development Epic](../closed/agc2-compact-output-rnd-epic.md).
 
 **Goal:** Replace the current per-tool compact-output experiments only if an
 Astrograph-owned AGC2 format demonstrates material, reproducible exact-token

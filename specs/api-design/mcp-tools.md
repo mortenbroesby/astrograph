@@ -110,26 +110,23 @@ router, hidden tool selection, or compatibility alias layer.
 }
 ```
 
-## Compact MCP Results (`agc2`)
+## Compact MCP Results (`agc1`)
 
-Only successful `search_symbols`, `get_file_tree`, `get_file_outline`,
-`find_files`, and `search_text` calls may return compact output, and only when
+Only successful `search_symbols`, `get_file_tree`, and `get_file_outline`
+calls may return compact output, and only when
 their `format` requests it. The compact value is still UTF-8 JSON, not a binary
 transport:
 
 ```ts
-["agc2", toolName, payload, ["1", tokenBudgetUsed, dataFreshness]]
+["agc1", toolName, payload, ["1", tokenBudgetUsed, dataFreshness]]
 ```
 
-`toolName` is one of the five selected tool names. `payload` uses lossless
+`toolName` is one of the three selected tool names. `payload` uses lossless
 per-tool mappings:
 
 - `search_symbols`: `[SymbolSummaryRow[], truncated, refinementHints, tokenSavings]`
 - `get_file_tree`: `Array<[path, language, symbolCount]>`
 - `get_file_outline`: `[filePath, SymbolSummaryRow[]]`
-- `find_files` and `search_text`: `[columns, dictionaries, rows]`, where
-  `columns` establishes object-field order, dictionaries are optional
-  zero-based string tables for repeated columns, and rows retain scalar values.
 
 `SymbolSummaryRow` uses this exact order:
 
@@ -141,15 +138,15 @@ per-tool mappings:
 ```
 
 Use the exported `decodeCompactMcpEnvelope` reference decoder to restore the
-ordinary success envelope. It rejects unknown versions (including `agc1`), tool
+ordinary success envelope. It rejects unknown versions (including `agc2`), tool
 names, and invalid rows. `format: "compact"` never changes errors: invalid
 requests, execution errors, and compact encoding failures return the ordinary
 strict v1 JSON error envelope. `get_task_context` does not implement compact output; its
 `payloadTokenBudget` and `meta.tokenBudgetUsed` continue to account for the
 ordinary `data` payload, regardless of a caller's unrelated format preference.
 
-The complete [`agc2` compact contract](./compact-output-v2.md) defines the
-format boundary and migration rules.
+The [AGC2 research result](./compact-output-v2.md) records why the production
+contract remains AGC1.
 
 ## Explicit Retrieval Tools
 

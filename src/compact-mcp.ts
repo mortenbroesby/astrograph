@@ -4,7 +4,7 @@ import type { McpEnvelope, McpResponseEnvelope } from "./mcp-contract.ts";
 import { encodeFrozenAgc1Reference } from "./compact-mcp-candidates.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 
-export const COMPACT_MCP_VERSION = "agc2";
+export const COMPACT_MCP_VERSION = "agc1";
 export const COMPACT_MCP_AUTO_MIN_SAVED_TOKENS = 20;
 export const COMPACT_MCP_AUTO_MIN_SAVED_PERCENT = 25;
 
@@ -25,10 +25,17 @@ const SYMBOL_FIELDS = [
 ] as const;
 
 export type McpOutputFormat = "json" | "compact" | "auto";
-export type CompactMcpToolName = "search_symbols" | "get_file_tree" | "get_file_outline" | "find_files" | "search_text";
+export type CompactMcpToolName = "search_symbols" | "get_file_tree" | "get_file_outline";
+type PackedRowsToolName = CompactMcpToolName | "find_files" | "search_text";
 export type CompactMcpEnvelope = readonly [
   typeof COMPACT_MCP_VERSION,
   CompactMcpToolName,
+  unknown,
+  readonly ["1", number | null, "fresh" | "stale" | "unknown"],
+];
+type PackedRowsAgc2Envelope = readonly [
+  "agc2",
+  PackedRowsToolName,
   unknown,
   readonly ["1", number | null, "fresh" | "stale" | "unknown"],
 ];
@@ -52,8 +59,11 @@ export interface FormattedMcpEnvelope {
 }
 
 function isCompactToolName(value: string): value is CompactMcpToolName {
-  return value === "search_symbols" || value === "get_file_tree" || value === "get_file_outline"
-    || value === "find_files" || value === "search_text";
+  return value === "search_symbols" || value === "get_file_tree" || value === "get_file_outline";
+}
+
+function isPackedRowsToolName(value: string): value is PackedRowsToolName {
+  return isCompactToolName(value) || value === "find_files" || value === "search_text";
 }
 
 function compactSymbol(symbol: Record<string, unknown>): unknown[] {
@@ -88,9 +98,9 @@ function compactRows(
 }
 
 export function encodePackedRowsAgc2(
-  toolName: CompactMcpToolName,
+  toolName: PackedRowsToolName,
   envelope: McpResponseEnvelope<unknown>,
-): CompactMcpEnvelope | null {
+): PackedRowsAgc2Envelope | null {
   const meta = [
     envelope.meta.toolVersion,
     envelope.meta.tokenBudgetUsed,
@@ -105,7 +115,7 @@ export function encodePackedRowsAgc2(
     const result = data as Record<string, unknown>;
     if (!Array.isArray(result.items)) return null;
     return [
-      COMPACT_MCP_VERSION,
+      "agc2",
       toolName,
       [
         result.items.flatMap((item) => compactSymbol(item as Record<string, unknown>)),
@@ -120,7 +130,7 @@ export function encodePackedRowsAgc2(
   if (toolName === "get_file_tree") {
     if (!Array.isArray(data)) return null;
     return [
-      COMPACT_MCP_VERSION,
+      "agc2",
       toolName,
       data.flatMap((item) => {
         const entry = item as Record<string, unknown>;
@@ -133,7 +143,7 @@ export function encodePackedRowsAgc2(
   if (toolName === "get_file_outline") {
     const result = data as Record<string, unknown>;
     if (!Array.isArray(result.symbols)) return null;
-    return [COMPACT_MCP_VERSION, toolName, [result.filePath, ...result.symbols.flatMap((item) => compactSymbol(item as Record<string, unknown>))], meta];
+    return ["agc2", toolName, [result.filePath, ...result.symbols.flatMap((item) => compactSymbol(item as Record<string, unknown>))], meta];
   }
 
   if (!Array.isArray(data)) return null;
@@ -144,7 +154,7 @@ export function encodePackedRowsAgc2(
     ? ["language", "supportTier", "indexed", "matchReason"]
     : ["filePath"];
   const [dictionaries, rows] = compactRows(data as Array<Record<string, unknown>>, columns, dictionaryFields);
-  return [COMPACT_MCP_VERSION, toolName, [dictionaries, rows], meta];
+  return ["agc2", toolName, [dictionaries, rows], meta];
 }
 
 /** Benchmark-only evidence for deciding whether an AGC2 candidate can replace AGC1. */
@@ -152,7 +162,7 @@ export function measureCompactMcpCandidate(
   toolName: string,
   envelope: McpEnvelope<unknown>,
 ): { agc2Tokens: number; agc1Tokens: number | null; agc2Wins: boolean } | null {
-  if (!envelope.ok || !isCompactToolName(toolName)) return null;
+  if (!envelope.ok || !isPackedRowsToolName(toolName)) return null;
   const candidate = encodePackedRowsAgc2(toolName, envelope);
   if (!candidate) return null;
   const agc2Tokens = countTokens(JSON.stringify(candidate));
@@ -176,9 +186,9 @@ function dictionaryColumn(rows: Array<Record<string, unknown>>, field: string): 
   return [dictionary, encoded];
 }
 
-/** Restores an `agc2` successful result to the ordinary strict v1 envelope. */
+/** Restores the selected `agc1` compact contract to the ordinary v1 envelope. */
 export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<unknown> {
-  if (!Array.isArray(value) || value.length !== 4) {
+  if (!Array.isArray(value) || value.length !== 4 || value[0] !== COMPACT_MCP_VERSION) {
     throw new Error("Invalid compact MCP envelope version");
   }
   const [, toolName, payload, meta] = value;
@@ -193,9 +203,43 @@ export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<un
   ) {
     throw new Error("Invalid compact MCP envelope metadata");
   }
+  let data: unknown;
+  if (toolName === "search_symbols") {
+    if (!Array.isArray(payload) || payload.length !== 4 || !Array.isArray(payload[0])) throw new Error("Invalid compact search_symbols payload");
+    data = { items: payload[0].map(expandSymbol), truncated: payload[1], refinementHints: payload[2], tokenSavings: payload[3] };
+  } else if (toolName === "get_file_tree") {
+    if (!Array.isArray(payload)) throw new Error("Invalid compact get_file_tree payload");
+    data = payload.map((row) => {
+      if (!Array.isArray(row) || row.length !== 3) throw new Error("Invalid compact get_file_tree row");
+      return { path: row[0], language: row[1], symbolCount: row[2] };
+    });
+  } else {
+    if (!Array.isArray(payload) || payload.length !== 2 || !Array.isArray(payload[1])) throw new Error("Invalid compact get_file_outline payload");
+    data = { filePath: payload[0], symbols: payload[1].map(expandSymbol) };
+  }
+  return { ok: true, data, meta: { toolVersion, tokenBudgetUsed, dataFreshness } };
+}
+
+/** Decoder retained only for the non-serving AGC2 packed-row experiment. */
+export function decodePackedRowsAgc2(value: unknown): McpResponseEnvelope<unknown> {
+  if (!Array.isArray(value) || value.length !== 4) {
+    throw new Error("Invalid compact MCP envelope version");
+  }
+  const [, toolName, payload, meta] = value;
+  if (!isPackedRowsToolName(String(toolName)) || !Array.isArray(meta) || meta.length !== 3) {
+    throw new Error("Invalid compact MCP envelope header");
+  }
+  const [toolVersion, tokenBudgetUsed, dataFreshness] = meta;
+  if (
+    toolVersion !== "1"
+    || (tokenBudgetUsed !== null && (typeof tokenBudgetUsed !== "number" || !Number.isFinite(tokenBudgetUsed)))
+    || (dataFreshness !== "fresh" && dataFreshness !== "stale" && dataFreshness !== "unknown")
+  ) {
+    throw new Error("Invalid compact MCP envelope metadata");
+  }
 
   let data: unknown;
-  if (value[0] !== COMPACT_MCP_VERSION) {
+  if (value[0] !== "agc2") {
     throw new Error("Invalid compact MCP envelope version");
   }
 
@@ -295,13 +339,9 @@ export function formatMcpEnvelope(
   }
 
   try {
-    const compact = encodePackedRowsAgc2(toolName as CompactMcpToolName, envelope);
+    const compact = encodeFrozenAgc1Reference(toolName as CompactMcpToolName, envelope);
     if (!compact) return metricsForJson(json, format, performance.now() - startedAt);
     const compactSerialized = JSON.stringify(compact);
-    const legacy = encodeFrozenAgc1Reference(toolName as CompactMcpToolName, envelope);
-    if (legacy && countTokens(compactSerialized) >= countTokens(JSON.stringify(legacy))) {
-      return metricsForJson(json, format, performance.now() - startedAt);
-    }
     const jsonTokens = countTokens(json);
     const compactTokens = countTokens(compactSerialized);
     const savedTokens = jsonTokens - compactTokens;

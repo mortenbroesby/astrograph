@@ -17,13 +17,8 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [AGC2 Compact Output Research and Development Epic](./active/4_agc2-munch-informed-rnd-epic.md)
-   - Goal: establish a representative corpus and prove, rather than assume,
-     whether an Astrograph-owned AGC2 codec should replace AGC1.
-   - First action: build deterministic frontend, polyglot monorepo, text-heavy,
-     and dead-code fixture repositories.
-   - Architecture: strict JSON and AGC1 are release-safe fallbacks; MUNCH is
-     research input only, with no wire compatibility or imported codec code.
+No work is currently selected. Select a detailed ready item before starting
+implementation.
 
 ## Ready — detailed, but not selected
 
@@ -85,6 +80,10 @@ the [global-cache handoff](./planned/6_global-install-and-cache-deferred-stories
 and the [MCP contract](../api-design/mcp-tools.md).
 
 ## Done — evidence, not queue
+
+- [AGC2 Compact Output R&D Epic](./closed/agc2-compact-output-rnd-epic.md)
+  closed without an AGC2 release: the four-fixture corpus rejected all five
+  candidates. AGC1 remains the compact contract and JSON remains default.
 
 - [Closed records](./closed/README.md) contain the completed global install and
   cache, global Codex/Copilot setup, cache cleanup, branch-aware indexing,

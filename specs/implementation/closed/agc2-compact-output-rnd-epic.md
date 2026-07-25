@@ -11,6 +11,10 @@ and a bounded generic fallback. Strict MCP v1 JSON remains the exact default;
 MUNCH is design research only, never a compatibility target or copied
 implementation.
 
+**Outcome:** Complete — all five AGC2 candidates failed the corpus gate. The
+serving contract retains AGC1 for its three proven tools and strict JSON
+elsewhere; no release, storage/cache bump, or compatibility expansion occurred.
+
 **Tech Stack:** TypeScript, Node 22+, `tiktoken`, Vitest, the real Astrograph
 MCP dispatcher, deterministic generated repositories, and JSON benchmark
 artifacts.
@@ -27,7 +31,7 @@ explicit Astrograph hypotheses, constraints, and falsifiable experiments.
 **Files:**
 - Modify: `specs/architecture/adrs.md`
 - Modify: `specs/implementation/planned/8_agc2-encoding-and-benchmark-redesign.md`
-- Create: `specs/implementation/active/4_agc2-munch-informed-rnd-epic.md`
+- Create: `specs/implementation/closed/agc2-compact-output-rnd-epic.md`
 
 - [x] Inspect the MUNCH specification and reference implementation without
   importing code or claiming compatibility.
@@ -131,16 +135,16 @@ compact output stays JSON-only for particular tools.
 - Modify: `specs/api-design/compact-output-v2.md`
 - Modify: `specs/api-design/mcp-tools.md`
 
-- [ ] Require at least **15% weighted exact `cl100k_base` savings versus
+- [x] Require at least **15% weighted exact `cl100k_base` savings versus
   AGC1** across successful migrated-tool captures in the complete corpus.
-- [ ] Require no representative capture to be worse than AGC1; ties or losses
+- [x] Require no representative capture to be worse than AGC1; ties or losses
   select JSON in `auto`, and `compact` must clearly document its behavior.
-- [ ] Require every AGC2-selected capture to save at least 20 tokens and 25%
+- [x] Require every AGC2-selected capture to save at least 20 tokens and 25%
   versus strict JSON.
-- [ ] Publish the exact encoder IDs, escaping rules, schema lifecycle,
+- [x] Publish the exact encoder IDs, escaping rules, schema lifecycle,
   fallback behavior, decoder contract, and malformed-input behavior only after
   the gate passes.
-- [ ] If the gate fails, retain AGC1 and close the epic with the rejection
+- [x] If the gate fails, retain AGC1 and close the epic with the rejection
   report; do not version-bump storage merely to accompany an unproven codec.
 
 **Acceptance:** One documented decision has complete per-fixture evidence,
@@ -156,13 +160,13 @@ round-trip coverage, and no hidden behavior change.
 - Modify: `docs/guides/performance.md`
 - Modify: `specs/implementation/roadmap.md`
 
-- [ ] Add a bounded regression test over reviewed benchmark fixtures; it must
+- [x] Add a bounded regression test over reviewed benchmark fixtures; it must
   report the specific fixture/query/codec that regressed.
-- [ ] Keep the full corpus benchmark local/manual unless its measured runtime
+- [x] Keep the full corpus benchmark local/manual unless its measured runtime
   justifies CI cost under the GitHub Actions guardrail.
-- [ ] Record final exact-token, byte, and latency distributions—not only an
+- [x] Record final exact-token, byte, and latency distributions—not only an
   average—and state exclusions explicitly.
-- [ ] Run focused tests, `pnpm type-lint`, `pnpm build`,
+- [x] Run focused tests, `pnpm type-lint`, `pnpm build`,
   `pnpm test:package-bin`, `pnpm check:version-bump`, and `git diff --check`.
 
 **Acceptance:** Release evidence identifies the codec, corpus revision,

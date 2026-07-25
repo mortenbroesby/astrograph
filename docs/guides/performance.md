@@ -27,6 +27,7 @@ pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
 pnpm --filter astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
 pnpm --filter astrograph bench:freshness-lifecycle
 pnpm --filter astrograph bench:mcp-envelopes
+pnpm bench:compact-output-matrix -- --json
 ```
 
 Those cover the main performance surfaces:
@@ -38,6 +39,9 @@ Those cover the main performance surfaces:
 - serialization gates
 - complete agent-visible MCP v1 envelope bytes, `cl100k_base` tokens, and
   compact-output round trips on a deterministic fixture
+- the four-fixture compact-output research matrix, including normalized JSON,
+  frozen AGC1, every non-serving AGC2 candidate, exact token/byte counts, and
+  encode/decode latency
 - the deterministic freshness lifecycle fixture: cold/no-op/edit/rename/delete,
   checkout change/restore, unavailable Git, and explicit polling fallback
 
@@ -56,11 +60,12 @@ strict-error, structural, and bounded-context responses, then prints the full
 JSON envelope with bytes, `cl100k_base` tokens, and elapsed time.
 
 It also compares the public, lossless `agc1` compact JSON format for
-`search_symbols`, `get_file_tree`, and `get_file_outline`. On the recorded
-fixture, compact output saved 55.6%, 57.4%, 66.7%, and 59.0% respectively for
-successful search, empty search, tree, and outline responses. Ordinary JSON is
-still the default. See [MCP Tools](../../specs/api-design/mcp-tools.md) for the opt-in
-`format: "compact" | "auto"` contract and reference decoder.
+`search_symbols`, `get_file_tree`, and `get_file_outline`. Ordinary JSON is
+still the default. The separate `bench:compact-output-matrix` research corpus
+rejected all AGC2 candidates on 2026-07-26: the best packed-row baseline saved
+only 3.90% versus AGC1 and had five non-winning captures. See the
+[decision record](../reviews/agc2-corpus-decision-2026-07-26.md) and
+[MCP Tools](../../specs/api-design/mcp-tools.md) for the retained contract.
 
 ## What Actually Moves Performance
 

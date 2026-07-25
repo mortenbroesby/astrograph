@@ -39,7 +39,7 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    architecture/API coverage and authoring consistency.
 
 The AGC2 research outline is now selected as the active
-[AGC2 Compact Output R&D Epic](../active/4_agc2-munch-informed-rnd-epic.md).
+[AGC2 Compact Output R&D Epic](../closed/agc2-compact-output-rnd-epic.md).
 
 The completed [README and Docs Diagram Design](../closed/readme-docs-diagram-design.md)
 record now lives with closed evidence rather than in the delivery queue.

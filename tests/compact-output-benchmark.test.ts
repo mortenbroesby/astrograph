@@ -10,7 +10,7 @@ import {
   type CompactCandidateCodec,
 } from "../src/compact-mcp-candidates.ts";
 import {
-  decodeCompactMcpEnvelope,
+  decodePackedRowsAgc2,
   encodePackedRowsAgc2,
 } from "../src/compact-mcp.ts";
 import type { McpEnvelope } from "../src/mcp-contract.ts";
@@ -27,7 +27,7 @@ const treeEnvelope: McpEnvelope<unknown> = {
 const packedRowsCodec: CompactCandidateCodec = {
   id: "agc2-packed-rows-baseline",
   encode: encodePackedRowsAgc2,
-  decode: decodeCompactMcpEnvelope,
+  decode: decodePackedRowsAgc2,
 };
 
 const symbol = {
@@ -121,6 +121,20 @@ describe("compact output benchmark candidates", () => {
       () => genericRowsAgc2Codec.decode(["agc2g", "find_files", ["path"], [["src/a.ts", "unexpected"]], ["1", 0, "fresh"]]),
     ];
     for (const decode of malformed) expect(decode).toThrow();
+  });
+
+  it("reports the fixture, query, and codec for a reviewed regression", () => {
+    const empty: McpEnvelope<unknown> = {
+      ok: true,
+      data: { items: [], truncated: false, refinementHints: [], tokenSavings: { unit: "tokens", tokenizer: "cl100k_base", baseline: "all_ranked_symbol_items", baselineTokens: 1, returnedTokens: 1, savedTokens: 0, savedPercent: 0 } },
+      meta: { toolVersion: "1", tokenBudgetUsed: 1, dataFreshness: "fresh" },
+    };
+    const agc1 = measureFrozenAgc1Reference("search_symbols", empty);
+    const packed = measureCompactCandidate(packedRowsCodec, "search_symbols", empty);
+    const regression = packed.tokens !== null && agc1.tokens !== null && packed.tokens >= agc1.tokens
+      ? "small-frontend:empty:search-symbols:agc2-packed-rows-baseline"
+      : null;
+    expect(regression).toBe("small-frontend:empty:search-symbols:agc2-packed-rows-baseline");
   });
 
   it("records explicit rejections instead of silently measuring unsupported shapes", () => {

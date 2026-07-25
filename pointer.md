@@ -8,11 +8,10 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [AGC2 Compact Output Research and Development Epic](./specs/implementation/active/4_agc2-munch-informed-rnd-epic.md),
-starting with Story 4's independent codec laboratory. The packed-row baseline
-has been rejected for production (3.90% weighted savings and five non-wins);
-strict JSON and AGC1 remain the release-safe fallback until the epic's corpus
-selection gate passes.
+No implementation goal is selected. The [closed AGC2 compact-output R&D
+epic](./specs/implementation/closed/agc2-compact-output-rnd-epic.md) rejected
+AGC2 for production; strict JSON and the proven AGC1 contract remain in force.
+Consult the roadmap before selecting new work.
 
 ## Completion and update rule
 

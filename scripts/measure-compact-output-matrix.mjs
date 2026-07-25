@@ -8,7 +8,7 @@ import {
   schemaRowsAgc2Codec,
   typedRowsAgc2Codec,
 } from "../src/compact-mcp-candidates.ts";
-import { decodeCompactMcpEnvelope, encodePackedRowsAgc2 } from "../src/compact-mcp.ts";
+import { decodePackedRowsAgc2, encodePackedRowsAgc2 } from "../src/compact-mcp.ts";
 import { dispatchTool } from "../src/mcp.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "../src/tokenizer.ts";
 import {
@@ -29,7 +29,7 @@ if (fixtureNames.some((fixtureName) => !allFixtureNames.includes(fixtureName))) 
 const packedRowsCodec = {
   id: "agc2-packed-rows-baseline",
   encode: encodePackedRowsAgc2,
-  decode: decodeCompactMcpEnvelope,
+  decode: decodePackedRowsAgc2,
 };
 
 function measureJson(envelope) {
