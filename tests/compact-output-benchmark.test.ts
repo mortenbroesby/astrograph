@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
+  schemaRowsAgc2Codec,
   type CompactCandidateCodec,
 } from "../src/compact-mcp-candidates.ts";
 import {
@@ -26,6 +27,13 @@ const packedRowsCodec: CompactCandidateCodec = {
   decode: decodeCompactMcpEnvelope,
 };
 
+const symbol = {
+  id: "symbol-1", name: "area", qualifiedName: null, kind: "function",
+  filePath: "src/math.ts", signature: "function area()", summary: "Calculates area.",
+  summarySource: "doc-comment", startLine: 1, endLine: 2, startByte: 0,
+  endByte: 42, exported: true,
+};
+
 describe("compact output benchmark candidates", () => {
   it("measures a lossless packed-rows candidate with exact token evidence", () => {
     const measurement = measureCompactCandidate(packedRowsCodec, "get_file_tree", treeEnvelope);
@@ -44,6 +52,25 @@ describe("compact output benchmark candidates", () => {
     expect(reference.encoded).toContain("agc1");
     expect(reference.tokens).toBeGreaterThan(0);
     expect(reference.decoded).toBeNull();
+  });
+
+  it("rejects unknown schemas and producer row-width mismatches", () => {
+    const measurement = measureCompactCandidate(schemaRowsAgc2Codec, "get_file_tree", treeEnvelope);
+    expect(measurement.decoded).toEqual(treeEnvelope);
+    expect(() => schemaRowsAgc2Codec.decode(["agc2s", "unknown/1", [], ["1", 0, "fresh"]])).toThrow("Unknown schema");
+    expect(() => schemaRowsAgc2Codec.decode(["agc2s", "tree/3", [["src/a.ts", "ts"]], ["1", 0, "fresh"]])).toThrow("row width");
+  });
+
+  it("round-trips every schema-row producer shape", () => {
+    const envelopes: Array<["search_symbols" | "get_file_outline" | "find_files" | "search_text", McpEnvelope<unknown>]> = [
+      ["search_symbols", { ok: true, data: { items: [symbol], truncated: false, refinementHints: [], tokenSavings: { unit: "tokens", tokenizer: "cl100k_base", baseline: "all_ranked_symbol_items", baselineTokens: 20, returnedTokens: 10, savedTokens: 10, savedPercent: 50 } }, meta: { toolVersion: "1", tokenBudgetUsed: 10, dataFreshness: "fresh" } }],
+      ["get_file_outline", { ok: true, data: { filePath: "src/math.ts", symbols: [symbol] }, meta: { toolVersion: "1", tokenBudgetUsed: 10, dataFreshness: "fresh" } }],
+      ["find_files", { ok: true, data: [{ filePath: "src/math.ts", fileName: "math.ts", language: "ts", supportTier: "graph", indexed: true, matchReason: "path" }], meta: { toolVersion: "1", tokenBudgetUsed: 10, dataFreshness: "fresh" } }],
+      ["search_text", { ok: true, data: [{ filePath: "src/math.ts", line: 1, preview: "export function area() {}" }], meta: { toolVersion: "1", tokenBudgetUsed: 10, dataFreshness: "fresh" } }],
+    ];
+    for (const [toolName, envelope] of envelopes) {
+      expect(measureCompactCandidate(schemaRowsAgc2Codec, toolName, envelope).decoded).toEqual(envelope);
+    }
   });
 
   it("records explicit rejections instead of silently measuring unsupported shapes", () => {

@@ -104,7 +104,7 @@ unproven compression tricks in one opaque redesign.
 
 - [ ] Candidate A — packed fixed-width rows, including the current AGC2
   experiment, to establish its exact corpus profile.
-- [ ] Candidate B — encoder IDs and declarative per-tool schemas; the decoder
+- [x] Candidate B — encoder IDs and declarative per-tool schemas; the decoder
   rejects an unknown schema ID and mismatched producer columns.
 - [ ] Candidate C — shared prefix legend for paths only when its measured
   encoding cost is repaid within that response.

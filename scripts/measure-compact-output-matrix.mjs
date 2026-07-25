@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
+  schemaRowsAgc2Codec,
 } from "../src/compact-mcp-candidates.ts";
 import { decodeCompactMcpEnvelope, encodePackedRowsAgc2 } from "../src/compact-mcp.ts";
 import { dispatchTool } from "../src/mcp.ts";
@@ -56,19 +57,19 @@ function summarize(records, key) {
   };
 }
 
-function compareAgainstAgc1(records) {
+function compareAgainstAgc1(records, key) {
   const overlapping = records.filter((record) => (
-    record.agc1.tokens !== null && record.agc2PackedRows.tokens !== null
+    record.agc1.tokens !== null && record[key].tokens !== null
   ));
   const agc1Tokens = overlapping.reduce((sum, record) => sum + record.agc1.tokens, 0);
-  const packedTokens = overlapping.reduce((sum, record) => sum + record.agc2PackedRows.tokens, 0);
-  const regressions = overlapping.filter((record) => record.agc2PackedRows.tokens >= record.agc1.tokens);
+  const candidateTokens = overlapping.reduce((sum, record) => sum + record[key].tokens, 0);
+  const regressions = overlapping.filter((record) => record[key].tokens >= record.agc1.tokens);
   return {
     comparedSamples: overlapping.length,
     agc1Tokens,
-    agc2PackedRowsTokens: packedTokens,
-    savedTokens: agc1Tokens - packedTokens,
-    savedPercent: agc1Tokens === 0 ? 0 : Number((((agc1Tokens - packedTokens) / agc1Tokens) * 100).toFixed(2)),
+    candidateTokens,
+    savedTokens: agc1Tokens - candidateTokens,
+    savedPercent: agc1Tokens === 0 ? 0 : Number((((agc1Tokens - candidateTokens) / agc1Tokens) * 100).toFixed(2)),
     nonWinningCaptures: regressions.map((record) => record.query),
   };
 }
@@ -88,6 +89,7 @@ try {
       const json = measureJson(envelope);
       const agc1 = measureFrozenAgc1Reference(queryCase.toolName, envelope);
       const packedRows = measureCompactCandidate(packedRowsCodec, queryCase.toolName, envelope);
+      const schemaRows = measureCompactCandidate(schemaRowsAgc2Codec, queryCase.toolName, envelope);
       records.push({
         fixture: fixtureName,
         query: queryCase.id,
@@ -97,6 +99,7 @@ try {
         json,
         agc1,
         agc2PackedRows: packedRows,
+        agc2SchemaRows: schemaRows,
         selectedOutcome: "research_only_no_serving_selection",
       });
     }
@@ -113,7 +116,9 @@ const report = {
     json: summarize(records, "json"),
     agc1: summarize(records, "agc1"),
     agc2PackedRows: summarize(records, "agc2PackedRows"),
-    agc2PackedRowsVsAgc1: compareAgainstAgc1(records),
+    agc2SchemaRows: summarize(records, "agc2SchemaRows"),
+    agc2PackedRowsVsAgc1: compareAgainstAgc1(records, "agc2PackedRows"),
+    agc2SchemaRowsVsAgc1: compareAgainstAgc1(records, "agc2SchemaRows"),
   },
   selection: "No production codec is selected by the Story 3 harness.",
 };
