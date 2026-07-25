@@ -25,6 +25,8 @@ envelope benchmark.
   for `search_text`; empty results remain below the auto gate.
 - [x] Do not implement a mapping that fails the existing `20 tokens + 25%`
   auto-selection gate.
+- [x] Compare migrated-tool AGC2 candidates directly with AGC1 on the same
+  deterministic envelopes; emit AGC2 only on a strict exact-token win.
 
 ## Task 2: Implement the breaking v2 boundary
 

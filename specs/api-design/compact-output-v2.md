@@ -3,7 +3,7 @@
 ## Summary
 
 `agc2` is an Astrograph-owned, lossless JSON representation for selected MCP
-success results with repetitive tabular data. It is not compatible with any
+success results with repetitive fixed-width rows. It is not compatible with any
 third-party format. Ordinary MCP v1 JSON remains the default and the only
 format used for errors.
 
@@ -32,21 +32,29 @@ breaking contract change paired with the storage/cache v2 boundary.
 ]
 ```
 
-`table` is an Astrograph compact table:
+`payload` uses a documented, tool-specific packed-row mapping. Symbol rows use
+the fixed `SymbolSummary` field order, so they can be emitted as one flat array
+without per-row JSON brackets:
 
 ```ts
-{
-  columns: string[],
-  dictionaries?: Record<string, string[]>,
-  rows: Array<Array<string | number | boolean | null>>,
-  scalars?: Record<string, string | number | boolean | null>,
-}
+// search_symbols
+[flatSymbolRows, truncated, refinementHints, tokenSavings]
+
+// get_file_tree
+[path, language, symbolCount, path, language, symbolCount, ...]
+
+// get_file_outline
+[filePath, ...flatSymbolRows]
 ```
 
-Columns named in `dictionaries` contain zero-based dictionary indexes. All
-other cells retain their JSON scalar value. Each selected tool owns its ordered
-column list and any scalar fields; the reference decoder rejects unknown tools,
-versions, invalid dictionary indexes, and malformed row widths.
+`find_files` and `search_text` retain their dictionary-backed table mappings.
+Each selected tool owns its ordered fields; the reference decoder rejects
+unknown tools, versions, invalid dictionary indexes, and malformed row widths.
+
+For the three migrated AGC1 tools, Astrograph emits AGC2 only when the exact
+`cl100k_base` token count is strictly lower than the equivalent AGC1 encoding.
+A tie or loss falls back to ordinary JSON, including when callers request
+`format: "compact"`.
 
 ## Compatibility
 

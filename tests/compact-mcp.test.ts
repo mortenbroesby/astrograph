@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   decodeCompactMcpEnvelope,
   formatMcpEnvelope,
+  measureCompactMcpCandidate,
 } from "../src/compact-mcp.ts";
 import type { McpEnvelope } from "../src/mcp-contract.ts";
 
@@ -52,8 +53,18 @@ describe("compact MCP output", () => {
     expect(JSON.parse(formatted.serialized)).toEqual(envelope);
   });
 
-  it("losslessly round-trips selected Unicode and empty search results", () => {
-    for (const envelope of [searchEnvelope([unicodeSymbol]), searchEnvelope([])]) {
+  it("losslessly round-trips packed repeated symbol results", () => {
+    const repeated = Array.from({ length: 8 }, (_, index) => ({
+      ...unicodeSymbol,
+      id: `sym-${index}`,
+      name: `area${index}`,
+      qualifiedName: `area${index}`,
+      startLine: index + 1,
+      endLine: index + 1,
+      startByte: index * 100,
+      endByte: index * 100 + 99,
+    }));
+    for (const envelope of [searchEnvelope(repeated)]) {
       const formatted = formatMcpEnvelope("search_symbols", "compact", envelope);
 
       expect(formatted.metrics.selectedFormat).toBe("compact");
@@ -62,26 +73,40 @@ describe("compact MCP output", () => {
     }
   });
 
-  it("emits agc2 for every former agc1 tool", () => {
+  it("emits agc2 only when the table is smaller than agc1", () => {
     const envelopes: Array<["search_symbols" | "get_file_tree" | "get_file_outline", McpEnvelope<unknown>]> = [
       ["search_symbols", searchEnvelope([unicodeSymbol])],
       ["get_file_tree", {
         ok: true,
-        data: [{ path: "src/math.ts", language: "ts", symbolCount: 1 }],
+        data: Array.from({ length: 8 }, (_, index) => ({ path: `src/math-${index}.ts`, language: "ts", symbolCount: 1 })),
         meta: { toolVersion: "1", tokenBudgetUsed: 1, dataFreshness: "fresh" },
       }],
       ["get_file_outline", {
         ok: true,
-        data: { filePath: "src/math.ts", symbols: [unicodeSymbol] },
+        data: { filePath: "src/math.ts", symbols: Array.from({ length: 8 }, (_, index) => ({ ...unicodeSymbol, id: `outline-${index}`, name: `area${index}` })) },
         meta: { toolVersion: "1", tokenBudgetUsed: 1, dataFreshness: "fresh" },
       }],
     ];
 
     for (const [toolName, envelope] of envelopes) {
+      const comparison = measureCompactMcpCandidate(toolName, envelope);
+      expect(comparison?.agc2Wins).toBe(true);
+      expect(comparison?.agc2Tokens).toBeLessThan(comparison!.agc1Tokens!);
       const formatted = formatMcpEnvelope(toolName, "compact", envelope);
       expect(JSON.parse(formatted.serialized)[0]).toBe("agc2");
       expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(envelope);
     }
+  });
+
+  it("keeps JSON when agc2 cannot beat agc1", () => {
+    const formatted = formatMcpEnvelope("search_symbols", "compact", searchEnvelope([]));
+
+    expect(measureCompactMcpCandidate("search_symbols", searchEnvelope([]))).toMatchObject({
+      agc2Wins: false,
+      agc2Tokens: 58,
+      agc1Tokens: 58,
+    });
+    expect(formatted.metrics.selectedFormat).toBe("json");
   });
 
   it("uses JSON for errors and unsupported auto requests", () => {
@@ -130,7 +155,7 @@ describe("compact MCP output", () => {
       "get_file_tree",
       [["src/a.ts"]],
       ["1", 0, "fresh"],
-    ])).toThrow("row");
+    ])).toThrow("payload");
   });
 
   it("losslessly compacts discovery tables with dictionary-backed columns", () => {
@@ -167,7 +192,7 @@ describe("compact MCP output", () => {
     expect(() => decodeCompactMcpEnvelope([
       "agc2",
       "search_text",
-      [["filePath", "line", "preview"], [["src/math.ts"]], [[2, 1, "export const PI = 3.14;"]]],
+      [[["src/math.ts"]], [[2, 1, "export const PI = 3.14;"]]],
       ["1", 10, "fresh"],
     ])).toThrow("dictionary index");
   });

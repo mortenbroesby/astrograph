@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { dispatchTool } from "../src/mcp.ts";
-import { formatMcpEnvelope } from "../src/compact-mcp.ts";
+import { formatMcpEnvelope, measureCompactMcpCandidate } from "../src/compact-mcp.ts";
 import { clearStorageProcessCaches, indexFolder } from "../src/index.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "../src/tokenizer.ts";
 
@@ -87,6 +87,7 @@ async function capture(label, toolName, args, repoRoot) {
         roundTrips: true,
       }
       : null,
+    compactComparison: measureCompactMcpCandidate(toolName, stableEnvelope),
     envelope: stableEnvelope,
   };
 }
