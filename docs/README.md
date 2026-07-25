@@ -32,6 +32,9 @@ If you are new to Astrograph, read these in order:
 - [Performance Guide](./guides/performance.md)
   When to care about performance, what to measure, and which knobs actually
   matter.
+- [Local Container Verification](./guides/local-container-verification.md)
+  Run the full test suite locally in an isolated Linux container without using
+  GitHub Actions minutes.
 - [Troubleshooting](./guides/troubleshooting.md)
   What to do when the repo is not indexed, stale, unhealthy, or missing watch
   refresh.
@@ -44,6 +47,8 @@ If you are new to Astrograph, read these in order:
   Command groups, common examples, config shape, and development commands.
 - [Config Reference](./reference/config.md)
   The repo-level `astrograph.config.ts` surface and the knobs that matter.
+- [Language Support](./reference/language-support.md)
+  Exact parser-backed languages, tiers, extensions, and evidence-based exclusions.
 - [Release Reference](./reference/release.md)
   How Astrograph versions, plans, and publishes npm releases.
 
@@ -54,6 +59,13 @@ If you are new to Astrograph, read these in order:
   Now/Next/Later roadmap.
 - [Windows Compatibility Audit — July 2026](./reviews/windows-compatibility-audit-2026-07.md)
   Evidence map and story handoff for Windows Node terminals and Git Bash.
+- [MCP Tool-Surface Audit — July 2026](./reviews/mcp-tool-surface-audit-2026-07-22.md)
+- [Compact Output vs Internal Serialization Assessment — July 2026](./reviews/compact-output-vs-internal-serialization-2026-07-22.md)
+  Measured MCP schema baseline, global-client policy finding, and selected core
+  versus specialized-tool policy.
+- [Reversible Cache Cleanup Safety Baseline — July 2026](./reviews/reversible-cache-cleanup-safety-baseline-2026-07.md)
+  Mutation inventory, archive-first boundaries, and external safety-practice
+  references for managed cache recovery.
 
 ## Reading Strategy
 

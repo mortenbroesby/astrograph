@@ -202,7 +202,7 @@ const CHUNK_OVERLAP_BYTES = 8_000;
 export function splitSourceIntoChunks(sourceText: string): SourceChunk[] {
   const lines = sourceText.split("\n");
 
-  if (sourceText.length <= MAX_PARSE_BYTES) {
+  if (Buffer.byteLength(sourceText, "utf8") <= MAX_PARSE_BYTES) {
     return [
       {
         content: sourceText,
@@ -218,7 +218,7 @@ export function splitSourceIntoChunks(sourceText: string): SourceChunk[] {
   let totalBytes = 0;
   for (let index = 0; index < lines.length; index += 1) {
     lineOffsets.push(totalBytes);
-    totalBytes += lines[index].length + (index < lines.length - 1 ? 1 : 0);
+    totalBytes += Buffer.byteLength(lines[index], "utf8") + (index < lines.length - 1 ? 1 : 0);
   }
 
   const bytesBetween = (startLine: number, endLine: number) => {
@@ -275,39 +275,4 @@ export function splitSourceIntoChunks(sourceText: string): SourceChunk[] {
   }
 
   return chunks;
-}
-
-export function buildLineOffsets(sourceText: string): number[] {
-  const offsets = [0];
-  for (let index = 0; index < sourceText.length; index += 1) {
-    if (sourceText[index] === "\n") {
-      offsets.push(index + 1);
-    }
-  }
-  return offsets;
-}
-
-export function lineFromOffset(lineOffsets: number[], offset: number): number {
-  let low = 0;
-  let high = lineOffsets.length - 1;
-
-  while (low <= high) {
-    const middle = Math.floor((low + high) / 2);
-    const current = lineOffsets[middle];
-    const next = lineOffsets[middle + 1] ?? Number.POSITIVE_INFINITY;
-
-    if (offset < current) {
-      high = middle - 1;
-      continue;
-    }
-
-    if (offset >= next) {
-      low = middle + 1;
-      continue;
-    }
-
-    return middle + 1;
-  }
-
-  return lineOffsets.length;
 }

@@ -35,6 +35,9 @@ describe("refreshFileSetWithDependents", () => {
         return {
           indexedFiles: 1,
           indexedSymbols: input.filePath === "src/consumer.ts" ? 2 : 1,
+          reusedFiles: 0,
+          parsedFiles: 1,
+          removedFiles: 0,
         };
       },
       async finalizeIndex(input) {
@@ -58,6 +61,9 @@ describe("refreshFileSetWithDependents", () => {
     expect(summary).toEqual({
       indexedFiles: 3,
       indexedSymbols: 4,
+      reusedFiles: 0,
+      parsedFiles: 3,
+      removedFiles: 0,
       staleStatus: "fresh",
     });
   });

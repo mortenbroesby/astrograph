@@ -25,11 +25,6 @@ export interface DirectoryStateEntry {
   mtimeMs: number;
 }
 
-interface SupportedFileCandidate {
-  absolutePath: string;
-  relativePath: string;
-}
-
 export interface DiscoveredSourceFile {
   absolutePath: string;
   relativePath: string;
@@ -128,21 +123,6 @@ export function resolveGitIgnoredPaths(
   }
 
   return ignoredPaths;
-}
-
-export async function scanSupportedFileCandidates(
-  rootDir: string,
-  currentDir = rootDir,
-): Promise<SupportedFileCandidate[]> {
-  const results = await discoverSourceFiles({
-    repoRoot: rootDir,
-    startRelativePath: normalizeRepoRelativePath(path.relative(rootDir, currentDir)),
-    respectGitIgnore: false,
-  });
-  return results.map(({ absolutePath, relativePath }) => ({
-    absolutePath,
-    relativePath,
-  }));
 }
 
 export async function discoverSourceFiles(options: {

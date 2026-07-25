@@ -3,6 +3,20 @@
 Astrograph's MCP server exposes a small tool surface for local code discovery,
 exact retrieval, bounded assembly, and health reporting.
 
+## Core and Specialized Policy
+
+Generated Codex and Copilot CLI setup exposes every MCP v1 tool directly. The
+preferred **core** is a workflow, not a hidden server tier: start with
+`get_project_status`/`index_folder`, use structural orientation or
+`suggest_initial_queries`, then `search_symbols`, `get_symbol_source`, and
+`get_task_context` only when bounded assembly is needed. Use `diagnostics` for
+health and `index_file` for a targeted refresh.
+
+`find_files`, `search_text`, and `get_file_summary` are **specialized** direct
+fallbacks for path-only discovery, literal text, and deterministic file-level
+summary. They remain visible and callable; Astrograph does not implement a
+router, hidden tool selection, or compatibility alias layer.
+
 ## MCP v1 Tools
 
 - `index_folder`
@@ -17,8 +31,7 @@ exact retrieval, bounded assembly, and health reporting.
 - `suggest_initial_queries`
 - `search_symbols` (new v1)
 - `get_symbol_source` (new v1)
-- `get_context_bundle` (new v1)
-- `get_ranked_context` (new v1)
+- `get_task_context` (new v1)
 - `diagnostics`
 
 ## Contract Rules
@@ -30,7 +43,18 @@ exact retrieval, bounded assembly, and health reporting.
 - MCP v1 exposes no cache behavior: no cache tools, cache-hit metadata, cache
   invalidation calls, or cache-backed response semantics. Any future cache
   design requires a separate post-v1 plan.
-- Compact schema variants remain disabled in v1 for predictable parsing and easier migration.
+- `search_symbols`, `get_file_tree`, and `get_file_outline` accept an optional
+  `format: "json" | "compact" | "auto"`. Omitted and `"json"` preserve the
+  ordinary strict v1 envelope. `"compact"` opts into the documented lossless
+  `agc1` JSON array. `"auto"` selects it only when it saves at least 20
+  `cl100k_base` tokens and 25% of the ordinary serialized JSON response;
+  otherwise it returns JSON. All other tools remain JSON-only.
+- `index_folder` and `index_file` return additive aggregate lifecycle counts:
+  `reusedFiles`, `parsedFiles`, and `removedFiles`. They reveal no paths or
+  source content. A reused file avoided source analysis through an indexed row
+  or artifact; a parsed file required source analysis; a removed file was no
+  longer indexable. `indexedFiles` remains the count of index rows written,
+  and none of these counts override `staleStatus` or diagnostics.
 - Results must be bounded by config limits or explicit options.
 - Diagnostic and readiness state must distinguish `fresh`, `stale`, and `unknown`.
 - Source-returning tools should support exact source verification where applicable.
@@ -84,6 +108,40 @@ exact retrieval, bounded assembly, and health reporting.
   },
 }
 ```
+
+## Compact MCP Results (`agc1`)
+
+Only successful `search_symbols`, `get_file_tree`, and `get_file_outline`
+calls may return compact output, and only when their `format` requests it. The
+compact value is still UTF-8 JSON, not a binary transport:
+
+```ts
+["agc1", toolName, payload, ["1", tokenBudgetUsed, dataFreshness]]
+```
+
+`toolName` is one of the three selected tool names. `payload` uses the
+following lossless positional mappings:
+
+- `search_symbols`: `[SymbolSummaryRow[], truncated, refinementHints, tokenSavings]`
+- `get_file_tree`: `Array<[path, language, symbolCount]>`
+- `get_file_outline`: `[filePath, SymbolSummaryRow[]]`
+
+`SymbolSummaryRow` uses this exact order:
+
+```ts
+[
+  id, name, qualifiedName, kind, filePath, signature, summary, summarySource,
+  startLine, endLine, startByte, endByte, exported,
+]
+```
+
+Use the exported `decodeCompactMcpEnvelope` reference decoder to restore the
+ordinary success envelope. It rejects unknown versions, tool names, and invalid
+rows. `format: "compact"` never changes errors: invalid requests, execution
+errors, and compact encoding failures return the ordinary strict v1 JSON error
+envelope. `get_task_context` does not implement compact output; its
+`payloadTokenBudget` and `meta.tokenBudgetUsed` continue to account for the
+ordinary `data` payload, regardless of a caller's unrelated format preference.
 
 ## Explicit Retrieval Tools
 
@@ -172,6 +230,19 @@ Success `data`:
     verified: boolean,
     startLine: number,
     endLine: number,
+    provenance: {
+      filePath: string,
+      sourceHash: string,
+      range: {
+        encoding: "utf8",
+        startByte: number,
+        endByte: number,
+        startLine: number,
+        endLine: number,
+      },
+      parser: { backend: string | null, fallbackUsed: boolean, fallbackReason: string | null },
+      freshness: "indexed-snapshot",
+    },
   }>,
   symbol?: SymbolSummary,
   source?: string,
@@ -184,7 +255,7 @@ Success `data`:
 The single-symbol convenience fields mirror the first item and must not replace
 the canonical `items` array.
 
-### `get_context_bundle`
+### `get_task_context`
 
 Registration metadata:
 
@@ -199,7 +270,8 @@ Request:
   repoRoot: string,
   query?: string,
   symbolIds?: string[],
-  tokenBudget?: number,
+  intent?: "explore" | "debug" | "refactor" | "audit",
+  payloadTokenBudget?: number,
   includeDependencies?: boolean,
   includeImporters?: boolean,
   includeReferences?: boolean,
@@ -215,61 +287,29 @@ Success `data`:
 {
   repoRoot: string,
   query: string | null,
-  tokenBudget: number,
-  estimatedTokens: number,
-  usedTokens: number,
+  intent: "explore" | "debug" | "refactor" | "audit",
+  payloadTokenBudget: number,
+  estimatedPayloadTokens: number,
+  usedPayloadTokens: number,
+  sourceTokens: number,
   truncated: boolean,
+  exclusions: Array<{ reason: "budget" | "duplicate" | "unsupported" | "relation_depth", count: number }>,
   items: Array<{
-    role: "target" | "dependency",
+    role: "anchor" | "match" | "relation",
     reason: string,
     symbol: SymbolSummary,
     source: string,
-    tokenCount: number,
+    sourceTokens: number,
+    provenance: SymbolSourceItem["provenance"],
   }>,
 }
 ```
 
-### `get_ranked_context`
-
-Registration metadata:
-
-```ts
-{ toolVersion: "1" }
-```
-
-Request:
-
-```ts
-{
-  repoRoot: string,
-  query: string,
-  tokenBudget?: number,
-  includeDependencies?: boolean,
-  includeImporters?: boolean,
-  includeReferences?: boolean,
-  relationDepth?: number,
-}
-```
-
-Success `data`:
-
-```ts
-{
-  repoRoot: string,
-  query: string,
-  tokenBudget: number,
-  candidateCount: number,
-  selectedSeedIds: string[],
-  candidates: Array<{
-    rank: number,
-    score: number,
-    reason: string,
-    symbol: SymbolSummary,
-    selected: boolean,
-  }>,
-  bundle: ContextBundle,
-}
-```
+`payloadTokenBudget` covers the serialized `data` payload measured by the
+production tokenizer. A request that cannot fit its own envelope fails rather
+than returning an over-budget result. Explicit symbol anchors are selected
+before lexical matches, followed by enabled relations. Every omitted candidate
+is counted with a deterministic exclusion reason.
 
 ## Contract Versioning
 

@@ -41,9 +41,14 @@ lockfile changes publish when the commit signals warrant it.
 ## First-Time Setup
 
 1. Configure npm trusted publishing for `mortenbroesby/astrograph`.
-2. Point the npm package at the `release.yml` workflow and `npm` environment.
+2. Point the npm package at the `ci.yml` workflow and `npm` environment.
 3. Protect the `npm` environment if manual approval is desired.
 4. Confirm the package is public and publishes to the `latest` dist-tag.
+
+If a tag was created but its npm publication failed, correct the trusted
+publisher binding first, then dispatch **CI** with that exact tag. Do not create
+another tag or change the version: the retry checks out the immutable tagged
+commit and republishes only that package version.
 
 ## Local Plan and Apply
 
@@ -62,54 +67,40 @@ pnpm release:apply
 
 ## Agentic Release Flow
 
-1. Add the `release` label to a release-worthy pull request, then merge it to
-   `main`.
-2. The path-scoped `CI` workflow completes its required fast and Windows checks.
-3. After a successful `main` CI run, the release agent automatically runs in
-   apply mode only when the pushed commit is associated with that merged,
-   labelled pull request. It does not run for direct pushes, unlabelled PRs,
-   pull requests, or failed CI.
-4. The release agent:
-   - decides `none`, `increment`, `patch`, `minor`, or `major`
-   - updates the alpha version only for publishable patch, minor, or major releases
-   - commits the version change to `main` when needed
-   - pushes `v<package.version>`
-5. The release agent pushes the matching tag, then explicitly dispatches the
-   existing `Release` workflow at that tag. This explicit dispatch is required
-   because tags created by the default Actions token do not start a second
-   workflow through the normal push trigger. `Release` publishes to npm.
+1. A release-worthy pull request includes its valid package version bump before
+   it is merged. Apply `no-release` only when a runtime-looking change must not
+   publish; docs, specs, and workflow-only changes are naturally no-ops.
+2. The path-scoped `CI` workflow completes Fast checks on the merge candidate.
+3. After Fast succeeds on `main`, one release job evaluates the merged SHA,
+   package version, matching tag, npm registry, and `no-release` exception.
+4. When accepted, that same job pushes `v<package.version>` and publishes the
+   checked-out merge candidate to npm with provenance. It never writes a
+   version commit to `main`, creates a release PR, or starts another workflow.
 
-The version-only release commit reruns CI, but its `Release <version>` commit
-message is explicitly excluded from automatic release-agent runs. This prevents
-a release loop even if CI observes the commit before its tag is visible.
+The release decision performs no install, build, lint, or test steps. It relies
+on the successful CI gate and only decides whether the already-versioned merge
+may be tagged and published. npm's normal package lifecycle may still build the
+tarball during `npm publish`.
 
-The release agent performs no install, build, lint, or test steps. It relies on
-the successful CI gate and only decides the release, commits the version, and
-pushes its tag.
+This replaces the prior release-agent plus tag-publisher pair with one
+post-Fast `ubuntu-latest` job for qualifying `main` merges. It adds no broad
+trigger, runner, matrix, schedule, or hosted Windows usage.
 
-This is a permanent, opt-in GitHub Actions cost: one existing
-`ubuntu-latest` release-agent job with a three-minute timeout and one existing
-tag-publisher invocation per labelled, merged release PR. It adds no runner or
-broad trigger; it waits for the existing fast and Windows gates, then dispatches
-the pre-existing Release workflow. The label and successful gates keep ordinary
-merges and direct pushes from consuming release-runner minutes.
-
-`workflow_dispatch` remains available for a non-mutating `release_mode=plan`
-inspection or a guarded `release_mode=apply` release on `main`. Apply mode
-always requests a fresh patch version, then validates it against `main` and npm
-before it can commit or tag anything. Both modes first run the same fast and
-Windows jobs as a merged `main` change; the three-minute release agent runs
-only after those gates succeed and performs no install, build, lint, or test
-work itself.
+`pnpm release:plan` remains the local, non-mutating inspection command. The
+manual **CI** workflow is retry-only: dispatch it with an existing matching tag
+after a failed npm publication; it checks out that tag and cannot create or
+bump a version. It deliberately shares `ci.yml` with the automatic publisher,
+because npm permits only one trusted-publisher workflow per package. The retry
+does not rerun the Fast test suite; the tagged candidate has already passed it.
 
 ## Manual Release Flow
 
 1. Run `pnpm release:plan` and inspect its `mainVersion`, registry state,
    candidate version, and transaction action.
-2. Run `pnpm release:apply` only from an up-to-date `main` checkout. It either
-   writes the declared coupled version updates or accepts an already-valid
-   candidate without a second increment.
-3. Verify the normal CI gate:
+2. For a release-worthy change, run `pnpm release:apply` before opening the
+   owning pull request. It writes the declared coupled version updates that the
+   pull request must carry into the merge.
+3. Verify the normal CI gate before requesting review:
 
 ```bash
 pnpm build
@@ -118,17 +109,16 @@ pnpm test
 pnpm test:package-bin
 ```
 
-4. Let the guarded CI release agent commit and tag the accepted candidate. Do
-   not create a competing manual tag.
+4. Merge the verified pull request. The guarded CI job tags and publishes that
+   exact merge candidate; do not create a competing manual tag.
 
-The tag publish workflow installs locked dependencies and runs `npm publish`
-with provenance. It deliberately does not repeat build, lint, or test gates;
+The merge publisher installs locked dependencies and runs `npm publish` with
+provenance. It deliberately does not repeat build, lint, or test gates;
 package lifecycle preparation remains npm's responsibility for the tarball.
 
-The publisher accepts only a tag matching the checked-out package version
-(`v<package.json version>`). New releases must therefore pass through the
-guarded CI release agent, which chooses the version, updates its version
-contract, commits it to `main`, and creates that tag. A manual `Release`
+The retry publisher accepts only a tag matching the checked-out package version
+(`v<package.json version>`). New releases must therefore pass through a
+guarded merge of the pull request that owns the version bump. A manual **CI**
 dispatch is a retry only: select the existing matching tag when a prior
 publication did not reach npm; it never creates or bumps a version.
 

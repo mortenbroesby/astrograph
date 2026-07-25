@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { compare, valid } from "semver";
 import type { AstrographVersionParts } from "./types.ts";
 
 export type AstrographReleaseKind = "increment" | "patch" | "minor" | "major";
@@ -16,6 +17,20 @@ const ASTROGRAPH_VERSION_PATTERN =
 
 const LEGACY_VERSION_PATTERN =
   /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$/;
+
+export function compareGenericPackageVersions(left: string, right: string): number | null {
+  const normalizedLeft = valid(left.trim());
+  const normalizedRight = valid(right.trim());
+  if (!normalizedLeft || !normalizedRight) {
+    return null;
+  }
+
+  return compare(normalizedLeft, normalizedRight);
+}
+
+export function normalizeGenericPackageVersion(value: string): string | null {
+  return valid(value.trim());
+}
 
 function parseIntegerComponent(value: string, label: string): number {
   const parsed = Number.parseInt(value, 10);

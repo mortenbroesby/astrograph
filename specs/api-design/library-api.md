@@ -13,10 +13,17 @@ The TypeScript API exports Astrograph's core operations for direct Node use.
 
 - Indexing and refresh: `indexFolder`, `indexFile`, `watchFolder`
 - Discovery and retrieval: `findFiles`, `searchText`, `searchSymbols`, `queryCode`
-- Exact source and context: `getSymbolSource`, `getFileContent`, `getContextBundle`, `getRankedContext`
+- Exact source and context: `getSymbolSource`, `getFileContent`, `getTaskContext`
 - Health and operations: `diagnostics`, `doctor`, `getProjectStatus`
 
 ## Verification
+
+`getSymbolSource` returns source items with a UTF-8 `provenance` envelope:
+canonical file path, SHA-256 source hash, zero-based/end-exclusive byte range,
+one-based line range, parser fallback metadata, and `indexed-snapshot`
+freshness. `SymbolSummary` includes the same symbol byte range. The snapshot
+freshness label does not claim that the current disk has been scanned; use
+diagnostics when a live freshness decision is required.
 
 Primary tests:
 

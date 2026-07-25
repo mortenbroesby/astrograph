@@ -40,6 +40,8 @@ export interface SymbolSummary {
   summarySource: SummarySource;
   startLine: number;
   endLine: number;
+  startByte: number;
+  endByte: number;
   exported: boolean;
 }
 
@@ -188,6 +190,23 @@ export interface SymbolSourceItem {
   verified: boolean;
   startLine: number;
   endLine: number;
+  provenance: {
+    filePath: string;
+    sourceHash: string;
+    range: {
+      encoding: "utf8";
+      startByte: number;
+      endByte: number;
+      startLine: number;
+      endLine: number;
+    };
+    parser: {
+      backend: string | null;
+      fallbackUsed: boolean;
+      fallbackReason: string | null;
+    };
+    freshness: "indexed-snapshot";
+  };
 }
 
 export interface SymbolSourceResult {
@@ -200,7 +219,7 @@ export interface SymbolSourceResult {
   endLine?: number;
 }
 
-export type QueryCodeIntent = "discover" | "source" | "assemble" | "auto";
+export type QueryCodeIntent = "discover" | "source" | "auto";
 
 export interface QueryCodeOptions {
   repoRoot: string;
@@ -215,9 +234,7 @@ export interface QueryCodeOptions {
   limit?: number;
   contextLines?: number;
   verify?: boolean;
-  tokenBudget?: number;
   includeTextMatches?: boolean;
-  includeRankedCandidates?: boolean;
   includeDependencies?: boolean;
   includeImporters?: boolean;
   includeReferences?: boolean;
@@ -261,16 +278,9 @@ export interface QueryCodeSourceResult {
   symbolSource: SymbolSourceResult | null;
 }
 
-export interface QueryCodeAssembleResult {
-  intent: "assemble";
-  bundle: ContextBundle;
-  ranked: RankedContextResult | null;
-}
-
 export type QueryCodeResult =
   | QueryCodeDiscoverResult
-  | QueryCodeSourceResult
-  | QueryCodeAssembleResult;
+  | QueryCodeSourceResult;
 
 export type ContextBundleItemRole = "target" | "dependency";
 
@@ -297,6 +307,57 @@ export interface ContextBundleOptions {
   query?: string;
   symbolIds?: string[];
   tokenBudget?: number;
+  includeDependencies?: boolean;
+  includeImporters?: boolean;
+  includeReferences?: boolean;
+  relationDepth?: number;
+}
+
+/** A local, explainable classification that guides task-context selection. */
+export type TaskContextIntent = "explore" | "debug" | "refactor" | "audit";
+
+export type TaskContextItemRole = "anchor" | "match" | "relation";
+
+export type TaskContextExclusionReason =
+  | "budget"
+  | "duplicate"
+  | "unsupported"
+  | "relation_depth";
+
+export interface TaskContextItem {
+  role: TaskContextItemRole;
+  reason: string;
+  symbol: SymbolSummary;
+  source: string;
+  provenance: SymbolSourceItem["provenance"];
+  sourceTokens: number;
+}
+
+export interface TaskContextExclusion {
+  reason: TaskContextExclusionReason;
+  count: number;
+}
+
+export interface TaskContextResult {
+  repoRoot: string;
+  query: string | null;
+  intent: TaskContextIntent;
+  payloadTokenBudget: number;
+  usedPayloadTokens: number;
+  estimatedPayloadTokens: number;
+  sourceTokens: number;
+  truncated: boolean;
+  relationDepth: number;
+  exclusions: TaskContextExclusion[];
+  items: TaskContextItem[];
+}
+
+export interface TaskContextOptions {
+  repoRoot: string;
+  query?: string;
+  symbolIds?: string[];
+  intent?: TaskContextIntent;
+  payloadTokenBudget?: number;
   includeDependencies?: boolean;
   includeImporters?: boolean;
   includeReferences?: boolean;

@@ -4,7 +4,7 @@
 >
 > **Status:** Closed — Story 1 completed on 2026-07-19. Its shared
 > release-publication follow-up moved to the
-> [Remaining Delivery Epic](../planned/remaining-delivery-epic.md).
+> [Remaining Delivery Epic](../planned/3_remaining-delivery-epic.md).
 
 ## Story 1: Node 22 LTS Compatibility Contract
 

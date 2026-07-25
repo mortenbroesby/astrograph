@@ -26,7 +26,9 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 Executable implementation queues, planned work, closed evidence, and internal
 subsystem references.
 
-- [Active Work](./implementation/active/README.md) - The selected delivery queue and its active checklist.
+- [Active Work](./implementation/active/README.md) - The selected delivery queue, currently the Token-Efficient Agent Output end-cap after the merged Incremental Freshness Lifecycle delivery.
+- [Delivery Roadmap](./implementation/roadmap.md) - One-page view of active,
+  ready, parked, descoped, idea, and completed implementation work.
 - [Planned Work](./implementation/planned/README.md) - Approved work that is not yet selected for delivery.
 - [Closed Records](./implementation/closed/README.md) - Completed and superseded implementation evidence.
 - [Standing References](./implementation/README.md#standing-references) - Spec-system, CI cost, and release workflow guidance.
@@ -46,7 +48,7 @@ Reusable starting points for agent-created docs.
 
 The completed bootstrap and historical milestones are preserved in Git history.
 The remaining documentation work is tracked in the planned
-[Spec System Backlog](./implementation/planned/spec-system-backlog.md), rather
+[Spec System Backlog](./implementation/planned/7_spec-system-backlog.md), rather
 than duplicated in this index.
 
 ---

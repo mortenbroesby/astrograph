@@ -39,7 +39,9 @@ describe("astrograph filesystem scan", () => {
 
     await writeFile(path.join(repoRoot, "src", "alpha.ts"), "export const alpha = 1;\n");
     await writeFile(path.join(repoRoot, "src", "nested", "beta.js"), "export const beta = 2;\n");
-    await writeFile(path.join(repoRoot, "src", "notes.md"), "# unsupported\n");
+    await writeFile(path.join(repoRoot, "src", "nested", "legacy.CJS"), "module.exports = {};\n");
+    await writeFile(path.join(repoRoot, "src", "nested", "module.MJS"), "export const module = true;\n");
+    await writeFile(path.join(repoRoot, "src", "notes.md"), "# Discovery-only documentation\n");
     await writeFile(path.join(repoRoot, "dist", "bundle.ts"), "export const ignored = true;\n");
     await writeFile(path.join(repoRoot, "node_modules", "pkg", "index.ts"), "export const dep = true;\n");
 
@@ -48,8 +50,10 @@ describe("astrograph filesystem scan", () => {
     expect(result.map((entry) => entry.relativePath)).toEqual([
       "src/alpha.ts",
       "src/nested/beta.js",
+      "src/nested/legacy.CJS",
+      "src/nested/module.MJS",
     ]);
-    expect(result.map((entry) => entry.language)).toEqual(["ts", "js"]);
+    expect(result.map((entry) => entry.language)).toEqual(["ts", "js", "js", "js"]);
   });
 
   it("respects gitignore and preserves repo-relative paths for subtree discovery", async () => {

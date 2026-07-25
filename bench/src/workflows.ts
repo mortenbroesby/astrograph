@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
-  getContextBundle,
+  getTaskContext,
   getFileContent,
   getFileOutline,
   getFileTree,
@@ -295,15 +295,15 @@ const discoveryFirstWorkflow: WorkflowDefinition = {
   },
 };
 
-const bundleWorkflow: WorkflowDefinition = {
+const taskContextWorkflow: WorkflowDefinition = {
   workflowId: "bundle",
-  label: "Bundle",
-  description: "Query-driven bounded context assembly.",
+  label: "Task Context",
+  description: "Query-driven, payload-budgeted task-context assembly.",
   async run({ repoRoot, task }) {
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: task.frontmatter.query,
-      tokenBudget: 400,
+      payloadTokenBudget: 1_200,
     });
     const allowedItems = bundle.items.filter((item) =>
       matchesAllowedPath(item.symbol.filePath, task.manifest.allowedPaths),
@@ -311,23 +311,18 @@ const bundleWorkflow: WorkflowDefinition = {
     const rankedEvidence = uniqueOrdered(
       allowedItems.flatMap((item) => [item.symbol.name, item.symbol.filePath]),
     );
+    const payloadBytes = Buffer.byteLength(JSON.stringify(bundle), "utf8");
     return {
-      retrievedTokens: allowedItems.reduce((total, item) => total + item.tokenCount, 0),
-      estimatedRetrievedTokens: estimateTokens(
-        JSON.stringify(
-          allowedItems.map((item) => ({
-            role: item.role,
-            reason: item.reason,
-            symbol: item.symbol,
-            source: item.source,
-          })),
-        ),
-      ),
+      retrievedTokens: bundle.usedPayloadTokens,
+      estimatedRetrievedTokens: estimateTokens(JSON.stringify(bundle)),
       toolCalls: 1,
       evidence: rankedEvidence,
       rankedEvidence,
       notes: [
-        ...(bundle.truncated ? ["bundle truncated"] : []),
+        `task-context payload bytes: ${payloadBytes}`,
+        `task-context candidate payload tokens: ${bundle.estimatedPayloadTokens}`,
+        `task-context source tokens: ${bundle.sourceTokens}`,
+        ...(bundle.truncated ? ["task context truncated"] : []),
         ...(allowedItems.length < bundle.items.length ? ["filtered to allowed paths"] : []),
       ],
       success: successForTask(task, rankedEvidence),
@@ -340,7 +335,7 @@ export const WORKFLOWS: WorkflowDefinition[] = [
   discoveryFirstWorkflow,
   symbolFirstWorkflow,
   textFirstWorkflow,
-  bundleWorkflow,
+  taskContextWorkflow,
 ];
 
 export function getWorkflowDefinition(workflowId: string): WorkflowDefinition {

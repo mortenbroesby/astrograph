@@ -200,7 +200,145 @@ export const render = () => <button>run</button>;
     }
   });
 
-  it("marks tree-sitter chunk recovery as parser fallback metadata", () => {
+  it("extracts deterministic structured symbols for polyglot language batches", () => {
+    const fixtures = [
+      {
+        language: "python",
+        relativePath: "services/greeting.py",
+        content: "class Greeter:\n  def hello(self):\n    return 1\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "bash",
+        relativePath: "scripts/greet.sh",
+        content: "greet() { echo hi; }\n",
+        symbols: ["greet"],
+      },
+      {
+        language: "powershell",
+        relativePath: "scripts/Greet.ps1",
+        content: "class Greeter { [void] Hello() {} }\nfunction Start-Greeting { Write-Host hi }\n",
+        symbols: ["Greeter", "Greeter.Hello", "Start-Greeting"],
+      },
+      {
+        language: "csharp",
+        relativePath: "services/Greeter.cs",
+        content: "public class Greeter { public void Hello() {} }\n",
+        symbols: ["Greeter", "Greeter.Hello"],
+      },
+      {
+        language: "java",
+        relativePath: "services/Greeter.java",
+        content: "class Greeter { void hello() {} }\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "go",
+        relativePath: "services/greet.go",
+        content: "package greeting\nfunc Start() {}\n",
+        symbols: ["Start"],
+      },
+      {
+        language: "rust",
+        relativePath: "services/greet.rs",
+        content: "struct Greeter {}\nfn start() {}\n",
+        symbols: ["Greeter", "start"],
+      },
+      {
+        language: "json",
+        relativePath: "package.json",
+        content: "{\"name\": \"astrograph\", \"scripts\": {\"test\": \"vitest\"}}\n",
+        symbols: ["name", "scripts"],
+      },
+      {
+        language: "html",
+        relativePath: "web/index.html",
+        content: "<main><h1>Hello</h1></main>\n",
+        symbols: ["main"],
+      },
+      {
+        language: "css",
+        relativePath: "web/app.css",
+        content: ".card { color: red; }\n",
+        symbols: ["card"],
+      },
+      {
+        language: "c",
+        relativePath: "native/greet.c",
+        content: "struct Greeter {}; void hello(void) {}\n",
+        symbols: ["Greeter", "hello"],
+      },
+      {
+        language: "cpp",
+        relativePath: "native/greet.cpp",
+        content: "class Greeter { void hello() {} }; void start() {}\n",
+        symbols: ["Greeter", "Greeter.hello", "start"],
+      },
+      {
+        language: "php",
+        relativePath: "services/Greeter.php",
+        content: "<?php class Greeter { function hello() {} }\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "ruby",
+        relativePath: "services/greet.rb",
+        content: "class Greeter\n  def hello; end\nend\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+      {
+        language: "template",
+        relativePath: "web/greet.erb",
+        content: "<h1><%= title %></h1>\n",
+        symbols: [],
+      },
+      {
+        language: "scala",
+        relativePath: "services/Greeter.scala",
+        content: "class Greeter { def hello(): Unit = {} }\n",
+        symbols: ["Greeter", "Greeter.hello"],
+      },
+    ] as const;
+
+    for (const fixture of fixtures) {
+      const first = parseSourceFile(fixture);
+      const second = parseSourceFile(fixture);
+
+      expect(first.fallbackUsed).toBe(false);
+      expect(first.imports).toEqual([]);
+      expect(first.symbols.map((symbol) => symbol.qualifiedName)).toEqual(fixture.symbols);
+      expect(first.symbols.map((symbol) => symbol.id)).toEqual(
+        second.symbols.map((symbol) => symbol.id),
+      );
+    }
+  });
+
+  it("keeps structured parsing bounded and deterministic for Unicode, CRLF, and syntax errors", () => {
+    const unicode = parseSourceFile({
+      relativePath: "services/hej.py",
+      language: "python",
+      content: "def héj():\r\n  return 1\r\n",
+    });
+    const malformed = parseSourceFile({
+      relativePath: "config/broken.json",
+      language: "json",
+      content: '{"näme": }\n',
+    });
+
+    expect(unicode.fallbackUsed).toBe(false);
+    expect(unicode.symbols).toEqual([
+      expect.objectContaining({
+        name: "héj",
+        qualifiedName: "héj",
+        startLine: 1,
+        endLine: 2,
+      }),
+    ]);
+    expect(malformed.fallbackUsed).toBe(false);
+    expect(malformed.symbols.map((symbol) => symbol.name)).toEqual(["näme"]);
+  });
+
+  it("does not report chunk recovery when the parser handles a large file directly", () => {
     const content = Array.from({ length: 900 }, (_, index) =>
       `export function helper${index}(value: number): number { return value + ${index}; }`,
     ).join("\n");
@@ -212,8 +350,8 @@ export const render = () => <button>run</button>;
     });
 
     expect(parsed.backend).toBe("tree-sitter");
-    expect(parsed.fallbackUsed).toBe(true);
-    expect(parsed.fallbackReason).toBe("tree-sitter-chunk-recovery");
+    expect(parsed.fallbackUsed).toBe(false);
+    expect(parsed.fallbackReason).toBeNull();
     expect(parsed.symbols).toHaveLength(900);
     expect(parsed.symbols).toEqual(
       expect.arrayContaining([

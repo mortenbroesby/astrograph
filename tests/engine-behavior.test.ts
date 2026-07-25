@@ -1,6 +1,7 @@
-import { spawn } from "node:child_process";
-import { mkdir, realpath, rm, writeFile } from "node:fs/promises";
+import { execFileSync, spawn } from "node:child_process";
+import { mkdir, mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
 import { once } from "node:events";
+import os from "node:os";
 import path from "node:path";
 import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
@@ -11,14 +12,15 @@ import { afterEach, describe, expect, it as baseIt } from "vitest";
 import {
   ASTROGRAPH_PACKAGE_VERSION,
   ASTROGRAPH_VERSION_PARTS,
+  appendEngineEvent,
+  clearStorageProcessCaches,
   diagnostics,
   doctor,
-  getContextBundle,
+  getTaskContext,
   getFileContent,
   getFileOutline,
   getFileTree,
   getRepoOutline,
-  getRankedContext,
   getSymbolSource,
   indexFolder,
   indexFile,
@@ -395,6 +397,152 @@ describe("ai-context-engine behavior", () => {
     expect(fileTree.map((file) => file.path)).not.toContain("src/ignored.ts");
   });
 
+  it("reports parsed, reused, and removed work for incremental folder refreshes", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 2,
+      reusedFiles: 0,
+      parsedFiles: 2,
+      removedFiles: 0,
+      staleStatus: "fresh",
+    });
+
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 0,
+      reusedFiles: 2,
+      parsedFiles: 0,
+      removedFiles: 0,
+      staleStatus: "fresh",
+    });
+
+    await writeFile(
+      path.join(repoRoot, "src", "math.ts"),
+      "export const refreshed = true;\n",
+    );
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 1,
+      reusedFiles: 1,
+      parsedFiles: 1,
+      removedFiles: 0,
+      staleStatus: "fresh",
+    });
+
+    await rm(path.join(repoRoot, "src", "math.ts"));
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 0,
+      reusedFiles: 1,
+      parsedFiles: 0,
+      removedFiles: 1,
+      staleStatus: "fresh",
+    });
+  });
+
+  it("reconciles an actual checkout switch with fresh checkout mappings", async () => {
+    const repoRoot = await createFixtureRepo();
+    for (const args of [
+      ["config", "user.email", "astrograph-tests@example.invalid"],
+      ["config", "user.name", "Astrograph Tests"],
+      ["add", "."],
+      ["commit", "-m", "initial fixture"],
+    ]) {
+      execFileSync("git", args, { cwd: repoRoot, stdio: "ignore" });
+    }
+    const initialHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }).trim();
+
+    await indexFolder({ repoRoot });
+    execFileSync("git", ["checkout", "-b", "freshness-change"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    await writeFile(
+      path.join(repoRoot, "src", "math.ts"),
+      "export const checkoutSpecific = true;\n",
+    );
+    execFileSync("git", ["add", "src/math.ts"], { cwd: repoRoot, stdio: "ignore" });
+    execFileSync("git", ["commit", "-m", "checkout change"], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 1,
+      parsedFiles: 1,
+      reusedFiles: 1,
+      staleStatus: "fresh",
+    });
+
+    execFileSync("git", ["checkout", "--detach", initialHead], {
+      cwd: repoRoot,
+      stdio: "ignore",
+    });
+    await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+      indexedFiles: 1,
+      parsedFiles: 0,
+      reusedFiles: 2,
+      staleStatus: "fresh",
+    });
+
+    const health = await diagnostics({ repoRoot, scanFreshness: true });
+    expect(health).toMatchObject({
+      staleStatus: "fresh",
+      freshnessMode: "scan",
+      staleReasons: [],
+    });
+    const db = new Database(resolveEnginePaths(repoRoot).databasePath, { readonly: true });
+    const checkout = db.prepare(
+      "SELECT head_oid, branch_ref FROM checkouts WHERE canonical_root = ?",
+    ).get(await realpath(repoRoot)) as { head_oid: string | null; branch_ref: string | null };
+    db.close();
+    expect(checkout).toEqual({ head_oid: initialHead, branch_ref: null });
+  });
+
+  it("keeps local freshness explicit when Git becomes unavailable", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+    const originalPath = process.env.PATH;
+    const emptyPath = await mkdtemp(path.join(os.tmpdir(), "astrograph-no-git-"));
+    process.env.PATH = emptyPath;
+    try {
+      await writeFile(
+        path.join(repoRoot, "src", "math.ts"),
+        "export const indexedWithoutGit = true;\n",
+      );
+      await expect(indexFolder({ repoRoot })).resolves.toMatchObject({
+        indexedFiles: 1,
+        parsedFiles: 1,
+        reusedFiles: 1,
+        staleStatus: "fresh",
+      });
+    } finally {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+      await rm(emptyPath, { recursive: true, force: true });
+    }
+
+    const db = new Database(resolveEnginePaths(repoRoot).databasePath, { readonly: true });
+    const checkout = db.prepare(
+      "SELECT git_mode, head_oid, branch_ref, git_diagnostic FROM checkouts WHERE canonical_root = ?",
+    ).get(await realpath(repoRoot)) as {
+      git_mode: string;
+      head_oid: string | null;
+      branch_ref: string | null;
+      git_diagnostic: string | null;
+    };
+    db.close();
+    expect(checkout.git_mode).toBe("git-unavailable");
+    expect(checkout.head_oid).toBeNull();
+    expect(checkout.branch_ref).toBeNull();
+    expect(checkout.git_diagnostic).toContain("git");
+    await expect(diagnostics({ repoRoot, scanFreshness: true })).resolves.toMatchObject({
+      staleStatus: "fresh",
+      freshnessMode: "scan",
+    });
+  });
+
   it("indexes .mjs files as JavaScript source", async () => {
     const repoRoot = await createFixtureRepo();
 
@@ -505,6 +653,148 @@ module.exports = {
     db.close();
 
     expect(checkout?.canonical_root).toBe(canonicalRepoRoot);
+  });
+
+  it("keeps global index, sidecars, and events together in an isolated cache directory", async () => {
+    const repoRoot = await createFixtureRepo({
+      directoryPrefix: "astrograph global storage fixture-",
+    });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-cache-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+
+      await indexFolder({ repoRoot });
+      await appendEngineEvent({
+        repoRoot,
+        source: "health",
+        event: "test.global-storage",
+        level: "info",
+      });
+
+      const canonicalRepoRoot = await realpath(repoRoot);
+      const paths = resolveEnginePaths(canonicalRepoRoot, { storageLocation: "global" });
+      const health = await diagnostics({ repoRoot });
+
+      expect(health.storageDir).toBe(paths.storageDir);
+      expect(health.databasePath).toBe(paths.databasePath);
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.databasePath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.repoMetaPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.integrityPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.stat(paths.storageVersionPath))).resolves.toBeDefined();
+      await expect(import("node:fs/promises").then((fs) => fs.readFile(paths.eventsPath, "utf8"))).resolves.toContain("test.global-storage");
+      await expect(import("node:fs/promises").then((fs) => fs.stat(path.join(canonicalRepoRoot, ".astrograph")))).rejects.toMatchObject({ code: "ENOENT" });
+    } finally {
+      clearStorageProcessCaches();
+      if (previousCacheHome === undefined) {
+        delete process.env.ASTROGRAPH_CACHE_HOME;
+      } else {
+        process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      }
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  it("isolates global caches for repositories with equal fixture layouts", async () => {
+    const firstRepo = await createFixtureRepo({ directoryPrefix: "astrograph global isolation-a-" });
+    const secondRepo = await createFixtureRepo({ directoryPrefix: "astrograph global isolation-b-" });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-isolation-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await Promise.all([firstRepo, secondRepo].map((repoRoot) =>
+        writeFile(
+          path.join(repoRoot, "astrograph.config.json"),
+          JSON.stringify({ storageLocation: "global" }),
+        ),
+      ));
+      await writeFile(
+        path.join(secondRepo, "src", "global-only.ts"),
+        "export function globalOnlyRepositorySymbol() { return 42; }\n",
+      );
+
+      await indexFolder({ repoRoot: firstRepo });
+      await indexFolder({ repoRoot: secondRepo });
+
+      const firstRoot = await realpath(firstRepo);
+      const secondRoot = await realpath(secondRepo);
+      const firstPaths = resolveEnginePaths(firstRoot, { storageLocation: "global" });
+      const secondPaths = resolveEnginePaths(secondRoot, { storageLocation: "global" });
+      expect(firstPaths.storageDir).not.toBe(secondPaths.storageDir);
+
+      const firstResults = await searchSymbols({
+        repoRoot: firstRepo,
+        query: "globalOnlyRepositorySymbol",
+      });
+      const secondResults = await searchSymbols({
+        repoRoot: secondRepo,
+        query: "globalOnlyRepositorySymbol",
+      });
+      expect(firstResults).toEqual([]);
+      expect(secondResults.map((result) => result.name)).toContain("globalOnlyRepositorySymbol");
+    } finally {
+      clearStorageProcessCaches();
+      if (previousCacheHome === undefined) {
+        delete process.env.ASTROGRAPH_CACHE_HOME;
+      } else {
+        process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      }
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  it("measures duplicate immutable analysis across equivalent global repositories", async () => {
+    const firstRepo = await createFixtureRepo({ directoryPrefix: "astrograph global reuse-a-" });
+    const secondRepo = await createFixtureRepo({ directoryPrefix: "astrograph global reuse-b-" });
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-reuse-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      await Promise.all([firstRepo, secondRepo].map((repoRoot) =>
+        writeFile(
+          path.join(repoRoot, "astrograph.config.json"),
+          JSON.stringify({ storageLocation: "global" }),
+        ),
+      ));
+
+      const firstStartedAt = Date.now();
+      await indexFolder({ repoRoot: firstRepo });
+      const firstDurationMs = Date.now() - firstStartedAt;
+      const secondStartedAt = Date.now();
+      await indexFolder({ repoRoot: secondRepo });
+      const secondDurationMs = Date.now() - secondStartedAt;
+
+      const artifactCount = (repoRoot: string) => {
+        const db = new Database(
+          resolveEnginePaths(repoRoot, { storageLocation: "global" }).databasePath,
+          { readonly: true },
+        );
+        const count = db.prepare("SELECT COUNT(*) AS count FROM analysis_artifacts")
+          .get() as { count: number };
+        db.close();
+        return count.count;
+      };
+
+      const firstArtifacts = artifactCount(await realpath(firstRepo));
+      const secondArtifacts = artifactCount(await realpath(secondRepo));
+
+      expect(firstArtifacts).toBeGreaterThan(0);
+      expect(secondArtifacts).toBe(firstArtifacts);
+      expect(firstDurationMs).toBeGreaterThan(0);
+      expect(secondDurationMs).toBeGreaterThan(0);
+    } finally {
+      clearStorageProcessCaches();
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      await rm(cacheHome, { recursive: true, force: true });
+    }
   });
 
   it("persists immutable analysis artifacts and checkout-local path mappings", async () => {
@@ -638,10 +928,124 @@ module.exports = {
 
     expect(health.schemaVersion).toBe(7);
     await expect(fs.access(stalePath)).rejects.toMatchObject({ code: "ENOENT" });
+    const archives = await fs.readdir(path.join(repoRoot, ".astrograph-archive"));
+    const archivePath = path.join(repoRoot, ".astrograph-archive", archives.find((entry) => entry.endsWith("-.astrograph"))!);
+    await expect(fs.readFile(path.join(archivePath, "stale-artifact.json"), "utf8")).resolves.toBe("stale");
     await expect(fs.readFile(staleWalPath, "utf8")).resolves.not.toBe("stale wal");
     await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
       .resolves.toContain('"version": 1');
+  });
+
+  it("discards missing and malformed storage markers before opening cache contents", async () => {
+    const fs = await import("node:fs/promises");
+
+    for (const marker of [null, "not-json"]) {
+      const repoRoot = await createFixtureRepo({
+        directoryPrefix: "astrograph obsolete marker-",
+      });
+      const paths = resolveEnginePaths(repoRoot);
+      await fs.mkdir(paths.storageDir, { recursive: true });
+      if (marker !== null) {
+        await fs.writeFile(paths.storageVersionPath, marker);
+      }
+      await fs.writeFile(paths.databasePath, "not a SQLite database");
+      const obsoletePath = path.join(paths.storageDir, "obsolete-payload");
+      await fs.writeFile(obsoletePath, "do not read");
+
+      await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
+      await expect(fs.access(obsoletePath)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.readFile(paths.storageVersionPath, "utf8"))
+        .resolves.toContain('"version": 1');
+    }
+  });
+
+  it("discards an incompatible global cache before serving diagnostics", async () => {
+    const repoRoot = await createFixtureRepo();
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-recovery-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
+    const fs = await import("node:fs/promises");
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+      const paths = resolveEnginePaths(await realpath(repoRoot), { storageLocation: "global" });
+      await fs.mkdir(paths.storageDir, { recursive: true });
+      await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+      const obsoletePath = path.join(paths.storageDir, "obsolete.json");
+      await fs.writeFile(obsoletePath, "obsolete");
+
+      await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
+      await expect(fs.access(obsoletePath)).rejects.toMatchObject({ code: "ENOENT" });
+      await expect(fs.readFile(paths.storageVersionPath, "utf8"))
+        .resolves.toContain('"version": 1');
+    } finally {
+      clearStorageProcessCaches();
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
+      await rm(cacheHome, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses automatic recovery while an incompatible local cache is actively locked", async () => {
+    const repoRoot = await createFixtureRepo();
+    const paths = resolveEnginePaths(repoRoot);
+    const fs = await import("node:fs/promises");
+    await fs.mkdir(paths.storageDir, { recursive: true });
+    await fs.writeFile(paths.storageVersionPath, JSON.stringify({ version: 0 }));
+    await fs.writeFile(path.join(paths.storageDir, "preserve.txt"), "locked cache");
+    const lock = new Database(paths.databasePath);
+    lock.exec("BEGIN EXCLUSIVE");
+    try {
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/Refusing to recover an active Astrograph cache/i);
+      await expect(fs.readFile(path.join(paths.storageDir, "preserve.txt"), "utf8")).resolves.toBe("locked cache");
+    } finally {
+      lock.exec("ROLLBACK");
+      lock.close();
+    }
+  });
+
+  it("refuses a symlinked obsolete global cache without touching its target", async () => {
+    const repoRoot = await createFixtureRepo();
+    const cacheHome = await mkdtemp(path.join(packageRoot, ".tmp-global-obsolete-symlink-"));
+    const outside = await mkdtemp(path.join(packageRoot, ".tmp-global-obsolete-outside-"));
+    const previousCacheHome = process.env.ASTROGRAPH_CACHE_HOME;
+    const previousAstrographHome = process.env.ASTROGRAPH_HOME;
+    const fs = await import("node:fs/promises");
+
+    try {
+      process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
+      process.env.ASTROGRAPH_HOME = cacheHome;
+      await writeFile(
+        path.join(repoRoot, "astrograph.config.json"),
+        JSON.stringify({ storageLocation: "global" }),
+      );
+      const paths = resolveEnginePaths(await realpath(repoRoot), { storageLocation: "global" });
+      const outsidePayload = path.join(outside, "outside.txt");
+      await fs.writeFile(outsidePayload, "do not remove");
+      await fs.writeFile(path.join(outside, "storage-version.json"), JSON.stringify({ version: 0 }));
+      await fs.mkdir(path.dirname(paths.storageDir), { recursive: true });
+      await fs.symlink(outside, paths.storageDir, "dir");
+
+      await expect(diagnostics({ repoRoot })).rejects.toThrow(/Refusing to recover a symlinked Astrograph cache/i);
+      await expect(fs.readFile(outsidePayload, "utf8")).resolves.toBe("do not remove");
+      expect((await fs.lstat(paths.storageDir)).isSymbolicLink()).toBe(true);
+    } finally {
+      clearStorageProcessCaches();
+      if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
+      else process.env.ASTROGRAPH_CACHE_HOME = previousCacheHome;
+      if (previousAstrographHome === undefined) delete process.env.ASTROGRAPH_HOME;
+      else process.env.ASTROGRAPH_HOME = previousAstrographHome;
+      await rm(cacheHome, { recursive: true, force: true });
+      await rm(outside, { recursive: true, force: true });
+    }
   });
 
   it("supports symbol and text search plus exact retrieval", async () => {
@@ -942,6 +1346,42 @@ export class Greeter {
     expect(matches[0]?.name).toBe("generateApiHooks");
   });
 
+  it("keeps judged lexical ranking deterministic across exact, acronym, summary, path, and no-result queries", async () => {
+    const repoRoot = await createFixtureRepo();
+    await mkdir(path.join(repoRoot, "src", "ranking"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "http-server.ts"),
+      "export class HTTPServer { listen() {} }\n",
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "session.ts"),
+      "/** Refresh an expired session token. */\nexport function refreshSessionToken() { return true; }\n",
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "widget.ts"),
+      "export function rankingWidget() { return true; }\n",
+    );
+    await indexFolder({ repoRoot });
+
+    const exact = await searchSymbols({ repoRoot, query: "refreshSessionToken" });
+    const acronym = await searchSymbols({ repoRoot, query: "HTTP" });
+    const naturalLanguage = await searchSymbols({ repoRoot, query: "expired session" });
+    const pathScoped = await searchSymbols({
+      repoRoot,
+      query: "widget",
+      filePattern: "src/ranking/**",
+    });
+    const noResult = await searchSymbols({ repoRoot, query: "unfindable lexical fixture" });
+    const repeated = await searchSymbols({ repoRoot, query: "expired session" });
+
+    expect(exact[0]?.name).toBe("refreshSessionToken");
+    expect(acronym[0]?.name).toBe("HTTPServer");
+    expect(naturalLanguage[0]?.name).toBe("refreshSessionToken");
+    expect(pathScoped[0]).toMatchObject({ name: "rankingWidget", filePath: "src/ranking/widget.ts" });
+    expect(noResult).toEqual([]);
+    expect(repeated.map((symbol) => symbol.id)).toEqual(naturalLanguage.map((symbol) => symbol.id));
+  });
+
   it("applies matching repo path presets without replacing generic ranking", async () => {
     const createPresetFixture = async (pathPresets: Record<string, string[]>) => {
       const repoRoot = await createFixtureRepo();
@@ -1068,6 +1508,7 @@ export const four = 4;
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           include: ["src/**/*.ts"],
           exclude: ["src/math.ts"],
@@ -1145,6 +1586,7 @@ export function generated${index}(value: number): string {
     await writeFile(
       path.join(serialRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 1,
         },
@@ -1153,6 +1595,7 @@ export function generated${index}(value: number): string {
     await writeFile(
       path.join(parallelRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 4,
         },
@@ -1198,6 +1641,7 @@ export function workerGenerated${index}(value: number): string {
     await writeFile(
       path.join(directRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 4,
           workerPool: {
@@ -1210,6 +1654,7 @@ export function workerGenerated${index}(value: number): string {
     await writeFile(
       path.join(workerRepoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         performance: {
           fileProcessingConcurrency: 4,
           workerPool: {
@@ -1288,23 +1733,12 @@ export function workerGenerated${index}(value: number): string {
     }
     expect(sourceResult.symbolSource?.items[0]?.symbol.name).toBe("Greeter");
 
-    const assembleResult = await queryCode({
+    const taskContext = await getTaskContext({
       repoRoot,
-      intent: "assemble",
       query: "Greeter",
-      tokenBudget: 120,
-      includeRankedCandidates: true,
+      payloadTokenBudget: 1_200,
     });
-    expect(assembleResult).toMatchObject({
-      intent: "assemble",
-      bundle: {
-        tokenBudget: 120,
-      },
-      ranked: {
-        query: "Greeter",
-      },
-    });
-    expect(assembleResult.intent).toBe("assemble");
+    expect(taskContext.items[0]?.symbol.name).toBe("Greeter");
   });
 
   it("supports auto query mode when the intent is omitted", async () => {
@@ -1332,12 +1766,11 @@ export function workerGenerated${index}(value: number): string {
     });
     expect(sourceResult.intent).toBe("source");
 
-    const assembleResult = await queryCode({
+    await expect(queryCode({
       repoRoot,
+      intent: "assemble" as never,
       query: "Greeter",
-      tokenBudget: 120,
-    });
-    expect(assembleResult.intent).toBe("assemble");
+    })).rejects.toThrow(/invalid query-code arguments/i);
   });
 
   it("explains graph-aware discover results with dependency and importer reasons", async () => {
@@ -1471,53 +1904,46 @@ export function renderFirst(value: number): string {
       discoverResult.matches.some((entry) => entry.symbol.name === "renderFirst"),
     ).toBe(false);
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "bestFormatter",
       includeDependencies: false,
       includeReferences: true,
       relationDepth: 1,
-      tokenBudget: 220,
+      payloadTokenBudget: 1_200,
     });
     expect(bundle.items.some((item) => item.symbol.name === "renderBest")).toBe(true);
     expect(bundle.items.some((item) => item.symbol.name === "renderFirst")).toBe(false);
   });
 
-  it("expands assembled query context with bounded graph relations", async () => {
+  it("expands task context with bounded graph relations", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const assembleResult = await queryCode({
+    const assembleResult = await getTaskContext({
       repoRoot,
-      intent: "assemble",
       query: "formatLabel",
-      tokenBudget: 160,
+      payloadTokenBudget: 1_200,
       includeDependencies: true,
       includeImporters: true,
       relationDepth: 1,
-      includeRankedCandidates: true,
     });
 
-    expect(assembleResult.intent).toBe("assemble");
-    if (assembleResult.intent !== "assemble") {
-      throw new Error("Expected assemble result");
-    }
-
-    expect(assembleResult.bundle.usedTokens).toBeLessThanOrEqual(
-      assembleResult.bundle.tokenBudget,
+    expect(assembleResult.usedPayloadTokens).toBeLessThanOrEqual(
+      assembleResult.payloadTokenBudget,
     );
-    expect(assembleResult.bundle.items).toEqual(
+    expect(assembleResult.items).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
-          role: "target",
+          role: "match",
           symbol: expect.objectContaining({
             name: "formatLabel",
           }),
           reason: "exact_symbol_match",
         }),
         expect.objectContaining({
-          role: expect.stringMatching(/target|dependency/),
+          role: expect.stringMatching(/match|relation/),
           symbol: expect.objectContaining({
             name: "area",
           }),
@@ -1525,12 +1951,6 @@ export function renderFirst(value: number): string {
         }),
       ]),
     );
-    expect(assembleResult.ranked?.candidates[0]).toMatchObject({
-      reason: "exact_symbol_match",
-      symbol: {
-        name: "formatLabel",
-      },
-    });
   });
 
   it("deduplicates repeated import sources while rebuilding file dependencies", async () => {
@@ -1597,20 +2017,12 @@ export function circleArea(radius: number): number {
     ).rejects.toThrow(/limit must be positive/i);
 
     await expect(
-      getContextBundle({
+      getTaskContext({
         repoRoot,
         query: "Greeter",
-        tokenBudget: 0,
+        payloadTokenBudget: 0,
       }),
-    ).rejects.toThrow(/tokenBudget must be positive/i);
-
-    await expect(
-      getRankedContext({
-        repoRoot,
-        query: "Greeter",
-        tokenBudget: 0,
-      }),
-    ).rejects.toThrow(/tokenBudget must be positive/i);
+    ).rejects.toThrow(/payloadTokenBudget must be positive/i);
 
     await expect(
       getSymbolSource({
@@ -1621,12 +2033,12 @@ export function circleArea(radius: number): number {
     ).rejects.toThrow(/contextLines must be non-negative/i);
 
     await expect(
-      getContextBundle({
+      getTaskContext({
         repoRoot,
         query: "   ",
         symbolIds: ["   "],
       }),
-    ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/getTaskContext requires a non-empty query or symbolIds/i);
   });
 
   it("extracts symbols from a large file when single-pass tree-sitter parsing fails", async () => {
@@ -1695,7 +2107,7 @@ export function circleArea(radius: number): number {
       filePath: "src/large.ts",
       name: "helper899",
     });
-  });
+  }, 45_000);
 
   it("indexes a declaration that spans chunk boundaries exactly once", async () => {
     const repoRoot = await createFixtureRepo();
@@ -1901,19 +2313,62 @@ export function circleArea(radius: number): number {
     );
   });
 
-  it("assembles bounded context bundles from persisted indexed content", async () => {
+  it("returns UTF-8 and CRLF-correct provenance for exact symbol source", async () => {
+    const repoRoot = await createFixtureRepo();
+    const content = [
+      "// π keeps UTF-8 offsets honest.",
+      "export function café(value: string) {",
+      "  return `héllo ${value}`;",
+      "}",
+      "",
+    ].join("\r\n");
+    await writeFile(path.join(repoRoot, "src", "provenance.ts"), content);
+    await indexFolder({ repoRoot });
+
+    const symbol = (await searchSymbols({ repoRoot, query: "café" }))[0]!;
+    const result = await getSymbolSource({ repoRoot, symbolId: symbol.id, verify: true });
+    const item = result.items[0]!;
+    const expectedStartByte = Buffer.byteLength("// π keeps UTF-8 offsets honest.\r\n", "utf8");
+
+    expect(item.source).toContain("function café");
+    expect(item.source).toContain("\r\n");
+    expect(item.verified).toBe(true);
+    expect(item.symbol).toMatchObject({
+      filePath: "src/provenance.ts",
+      startByte: expectedStartByte,
+    });
+    expect(item.provenance).toMatchObject({
+      filePath: "src/provenance.ts",
+      sourceHash: expect.stringMatching(/^sha256:/),
+      range: {
+        encoding: "utf8",
+        startByte: expectedStartByte,
+        endByte: expectedStartByte + Buffer.byteLength(item.source, "utf8"),
+        startLine: 2,
+        endLine: 4,
+      },
+      parser: {
+        backend: "tree-sitter",
+        fallbackUsed: false,
+        fallbackReason: null,
+      },
+      freshness: "indexed-snapshot",
+    });
+  });
+
+  it("assembles bounded task context from persisted indexed content", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "area",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
 
     expect(bundle.items[0]).toMatchObject({
-      role: "target",
+      role: "match",
       symbol: {
         name: "area",
         filePath: "src/math.ts",
@@ -1924,6 +2379,9 @@ export function circleArea(radius: number): number {
     );
     expect(bundle.items[0].source).toContain("return formatLabel(value);");
     expect(bundle.truncated).toBe(false);
+    expect(bundle.exclusions).toEqual(
+      expect.arrayContaining([expect.objectContaining({ reason: "duplicate" })]),
+    );
 
     await writeFile(
       path.join(repoRoot, "src", "math.ts"),
@@ -1937,10 +2395,10 @@ export function area(radius: number): string {
 `,
     );
 
-    const persistedBundle = await getContextBundle({
+    const persistedBundle = await getTaskContext({
       repoRoot,
       query: "area",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
 
     expect(persistedBundle.items[0].source).toContain(
@@ -1949,57 +2407,73 @@ export function area(radius: number): string {
     expect(persistedBundle.items[0].source).not.toContain("changed");
   });
 
-  it("keeps context bundles inside the declared token budget", async () => {
+  it("keeps task context inside the declared payload budget", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "area",
-      tokenBudget: 10,
+      payloadTokenBudget: 1_200,
     });
 
-    expect(bundle.usedTokens).toBeLessThanOrEqual(bundle.tokenBudget);
+    expect(bundle.usedPayloadTokens).toBeLessThanOrEqual(bundle.payloadTokenBudget);
   });
 
-  it("returns ranked query context with visible candidate selection", async () => {
+  it("returns source-attributed task context with deterministic selection", async () => {
     const repoRoot = await createFixtureRepo();
 
     await indexFolder({ repoRoot });
 
-    const rankedContext = await getRankedContext({
+    const rankedContext = await getTaskContext({
       repoRoot,
       query: "Greeter",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
 
     expect(rankedContext).toMatchObject({
       query: "Greeter",
-      candidateCount: expect.any(Number),
-      selectedSeedIds: expect.any(Array),
-      bundle: {
-        tokenBudget: 120,
-      },
+      payloadTokenBudget: 1_200,
     });
-    expect(rankedContext.candidates[0]).toMatchObject({
-      rank: 1,
+    expect(rankedContext.items[0]).toMatchObject({
+      role: "match",
       reason: "exact_symbol_match",
       symbol: {
         name: "Greeter",
         filePath: "src/strings.ts",
       },
-      selected: true,
+      provenance: expect.any(Object),
     });
-    expect(rankedContext.selectedSeedIds).toContain(
-      rankedContext.candidates[0]?.symbol.id,
-    );
-    expect(rankedContext.bundle.items[0]).toMatchObject({
-      role: "target",
-      symbol: {
-        name: "Greeter",
-      },
-    });
+  });
+
+  it("keeps exploration, debug, refactor, and audit task fixtures deterministic", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+    const area = (await searchSymbols({ repoRoot, query: "area" }))[0];
+    expect(area).toBeDefined();
+
+    for (const [intent, query] of [
+      ["explore", "explore area formatting"],
+      ["debug", "debug area formatting"],
+      ["refactor", "refactor area formatting"],
+      ["audit", "audit area formatting"],
+    ] as const) {
+      const result = await getTaskContext({
+        repoRoot,
+        query,
+        symbolIds: [area!.id],
+        intent,
+        payloadTokenBudget: 1_200,
+      });
+      expect(result.intent).toBe(intent);
+      expect(result.items[0]).toMatchObject({
+        role: "anchor",
+        symbol: { id: area!.id, name: "area" },
+        provenance: { range: { encoding: "utf8" } },
+      });
+      expect(result.usedPayloadTokens).toBeLessThanOrEqual(result.payloadTokenBudget);
+    }
   });
 
   it("resolves aliased named imports to the correct dependency symbol", async () => {
@@ -2028,10 +2502,10 @@ export function renderValue(value: number): string {
 
     await indexFolder({ repoRoot });
 
-    const bundle = await getContextBundle({
+    const bundle = await getTaskContext({
       repoRoot,
       query: "renderValue",
-      tokenBudget: 200,
+      payloadTokenBudget: 1_200,
     });
 
     expect(bundle.items.some((item) => item.symbol.name === "bestFormatter")).toBe(
@@ -2068,10 +2542,10 @@ export function renderValue(value: number): string {
 
     await indexFolder({ repoRoot });
 
-    const initialBundle = await getContextBundle({
+    const initialBundle = await getTaskContext({
       repoRoot,
       query: "renderValue",
-      tokenBudget: 200,
+      payloadTokenBudget: 1_200,
     });
     expect(initialBundle.items.some((item) => item.symbol.name === "bestFormatter")).toBe(
       true,
@@ -2096,10 +2570,10 @@ export function renderValue(value: number): string {
       staleStatus: "fresh",
     });
 
-    const updatedBundle = await getContextBundle({
+    const updatedBundle = await getTaskContext({
       repoRoot,
       query: "renderValue",
-      tokenBudget: 200,
+      payloadTokenBudget: 1_200,
     });
     expect(updatedBundle.items.some((item) => item.symbol.name === "firstFormatter")).toBe(
       true,
@@ -2329,12 +2803,12 @@ export function helperValue(): string {
       filePath: "src/area-helper.ts",
     });
 
-    const rankedContext = await getRankedContext({
+    const rankedContext = await getTaskContext({
       repoRoot,
       query: "radius",
-      tokenBudget: 120,
+      payloadTokenBudget: 1_200,
     });
-    expect(rankedContext.candidates[0]).toMatchObject({
+    expect(rankedContext.items[0]).toMatchObject({
       reason: "query_match",
       symbol: {
         name: "helperValue",
@@ -2744,9 +3218,18 @@ export function circumference(radius: number): string {
     expect(closedHealth.watch.reindexCount).toBeGreaterThanOrEqual(1);
   });
 
-  it("uses repo-config watch defaults when explicit watch options are omitted", async () => {
+  it("uses the explicit polling fallback with observable delta work", async () => {
     const repoRoot = await createFixtureRepo();
-    const reindexEvents: Array<{ changedPaths: string[] }> = [];
+    const reindexEvents: Array<{
+      changedPaths: string[];
+      summary?: {
+        indexedFiles: number;
+        reusedFiles: number;
+        parsedFiles: number;
+        removedFiles: number;
+        staleStatus: string;
+      };
+    }> = [];
 
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
@@ -2764,6 +3247,15 @@ export function circumference(radius: number): string {
         if (event.type === "reindex") {
           reindexEvents.push({
             changedPaths: event.changedPaths,
+            summary: event.summary
+              ? {
+                  indexedFiles: event.summary.indexedFiles,
+                  reusedFiles: event.summary.reusedFiles,
+                  parsedFiles: event.summary.parsedFiles,
+                  removedFiles: event.summary.removedFiles,
+                  staleStatus: event.summary.staleStatus,
+                }
+              : undefined,
           });
         }
       },
@@ -2783,6 +3275,17 @@ export function circumference(radius: number): string {
       );
 
       await waitFor(() => reindexEvents.length >= 1, 4000);
+
+      expect(reindexEvents[0]).toMatchObject({
+        changedPaths: ["src/math.ts"],
+        summary: {
+          indexedFiles: 1,
+          reusedFiles: 0,
+          parsedFiles: 1,
+          removedFiles: 0,
+          staleStatus: "fresh",
+        },
+      });
 
       const health = await diagnostics({ repoRoot });
       expect(health.watch).toMatchObject({

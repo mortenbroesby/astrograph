@@ -3,10 +3,26 @@
 Astrograph exposes three main command surfaces:
 
 - `astrograph init`
+- `astrograph install --global [--ide copilot-cli|codex]`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
 Use `astrograph mcp` when you want to run the stdio MCP server directly.
+
+Use `astrograph --version` to print the installed package version. Use
+`astrograph --diagnostics` for a no-repository global setup report: Node
+compatibility, global config and cache paths, storage selection, and Copilot
+CLI/Codex registration presence.
+
+If these commands show an older installed version than expected, update first:
+
+```bash
+npm install --global astrograph@latest
+```
+
+On macOS, global setup stores `config.json` under `~/.astrograph` and creates
+`~/.astrograph/cache` when a repository is first indexed. Pre-v1 releases do
+not retain or migrate the former Library cache/config locations.
 
 Prefer `npx astrograph ...` unless you have already verified another local
 invocation path in your environment.
@@ -15,6 +31,15 @@ invocation path in your environment.
 
 - `astrograph init`
   Writes MCP configuration for supported clients.
+- `astrograph install --global [--ide copilot-cli|codex]`
+  Registers one user-level MCP server and enables per-repository global cache
+  storage. Codex writes its managed Astrograph block to `~/.codex/config.toml`;
+  Copilot CLI writes only `mcpServers.astrograph` to
+  `~/.copilot/mcp-config.json` (or `$COPILOT_HOME/mcp-config.json`). It does
+  not modify a repository: after installing once, open any repository and
+  index it or use the MCP tools directly. Normal global use does not require
+  `init`, repo-local config, or a chosen cache directory.
+  With no `--ide`, it installs for Copilot CLI.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`
@@ -26,6 +51,18 @@ invocation path in your environment.
 
 Most CLI commands emit JSON by default. `doctor` also supports a more readable
 formatted report unless you pass `--json`.
+
+## File Support
+
+JavaScript modules (`.js`, `.cjs`, `.mjs`) are graph-capable source files, like
+TypeScript. Markdown (`.md`), YAML (`.yaml`, `.yml`), and text (`.txt`) are
+discovery-only: use `find-files`, `search-text`, and `get-file-summary` for
+them, but do not pass them through a `language` filter or expect symbols,
+outlines, or dependency-graph results. `get-project-status` and `diagnostics`
+return the full registry and available tools for each tier.
+
+See [File Support Tiers](../getting-started/concepts.md#file-support-tiers) for
+the complete current extension matrix and summary behavior.
 
 ## Setup Commands
 
@@ -54,35 +91,66 @@ newer version is available:
 npm install astrograph@latest
 ```
 
-If you need to clear local state and rebuild after a major contract change:
+Do not manually delete `.astrograph` state. A missing, malformed, or
+incompatible storage marker causes Astrograph to archive the managed cache and
+rebuild it on the next operation. If a cache needs recovery, inspect status and
+use the scoped archive commands below.
 
-Use the command for your terminal, then run `astrograph init --yes`.
+## Cache Archive and Recovery Commands
+
+Cache archive and recovery commands emit stable JSON envelopes with
+`schemaVersion: 1`. They are CLI-only; MCP has no destructive cache tools.
+
+`cache status` includes the canonical repository, selected storage location,
+and the persisted checkout that populated that cache. `checkout` is `null`
+until the repository has been indexed; otherwise it reports its Git mode,
+branch/head/worktree identity, diagnostic, and indexed time.
+
+For a globally installed Codex or Copilot CLI client, use these recovery
+commands before editing or deleting cache files manually. They operate on the
+selected repository's isolated global cache, not a shared cross-repository
+index. Re-run the matching `astrograph install --global --ide ...` command to
+repair a managed client entry without changing unrelated user configuration.
 
 ```bash
-# Git Bash
-rm -rf .astrograph
+astrograph cache status --repo /repo
+astrograph cache remove --repo /repo         # preview only
+astrograph cache remove --repo /repo --yes   # archive that global cache
+astrograph cache prune --all --max-bytes 1073741824       # preview only
+astrograph cache prune --all --max-bytes 1073741824 --yes # archive oldest inactive caches
+astrograph cache restore --repo /repo --receipt /path/to/archive.receipt.json # preview validation
+astrograph cache restore --repo /repo --receipt /path/to/archive.receipt.json --yes
 ```
 
-```powershell
-# PowerShell
-Remove-Item -Recurse -Force .astrograph
-```
+Before v1, a cache with a missing, malformed, older, or newer storage marker is
+archived and rebuilt automatically; Astrograph does not migrate it for
+compatibility. Every archive has a JSON receipt containing the original and
+archive paths, byte count, reason, timestamp, and a copy-paste restore command.
+`cache restore` validates that receipt and restores only into the absent,
+canonical cache directory for the selected repository. It rejects symlinks,
+out-of-root paths, malformed receipts, collisions, and active SQLite caches.
 
-```bat
-:: cmd.exe
-rmdir /s /q .astrograph
-```
+Archives are retained until you explicitly inspect and handle them; Astrograph
+does not silently expire or permanently delete user cache data. Permanent
+deletion is deliberately not available through Astrograph's CLI or MCP while
+the format is pre-v1. `cache-remove` only accepts the canonical per-repository
+directory below the current user’s Astrograph cache root and requires `--yes`
+to mutate.
+
+`cache prune` is intentionally whole-user-cache scoped: it requires `--all`
+and a byte target, sorts repository cache directories by last modification time
+then stable identity, skips active SQLite databases, and stops at the requested
+target. Symlinked cache paths are rejected rather than traversed.
 
 ## Retrieval and Health Commands
 
 Query indexed metadata:
 
 ```bash
-npx astrograph cli query-code \
+npx astrograph cli get-task-context \
   --repo /absolute/path/to/repo \
-  --intent assemble \
   --query "how does watch refresh remove deleted files?" \
-  --budget 8000 \
+  --payload-token-budget 1200 \
   --include-references
 ```
 
@@ -125,7 +193,15 @@ compares returned symbol items with all ranked matches before the result cap.
 
 `query-code` is a CLI and TypeScript-library convenience workflow. It is
 intentionally not an MCP tool; MCP clients should compose `search_symbols`,
-`get_symbol_source`, `get_context_bundle`, and `get_ranked_context` instead.
+`get_symbol_source`, and `get_task_context` instead. Use `get_task_context`
+only when the narrower discovery/source path cannot answer the task within its
+declared payload-token budget.
+
+`get-symbol-source` returns UTF-8 source provenance for every item: a
+SHA-256 hash of the returned source, zero-based/end-exclusive byte range,
+one-based line range, parser metadata, and `indexed-snapshot` freshness. Use
+`diagnostics --scan-freshness` when deciding whether disk content has changed
+since indexing.
 
 Inspect file shape:
 

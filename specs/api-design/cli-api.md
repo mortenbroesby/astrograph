@@ -6,8 +6,24 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 
 - `astrograph cli <command>` runs JSON code-intelligence commands.
 - `astrograph mcp` starts the stdio MCP server.
+- `astrograph cli get-task-context --repo <path> --query <query> --payload-token-budget <n>`
+  returns the canonical source-attributed task-context payload. It is the only
+  bounded-context command; `query-code` remains discovery/source only.
 - `astrograph git-refresh <event>` plans or executes index refreshes for git workflows.
 - `astrograph init --ide codex` writes managed local MCP configuration.
+- `astrograph install --global --ide codex` writes only the marker-owned user
+  Codex registration and user Astrograph default; it never edits a repository.
+- `astrograph cache status --repo <path>` returns a versioned JSON cache
+  status, including the persisted checkout identity that last populated the
+  selected cache (or `checkout: null` before indexing). `astrograph cache
+  migrate`, `astrograph cache remove`, and `astrograph cache prune` default to
+  dry-run and require `--yes` to mutate scoped cache data. Mutations archive
+  rather than delete and return a receipt with byte count and recovery command.
+  `astrograph cache restore
+  --repo <path> --receipt <path> --yes` restores only a receipt-owned archive
+  into an absent canonical cache location. The restore preview validates the
+  same receipt and path-safety invariants as the mutation. Cache mutations are
+  not MCP tools.
 
 ## JSON CLI Rules
 

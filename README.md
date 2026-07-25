@@ -16,7 +16,7 @@
   <a href="https://www.npmjs.com/package/astrograph"><img alt="npm" src="https://img.shields.io/npm/v/astrograph?color=0f172a&label=npm"></a>
   <a href="https://github.com/mortenbroesby/astrograph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mortenbroesby/astrograph/ci.yml?branch=main&label=ci"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-14b8a6"></a>
-  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D24-6366f1">
+  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D22.12.0-6366f1">
 </p>
 
 <p align="center">
@@ -114,7 +114,8 @@ code so it can retrieve less and understand more.
 
 ### 1) Install
 
-Use dependency-based setup if you want `astrograph` available in repo scripts:
+Use dependency-based setup if you want `astrograph` available in repository
+scripts:
 
 ```bash
 npm install -D astrograph
@@ -122,15 +123,17 @@ npm install -D astrograph
 
 ### 2) Configure MCP
 
-If you prefer one-shot setup without a prior install, run the installer from
-the repository you want to index:
+Run the installer from the repository you want to index:
 
 ```bash
 npx astrograph init
 ```
 
-That writes MCP configuration for your target editor or agent client and
-preserves unrelated local config.
+This shows a short setup progress indicator, then explains the selected
+clients, project-owned files, local index, and next step. It writes MCP
+configuration for your target editor or agent client and preserves unrelated
+local config. `npx` downloads and runs Astrograph when it is not already
+installed locally.
 
 If you want non-interactive setup:
 
@@ -147,6 +150,13 @@ npx astrograph init --ide copilot-cli
 npx astrograph init --ide all
 ```
 
+For scripts that need the complete generated configuration instead of the
+human-readable summary, opt into JSON explicitly:
+
+```bash
+npx astrograph init --yes --json
+```
+
 For a fresh repository, create the initial index before first use:
 
 ```bash
@@ -159,58 +169,102 @@ Once the MCP config is written, start your editor or CLI agent session and use
 Astrograph's retrieval tools against the local repository.
 
 <a id="global-installation"></a>
-## 🌍 Global Installation and Use (Codex)
+## 🌍 Global Installation and Use (Codex and Copilot CLI)
 
-Use global setup when you want one user-level Codex MCP registration that works
-across repositories. It is currently supported for Codex only. Astrograph keeps
-an isolated cache for each canonical repository root; it never combines source
-or mutable index data from separate repositories.
+Use global setup when you want one user-level MCP registration that works
+across repositories. Codex and Copilot CLI are first-party global targets.
+Astrograph keeps an isolated cache for each canonical repository root; it never
+combines source or mutable index data from separate repositories.
 
 ### 1) Install the command
 
-Global setup requires Node.js `>=22.12.0`. Install Astrograph, then open a new
-shell if your npm global bin directory was not already on `PATH`:
+Global setup requires Node.js `>=22.12.0`. Install or update Astrograph, then
+open a new shell if your npm global bin directory was not already on `PATH`:
 
 ```bash
-npm install --global astrograph
-astrograph --help
+npm install --global astrograph@latest
+astrograph --version
+astrograph --diagnostics
 ```
 
-### 2) Register the global Codex server
+The global install confirms the Astrograph version and prints the two client
+commands below. It does not change Codex, Copilot CLI, or any repository by
+itself; that choice stays explicit.
+
+### 2) Register your global server
+
+By default, Astrograph registers Copilot CLI:
+
+```bash
+astrograph install --global
+```
+
+For Codex instead:
 
 ```bash
 astrograph install --global --ide codex
 ```
 
-The installer adds a managed `astrograph mcp` entry to
-`~/.codex/config.toml` and writes the global-storage preference to your
-user-level Astrograph configuration. It does not modify any repository. Restart
-Codex after this command so it loads the registered MCP server.
+For Copilot CLI:
+
+```bash
+astrograph install --global --ide copilot-cli
+```
+
+The installer shows a short progress indicator, then explains what is ready:
+local code exploration tools, one private global cache per repository, and no
+Astrograph files added to repositories. The installer adds only Astrograph’s managed server entry to the client’s
+user-level configuration: `~/.codex/config.toml` for Codex, or
+`~/.copilot/mcp-config.json` for Copilot CLI (`$COPILOT_HOME/mcp-config.json`
+when that variable is set). It also writes the global-storage preference to
+your user-level Astrograph configuration. It does not modify any repository.
+Restart the selected harness after this command so it loads the MCP server.
+
+`astrograph --diagnostics` reports the installed Astrograph version, Node
+compatibility, selected global-storage configuration, cache root, and whether
+the Copilot CLI or Codex registration is present. On macOS all global state is
+visible under `~/.astrograph`: `config.json` is created during global setup and
+`cache/` is created when the first repository is indexed. Pre-v1 Astrograph
+does not reuse the previous Library cache/config locations.
 
 To preview the changes without writing files:
 
 ```bash
-astrograph install --global --ide codex --dry-run
+astrograph install --global --ide copilot-cli --dry-run
 ```
 
-### 3) Index each repository once
+For scripts that need the complete configuration preview, request the original
+machine-readable result explicitly:
 
-From a repository, create its initial index before asking Codex to retrieve
-code:
+```bash
+astrograph install --global --ide copilot-cli --dry-run --json
+```
+
+### 3) Use any repository — no repo setup
+
+Open Codex or Copilot CLI in any repository. The global registration finds the current
+repository and uses its own isolated directory beneath the global cache root.
+You do **not** run `astrograph init`, create `astrograph.config.*`, choose a
+cache directory, or add `.codex` or `.mcp.json` files in that repository.
+
+Create the first index from Codex with `index_folder`, or run this command from
+any shell:
 
 ```bash
 astrograph cli index-folder --repo /absolute/path/to/repo
 astrograph cache status --repo /absolute/path/to/repo
 ```
 
-Thereafter, open Codex in that repository and use the Astrograph MCP tools.
-Start with `get_project_status`; if the index is stale, run `index_folder`.
+Thereafter, use Astrograph normally from Codex or Copilot CLI. Astrograph
+automatically uses the repository you opened and its isolated global cache.
 
-### 4) Choose storage deliberately
+### 4) Repository-local setup is an explicit alternative
 
-Global setup makes global storage the user default. A repository can opt out
-with `storageLocation: "repo-local"` in `astrograph.config.ts` or
-`astrograph.config.json`; an explicit CLI flag wins for one command:
+Global setup makes global storage the user default. Use repository-local
+`init` only when you intentionally want workspace-owned MCP configuration or
+storage. A repository can opt out with `storageLocation: "repo-local"` in
+`astrograph.config.ts` or `astrograph.config.json`; an explicit CLI flag wins
+for one command:
 
 ```bash
 astrograph cli index-folder --repo /absolute/path/to/repo --storage-location global
@@ -246,6 +300,37 @@ To configure multiple clients in one pass:
 npx astrograph init --yes --ide all --repo /absolute/path/to/repo
 npx astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
 ```
+
+## Global Cache
+
+Global setup is opt-in. It stores a separate SQLite cache for each canonical
+repository root and keeps all source paths, index contents, and events on the
+current OS user’s machine. Repository `astrograph.config.ts` or
+`astrograph.config.json` can override it with `storageLocation: "repo-local"`.
+For one CLI invocation, `--storage-location repo-local|global` takes precedence
+over both repository and user defaults.
+
+Use these JSON-first commands to inspect or recover a selected repository:
+
+```bash
+astrograph cache status --repo /absolute/path/to/repo
+astrograph cache remove --repo /absolute/path/to/repo --yes # archives; does not delete
+astrograph cache prune --all --max-bytes 1073741824
+astrograph cache prune --all --max-bytes 1073741824 --yes
+astrograph cache restore --repo /absolute/path/to/repo --receipt /path/to/archive.receipt.json --yes
+```
+
+`cache status` reports the canonical repository, selected storage, and the
+checkout identity that last populated that cache. Its `checkout` field is
+`null` before an index exists.
+
+Before v1, an obsolete Astrograph cache is discarded automatically and rebuilt;
+Astrograph does not copy, migrate, or preserve it for compatibility. Cache
+removal is CLI-only and defaults to a dry run. Pruning is explicitly all-cache
+scoped, removes oldest inactive repository caches first, and also defaults to
+a dry run. Global cache roots are `~/.cache/astrograph` on Linux
+(or `$XDG_CACHE_HOME/astrograph`), `~/Library/Caches/astrograph` on macOS, and
+`%LOCALAPPDATA%\\astrograph\\cache` on Windows.
 
 <a id="documentation"></a>
 ## 📚 Documentation

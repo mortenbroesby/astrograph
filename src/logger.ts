@@ -19,7 +19,3 @@ const rootLogger = pino(
 export function getLogger(bindings?: Bindings): Logger {
   return bindings ? rootLogger.child(bindings) : rootLogger;
 }
-
-export function isStructuredLoggingEnabled(): boolean {
-  return configuredLevel !== "silent";
-}

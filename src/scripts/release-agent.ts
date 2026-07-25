@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
@@ -16,11 +15,15 @@ import {
   type AstrographReleaseTransactionAction,
 } from "../release-transaction.ts";
 import { parseAstrographVersion } from "../version.ts";
+import { runProcess } from "../lib/process.ts";
+import { fetchLatestNpmVersion } from "../lib/npm-registry.ts";
 
 interface ReleaseAgentOptions {
   apply: boolean;
   base: string;
   forcePatch: boolean;
+  noRelease: boolean;
+  mergedCandidate: boolean;
 }
 
 interface ReleaseDecision {
@@ -54,6 +57,8 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
     apply: false,
     base: "",
     forcePatch: false,
+    noRelease: false,
+    mergedCandidate: false,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -62,6 +67,10 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
       options.apply = true;
     } else if (arg === "--force-patch") {
       options.forcePatch = true;
+    } else if (arg === "--no-release") {
+      options.noRelease = true;
+    } else if (arg === "--merged-candidate") {
+      options.mergedCandidate = true;
     } else if (arg === "--base") {
       options.base = argv[index + 1] ?? "";
       index += 1;
@@ -80,11 +89,11 @@ function parseArgs(argv: string[]): ReleaseAgentOptions {
 }
 
 function git(args: readonly string[]): string {
-  return execFileSync("git", [...args], {
+  return runProcess("git", args, {
     cwd: packageRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
+  }).stdout.trim();
 }
 
 function gitMaybe(args: readonly string[]): string {
@@ -126,20 +135,11 @@ function readPackageVersionAtRefMaybe(ref: string): string | null {
   }
 }
 
-function readRegistryVersion(): AstrographRegistryVersionState {
+async function readRegistryVersion(): Promise<AstrographRegistryVersionState> {
   try {
-    const output = execFileSync("npm", ["view", "astrograph", "version", "--json"], {
-      cwd: packageRoot,
-      encoding: "utf8",
-      stdio: ["ignore", "pipe", "pipe"],
-      timeout: 15_000,
-    }).trim();
-    const parsed = JSON.parse(output) as unknown;
-    if (typeof parsed !== "string") {
-      throw new Error("npm returned a non-string version.");
-    }
-    parseAstrographVersion(parsed);
-    return { status: "available", version: parsed };
+    const version = await fetchLatestNpmVersion({ packageName: "astrograph", timeoutMs: 15_000 });
+    parseAstrographVersion(version);
+    return { status: "available", version };
   } catch (error) {
     return {
       status: "unavailable",
@@ -149,7 +149,9 @@ function readRegistryVersion(): AstrographRegistryVersionState {
 }
 
 function headIsReleaseCommit(version: string): boolean {
-  return gitMaybe(["log", "-1", "--format=%s"]) === `Release ${version}`;
+  const subject = gitMaybe(["log", "-1", "--format=%s"]);
+  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(`^Release ${escapedVersion}(?: \\(#\\d+\\))?$`).test(subject);
 }
 
 interface AstrographCommit {
@@ -216,7 +218,7 @@ function printDecision(decision: ReleaseDecision): void {
   console.log(JSON.stringify(decision, null, 2));
 }
 
-function main(): void {
+async function main(): Promise<void> {
   const options = parseArgs(process.argv.slice(2));
   const baseRef = options.base || findLatestReleaseTag();
   const currentVersion = readWorkingPackageVersion();
@@ -227,7 +229,11 @@ function main(): void {
   const currentParts = parseAstrographVersion(currentVersion);
   const commits = readCommitsSince(baseRef);
   const changedFiles = readChangedFilesSince(baseRef);
-  const detectedReleaseDecision = decideAstrographRelease({ commits, changedFiles });
+  const detectedReleaseDecision = decideAstrographRelease({
+    commits,
+    changedFiles,
+    noRelease: options.noRelease,
+  });
   const releaseDecision = options.forcePatch
     ? {
       ...detectedReleaseDecision,
@@ -237,7 +243,9 @@ function main(): void {
     : detectedReleaseDecision;
   const shouldPublish = isReleasePublishKind(releaseDecision.kind);
   let targetVersion = currentVersion;
-  if (shouldPublish) {
+  if (shouldPublish && options.mergedCandidate) {
+    targetVersion = currentVersion;
+  } else if (shouldPublish) {
     targetVersion = targetAstrographPublishVersion(
       baseParts,
       currentParts,
@@ -252,7 +260,7 @@ function main(): void {
     .length > 0;
   const mainVersion = readPackageVersionAtRefMaybe("origin/main");
   const registry = shouldPublish
-    ? readRegistryVersion()
+    ? await readRegistryVersion()
     : {
       status: "unavailable" as const,
       reason: "Registry lookup is not required for a non-publish decision.",
@@ -317,10 +325,8 @@ function main(): void {
   printDecision(decision);
 }
 
-try {
-  main();
-} catch (error) {
+main().catch((error) => {
   const message = error instanceof Error ? error.message : String(error);
   console.error(message);
   process.exit(1);
-}
+});

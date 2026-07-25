@@ -29,26 +29,17 @@ on:
       - "vitest.config.ts"
   workflow_dispatch:
     inputs:
-      release_mode:
-        description: "Run the release agent in plan mode or apply mode."
-        type: choice
-        required: true
-        default: plan
-        options:
-          - plan
-          - apply
-      release_base:
-        description: "Optional base tag/ref. Defaults to the latest merged v* tag."
+      tag:
+        description: "Existing version tag to retry after an npm publication failure."
         type: string
-        required: false
-        default: ""
+        required: true
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.release_mode || 'ci' }}
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.tag || 'ci' }}
   cancel-in-progress: true
 
 jobs:
@@ -56,9 +47,9 @@ jobs:
     name: Fast required checks
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
-    outputs:
-      release_eligible: ${{ steps.release_eligibility.outputs.release_eligible }}
+    if: >-
+      github.event_name != 'workflow_dispatch' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -106,27 +97,14 @@ jobs:
           git reset --soft "${{ github.event.before }}"
           pnpm check:version-bump
 
-      - name: Check automatic release eligibility
-        id: release_eligibility
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          merged_release_prs="$(gh api \
-            -H "Accept: application/vnd.github+json" \
-            "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
-            --jq '[.[] | select(.merged_at != null and .base.ref == "main" and any(.labels[]; .name == "release"))] | length')"
-          if [ "$merged_release_prs" -gt 0 ]; then
-            echo "release_eligible=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "release_eligible=false" >> "$GITHUB_OUTPUT"
-          fi
-
+  # Kept intact for a future re-enable. Set this back to the original draft
+  # condition and add `windows` back to `release_agent.needs` when hosted
+  # Windows minutes are available again.
   windows:
     name: Windows compatibility
     runs-on: windows-latest
     timeout-minutes: 15
-    if: github.event_name != 'pull_request' || github.event.pull_request.draft == false
+    if: ${{ false }} # Disabled: avoid paid GitHub-hosted Windows runner minutes.
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
@@ -138,73 +116,163 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm type-lint
-      - run: pnpm exec vitest run --no-file-parallelism tests/filesystem-scan.test.ts tests/engine-behavior.test.ts tests/git-checkout.test.ts tests/watch-backend.test.ts tests/watch-boundary.test.ts
+      - name: Windows filesystem scan
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/filesystem-scan.test.ts
+      - name: Windows engine behavior
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/engine-behavior.test.ts
+      - name: Windows Git checkout
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/git-checkout.test.ts
+      - name: Windows watch backend
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/watch-backend.test.ts
+      - name: Windows watch boundary
+        shell: pwsh
+        run: ./scripts/run-windows-vitest.ps1 tests/watch-boundary.test.ts
       - run: pnpm test:package-bin
 
   release_agent:
-    name: Release agent
+    name: Tag and publish merged release
     runs-on: ubuntu-latest
-    timeout-minutes: 3
-    needs: [fast, windows]
+    timeout-minutes: 20
+    needs: [fast]
     if: >-
-      always() && ((github.event_name == 'workflow_dispatch' && needs.fast.result == 'success' && needs.windows.result == 'success') ||
-      (github.event_name == 'push' && github.ref == 'refs/heads/main' && needs.fast.result == 'success' && needs.windows.result == 'success' &&
-      needs.fast.outputs.release_eligible == 'true' && !startsWith(github.event.head_commit.message, 'Release ')))
+      always() && github.event_name == 'push' && github.ref == 'refs/heads/main' &&
+      needs.fast.result == 'success'
     permissions:
       contents: write
-      actions: write
-    env:
-      RELEASE_MODE: ${{ github.event_name == 'push' && 'apply' || inputs.release_mode }}
-      RELEASE_BASE: ${{ inputs.release_base || '' }}
-      RELEASE_FORCE_PATCH: ${{ github.event_name == 'workflow_dispatch' && inputs.release_mode == 'apply' && 'true' || 'false' }}
+      pull-requests: read
+      id-token: write
+    environment: npm
     steps:
-      - name: Refuse apply mode outside main
-        if: env.RELEASE_MODE == 'apply' && github.ref != 'refs/heads/main'
-        run: |
-          echo "Release apply mode must run from main."
-          exit 1
-
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install --global npm@11.5.1
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Read merged PR release exception
+        id: release_exception
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          no_release="$(gh api \
+            -H "Accept: application/vnd.github+json" \
+            "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" \
+            --jq '[.[] | select(.merged_at != null and .base.ref == "main") | any(.labels[]; .name == "no-release")] | any' || echo false)"
+          echo "no_release=${no_release}" >> "$GITHUB_OUTPUT"
 
       - name: Decide release
         id: release
         run: |
-          release_args=()
-          if [ "$RELEASE_MODE" = "apply" ]; then
-            release_args+=(--apply)
+          set -o pipefail
+          args=(--merged-candidate)
+          if [ "${{ steps.release_exception.outputs.no_release }}" = "true" ]; then
+            args+=(--no-release)
           fi
-          if [ "$RELEASE_FORCE_PATCH" = "true" ]; then
-            release_args+=(--force-patch)
+          node --experimental-strip-types ./src/scripts/release-agent.ts "${args[@]}" \
+            | tee "$RUNNER_TEMP/astrograph-release-decision.json"
+          {
+            echo "## Astrograph release decision"
+            echo
+            echo "Candidate SHA: \`${GITHUB_SHA}\`"
+            echo
+            echo '```json'
+            cat "$RUNNER_TEMP/astrograph-release-decision.json"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          if jq -e '.transactionAction == "reject"' \
+            "$RUNNER_TEMP/astrograph-release-decision.json" >/dev/null; then
+            echo "Release candidate was rejected before tag or npm publication."
+            exit 1
           fi
-          if [ -n "$RELEASE_BASE" ]; then
-            release_args+=(--base "$RELEASE_BASE")
-          fi
-          node --experimental-strip-types ./src/scripts/release-agent.ts "${release_args[@]}"
 
-      - name: Commit release version and push tag
-        if: env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true'
+      - name: Push release tag
+        if: steps.release.outputs.should_release == 'true'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add package.json tests/engine-contract.test.ts
-          if ! git diff --cached --quiet; then
-            node --experimental-strip-types ./src/scripts/check-version-bump.ts
-            git commit -m "Release ${{ steps.release.outputs.target_version }}"
-            git push origin HEAD:main
-          fi
           git tag "${{ steps.release.outputs.target_tag }}"
           git push origin "${{ steps.release.outputs.target_tag }}"
 
-      - name: Trigger trusted npm publication
-        if: env.RELEASE_MODE == 'apply' && steps.release.outputs.should_release == 'true'
+      - name: Record tag result
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          {
+            echo
+            echo "Tag pushed: \`${{ steps.release.outputs.target_tag }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publish trusted npm release
+        if: steps.release.outputs.should_release == 'true'
+        run: npm publish --provenance --access public --tag latest
+
+      - name: Record publication result
+        if: steps.release.outputs.should_release == 'true'
+        run: |
+          {
+            echo
+            echo "npm published: \`astrograph@${{ steps.release.outputs.target_version }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  retry_publish:
+    name: Retry a tagged npm publication
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: read
+      id-token: write
+    environment: npm
+    steps:
+      - name: Checkout tagged release
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.tag }}
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install --global npm@11.5.1
+
+      - name: Validate release tag
         env:
-          GH_TOKEN: ${{ github.token }}
-        run: gh workflow run Release --ref "${{ steps.release.outputs.target_tag }}"
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          expected_tag="v$(node -p "require('./package.json').version")"
+          if [ "$RELEASE_TAG" != "$expected_tag" ]; then
+            echo "Release tag '$RELEASE_TAG' does not match package version '$expected_tag'."
+            exit 1
+          fi
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Publish trusted npm release
+        run: npm publish --provenance --access public --tag latest

@@ -1,6 +1,7 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
-import { realpath, writeFile } from "node:fs/promises";
+import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -10,13 +11,10 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { afterEach, describe, expect, it as baseIt } from "vitest";
 
 import { handleCli } from "../src/cli.ts";
+import { decodeCompactMcpEnvelope } from "../src/compact-mcp.ts";
 import { MCP_SERVER_NAME, MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { dispatchTool } from "../src/mcp.ts";
-import {
-  ASTROGRAPH_PACKAGE_VERSION,
-  indexFolder,
-  readRecentEngineEvents,
-} from "../src/index.ts";
+import { ASTROGRAPH_PACKAGE_VERSION, indexFolder } from "../src/index.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 const execFileAsync = promisify(execFile);
@@ -27,23 +25,6 @@ const packageRoot = path.resolve(
 
 const it = (name: string, fn: (...args: never[]) => unknown, timeout = 30_000) =>
   baseIt(name, fn as never, timeout);
-
-async function waitFor(
-  predicate: () => boolean | Promise<boolean>,
-  timeoutMs = 5_000,
-): Promise<void> {
-  const startedAt = Date.now();
-  while (!(await predicate())) {
-    if (Date.now() - startedAt > timeoutMs) {
-      throw new Error(`Timed out after ${timeoutMs}ms`);
-    }
-    await delay(25);
-  }
-}
-
-function asTextResultForTest(value: unknown) {
-  return JSON.stringify(value, null, 2);
-}
 
 type McpToolTextResult = { type: string; text: string };
 function parseMcpToolResult(value: { content: McpToolTextResult[] } | McpToolTextResult): any {
@@ -57,6 +38,7 @@ async function withMcpClient<T>(
     stderr: () => string;
   }) => Promise<T>,
 ) {
+  const isolatedHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-home-"));
   const transport = new StdioClientTransport({
     command: process.execPath,
     args: [path.join(packageRoot, "scripts", "astrograph.mjs"), "mcp"],
@@ -64,6 +46,8 @@ async function withMcpClient<T>(
     stderr: "pipe",
     env: {
       ...process.env,
+      HOME: isolatedHome,
+      XDG_CONFIG_HOME: path.join(isolatedHome, ".config"),
       ASTROGRAPH_USE_SOURCE: "1",
     },
   });
@@ -89,6 +73,7 @@ async function withMcpClient<T>(
     });
   } finally {
     await client.close();
+    await rm(isolatedHome, { recursive: true, force: true });
   }
 }
 
@@ -119,8 +104,8 @@ describe("ai-context-engine interfaces", () => {
     const stdout = await handleCli(["get-repo-outline", "--repo", repoRoot]);
 
     expect(JSON.parse(stdout)).toMatchObject({
-      totalFiles: 2,
-      totalSymbols: 5,
+      totalFiles: 3,
+      totalSymbols: 6,
     });
 
     const diagnosticsStdout = await handleCli(["diagnostics", "--repo", repoRoot]);
@@ -128,15 +113,15 @@ describe("ai-context-engine interfaces", () => {
       staleStatus: "fresh",
       freshnessMode: "metadata",
       freshnessScanned: false,
-      indexedFiles: 2,
-      currentFiles: 2,
+      indexedFiles: 3,
+      currentFiles: 3,
       readiness: {
         stage: "deep-retrieval-ready",
         discoveryReady: true,
         deepRetrievalReady: true,
         deepening: false,
-        discoveredFiles: 2,
-        deepIndexedFiles: 2,
+        discoveredFiles: 3,
+        deepIndexedFiles: 3,
         pendingDeepIndexedFiles: 0,
       },
       retrievalHealth: {
@@ -163,6 +148,21 @@ describe("ai-context-engine interfaces", () => {
             extension: ".md",
             tiers: ["discovery"],
             summarySource: "markdown-headings",
+          }),
+          expect.objectContaining({
+            extension: ".txt",
+            tiers: ["discovery"],
+            summarySource: "text-lines",
+          }),
+          expect.objectContaining({
+            extension: ".yaml",
+            tiers: ["discovery"],
+            summarySource: "yaml-top-level-keys",
+          }),
+          expect.objectContaining({
+            extension: ".yml",
+            tiers: ["discovery"],
+            summarySource: "yaml-top-level-keys",
           }),
         ]),
       },
@@ -234,45 +234,24 @@ describe("ai-context-engine interfaces", () => {
     ]);
     const greetId = JSON.parse(greetStdout).items[0].id as string;
 
-    const rankedContextStdout = await handleCli([
-      "get-ranked-context",
+    const taskContextStdout = await handleCli([
+      "get-task-context",
       "--repo",
       repoRoot,
       "--query",
       "Greeter",
-      "--budget",
-      "120",
+      "--payload-token-budget",
+      "1200",
     ]);
-    expect(JSON.parse(rankedContextStdout)).toMatchObject({
+    expect(JSON.parse(taskContextStdout)).toMatchObject({
       query: "Greeter",
-      bundle: {
-        tokenBudget: 120,
-      },
+      payloadTokenBudget: 1200,
     });
-    expect(JSON.parse(rankedContextStdout).candidates[0]).toMatchObject({
+    expect(JSON.parse(taskContextStdout).items[0]).toMatchObject({
       symbol: {
         name: "Greeter",
       },
-      selected: true,
-    });
-    const queryCodeAssembleStdout = await handleCli([
-      "query-code",
-      "--repo",
-      repoRoot,
-      "--query",
-      "Greeter",
-      "--budget",
-      "120",
-      "--include-ranked",
-    ]);
-    expect(JSON.parse(queryCodeAssembleStdout)).toMatchObject({
-      intent: "assemble",
-      bundle: {
-        tokenBudget: 120,
-      },
-      ranked: {
-        query: "Greeter",
-      },
+      provenance: expect.any(Object),
     });
 
     const symbolSourceStdout = await handleCli([
@@ -284,10 +263,15 @@ describe("ai-context-engine interfaces", () => {
       "--context-lines",
       "1",
     ]);
-    expect(JSON.parse(symbolSourceStdout)).toMatchObject({
-      requestedContextLines: 1,
+    const symbolSourceJson = JSON.parse(symbolSourceStdout);
+    expect(symbolSourceJson).toMatchObject({ requestedContextLines: 1 });
+    expect(symbolSourceJson.items).toHaveLength(2);
+    expect(symbolSourceJson.items[0]).toMatchObject({
+      provenance: {
+        range: { encoding: "utf8" },
+        freshness: "indexed-snapshot",
+      },
     });
-    expect(JSON.parse(symbolSourceStdout).items).toHaveLength(2);
     const queryCodeSourceStdout = await handleCli([
       "query-code",
       "--repo",
@@ -363,7 +347,7 @@ export function circumference(radius: number): string {
     const signatureDiagnostics = JSON.parse(signatureDiagnosticsStdout);
     expect(signatureDiagnostics).toMatchObject({
       summarySources: {
-        signature: 5,
+        signature: 6,
       },
       watch: {
         status: "idle",
@@ -394,7 +378,6 @@ export function circumference(radius: number): string {
 
   it("treats a subdirectory CLI repo path as the enclosing git worktree root", async () => {
     const repoRoot = await createFixtureRepo();
-    const canonicalRepoRoot = await realpath(repoRoot);
     const nestedRepoRoot = path.join(repoRoot, "src");
 
     const summaryStdout = await handleCli([
@@ -403,8 +386,8 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(summaryStdout)).toMatchObject({
-      indexedFiles: 2,
-      indexedSymbols: 5,
+      indexedFiles: 3,
+      indexedSymbols: 6,
       staleStatus: "fresh",
     });
 
@@ -414,21 +397,20 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(diagnosticsStdout)).toMatchObject({
-      storageDir: path.join(canonicalRepoRoot, ".astrograph"),
-      databasePath: path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
       storageVersion: 1,
       schemaVersion: 7,
-      indexedFiles: 2,
-      currentFiles: 2,
+      indexedFiles: 3,
+      currentFiles: 3,
       readiness: {
         stage: "deep-retrieval-ready",
-        discoveredFiles: 2,
+        discoveredFiles: 3,
       },
     });
   }, 15_000);
 
   it("exposes spec-aligned MCP tools", async () => {
     const repoRoot = await createFixtureRepo();
+    let symbolSourceResponse: unknown;
     await writeFile(path.join(repoRoot, "README.md"), "# Fixture Repo\n\n## Start Here\n");
     await withMcpClient(async ({ client, stderr }) => {
       const toolsResult = await client.listTools();
@@ -446,6 +428,16 @@ export function circumference(radius: number): string {
           query: "Greeter",
           kind: "class",
           limit: 1,
+        },
+      });
+      const compactDiscoverResult = await client.callTool({
+        name: "search_symbols",
+        arguments: {
+          repoRoot,
+          query: "Greeter",
+          kind: "class",
+          limit: 1,
+          format: "compact",
         },
       });
       const filteredSearchResult = await client.callTool({
@@ -496,11 +488,25 @@ export function circumference(radius: number): string {
         },
       });
       const bundleResult = await client.callTool({
-        name: "get_ranked_context",
+        name: "get_task_context",
         arguments: {
           repoRoot,
           query: "Greeter",
-          tokenBudget: 120,
+          payloadTokenBudget: 1200,
+        },
+      });
+      const greeterId = parseMcpToolResult(
+        discoverResult as { content: Array<{ type: string; text: string }> },
+      ).data.items[0].id as string;
+      const greetId = parseMcpToolResult(
+        greetResult as { content: Array<{ type: string; text: string }> },
+      ).data.items[0].id as string;
+      symbolSourceResponse = await client.callTool({
+        name: "get_symbol_source",
+        arguments: {
+          repoRoot,
+          symbolIds: [greeterId, greetId],
+          contextLines: 1,
         },
       });
 
@@ -518,8 +524,7 @@ export function circumference(radius: number): string {
       expect(tools.map((tool) => tool.name)).toEqual(expect.arrayContaining([
         "search_symbols",
         "get_symbol_source",
-        "get_context_bundle",
-        "get_ranked_context",
+        "get_task_context",
       ]));
       expect(MCP_TOOL_DEFINITIONS.every((tool) => tool.toolVersion === "1")).toBe(true);
 
@@ -528,12 +533,25 @@ export function circumference(radius: number): string {
         content: Array<{ type: string; text: string }>;
         },
       );
+      const compactDiscoverPayload = parseMcpToolResult(
+        compactDiscoverResult as {
+          content: Array<{ type: string; text: string }>;
+        },
+      );
+      expect(Array.isArray(compactDiscoverPayload)).toBe(true);
+      expect(decodeCompactMcpEnvelope(compactDiscoverPayload)).toMatchObject({
+        ok: true,
+        data: {
+          items: [expect.objectContaining({ name: "Greeter", kind: "class" })],
+        },
+        meta: { toolVersion: "1" },
+      });
       expect(discoverPayload).toMatchObject({
         ok: true,
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: null,
+          tokenBudgetUsed: expect.any(Number),
         },
         data: {
           truncated: false,
@@ -566,21 +584,14 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: null,
+          tokenBudgetUsed: expect.any(Number),
         },
       });
       const filteredDiscover = filteredSearchPayload.data.items;
       expect(filteredDiscover.every((entry: { filePath: string }) =>
         entry.filePath.endsWith(".ts"),
       )).toBe(true);
-      const greeterToolId = discoverPayload.data.items[0].id as string;
 
-      const greetPayload = parseMcpToolResult(
-        greetResult as {
-          content: Array<{ type: string; text: string }>;
-        },
-      );
-      const greetToolId = greetPayload.data.items[0].id as string;
 
       const findFilesPayload = parseMcpToolResult(
         findFilesResult as {
@@ -629,8 +640,8 @@ export function circumference(radius: number): string {
           discoveryReady: true,
           deepRetrievalReady: true,
           deepening: false,
-          discoveredFiles: 2,
-          deepIndexedFiles: 2,
+          discoveredFiles: expect.any(Number),
+          deepIndexedFiles: expect.any(Number),
           pendingDeepIndexedFiles: 0,
         },
         freshness: {
@@ -642,7 +653,7 @@ export function circumference(radius: number): string {
         },
         supportTiers: {
           discovery: {
-            summarySources: expect.arrayContaining(["markdown-headings", "json-top-level-keys"]),
+            summarySources: expect.arrayContaining(["markdown-headings", "yaml-top-level-keys"]),
           },
           byLanguage: expect.arrayContaining([
             {
@@ -654,8 +665,7 @@ export function circumference(radius: number): string {
                 graph: expect.arrayContaining([
                   "search_symbols",
                   "get_symbol_source",
-                  "get_context_bundle",
-                  "get_ranked_context",
+                  "get_task_context",
                 ]),
               }),
             },
@@ -668,8 +678,7 @@ export function circumference(radius: number): string {
                 graph: expect.arrayContaining([
                   "search_symbols",
                   "get_symbol_source",
-                  "get_context_bundle",
-                  "get_ranked_context",
+                  "get_task_context",
                 ]),
               }),
             },
@@ -699,26 +708,19 @@ export function circumference(radius: number): string {
         },
         data: {
           query: "Greeter",
-          bundle: {
-            tokenBudget: 120,
-          },
+          payloadTokenBudget: 1200,
         },
       });
-      expect(bundlePayload.data.candidates[0]).toMatchObject({
+      expect(bundlePayload.data.items[0]).toMatchObject({
         symbol: {
           name: "Greeter",
         },
-        selected: true,
+        provenance: expect.any(Object),
       });
 
-      const symbolSourceResponse = await dispatchTool("get_symbol_source", {
-        repoRoot,
-        symbolIds: [greeterToolId, greetToolId],
-        contextLines: 1,
-      });
-
-      const symbolSourceContent = asTextResultForTest(symbolSourceResponse);
-      const parsedSymbolSource = JSON.parse(symbolSourceContent);
+      const parsedSymbolSource = parseMcpToolResult(
+        symbolSourceResponse as { content: Array<{ type: string; text: string }> },
+      );
       expect(parsedSymbolSource).toMatchObject({
         ok: true,
         data: {
@@ -727,69 +729,14 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: null,
+          tokenBudgetUsed: expect.any(Number),
         },
       });
       expect(parsedSymbolSource.data.items).toHaveLength(2);
-
-      const searchSymbolsResponse = await dispatchTool("search_symbols", {
-        repoRoot,
-        query: "Greeter",
-      });
-
-      const searchSymbolsContent = asTextResultForTest(searchSymbolsResponse);
-      const parsedSearchSymbols = JSON.parse(searchSymbolsContent);
-      expect(parsedSearchSymbols).toMatchObject({
-        ok: true,
-        data: {
-          items: expect.arrayContaining([
-          expect.objectContaining({
-            name: "Greeter",
-          }),
-          ]),
-          truncated: false,
-        },
-        meta: {
-          toolVersion: "1",
-          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
-        },
-      });
-      let latestSearchSymbolsEvent:
-        | Awaited<ReturnType<typeof readRecentEngineEvents>>[number]
-        | undefined;
-      await waitFor(async () => {
-        const recentEvents = await readRecentEngineEvents({ repoRoot, limit: 40 });
-        latestSearchSymbolsEvent = [...recentEvents].reverse().find((event) =>
-          event.event === "mcp.tool.finished"
-          && event.source === "mcp"
-          && event.data?.toolName === "search_symbols"
-        );
-        return latestSearchSymbolsEvent !== undefined;
-      });
-      expect(latestSearchSymbolsEvent?.data).toMatchObject({
-        toolName: "search_symbols",
-        durationMs: expect.any(Number),
-      });
-      expect(latestSearchSymbolsEvent?.data).not.toHaveProperty("tokenEstimate");
-
-      const contextBundleResponse = await dispatchTool("get_context_bundle", {
-        repoRoot,
-        query: "Greeter",
-        tokenBudget: 120,
-      });
-
-      const contextBundleContent = asTextResultForTest(contextBundleResponse);
-      expect(JSON.parse(contextBundleContent)).toMatchObject({
-        ok: true,
-        data: {
-          query: "Greeter",
-          tokenBudget: 120,
-        },
-        meta: {
-          toolVersion: "1",
-          tokenBudgetUsed: expect.any(Number),
-          dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
+      expect(parsedSymbolSource.data.items[0]).toMatchObject({
+        provenance: {
+          range: { encoding: "utf8" },
+          freshness: "indexed-snapshot",
         },
       });
 
@@ -946,15 +893,15 @@ export function circumference(radius: number): string {
 
     await expect(
       handleCli([
-        "get-ranked-context",
+        "get-task-context",
         "--repo",
         repoRoot,
         "--query",
         "Greeter",
-        "--budget",
+        "--payload-token-budget",
         "0",
       ]),
-    ).rejects.toThrow(/tokenBudget must be positive/i);
+    ).rejects.toThrow(/payloadTokenBudget must be positive/i);
 
     await expect(
       handleCli([
@@ -970,21 +917,7 @@ export function circumference(radius: number): string {
 
     await expect(
       handleCli([
-        "query-code",
-        "--repo",
-        repoRoot,
-        "--intent",
-        "assemble",
-        "--query",
-        "   ",
-        "--symbols",
-        "   ",
-      ]),
-    ).rejects.toThrow(/query_code assemble intent requires a non-empty query or symbolIds/i);
-
-    await expect(
-      handleCli([
-        "get-context-bundle",
+        "get-task-context",
         "--repo",
         repoRoot,
         "--query",
@@ -992,7 +925,7 @@ export function circumference(radius: number): string {
         "--symbols",
         "   ",
       ]),
-    ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/getTaskContext requires a non-empty query or symbolIds/i);
   });
 
   it("accepts --include-references as a bare CLI boolean flag", async () => {
@@ -1062,10 +995,10 @@ export class Greeter {
     });
 
     await expect(
-      dispatchTool("get_ranked_context", {
+      dispatchTool("get_task_context", {
         repoRoot,
         query: "Greeter",
-        tokenBudget: "oops",
+        payloadTokenBudget: "oops",
       }),
     ).resolves.toMatchObject({
       ok: false,
@@ -1101,7 +1034,7 @@ export class Greeter {
     });
 
     await expect(
-      dispatchTool("get_context_bundle", {
+      dispatchTool("get_task_context", {
         repoRoot,
         query: "   ",
         symbolIds: ["   "],
@@ -1114,7 +1047,7 @@ export class Greeter {
     });
 
     await expect(
-      dispatchTool("get_context_bundle", {
+      dispatchTool("get_task_context", {
         repoRoot,
       }),
     ).resolves.toMatchObject({
@@ -1203,26 +1136,27 @@ export class Greeter {
     }
   }, 15_000);
 
-  it("rejects malformed get_context_bundle MCP output with a strict failure envelope", async () => {
+  it("rejects malformed get_task_context MCP output with a strict failure envelope", async () => {
     const repoRoot = await createFixtureRepo();
 
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_context_bundle");
+    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_task_context");
     expect(tool).toBeDefined();
 
     const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
     const originalExecute = mutableTool.execute;
     try {
       mutableTool.execute = async () => ({
-        tokenBudget: 128,
-        usedTokens: 12,
-        estimatedTokens: 18,
+        payloadTokenBudget: 128,
+        usedPayloadTokens: 12,
+        estimatedPayloadTokens: 18,
+        sourceTokens: 12,
         truncated: false,
         query: "Greeter",
         repoRoot,
         items: "not-an-array",
       });
 
-      const malformedResult = await dispatchTool("get_context_bundle", {
+      const malformedResult = await dispatchTool("get_task_context", {
         repoRoot,
         query: "Greeter",
       });
@@ -1232,7 +1166,7 @@ export class Greeter {
         data: null,
         error: {
           code: expect.stringMatching(/^(internal_error|invalid_argument)$/),
-          message: expect.stringContaining("get_context_bundle output must include items"),
+          message: expect.stringContaining("get_task_context output must include items"),
         },
         meta: {
           toolVersion: "1",

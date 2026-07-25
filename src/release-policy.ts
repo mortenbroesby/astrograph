@@ -18,6 +18,7 @@ export interface AstrographReleaseCommit {
 export interface AstrographReleaseDecisionInput {
   commits: readonly AstrographReleaseCommit[];
   changedFiles: readonly string[];
+  noRelease?: boolean;
 }
 
 export interface AstrographReleaseDecision {
@@ -66,6 +67,14 @@ export function decideAstrographRelease(
   const internalVersionedFiles = input.changedFiles.filter((filePath) =>
     INTERNAL_VERSIONED_PATH_PATTERN.test(filePath),
   );
+
+  if (input.noRelease) {
+    return {
+      kind: "none",
+      reason: "The no-release policy override is set.",
+      releaseFiles,
+    };
+  }
 
   if (releaseFiles.length === 0) {
     if (internalVersionedFiles.length > 0) {

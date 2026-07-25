@@ -1,4 +1,4 @@
-import { parseAstrographVersion } from "./version.ts";
+import { compareGenericPackageVersions, parseAstrographVersion } from "./version.ts";
 
 export type AstrographRegistryVersionState =
   | { status: "available"; version: string }
@@ -20,12 +20,13 @@ export interface AstrographReleaseTransactionDecision {
 }
 
 export function compareAstrographVersions(left: string, right: string): number {
-  const leftParts = parseAstrographVersion(left);
-  const rightParts = parseAstrographVersion(right);
-  return leftParts.major - rightParts.major
-    || leftParts.minor - rightParts.minor
-    || leftParts.patch - rightParts.patch
-    || leftParts.increment - rightParts.increment;
+  parseAstrographVersion(left);
+  parseAstrographVersion(right);
+  const comparison = compareGenericPackageVersions(left, right);
+  if (comparison === null) {
+    throw new Error(`Invalid Astrograph version comparison: ${left} and ${right}`);
+  }
+  return comparison;
 }
 
 export function decideAstrographReleaseTransaction(

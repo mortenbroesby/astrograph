@@ -1,4 +1,6 @@
-import { realpath } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
+import { realpath, writeFile } from "node:fs/promises";
+import path from "node:path";
 
 import { afterEach, describe, expect, it } from "vitest";
 
@@ -11,6 +13,55 @@ afterEach(async () => {
 });
 
 describe("cli boundaries", () => {
+  it("returns a versioned JSON cache status for the explicit repository", async () => {
+    const repoRoot = await createFixtureRepo();
+    execFileSync("git", ["add", "."], { cwd: repoRoot });
+    execFileSync(
+      "git",
+      ["-c", "user.name=Astrograph Test", "-c", "user.email=test@example.com", "commit", "-m", "fixture"],
+      { cwd: repoRoot },
+    );
+    await indexFolder({ repoRoot });
+    const result = JSON.parse(await handleCli(["cache-status", "--repo", repoRoot]));
+    expect(result).toMatchObject({
+      schemaVersion: 1,
+      repoRoot: await realpath(repoRoot),
+      storageLocation: expect.stringMatching(/^(repo-local|global)$/),
+    });
+    expect(result.checkout).toMatchObject({
+      mode: "git-branch",
+      repositoryId: null,
+      headOid: expect.stringMatching(/^[a-f0-9]{40}$/),
+      branchRef: expect.any(String),
+      worktreePath: await realpath(repoRoot),
+      diagnostic: null,
+    });
+    expect(result.checkout.indexedAt).toEqual(expect.any(String));
+  });
+
+  it("requires explicit all-cache scope before pruning", async () => {
+    await expect(handleCli(["cache-prune", "--max-bytes", "0"])).rejects.toThrow(
+      /cache prune requires explicit --all scope/i,
+    );
+  });
+
+  it("lets explicit CLI storage selection override repository configuration for one command", async () => {
+    const repoRoot = await createFixtureRepo();
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageLocation: "global" }),
+    );
+    const result = JSON.parse(await handleCli([
+      "cache-status",
+      "--repo",
+      repoRoot,
+      "--storage-location",
+      "repo-local",
+    ]));
+    expect(result.storageLocation).toBe("repo-local");
+    expect(process.env.ASTROGRAPH_STORAGE_LOCATION).toBeUndefined();
+  });
+
   it("rejects malformed CLI numeric and enum arguments", async () => {
     const repoRoot = await createFixtureRepo();
 
@@ -98,7 +149,7 @@ describe("cli boundaries", () => {
         "--symbols",
         "   ",
       ]),
-    ).rejects.toThrow(/query_code assemble intent requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/invalid option: expected one of "discover"\|"source"\|"auto"/i);
 
     await expect(
       handleCli([
@@ -110,7 +161,7 @@ describe("cli boundaries", () => {
         "--symbols",
         "   ",
       ]),
-    ).rejects.toThrow(/getContextBundle requires a non-empty query or symbolIds/i);
+    ).rejects.toThrow(/unknown command: get-context-bundle/i);
   });
 
   it("preserves boolean flag and omitted optional number semantics", async () => {
@@ -170,7 +221,7 @@ describe("cli boundaries", () => {
     );
 
     expect(signatureIndex).toMatchObject({
-      indexedFiles: 2,
+      indexedFiles: 3,
       staleStatus: "fresh",
     });
 
@@ -251,12 +302,12 @@ describe("cli boundaries", () => {
       repoRoot: resolvedRepoRoot,
       indexStatus: "indexed",
       freshness: {
-        indexedFiles: 2,
-        indexedSymbols: 5,
+        indexedFiles: 3,
+        indexedSymbols: 6,
         indexedImports: 1,
       },
       parser: {
-        indexedFileCount: 2,
+        indexedFileCount: 3,
         fallbackFileCount: 0,
         fallbackRate: 0,
       },

@@ -1,16 +1,18 @@
 # Active Implementation Work
 
-This directory contains work that is currently selected for delivery. Start
-with the epic, then use its linked checklist for the next executable task.
+This directory contains selected delivery work. A selected checklist is the
+only authorized implementation queue; completed evidence belongs in
+`../closed/` and deferred candidates belong in `../planned/`.
 
 ## Current Queue
 
-1. [Global Install and Cache Epic](./global-install-and-cache-epic.md) —
-   Story 1, the global storage contract, is active.
-2. [Global Storage Contract Delivery Checklist](./global-storage-contract-delivery-checklist.md)
-   — the bounded implementation checklist for that story.
-3. [Deferred Story Handoffs](./global-install-and-cache-deferred-stories.md)
-   — execution-ready plans for Stories 2–7; none are authorized until selected.
+1. [Comforting Install Experience](./2_comforting-global-install-experience.md)
+   — make package installation plus global and repository-local client setup
+   understandable without hidden configuration writes.
+
+Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
+descoped, idea, and completed work. Do not select work from those categories
+without updating this queue and `pointer.md` together.
 
 Do not start planned work from `../planned/` until it is explicitly selected.
 Closed records in `../closed/` are historical evidence, not execution queues.

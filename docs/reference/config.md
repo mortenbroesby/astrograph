@@ -13,6 +13,7 @@ import { defineConfig } from "astrograph";
 export default defineConfig({
   summaryStrategy: "doc-comments-first",
   storageMode: "wal",
+  storageLocation: "repo-local",
   observability: {
     retentionDays: 3,
     redactSourceText: true,
@@ -66,6 +67,27 @@ Supported values:
 Current supported value:
 
 - `wal`
+
+### `storageLocation`
+
+Controls where the repository’s persistent index, metadata, integrity marker,
+storage version, and events live. Supported values are `repo-local` (the
+default) and `global`. A repository setting overrides the user-level default
+written by `astrograph install --global`.
+
+Global mode still uses one SQLite database per canonical repository root. It
+does not share mutable index rows or source data between repositories.
+
+The CLI can override this setting for a single command, without rewriting
+configuration:
+
+```bash
+astrograph cli index-folder --repo /repo --storage-location global
+astrograph cli diagnostics --repo /repo --storage-location repo-local
+```
+
+Precedence is explicit CLI selection, repository configuration, then the
+user-level default written by `astrograph install --global`.
 
 ### `observability`
 

@@ -5,7 +5,10 @@ evidence so documentation status is visible from the file tree.
 
 ## Work Status
 
-- [Active Work](./active/README.md) - Selected delivery: Staff Engineer review, Windows support, and release-publication evidence.
+- [Delivery Roadmap](./roadmap.md) - One-page status of active, ready,
+  parked, descoped, idea, and completed work.
+- [Active Work](./active/README.md) - The selected delivery queue; the next
+  follow-up candidates require their own evidence gates before implementation.
 - [Planned Work](./planned/README.md) - Approved backlog that has not been selected for delivery.
 - [Closed Records](./closed/README.md) - Completed and superseded implementation plans and evidence.
 
@@ -18,7 +21,7 @@ evidence so documentation status is visible from the file tree.
 ## Planned Subsystem Coverage
 
 The remaining durable subsystem and public-contract coverage is tracked in the
-[Spec System Backlog](./planned/spec-system-backlog.md). Do not create a second
+[Spec System Backlog](./planned/7_spec-system-backlog.md). Do not create a second
 unchecked list here.
 
 ## Implementation Rules

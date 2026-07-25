@@ -25,6 +25,8 @@ pnpm --filter astrograph bench:perf -- --repo /abs/repo --runs 10
 pnpm --filter astrograph bench:perf:index -- --repo /abs/repo
 pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
 pnpm --filter astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
+pnpm --filter astrograph bench:freshness-lifecycle
+pnpm --filter astrograph bench:mcp-envelopes
 ```
 
 Those cover the main performance surfaces:
@@ -34,6 +36,31 @@ Those cover the main performance surfaces:
 - warm changed-file refresh
 - `query_code` latency
 - serialization gates
+- complete agent-visible MCP v1 envelope bytes, `cl100k_base` tokens, and
+  compact-output round trips on a deterministic fixture
+- the deterministic freshness lifecycle fixture: cold/no-op/edit/rename/delete,
+  checkout change/restore, unavailable Git, and explicit polling fallback
+
+`bench:freshness-lifecycle` creates and removes its own two-file, repo-local
+Git fixtures. Its JSON output records elapsed time plus `reusedFiles`,
+`parsedFiles`, `removedFiles`, and `staleStatus` for each action. It is a
+correctness-oriented baseline, not a real-repository throughput benchmark:
+compare its counts and fallback state across changes, then use
+`bench:perf:index` for larger corpus timing.
+
+## MCP Output Budget
+
+`bench:mcp-envelopes` creates and removes its own deterministic two-file
+TypeScript fixture. It exercises real MCP dispatch for successful, empty,
+strict-error, structural, and bounded-context responses, then prints the full
+JSON envelope with bytes, `cl100k_base` tokens, and elapsed time.
+
+It also compares the public, lossless `agc1` compact JSON format for
+`search_symbols`, `get_file_tree`, and `get_file_outline`. On the recorded
+fixture, compact output saved 55.6%, 57.4%, 66.7%, and 59.0% respectively for
+successful search, empty search, tree, and outline responses. Ordinary JSON is
+still the default. See [MCP Tools](../../specs/api-design/mcp-tools.md) for the opt-in
+`format: "compact" | "auto"` contract and reference decoder.
 
 ## What Actually Moves Performance
 
@@ -58,6 +85,28 @@ paths without changing the core local-storage model.
   index.
 - `fast-json-stringify`
   Serialization benchmarking candidate, not the default public JSON path.
+
+## Tree-sitter Grammar Cost
+
+Parser grammars are native dependencies, so their cost must be measured rather
+than assumed. On the macOS/Node 24 development baseline recorded on 2026-07-24,
+cold module imports ranged from about **5 ms** (Go/C) to **40 ms** (PowerShell).
+Installed package footprints varied much more: JSON was about **0.5 MB**, while
+OCaml was about **200 MB**; Julia, C#, Scala, Haskell, C++, Ruby, and PHP were
+also materially larger than the small grammar packages.
+
+These figures are not cross-platform guarantees. Before a release that changes
+grammar dependencies, measure the target package set on the supported Node and
+platform matrix, then record:
+
+- installed package size and packed tarball size
+- cold grammar import/load time
+- representative indexing latency for each added extension
+- whether the native build uses a prebuild or local compiler
+
+Do not retain a grammar package that is not exposed through the evidence-gated
+language registry. See [Language Support](../reference/language-support.md) for
+the current public set and deliberate exclusions.
 
 Profiling-only tools:
 

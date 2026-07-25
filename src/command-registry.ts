@@ -1,5 +1,4 @@
 import type {
-  ContextBundleOptions,
   DiagnosticsOptions,
   FileSummaryOptions,
   FindFilesOptions,
@@ -10,6 +9,7 @@ import type {
   SummaryStrategy,
   SymbolSourceResult,
   WatchOptions,
+  TaskContextOptions,
 } from "./types.ts";
 
 type EngineModule = typeof import("./index.ts");
@@ -46,10 +46,6 @@ interface SymbolSourceInput {
   symbolIds?: string[];
   contextLines?: number;
   verify?: boolean;
-}
-
-interface RankedContextInput extends ContextBundleOptions {
-  query: string;
 }
 
 export const COMMAND_REGISTRY = {
@@ -176,9 +172,7 @@ export const COMMAND_REGISTRY = {
       "limit",
       "contextLines",
       "verify",
-      "tokenBudget",
       "includeTextMatches",
-      "includeRankedCandidates",
       "includeDependencies",
       "includeImporters",
       "includeReferences",
@@ -195,38 +189,23 @@ export const COMMAND_REGISTRY = {
     execute: (engine, input: SymbolSourceInput): Promise<SymbolSourceResult> =>
       engine.getSymbolSource(input),
   },
-  getContextBundle: {
-    id: "get_context_bundle",
-    cliCommand: "get-context-bundle",
-    mcpToolName: "get_context_bundle",
-    description: "Build a bounded context bundle from query or symbol seeds.",
+  getTaskContext: {
+    id: "get_task_context",
+    cliCommand: "get-task-context",
+    mcpToolName: "get_task_context",
+    description: "Assemble deterministic, source-attributed task context within a payload-token budget.",
     normalizedOptions: [
       "repoRoot",
       "query",
       "symbolIds",
-      "tokenBudget",
+      "intent",
+      "payloadTokenBudget",
       "includeDependencies",
       "includeImporters",
       "includeReferences",
       "relationDepth",
     ],
-    execute: (engine, input: ContextBundleOptions) => engine.getContextBundle(input),
-  },
-  getRankedContext: {
-    id: "get_ranked_context",
-    cliCommand: "get-ranked-context",
-    mcpToolName: "get_ranked_context",
-    description: "Rank and build a bounded context bundle for a query.",
-    normalizedOptions: [
-      "repoRoot",
-      "query",
-      "tokenBudget",
-      "includeDependencies",
-      "includeImporters",
-      "includeReferences",
-      "relationDepth",
-    ],
-    execute: (engine, input: RankedContextInput) => engine.getRankedContext(input),
+    execute: (engine, input: TaskContextOptions) => engine.getTaskContext(input),
   },
   getFileContent: {
     id: "get_file_content",

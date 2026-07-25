@@ -1,21 +1,28 @@
 #!/usr/bin/env node
 
-import { execFileSync } from "node:child_process";
+import { constants as fsConstants, accessSync, existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   isCancel,
   intro,
   outro,
+  spinner,
   select,
   confirm,
 } from "@clack/prompts";
 import { Command, Option } from "commander";
+import os from "node:os";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
-import { packageManagerInvocation } from "../package-manager.ts";
+import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
+import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
+import { runProcess } from "../lib/process.ts";
+import { fetchLatestNpmVersion } from "../lib/npm-registry.ts";
+import { compareGenericPackageVersions, normalizeGenericPackageVersion } from "../version.ts";
+import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
@@ -33,38 +40,19 @@ const PACKAGE_NAME = packageJson.name;
 const PACKAGE_VERSION = packageJson.version;
 const ALL_INSTALL_IDES = ["codex", "copilot", "copilot-cli"] as const;
 const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"] as const;
-const MCP_TOOLS = [
-  "index_folder",
-  "index_file",
-  "get_file_outline",
-  "get_file_tree",
-  "get_repo_outline",
-  "suggest_initial_queries",
-  "search_symbols",
-  "get_symbol_source",
-  "get_context_bundle",
-  "get_ranked_context",
-  "diagnostics",
-] as const;
+const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
+const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
 type InstalledObject = Record<string, unknown>;
 
-interface ParsedSemVer {
-  major: number;
-  minor: number;
-  patch: number;
-  prerelease: string | null;
-  alphaIncrement: number | null;
-  raw: string;
-}
-
 interface ParsedArgs {
   ides: RequestedIde[] | null;
   repo: string;
   dryRun: boolean;
+  json: boolean;
   nonInteractive: boolean;
   agentsPolicy: boolean;
   hasExplicitArgs: boolean;
@@ -106,6 +94,7 @@ interface SetupResult {
 interface CliOptions {
   ide?: string;
   dryRun?: boolean;
+  json?: boolean;
   repo?: string;
   yes?: boolean;
   agents?: boolean;
@@ -133,6 +122,109 @@ interface SetupForAllOptions {
   agentsPolicy?: boolean;
 }
 
+export interface SetupGlobalClientOptions {
+  dryRun?: boolean;
+  environment?: StoragePathEnvironment;
+  nodeVersion?: string;
+  executableAvailable?: boolean;
+}
+
+export interface GlobalSetupResult {
+  ide: "codex" | "copilot-cli";
+  configPath: string;
+  engineConfigPath: string;
+  configPreview: string;
+  engineConfigPreview: string;
+}
+
+export interface GlobalInstallationDiagnostics {
+  schemaVersion: 1;
+  package: { name: string; version: string };
+  runtime: { nodeVersion: string; minimumNodeVersion: string; supported: boolean };
+  defaultGlobalIde: "copilot-cli";
+  storage: {
+    location: "global" | "repo-local" | "not-configured";
+    configPath: string;
+    cacheRoot: string;
+    cacheRootExists: boolean;
+  };
+  clients: Array<{ ide: "copilot-cli" | "codex"; configPath: string; configured: boolean }>;
+  nextStep: string;
+}
+
+export function formatGlobalInstallation(
+  result: GlobalSetupResult,
+  options: { dryRun?: boolean } = {},
+): string {
+  const client = result.ide === "codex" ? "Codex" : "GitHub Copilot CLI";
+  const command = `astrograph install --global --ide ${result.ide}`;
+  const heading = options.dryRun
+    ? "Preview complete — no files were changed."
+    : "Astrograph is ready.";
+  const nextStep = options.dryRun
+    ? `Run \`${command}\` when you are ready to connect ${client}.`
+    : `Restart ${client}, open any repository, then use Astrograph normally. Run \`index_folder\` when that repository has no index yet.`;
+
+  return [
+    heading,
+    `Astrograph ${PACKAGE_VERSION} is connected to ${client}.`,
+    "",
+    "You get, out of the box:",
+    "  • Local code search, symbols, file summaries, and task context",
+    "  • One private, isolated index per repository",
+    "  • No Astrograph config files added to the repositories you open",
+    "",
+    `Managed client config: ${result.configPath}`,
+    `Astrograph storage settings: ${result.engineConfigPath}`,
+    "",
+    `Next: ${nextStep}`,
+    `For a machine-readable result, add \`--json\`.`,
+  ].join("\n");
+}
+
+export function formatRepositoryInstallation(
+  result: SetupResult | SetupResult[],
+  options: { dryRun?: boolean } = {},
+): string {
+  const results = Array.isArray(result) ? result : [result];
+  const first = results[0];
+  const clients = results.map((entry) => {
+    if (entry.ide === "codex") return "Codex";
+    if (entry.ide === "copilot") return "GitHub Copilot";
+    return "GitHub Copilot CLI";
+  }).join(", ");
+  const heading = options.dryRun
+    ? "Preview complete — no files were changed."
+    : "Astrograph is ready in this repository.";
+  const dependency = first.packageDependencyReason === "package.json not found"
+    ? "No package.json was found, so Astrograph did not add a dependency."
+    : `Package: ${first.packageDependencyReason}.`;
+  const policy = first.agentsPolicyReason === "not requested"
+    ? null
+    : `Agent guidance: ${first.agentsPolicyReason}.`;
+
+  return [
+    heading,
+    `Astrograph ${first.packageVersion} is connected to ${clients}.`,
+    "",
+    "You get, out of the box:",
+    "  • Project-owned MCP configuration for your selected client",
+    "  • A local index that stays with this repository",
+    "  • Local code search, symbols, file summaries, and task context",
+    "",
+    `Repository: ${first.repoRoot}`,
+    ...results.map((entry) => `Managed client config: ${entry.configPath}`),
+    `Astrograph project config: ${first.engineConfigPath}`,
+    dependency,
+    ...(policy ? [policy] : []),
+    "",
+    options.dryRun
+      ? "Next: run `astrograph init --yes` when you are ready to write these files."
+      : "Next: restart your selected client, then run `index_folder` to create the first index.",
+    "For a machine-readable result, add `--json`.",
+  ].join("\n");
+}
+
 interface AgentsPolicyResult {
   agentsPolicyPath: string;
   agentsPolicyUpdated: boolean;
@@ -140,128 +232,25 @@ interface AgentsPolicyResult {
   agentsPolicyPreview?: string;
 }
 
-function parseComparableVersion(rawValue: unknown): ParsedSemVer | null {
-  if (typeof rawValue !== "string") {
-    return null;
-  }
-  const value = rawValue.trim();
-  if (!value) {
-    return null;
-  }
-
-  const normalized = value[0] === "v" ? value.slice(1) : value;
-  const match = normalized.match(
-    /^(\d+)\.(\d+)\.(\d+)(?:-(.+))?$/,
-  );
-
-  if (!match) {
-    return null;
-  }
-
-  const major = Number.parseInt(match[1] ?? "0", 10);
-  const minor = Number.parseInt(match[2] ?? "0", 10);
-  const patch = Number.parseInt(match[3] ?? "0", 10);
-  if (
-    !Number.isFinite(major)
-    || !Number.isFinite(minor)
-    || !Number.isFinite(patch)
-  ) {
-    return null;
-  }
-
-  const prerelease = match[4];
-  if (!prerelease) {
-    return {
-      major,
-      minor,
-      patch,
-      prerelease: null,
-      alphaIncrement: null,
-      raw: normalized,
-    };
-  }
-
-  const alphaMatch = prerelease.match(/^alpha\.(\d+)$/);
-  return {
-    major,
-    minor,
-    patch,
-    prerelease,
-    alphaIncrement: alphaMatch && alphaMatch[1]
-      ? Number.parseInt(alphaMatch[1], 10)
-      : null,
-    raw: normalized,
-  };
-}
-
-function isVersionNewer(
-  compareTo: ParsedSemVer | null,
-  base: ParsedSemVer | null,
-): boolean {
-  if (!compareTo || !base) {
-    return false;
-  }
-  if (compareTo.major !== base.major) {
-    return compareTo.major > base.major;
-  }
-  if (compareTo.minor !== base.minor) {
-    return compareTo.minor > base.minor;
-  }
-  if (compareTo.patch !== base.patch) {
-    return compareTo.patch > base.patch;
-  }
-
-  if (base.prerelease === null && compareTo.prerelease === null) {
-    return false;
-  }
-  if (base.prerelease === null) {
-    return false;
-  }
-  if (compareTo.prerelease === null) {
-    return true;
-  }
-
-  if (
-    base.prerelease.startsWith("alpha.")
-    && compareTo.prerelease.startsWith("alpha.")
-    && base.alphaIncrement !== null
-    && compareTo.alphaIncrement !== null
-  ) {
-    return compareTo.alphaIncrement > base.alphaIncrement;
-  }
-
-  return compareTo.prerelease > base.prerelease;
-}
-
-function resolveLatestAstrographVersion(): ParsedSemVer | null {
+async function resolveLatestAstrographVersion(): Promise<string | null> {
   try {
-    const invocation = packageManagerInvocation("npm", ["view", PACKAGE_NAME, "version"]);
-    const latest = execFileSync(
-      invocation.command,
-      invocation.args,
-      {
-        encoding: "utf8",
-        stdio: ["ignore", "pipe", "ignore"],
-        timeout: 2_500,
-      },
-    ).trim();
-    return parseComparableVersion(latest);
+    const latest = await fetchLatestNpmVersion({ packageName: PACKAGE_NAME, timeoutMs: 2_500 });
+    return normalizeGenericPackageVersion(latest);
   } catch {
     return null;
   }
 }
 
-function emitUpdateSuggestion(currentVersion: string): void {
-  const latest = resolveLatestAstrographVersion();
-  const current = parseComparableVersion(currentVersion);
-
-  if (!latest || !current || !isVersionNewer(latest, current)) {
+async function emitUpdateSuggestion(currentVersion: string): Promise<void> {
+  const latest = await resolveLatestAstrographVersion();
+  const comparison = latest === null ? null : compareGenericPackageVersions(latest, currentVersion);
+  if (comparison === null || comparison <= 0) {
     return;
   }
 
   const suggestion = `npm install ${PACKAGE_NAME}@latest`;
   process.stderr.write(
-    `A newer Astrograph version is available: ${latest.raw} (current: ${currentVersion}).\n` +
+    `A newer Astrograph version is available: ${latest} (current: ${currentVersion}).\n` +
     `To update, run: ${suggestion}\n` +
       `If you see stale behavior after update, clear local state and rebuild index:\n` +
       `  Git Bash: rm -rf .astrograph\n` +
@@ -275,7 +264,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run]",
+      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -291,8 +280,55 @@ function usage(): void {
       "  npx astrograph init",
       "  npx astrograph init --yes",
       "  npx astrograph init --yes --ide all",
+      "  npx astrograph init --yes --json",
     ].join("\n") + "\n",
   );
+}
+
+function nodeVersionSupported(nodeVersion: string): boolean {
+  const match = nodeVersion.replace(/^v/, "").match(/^(\d+)\.(\d+)\./);
+  const major = Number(match?.[1] ?? 0);
+  const minor = Number(match?.[2] ?? 0);
+  return major > 22 || (major === 22 && minor >= 12);
+}
+
+export async function getGlobalInstallationDiagnostics(
+  environment: StoragePathEnvironment = {},
+): Promise<GlobalInstallationDiagnostics> {
+  const engineConfigPath = resolveGlobalConfigPath(environment);
+  const cacheRoot = resolveGlobalCacheRoot(environment);
+  const engineConfig = await readOptionalConfig(engineConfigPath);
+  let storageLocation: GlobalInstallationDiagnostics["storage"]["location"] = "not-configured";
+  if (engineConfig) {
+    const parsed = parseGlobalConfig(engineConfig, engineConfigPath);
+    storageLocation = parsed.storageLocation === "global" ? "global" : "repo-local";
+  }
+  const copilotConfigPath = resolveGlobalCopilotCliConfigPath(environment);
+  const codexConfigPath = resolveGlobalCodexConfigPath(environment);
+
+  return {
+    schemaVersion: 1,
+    package: { name: PACKAGE_NAME, version: PACKAGE_VERSION },
+    runtime: {
+      nodeVersion: process.versions.node,
+      minimumNodeVersion: "22.12.0",
+      supported: nodeVersionSupported(process.versions.node),
+    },
+    defaultGlobalIde: DEFAULT_GLOBAL_INSTALL_IDE,
+    storage: {
+      location: storageLocation,
+      configPath: engineConfigPath,
+      cacheRoot,
+      cacheRootExists: existsSync(cacheRoot),
+    },
+    clients: [
+      { ide: "copilot-cli", configPath: copilotConfigPath, configured: existsSync(copilotConfigPath) },
+      { ide: "codex", configPath: codexConfigPath, configured: existsSync(codexConfigPath) },
+    ],
+    nextStep: storageLocation === "global" && existsSync(copilotConfigPath)
+      ? "Open Copilot CLI in a repository and use Astrograph normally; run index_folder when that repository has no index."
+      : "Run astrograph install --global to register Astrograph for Copilot CLI and enable isolated global cache storage.",
+  };
 }
 
 function isInstallIde(value: string): boolean {
@@ -305,6 +341,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       ides: null,
       repo: process.cwd(),
       dryRun: false,
+      json: false,
       nonInteractive: false,
       agentsPolicy: false,
       hasExplicitArgs: false,
@@ -316,6 +353,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--yes",
     "--agents",
     "--dry-run",
+    "--json",
     "--repo",
     "--ide",
     "--help",
@@ -350,6 +388,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--yes", "Run setup with defaults and without prompts."))
     .addOption(new Option("--agents", "Add a tailored agent instruction file for the selected IDE."))
     .addOption(new Option("--dry-run", "Preview changes only."))
+    .addOption(new Option("--json", "Print the machine-readable setup result."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined));
 
@@ -364,6 +403,7 @@ function parseArgs(argv: string[]): ParsedArgs {
         ides: null,
         repo: process.cwd(),
         dryRun: false,
+        json: false,
         nonInteractive: false,
         agentsPolicy: false,
         hasExplicitArgs: false,
@@ -378,6 +418,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       ides: null,
       repo: process.cwd(),
       dryRun: false,
+      json: false,
       nonInteractive: false,
       agentsPolicy: false,
       hasExplicitArgs: false,
@@ -394,12 +435,14 @@ function parseArgs(argv: string[]): ParsedArgs {
       : null,
     repo: options.repo ?? process.cwd(),
     dryRun: Boolean(options.dryRun),
+    json: Boolean(options.json),
     nonInteractive: Boolean(options.yes),
     agentsPolicy: Boolean(options.agents),
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("agents") ||
       hasFlag("dry-run") ||
+      hasFlag("json") ||
       hasFlag("repo") ||
       hasFlag("ide"),
     showHelp: false,
@@ -439,6 +482,7 @@ async function promptForSetupArgs(): Promise<{
   ides: RequestedIde[];
   repo: string;
   dryRun: boolean;
+  json: boolean;
   agentsPolicy: boolean;
 }> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
@@ -490,12 +534,11 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
-  outro("Running setup.");
-
   return {
     ides: [ide as RequestedIde],
     repo: resolvedRepo,
     dryRun: false,
+    json: false,
     agentsPolicy: Boolean(agentsPolicy),
   };
 }
@@ -638,11 +681,11 @@ function validateIdes(args: { ides: RequestedIde[] }): { ides: InstallIde[] } {
 function resolveRepoRoot(repoRoot: string): string {
   const absoluteRepoRoot = path.resolve(repoRoot);
   try {
-    return execFileSync("git", ["rev-parse", "--show-toplevel"], {
+    return runProcess("git", ["rev-parse", "--show-toplevel"], {
       cwd: absoluteRepoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
-    }).trim();
+    }).stdout.trim();
   } catch {
     return absoluteRepoRoot;
   }
@@ -651,7 +694,7 @@ function resolveRepoRoot(repoRoot: string): string {
 function hasLocalAstrographDependency(repoRoot: string): boolean {
   try {
     const packageData = JSON.parse(
-      execFileSync(
+      runProcess(
         "node",
         ["-e", "process.stdout.write(require('fs').readFileSync('package.json','utf8'))"],
         {
@@ -659,7 +702,7 @@ function hasLocalAstrographDependency(repoRoot: string): boolean {
           encoding: "utf8",
           stdio: ["ignore", "pipe", "ignore"],
         },
-      ),
+      ).stdout,
     ) as PackageJsonFile;
     return Boolean(
       packageData.dependencies?.[PACKAGE_NAME]
@@ -719,11 +762,203 @@ ${toolApprovals}
 ${MARKER_END}`;
 }
 
+function globalAstrographConfigBlock(): string {
+  const enabledTools = MCP_TOOLS.map((tool) => `"${tool}"`).join(", ");
+  const toolApprovals = MCP_TOOLS.map((tool) =>
+    `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
+  ).join("\n\n");
+  return `${MARKER_BEGIN}
+[mcp_servers.astrograph]
+command = "astrograph"
+args = ["mcp"]
+startup_timeout_sec = 90
+enabled_tools = [${enabledTools}]
+
+${toolApprovals}
+${MARKER_END}`;
+}
+
+function resolveGlobalCodexConfigPath(
+  environment: StoragePathEnvironment = {},
+): string {
+  const homeDir = environment.homeDir ?? os.homedir;
+  return path.join(homeDir(), ".codex", "config.toml");
+}
+
+function parseGlobalConfig(contents: string, configPath: string): Record<string, unknown> {
+  if (contents.trim() === "") {
+    return {};
+  }
+  try {
+    const parsed = JSON.parse(contents);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      throw new Error("Expected a JSON object");
+    }
+    return parsed as Record<string, unknown>;
+  } catch (error) {
+    throw new Error(
+      `Invalid global Astrograph config ${configPath}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
+function globalExecutableIsAvailable(environment: StoragePathEnvironment): boolean {
+  const env = environment.env ?? process.env;
+  const pathValue = env.PATH;
+  if (!pathValue) return false;
+  const extensions = process.platform === "win32" ? [".cmd", ".exe", ".bat", ""] : [""];
+  return pathValue.split(path.delimiter).some((entry) =>
+    extensions.some((extension) => {
+      const candidate = path.join(entry, `astrograph${extension}`);
+      try {
+        accessSync(candidate, fsConstants.X_OK);
+        return true;
+      } catch {
+        return false;
+      }
+    }),
+  );
+}
+
+function assertGlobalInstallPrerequisites(
+  options: SetupGlobalClientOptions,
+  ide: "codex" | "copilot-cli",
+): void {
+  const nodeVersion = options.nodeVersion ?? process.versions.node;
+  const match = nodeVersion.match(/^(\d+)\.(\d+)\./);
+  const major = Number(match?.[1] ?? 0);
+  const minor = Number(match?.[2] ?? 0);
+  if (major < 22 || (major === 22 && minor < 12)) {
+    throw new Error(`Astrograph global install requires Node.js >=22.12.0; found ${nodeVersion}. Install a supported Node release and retry.`);
+  }
+  const executableAvailable = options.executableAvailable ?? globalExecutableIsAvailable(options.environment ?? {});
+  if (!executableAvailable) {
+    throw new Error(`Cannot find \`astrograph\` on PATH. Install it with \`npm install --global astrograph\`, open a new shell, then rerun \`astrograph install --global --ide ${ide}\`.`);
+  }
+}
+
+async function readOptionalConfig(configPath: string): Promise<string> {
+  try {
+    return await readFile(configPath, "utf8");
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return "";
+    throw new Error(`Cannot read user configuration ${configPath}: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
+export async function setupGlobalForCodex(
+  options: SetupGlobalClientOptions = {},
+): Promise<GlobalSetupResult> {
+  const { dryRun = false, environment = {} } = options;
+  assertGlobalInstallPrerequisites({ ...options, environment }, "codex");
+  const configPath = resolveGlobalCodexConfigPath(environment);
+  const engineConfigPath = resolveGlobalConfigPath(environment);
+  const currentCodexConfig = await readOptionalConfig(configPath);
+  const currentEngineConfig = await readOptionalConfig(engineConfigPath);
+  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock());
+  const engineConfigPreview = `${JSON.stringify({
+    ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
+    storageLocation: "global",
+  }, null, 2)}\n`;
+
+  if (!dryRun) {
+    try {
+      await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
+      await mkdir(path.dirname(engineConfigPath), { recursive: true, mode: 0o700 });
+    } catch (error) {
+      throw new Error(`Cannot create user configuration directories for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+    try {
+      await writeFile(engineConfigPath, engineConfigPreview, { encoding: "utf8", mode: 0o600 });
+      await writeFile(configPath, configPreview, { encoding: "utf8", mode: 0o600 });
+    } catch (error) {
+      throw new Error(`Cannot write user configuration for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return {
+    ide: "codex",
+    configPath,
+    engineConfigPath,
+    configPreview,
+    engineConfigPreview,
+  };
+}
+
+function resolveGlobalCopilotCliConfigPath(
+  environment: StoragePathEnvironment = {},
+): string {
+  const configuredHome = (environment.env ?? process.env).COPILOT_HOME;
+  if (configuredHome) {
+    if (!path.isAbsolute(configuredHome)) {
+      throw new Error("COPILOT_HOME must be an absolute path for global Copilot CLI setup");
+    }
+    return path.join(configuredHome, "mcp-config.json");
+  }
+  const homeDir = environment.homeDir ?? os.homedir;
+  return path.join(homeDir(), ".copilot", "mcp-config.json");
+}
+
+function globalCopilotCliServer(): InstalledObject {
+  return {
+    type: "local",
+    command: "astrograph",
+    args: ["mcp"],
+    cwd: ".",
+    env: {},
+    tools: MCP_TOOLS,
+  };
+}
+
+export async function setupGlobalForCopilotCli(
+  options: SetupGlobalClientOptions = {},
+): Promise<GlobalSetupResult> {
+  const { dryRun = false, environment = {} } = options;
+  assertGlobalInstallPrerequisites({ ...options, environment }, "copilot-cli");
+  const configPath = resolveGlobalCopilotCliConfigPath(environment);
+  const engineConfigPath = resolveGlobalConfigPath(environment);
+  const currentCopilotConfig = await readOptionalConfig(configPath);
+  const currentEngineConfig = await readOptionalConfig(engineConfigPath);
+  const configPreview = replaceManagedServerInJson(
+    currentCopilotConfig,
+    configPath,
+    "mcpServers",
+    globalCopilotCliServer(),
+  );
+  const engineConfigPreview = `${JSON.stringify({
+    ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
+    storageLocation: "global",
+  }, null, 2)}\n`;
+
+  if (!dryRun) {
+    try {
+      await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
+      await mkdir(path.dirname(engineConfigPath), { recursive: true, mode: 0o700 });
+    } catch (error) {
+      throw new Error(`Cannot create user configuration directories for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+    try {
+      await writeFile(engineConfigPath, engineConfigPreview, { encoding: "utf8", mode: 0o600 });
+      await writeFile(configPath, configPreview, { encoding: "utf8", mode: 0o600 });
+    } catch (error) {
+      throw new Error(`Cannot write user configuration for global Astrograph setup (${configPath}; ${engineConfigPath}). Check ownership and permissions, then retry. ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  return {
+    ide: "copilot-cli",
+    configPath,
+    engineConfigPath,
+    configPreview,
+    engineConfigPreview,
+  };
+}
+
 function replaceManagedBlock(contents: string, block: string): string {
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     return contents.replace(
       new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"),
-      `${block}\n`,
+      block,
     );
   }
 
@@ -752,7 +987,7 @@ function agentsPolicyBlockForAgentsMd(): string {
     "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
     "- Before reading a symbol, use `get_symbol_source`; before reading a file, use `get_file_outline` or `get_file_summary`.",
     "- Before searching broadly, use `search_symbols`, `find_files`, or `search_text`.",
-    "- For bounded implementation context, use `get_context_bundle` or `get_ranked_context`.",
+    "- For bounded implementation context, use `get_task_context`.",
     "- Before exploring structure, use `get_file_tree` or `get_repo_outline`.",
     "- Use raw file reads or shell search only when Astrograph cannot answer the question.",
     AGENTS_POLICY_END,
@@ -771,7 +1006,7 @@ function agentsPolicyBlockForCopilotInstructions(): string {
     "- Use `get_project_status` to check the index; run `index_folder` if stale.",
     "- Use `get_file_outline`, `get_file_summary`, or `get_symbol_source` before opening raw source.",
     "- Use `search_symbols`, `find_files`, or `search_text` for discovery.",
-    "- Use `get_context_bundle` or `get_ranked_context` for bounded implementation context.",
+    "- Use `get_task_context` for bounded implementation context.",
     "- Use `get_file_tree` or `get_repo_outline` to understand structure.",
     "- Fall back to raw file access only when Astrograph tools cannot answer the question.",
     AGENTS_POLICY_END,
@@ -1033,7 +1268,46 @@ export async function setupForAllIdes(
 }
 
 async function main(): Promise<void> {
-  const parsed = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.length === 1 && argv[0] === "--diagnostics") {
+    process.stdout.write(`${JSON.stringify(await getGlobalInstallationDiagnostics(), null, 2)}\n`);
+    return;
+  }
+  if (argv.includes("--global")) {
+    if (process.env.ASTROGRAPH_ENTRY_MODE !== "install") {
+      throw new Error("Use `astrograph install --global [--ide copilot-cli|codex]`; `astrograph init` is repository-scoped.");
+    }
+    const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run", "--json"]);
+    if (argv.some((entry) => !allowed.has(entry))) {
+      throw new Error("astrograph install --global accepts only --ide copilot-cli|codex, --dry-run, and --json.");
+    }
+    const ideIndex = argv.indexOf("--ide");
+    const ide = ideIndex >= 0 ? argv[ideIndex + 1] : DEFAULT_GLOBAL_INSTALL_IDE;
+    if (ide !== "codex" && ide !== "copilot-cli") {
+      throw new Error("astrograph install --global currently supports only --ide codex or --ide copilot-cli");
+    }
+    const dryRun = argv.includes("--dry-run");
+    const json = argv.includes("--json");
+    const interactive = !json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
+    const progress = interactive ? spinner() : null;
+    if (progress) {
+      progress.start(dryRun ? `Previewing ${ide} setup…` : `Connecting Astrograph to ${ide}…`);
+    }
+    const result = ide === "copilot-cli"
+      ? await setupGlobalForCopilotCli({ dryRun })
+      : await setupGlobalForCodex({ dryRun });
+    if (progress) {
+      progress.stop(dryRun ? "Preview ready" : "Connection ready");
+      outro(formatGlobalInstallation(result, { dryRun }));
+    } else if (json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${formatGlobalInstallation(result, { dryRun })}\n`);
+    }
+    return;
+  }
+
+  const parsed = parseArgs(argv);
 
   if (parsed.showHelp) {
     usage();
@@ -1051,18 +1325,31 @@ async function main(): Promise<void> {
       ...validateIdes({ ides: normalizedArgs.ides ?? [] }),
       repo: normalizedArgs.repo,
       dryRun: normalizedArgs.dryRun,
+      json: normalizedArgs.json,
       agentsPolicy: normalizedArgs.agentsPolicy,
     }
     : await promptForSetupArgs();
 
+  const interactive = !args.json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
+  const progress = interactive ? spinner() : null;
+  if (progress) {
+    progress.start(args.dryRun ? "Previewing repository setup…" : "Setting up Astrograph…");
+  }
   const result = await setupForAllIdes(args.repo, {
     ides: args.ides,
     dryRun: args.dryRun,
     agentsPolicy: args.agentsPolicy,
   });
 
-  emitUpdateSuggestion(PACKAGE_VERSION);
-  process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  await emitUpdateSuggestion(PACKAGE_VERSION);
+  if (progress) {
+    progress.stop(args.dryRun ? "Preview ready" : "Repository ready");
+    outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));
+  } else if (args.json) {
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+  } else {
+    process.stdout.write(`${formatRepositoryInstallation(result, { dryRun: args.dryRun })}\n`);
+  }
 }
 
 if (isMainModule(import.meta.url)) {

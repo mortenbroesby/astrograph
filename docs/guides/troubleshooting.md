@@ -75,6 +75,23 @@ Remove-Item -Recurse -Force .astrograph
 rmdir /s /q .astrograph
 ```
 
+For an opted-in global cache, inspect it first instead of deleting a directory
+manually:
+
+```bash
+astrograph cache status --repo /absolute/path/to/repo
+astrograph cache remove --repo /absolute/path/to/repo
+astrograph cache remove --repo /absolute/path/to/repo --yes
+```
+
+The first removal command is a dry-run. It only targets the selected
+repository’s user-private global cache; no MCP tool can remove cache data.
+Global Codex and Copilot CLI setup is user-level: do not create repo-local
+`astrograph.config.*`, `.codex`, or `.mcp.json` files merely to repair a
+globally installed setup. Re-run `astrograph install --global --ide codex` or
+`astrograph install --global --ide copilot-cli` for the harness you use, then
+use `cache status` or `doctor` for the repository you opened.
+
 ### Problem: parser health is incomplete on older indexed files
 
 Fix:

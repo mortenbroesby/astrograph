@@ -19,6 +19,13 @@ export async function createFixtureRepo(options: {
 
   await mkdir(path.join(repoRoot, "src"), { recursive: true });
   await mkdir(path.join(repoRoot, "scripts"), { recursive: true });
+  // Test fixtures that inspect cache files are intentionally repo-local. This
+  // makes them independent of the developer's user-level Astrograph setting;
+  // dedicated global-cache tests replace this config explicitly.
+  await writeFile(
+    path.join(repoRoot, "astrograph.config.json"),
+    JSON.stringify({ storageLocation: "repo-local" }),
+  );
 
   await writeFile(
     path.join(repoRoot, "src", "math.ts"),

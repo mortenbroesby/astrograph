@@ -20,11 +20,15 @@ export {
   defineConfig,
   isSymbolKind,
   isSummaryStrategy,
+  isStorageLocation,
   loadRepoEngineConfig,
   normalizeSummaryStrategy,
   parseSymbolKind,
   parseSummaryStrategy,
+  parseStorageLocation,
   resolveEngineRepoRoot,
+  resolveGlobalConfigPath,
+  resolveGlobalCacheRoot,
   resolveEnginePaths,
 } from "./config.ts";
 export {
@@ -47,8 +51,7 @@ export {
   getFileTree,
   getRepoOutline,
   queryCode,
-  getContextBundle,
-  getRankedContext,
+  getTaskContext,
   getSymbolSource,
   indexFile,
   indexFolder,
@@ -63,6 +66,28 @@ export {
   emitEngineEvent,
   readRecentEngineEvents,
 } from "./event-sink.ts";
+export {
+  COMPACT_MCP_AUTO_MIN_SAVED_PERCENT,
+  COMPACT_MCP_AUTO_MIN_SAVED_TOKENS,
+  COMPACT_MCP_VERSION,
+  decodeCompactMcpEnvelope,
+  formatMcpEnvelope,
+} from "./compact-mcp.ts";
+export type {
+  CompactMcpEnvelope,
+  CompactMcpToolName,
+  FormattedMcpEnvelope,
+  McpOutputFormat,
+  McpOutputMetrics,
+} from "./compact-mcp.ts";
+export {
+  cacheStatus,
+  pruneGlobalCaches,
+  removeGlobalCache,
+  restoreCache,
+  restoreGlobalCache,
+} from "./cache-control.ts";
+export type { CacheMutationResult, CachePruneResult, CacheRestoreResult, CacheStatus } from "./cache-control.ts";
 
 export type {
   AstrographVersionParts,
@@ -74,6 +99,7 @@ export type {
   EngineEventSource,
   EngineConfig,
   EnginePaths,
+  GlobalEngineConfig,
   EngineToolName,
   RepoEngineConfig,
   RepoObservabilityConfig,
@@ -90,9 +116,6 @@ export type {
   FileOutline,
   FileSummarySource,
   FileTreeEntry,
-  ContextBundle,
-  ContextBundleItem,
-  ContextBundleOptions,
   FindFilesMatch,
   FindFilesOptions,
   IndexSummary,
@@ -108,8 +131,13 @@ export type {
   ReadinessStage,
   ReadinessStatus,
   RankingWeights,
-  RankedContextCandidate,
-  RankedContextResult,
+  TaskContextExclusion,
+  TaskContextExclusionReason,
+  TaskContextIntent,
+  TaskContextItem,
+  TaskContextItemRole,
+  TaskContextOptions,
+  TaskContextResult,
   RepoOutline,
   SearchSymbolsOptions,
   SearchSymbolsRefinementHint,
@@ -118,6 +146,8 @@ export type {
   SearchTextMatch,
   StaleStatus,
   StorageMode,
+  StorageLocation,
+  StoragePathEnvironment,
   SupportTier,
   SymbolKind,
   SymbolSourceItem,

@@ -4,7 +4,7 @@ command = "npx"
 args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]
 cwd = "."
 startup_timeout_sec = 90
-enabled_tools = ["index_folder", "index_file", "find_files", "search_text", "get_file_summary", "get_project_status", "get_repo_outline", "get_file_tree", "get_file_outline", "suggest_initial_queries", "search_symbols", "get_symbol_source", "get_context_bundle", "get_ranked_context", "diagnostics"]
+enabled_tools = ["index_folder", "index_file", "find_files", "search_text", "get_file_summary", "get_project_status", "get_repo_outline", "get_file_tree", "get_file_outline", "suggest_initial_queries", "search_symbols", "get_symbol_source", "get_task_context", "diagnostics"]
 
 [mcp_servers.astrograph.tools.index_folder]
 approval_mode = "approve"
@@ -42,14 +42,13 @@ approval_mode = "approve"
 [mcp_servers.astrograph.tools.get_symbol_source]
 approval_mode = "approve"
 
-[mcp_servers.astrograph.tools.get_context_bundle]
-approval_mode = "approve"
-
-[mcp_servers.astrograph.tools.get_ranked_context]
+[mcp_servers.astrograph.tools.get_task_context]
 approval_mode = "approve"
 
 [mcp_servers.astrograph.tools.diagnostics]
 approval_mode = "approve"
+
+# END ASTROGRAPH
 
 [mcp_servers.github]
 url = "https://api.githubcopilot.com/mcp/"

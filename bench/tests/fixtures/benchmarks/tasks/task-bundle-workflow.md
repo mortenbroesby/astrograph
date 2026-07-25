@@ -1,21 +1,21 @@
 ---
 id: task-bundle-workflow
 slice: bench
-query: Which workflow assembles bounded context for benchmark queries?
+query: Which workflow assembles payload-budgeted task context for benchmark queries?
 workflowSet: [baseline, discovery-first, text-first, bundle]
 allowedPaths:
   - bench/src/workflows.ts
 targets:
   - kind: symbol
-    value: bundleWorkflow
+    value: taskContextWorkflow
     mode: exact
   - kind: symbol
-    value: getContextBundle
+    value: getTaskContext
     mode: exact
 successCriteria:
-  - the bounded-context workflow remains identifiable from the workflow registry
-  - the retrieval path still points back to the underlying context bundle call
+  - the task-context workflow remains identifiable from the workflow registry
+  - the retrieval path still points back to the canonical task-context call
 ---
 
-This query measures whether the harness can retrieve the bounded-context
-workflow rather than only the raw symbol and text search flows.
+This query measures whether the harness can retrieve the payload-budgeted
+task-context workflow rather than only raw symbol and text search flows.

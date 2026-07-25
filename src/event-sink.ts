@@ -110,20 +110,22 @@ function sanitizeEventValue(
 export async function appendEngineEvent(
   input: EngineEventInput,
 ): Promise<EngineEventEnvelope> {
-  const repoConfig = await loadRepoEngineConfig(input.repoRoot);
-  const envelope = buildEventEnvelope({
-    ...input,
-    repoRoot: repoConfig.repoRoot,
-    data: sanitizeEventValue(
-      input.data ?? {},
-      [],
-      repoConfig.observability.redactSourceText,
-    ) as Record<string, unknown>,
-  });
-  const paths = resolveEnginePaths(repoConfig.repoRoot);
-  const line = `${JSON.stringify(envelope)}\n`;
-
-  writeQueue = writeQueue.then(async () => {
+  let envelope: EngineEventEnvelope | undefined;
+  const pendingWrite = writeQueue.then(async () => {
+    const repoConfig = await loadRepoEngineConfig(input.repoRoot);
+    envelope = buildEventEnvelope({
+      ...input,
+      repoRoot: repoConfig.repoRoot,
+      data: sanitizeEventValue(
+        input.data ?? {},
+        [],
+        repoConfig.observability.redactSourceText,
+      ) as Record<string, unknown>,
+    });
+    const paths = resolveEnginePaths(repoConfig.repoRoot, {
+      storageLocation: repoConfig.storageLocation,
+    });
+    const line = `${JSON.stringify(envelope)}\n`;
     await mkdir(paths.storageDir, { recursive: true });
     const cutoffIso = resolveRetentionCutoffIso(
       repoConfig.observability.retentionDays,
@@ -136,8 +138,9 @@ export async function appendEngineEvent(
     await writeFile(paths.eventsPath, `${retainedLines.join("\n")}\n`, "utf8");
   });
 
-  await writeQueue;
-  return envelope;
+  writeQueue = pendingWrite.catch(() => undefined);
+  await pendingWrite;
+  return envelope!;
 }
 
 export function emitEngineEvent(input: EngineEventInput): void {
@@ -151,7 +154,9 @@ export async function readRecentEngineEvents(input: {
   limit?: number;
 }): Promise<EngineEventEnvelope[]> {
   const repoConfig = await loadRepoEngineConfig(input.repoRoot);
-  const paths = resolveEnginePaths(repoConfig.repoRoot);
+  const paths = resolveEnginePaths(repoConfig.repoRoot, {
+    storageLocation: repoConfig.storageLocation,
+  });
   const limit = Math.max(1, input.limit ?? 100);
   const contents = await readFile(paths.eventsPath, "utf8").catch(() => "");
 

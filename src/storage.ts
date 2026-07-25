@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, realpath, readdir, rm, stat, writeFile } from "node:fs/promises";
+import { lstat, mkdir, readFile, realpath, readdir, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { setTimeout as delay } from "node:timers/promises";
@@ -15,6 +15,7 @@ import {
   ENGINE_STORAGE_VERSION,
   loadRepoEngineConfig,
   resolveEngineRepoRoot,
+  resolveGlobalCacheRoot,
 } from "./config.ts";
 import {
   getCheckoutByCanonicalRoot,
@@ -32,6 +33,7 @@ import {
   storeAnalysisArtifact,
 } from "./incremental-cache.ts";
 import { emitEngineEvent } from "./event-sink.ts";
+import { archiveManagedDirectory } from "./cache-archive.ts";
 import { analyzeFileContent } from "./file-analysis.ts";
 import type { FileAnalysisTaskInput, FileAnalysisTaskOutput } from "./file-analysis.ts";
 import { searchLiveText } from "./live-search.ts";
@@ -108,6 +110,7 @@ import {
   getContextBundleFromContext,
   getFileContentFromContext,
   getRankedContextFromContext,
+  getTaskContextFromContext,
   getSymbolSourceFromContext,
   queryCodeInContext,
   resolveQueryCodeIntent,
@@ -145,6 +148,8 @@ import type {
   QueryCodeOptions,
   QueryCodeResult,
   RankedContextResult,
+  TaskContextOptions,
+  TaskContextResult,
   RepoOutline,
   SearchSymbolsOptions,
   SearchSymbolsResult,
@@ -581,6 +586,7 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     repoRoot: resolvedRepoRoot,
     summaryStrategy: summaryStrategy ?? repoConfig.summaryStrategy,
     storageMode: repoConfig.storageMode,
+    storageLocation: repoConfig.storageLocation,
     indexInclude: repoConfig.performance.include,
     indexExclude: repoConfig.performance.exclude,
     rankingWeights: repoConfig.ranking,
@@ -596,12 +602,12 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     maxChildProcessOutputBytes: repoConfig.limits.maxChildProcessOutputBytes,
     maxLiveSearchMatches: repoConfig.limits.maxLiveSearchMatches,
   });
-  if (!getLruEntry(ensuredStorageRoots, resolvedRepoRoot)) {
+  if (!getLruEntry(ensuredStorageRoots, config.paths.storageDir)) {
     await mkdir(config.paths.storageDir, { recursive: true });
     await ensureStorageVersion(config);
     setLruEntry(
       ensuredStorageRoots,
-      resolvedRepoRoot,
+      config.paths.storageDir,
       true,
       STORAGE_ROOT_CACHE_LIMIT,
     );
@@ -619,28 +625,15 @@ async function ensureStorageVersion(
   }
 
   if (currentVersion === null) {
-    if (await storageDirHasContents(config.paths.storageDir)) {
+    if (!await storageDirHasContents(config.paths.storageDir)) {
       await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
-      storageLogger.info({
-        event: "storage.version.backfilled",
-        repoRoot: config.repoRoot,
-        storageDir: config.paths.storageDir,
-        storageVersion: ENGINE_STORAGE_VERSION,
-      });
       return;
     }
-
-    await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
+    await discardObsoleteStorage(config, "missing-or-malformed");
     return;
   }
 
-  if (currentVersion > ENGINE_STORAGE_VERSION) {
-    throw new Error(
-      `Unsupported Astrograph storage version ${currentVersion} in ${config.paths.storageDir}. Current runtime supports ${ENGINE_STORAGE_VERSION}.`,
-    );
-  }
-
-  await resetStorageForVersionMismatch(config, currentVersion);
+  await discardObsoleteStorage(config, String(currentVersion));
 }
 
 async function readStorageVersion(storageVersionPath: string): Promise<number | null> {
@@ -693,23 +686,78 @@ async function storageDirHasContents(storageDir: string): Promise<boolean> {
   return entries.some((entry) => entry !== STORAGE_VERSION_FILENAME);
 }
 
-async function resetStorageForVersionMismatch(
+async function discardObsoleteStorage(
   config: ReturnType<typeof createDefaultEngineConfig>,
-  currentVersion: number,
+  obsoleteVersion: string,
 ) {
   storageLogger.warn({
-    event: "storage.version.reset",
+    event: "storage.version.discarded",
     repoRoot: config.repoRoot,
     storageDir: config.paths.storageDir,
-    fromVersion: currentVersion,
+    obsoleteVersion,
     toVersion: ENGINE_STORAGE_VERSION,
   });
 
+  const storageEntry = await lstat(config.paths.storageDir);
+  if (storageEntry.isSymbolicLink()) {
+    throw new Error(`Refusing to recover a symlinked Astrograph cache: ${config.paths.storageDir}`);
+  }
+  await assertNoSymlinkedPathSegments(
+    config.storageLocation === "global" ? resolveGlobalCacheRoot() : config.repoRoot,
+    config.paths.storageDir,
+  );
+  if (await storageDatabaseIsActive(config.paths.databasePath)) {
+    throw new Error(`Refusing to recover an active Astrograph cache: ${config.paths.storageDir}`);
+  }
+  const archiveRoot = config.storageLocation === "global"
+    ? path.join(path.dirname(config.paths.storageDir), ".archive")
+    : path.join(path.dirname(config.paths.storageDir), ".astrograph-archive");
+  await archiveManagedDirectory({
+    target: config.paths.storageDir,
+    archiveRoot,
+    reason: `obsolete-storage-version-${obsoleteVersion}`,
+    recoveryCommand: (receiptPath) => `astrograph cache restore --repo ${JSON.stringify(config.repoRoot)} --receipt ${JSON.stringify(receiptPath)} --yes`,
+  });
   clearDatabaseConnectionCache(config.paths.databasePath);
-  ensuredStorageRoots.delete(config.repoRoot);
-  await rm(config.paths.storageDir, { recursive: true, force: true });
+  ensuredStorageRoots.delete(config.paths.storageDir);
   await mkdir(config.paths.storageDir, { recursive: true });
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
+}
+
+async function assertNoSymlinkedPathSegments(root: string, target: string): Promise<void> {
+  const resolvedRoot = path.resolve(root);
+  const resolvedTarget = path.resolve(target);
+  const relative = path.relative(resolvedRoot, resolvedTarget);
+  if (!relative || relative.startsWith("..") || path.isAbsolute(relative)) {
+    throw new Error(`Refusing to recover a cache outside its managed root: ${resolvedTarget}`);
+  }
+  const rootEntry = await lstat(resolvedRoot).catch(() => null);
+  if (rootEntry?.isSymbolicLink()) throw new Error(`Refusing to recover through a symlinked managed root: ${resolvedRoot}`);
+  let current = resolvedRoot;
+  for (const segment of relative.split(path.sep)) {
+    current = path.join(current, segment);
+    const entry = await lstat(current).catch(() => null);
+    if (entry?.isSymbolicLink()) throw new Error(`Refusing to recover a symlinked Astrograph cache: ${current}`);
+  }
+}
+
+async function storageDatabaseIsActive(databasePath: string): Promise<boolean> {
+  if (!await lstat(databasePath).catch(() => null)) return false;
+  let database: ReturnType<typeof SQLITE_INDEX_BACKEND.open> | null = null;
+  try {
+    database = SQLITE_INDEX_BACKEND.open(databasePath);
+    database.exec("PRAGMA busy_timeout = 0");
+    database.exec("BEGIN EXCLUSIVE");
+    database.exec("ROLLBACK");
+    return false;
+  } catch (error) {
+    if (error instanceof Error && /locked|busy/i.test(error.message)) return true;
+    // A malformed obsolete database is safe to archive; it cannot be used as
+    // evidence that another process owns an active SQLite transaction.
+    return false;
+  } finally {
+    database?.close();
+  }
 }
 
 async function createEngineContext(input: {
@@ -752,9 +800,13 @@ async function writeSidecars(input: {
   summaryStrategy: SummaryStrategy;
   readiness?: RepoMetaReadinessRecord;
 }) {
+  const repoConfig = await loadRepoEngineConfig(input.repoRoot, {
+    repoRootResolved: true,
+  });
   const config = createDefaultEngineConfig({
     repoRoot: input.repoRoot,
     summaryStrategy: input.summaryStrategy,
+    storageLocation: repoConfig.storageLocation,
   });
   const existingMeta = await readRepoMeta(config.paths.repoMetaPath);
   const meta = {
@@ -965,6 +1017,7 @@ async function analyzeFileIndexResult(input: {
       kind: "symbol-limit-exceeded",
       existing: input.existing,
       symbolCount: reparsed.symbols.length,
+      analysisReused: cachedAnalysis !== null,
     };
   }
 
@@ -977,6 +1030,7 @@ async function analyzeFileIndexResult(input: {
       symbolSignatureHash,
       importHash,
       artifactKey,
+      analysisReused: cachedAnalysis !== null,
     };
   }
 
@@ -988,6 +1042,7 @@ async function analyzeFileIndexResult(input: {
     symbolSignatureHash,
     importHash,
     artifactKey,
+    analysisReused: cachedAnalysis !== null,
   };
 }
 
@@ -1357,10 +1412,11 @@ async function indexFolderDirect(input: {
     const trackedRows = new Map(tracked.map((row) => [row.path, row]));
     const trackedPaths = new Set(tracked.map((row) => row.path));
     const nextPaths = new Set(supportedFiles);
+    let removedFiles = 0;
 
     for (const stalePath of trackedPaths) {
-      if (!nextPaths.has(stalePath)) {
-        removeFileIndex(db, stalePath);
+      if (!nextPaths.has(stalePath) && removeFileIndex(db, stalePath)) {
+        removedFiles += 1;
       }
     }
 
@@ -1374,6 +1430,8 @@ async function indexFolderDirect(input: {
 
     let indexedFiles = 0;
     let indexedSymbols = 0;
+    let reusedFiles = 0;
+    let parsedFiles = 0;
     const analyzedFiles = await pMap(
       supportedFiles,
       async (filePath) => {
@@ -1405,6 +1463,9 @@ async function indexFolderDirect(input: {
         indexedFiles += 1;
         indexedSymbols += result.symbolCount;
       }
+      reusedFiles += result.reusedFiles;
+      parsedFiles += result.parsedFiles;
+      removedFiles += result.removedFiles;
     }
 
     const indexedAt = new Date().toISOString();
@@ -1422,6 +1483,9 @@ async function indexFolderDirect(input: {
     return {
       indexedFiles,
       indexedSymbols,
+      reusedFiles,
+      parsedFiles,
+      removedFiles,
       staleStatus,
     };
   } finally {
@@ -1474,31 +1538,49 @@ async function refreshIndexedFilePath(db: IndexBackendConnection, input: {
     enabled: boolean;
     maxWorkers: number;
   };
-}): Promise<{ indexedFiles: number; indexedSymbols: number }> {
+}): Promise<{
+  indexedFiles: number;
+  indexedSymbols: number;
+  reusedFiles: number;
+  parsedFiles: number;
+  removedFiles: number;
+}> {
   const absolutePath = path.join(input.repoRoot, input.filePath);
   const fileExists = await stat(absolutePath)
     .then((entry) => entry.isFile())
     .catch(() => false);
 
   if (!fileExists) {
+    const removed = removeFileIndex(db, input.filePath);
     return {
-      indexedFiles: removeFileIndex(db, input.filePath) ? 1 : 0,
+      indexedFiles: removed ? 1 : 0,
       indexedSymbols: 0,
+      reusedFiles: 0,
+      parsedFiles: 0,
+      removedFiles: removed ? 1 : 0,
     };
   }
 
   if (!supportedLanguageForFile(input.filePath) || isGitIgnored(input.repoRoot, input.filePath)) {
+    const removed = removeFileIndex(db, input.filePath);
     return {
-      indexedFiles: removeFileIndex(db, input.filePath) ? 1 : 0,
+      indexedFiles: removed ? 1 : 0,
       indexedSymbols: 0,
+      reusedFiles: 0,
+      parsedFiles: 0,
+      removedFiles: removed ? 1 : 0,
     };
   }
 
   const fileMetadata = await readRepoFileMetadata(input.repoRoot, input.filePath);
   if (exceedsMaxFileBytes(fileMetadata.size, input.maxFileBytes)) {
+    const removed = removeFileIndex(db, input.filePath);
     return {
-      indexedFiles: removeFileIndex(db, input.filePath) ? 1 : 0,
+      indexedFiles: removed ? 1 : 0,
       indexedSymbols: 0,
+      reusedFiles: 0,
+      parsedFiles: 0,
+      removedFiles: removed ? 1 : 0,
     };
   }
 
@@ -1514,6 +1596,9 @@ async function refreshIndexedFilePath(db: IndexBackendConnection, input: {
   return {
     indexedFiles: result.indexed ? 1 : 0,
     indexedSymbols: result.symbolCount,
+    reusedFiles: result.reusedFiles,
+    parsedFiles: result.parsedFiles,
+    removedFiles: result.removedFiles,
   };
 }
 export async function indexFolder(input: {
@@ -2439,6 +2524,17 @@ export async function getRankedContext(input: {
 
   try {
     return getRankedContextFromContext(context, input);
+  } finally {
+    closeEngineContext(context);
+  }
+}
+
+export async function getTaskContext(
+  input: TaskContextOptions,
+): Promise<TaskContextResult> {
+  const context = await createEngineContext(input);
+  try {
+    return getTaskContextFromContext(context, input);
   } finally {
     closeEngineContext(context);
   }
