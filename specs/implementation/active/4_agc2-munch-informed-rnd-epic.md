@@ -60,9 +60,9 @@ opportunities and compact-format overhead.
   text previews with Unicode, quotes, delimiters, and whitespace).
 - [x] Generate `dead-code-workspace` (80–120 active, duplicated, and
   unreferenced TypeScript/C#/Java files).
-- [ ] Define small, medium, broad, empty, error, Unicode, truncated, and
+- [x] Define small, medium, broad, empty, error, Unicode, truncated, and
   mixed-type query cases for every compact-capable tool.
-- [ ] Normalize roots, timestamps, and generated IDs; assert a repeated run
+- [x] Normalize roots, timestamps, and generated IDs; assert a repeated run
   returns byte-identical normalized captures.
 
 **Acceptance:** Fixture tests index all four repositories through the real

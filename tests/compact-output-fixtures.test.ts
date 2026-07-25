@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { dispatchTool } from "../src/mcp.ts";
+import { countTokens } from "../src/tokenizer.ts";
 import {
   cleanupCompactOutputFixtures,
   createCompactOutputFixture,
   type CompactOutputFixtureName,
 } from "./fixtures/compact-output/build-fixtures.ts";
+import { createCompactOutputQueryCases } from "./fixtures/compact-output/queries.ts";
 
 const fixtureNames: CompactOutputFixtureName[] = [
   "small-frontend",
@@ -24,7 +26,7 @@ function normalizeFixtureValue(value: unknown, repoRoot: string): unknown {
 }
 
 function normalizeFixtureEnvelope(toolName: string, value: unknown, repoRoot: string): unknown {
-  const normalized = normalizeFixtureValue(value, repoRoot);
+  let normalized = normalizeFixtureValue(value, repoRoot);
   if (
     toolName === "search_text"
     && normalized
@@ -32,9 +34,18 @@ function normalizeFixtureEnvelope(toolName: string, value: unknown, repoRoot: st
     && "data" in normalized
     && Array.isArray(normalized.data)
   ) {
-    return {
+    normalized = {
       ...normalized,
       data: [...normalized.data].sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
+    };
+  }
+  if (normalized && typeof normalized === "object" && "data" in normalized && "meta" in normalized) {
+    const envelope = normalized as { data: unknown; meta: Record<string, unknown> };
+    return {
+      ...envelope,
+      // MCP telemetry samples token estimates periodically. The corpus uses an
+      // exact deterministic value instead of benchmarking that sampling cadence.
+      meta: { ...envelope.meta, tokenBudgetUsed: countTokens(JSON.stringify(envelope.data)) },
     };
   }
   return normalized;
@@ -49,19 +60,16 @@ describe("compact output research fixtures", () => {
       const indexed = await dispatchTool("index_folder", { repoRoot: fixture.repoRoot });
       expect(indexed.ok).toBe(true);
 
-      const calls: Array<[string, Record<string, unknown>]> = [
-        ["find_files", { repoRoot: fixture.repoRoot, query: "src" }],
-        ["search_text", { repoRoot: fixture.repoRoot, query: fixture.textQuery, limit: 50 }],
-        ["search_symbols", { repoRoot: fixture.repoRoot, query: fixture.symbolQuery, limit: 50 }],
-        ["get_file_tree", { repoRoot: fixture.repoRoot }],
-        ["get_file_outline", { repoRoot: fixture.repoRoot, filePath: fixture.outlinePath }],
-      ];
-      for (const [toolName, args] of calls) {
-        const first = await dispatchTool(toolName, args);
-        const second = await dispatchTool(toolName, args);
-        expect(first.ok, `${name} ${toolName} should succeed`).toBe(true);
-        expect(JSON.stringify(normalizeFixtureEnvelope(toolName, second, fixture.repoRoot))).toBe(
-          JSON.stringify(normalizeFixtureEnvelope(toolName, first, fixture.repoRoot)),
+      const queryCases = createCompactOutputQueryCases(fixture);
+      expect(new Set(queryCases.map((queryCase) => queryCase.category))).toEqual(new Set([
+        "small", "medium", "broad", "empty", "error", "unicode", "truncated", "mixed-type",
+      ]));
+      for (const queryCase of queryCases) {
+        const first = await dispatchTool(queryCase.toolName, queryCase.args);
+        const second = await dispatchTool(queryCase.toolName, queryCase.args);
+        expect(first.ok, `${queryCase.id} should match its expected result`).toBe(queryCase.expectsOk);
+        expect(normalizeFixtureEnvelope(queryCase.toolName, second, fixture.repoRoot), queryCase.id).toEqual(
+          normalizeFixtureEnvelope(queryCase.toolName, first, fixture.repoRoot),
         );
       }
     }, 60_000);
