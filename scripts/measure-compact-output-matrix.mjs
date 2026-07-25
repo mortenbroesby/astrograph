@@ -3,6 +3,7 @@ import { performance } from "node:perf_hooks";
 import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
+  prefixLegendAgc2Codec,
   schemaRowsAgc2Codec,
 } from "../src/compact-mcp-candidates.ts";
 import { decodeCompactMcpEnvelope, encodePackedRowsAgc2 } from "../src/compact-mcp.ts";
@@ -90,6 +91,7 @@ try {
       const agc1 = measureFrozenAgc1Reference(queryCase.toolName, envelope);
       const packedRows = measureCompactCandidate(packedRowsCodec, queryCase.toolName, envelope);
       const schemaRows = measureCompactCandidate(schemaRowsAgc2Codec, queryCase.toolName, envelope);
+      const prefixLegend = measureCompactCandidate(prefixLegendAgc2Codec, queryCase.toolName, envelope);
       records.push({
         fixture: fixtureName,
         query: queryCase.id,
@@ -100,6 +102,7 @@ try {
         agc1,
         agc2PackedRows: packedRows,
         agc2SchemaRows: schemaRows,
+        agc2PrefixLegend: prefixLegend,
         selectedOutcome: "research_only_no_serving_selection",
       });
     }
@@ -117,8 +120,10 @@ const report = {
     agc1: summarize(records, "agc1"),
     agc2PackedRows: summarize(records, "agc2PackedRows"),
     agc2SchemaRows: summarize(records, "agc2SchemaRows"),
+    agc2PrefixLegend: summarize(records, "agc2PrefixLegend"),
     agc2PackedRowsVsAgc1: compareAgainstAgc1(records, "agc2PackedRows"),
     agc2SchemaRowsVsAgc1: compareAgainstAgc1(records, "agc2SchemaRows"),
+    agc2PrefixLegendVsAgc1: compareAgainstAgc1(records, "agc2PrefixLegend"),
   },
   selection: "No production codec is selected by the Story 3 harness.",
 };

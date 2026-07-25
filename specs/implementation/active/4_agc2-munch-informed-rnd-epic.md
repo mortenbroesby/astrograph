@@ -106,7 +106,7 @@ unproven compression tricks in one opaque redesign.
   experiment, to establish its exact corpus profile.
 - [x] Candidate B — encoder IDs and declarative per-tool schemas; the decoder
   rejects an unknown schema ID and mismatched producer columns.
-- [ ] Candidate C — shared prefix legend for paths only when its measured
+- [x] Candidate C — shared prefix legend for paths only when its measured
   encoding cost is repaid within that response.
 - [ ] Candidate D — typed delimited rows with escaping and explicit null,
   boolean, integer, float, and Unicode behavior.

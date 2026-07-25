@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
+  prefixLegendAgc2Codec,
   schemaRowsAgc2Codec,
   type CompactCandidateCodec,
 } from "../src/compact-mcp-candidates.ts";
@@ -71,6 +72,19 @@ describe("compact output benchmark candidates", () => {
     for (const [toolName, envelope] of envelopes) {
       expect(measureCompactCandidate(schemaRowsAgc2Codec, toolName, envelope).decoded).toEqual(envelope);
     }
+  });
+
+  it("uses a prefix legend only when it has enough repeated paths to repay it", () => {
+    const repeatedTree: McpEnvelope<unknown> = {
+      ...treeEnvelope,
+      data: Array.from({ length: 12 }, (_, index) => ({ path: `src/features/feature-${index}.ts`, language: "ts", symbolCount: 1 })),
+    };
+    const compact = measureCompactCandidate(prefixLegendAgc2Codec, "get_file_tree", repeatedTree);
+    expect(compact.rejectionReason).toBeNull();
+    expect(compact.decoded).toEqual(repeatedTree);
+
+    const onePath: McpEnvelope<unknown> = { ...treeEnvelope, data: [(treeEnvelope.data as Array<unknown>)[0]] };
+    expect(measureCompactCandidate(prefixLegendAgc2Codec, "get_file_tree", onePath).rejectionReason).toBe("unsupported_shape");
   });
 
   it("records explicit rejections instead of silently measuring unsupported shapes", () => {

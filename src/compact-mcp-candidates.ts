@@ -125,6 +125,102 @@ export const schemaRowsAgc2Codec: CompactCandidateCodec = {
   decode: decodeSchemaRowsAgc2,
 };
 
+const PREFIX_LEGEND_VERSION = "agc2p";
+
+/** Candidate C: one path-prefix legend, used only when exact tokens decrease. */
+export function encodePrefixLegendAgc2(
+  toolName: CompactCandidateToolName,
+  envelope: McpResponseEnvelope<unknown>,
+): unknown[] | null {
+  const schemaValue = encodeSchemaRowsAgc2(toolName, envelope);
+  if (!schemaValue) return null;
+  const [, schemaId, payload, meta] = schemaValue;
+  const paths = pathsForSchemaPayload(toolName, payload);
+  const prefix = commonPathPrefix(paths);
+  if (!prefix) return null;
+  const encoded = [PREFIX_LEGEND_VERSION, schemaId, prefix, encodeSchemaPaths(toolName, payload, prefix), meta];
+  return countTokens(JSON.stringify(encoded)) < countTokens(JSON.stringify(schemaValue)) ? encoded : null;
+}
+
+export function decodePrefixLegendAgc2(value: unknown): McpResponseEnvelope<unknown> {
+  if (!Array.isArray(value) || value.length !== 5 || value[0] !== PREFIX_LEGEND_VERSION) {
+    throw new Error("Invalid prefix-legend header");
+  }
+  const [, schemaId, prefix, payload, meta] = value;
+  if (typeof schemaId !== "string" || typeof prefix !== "string" || prefix.length === 0) {
+    throw new Error("Invalid prefix-legend header");
+  }
+  const toolName = TOOL_BY_SCHEMA_ROWS.get(schemaId);
+  if (!toolName) throw new Error("Unknown prefix-legend schema");
+  return decodeSchemaRowsAgc2([SCHEMA_ROWS_VERSION, schemaId, decodeSchemaPaths(toolName, payload, prefix), meta]);
+}
+
+export const prefixLegendAgc2Codec: CompactCandidateCodec = {
+  id: "agc2-prefix-legend",
+  encode: encodePrefixLegendAgc2,
+  decode: decodePrefixLegendAgc2,
+};
+
+function pathsForSchemaPayload(toolName: CompactCandidateToolName, payload: unknown): string[] {
+  if (toolName === "search_symbols") {
+    return Array.isArray(payload) && Array.isArray(payload[0]) ? payload[0].map((row) => Array.isArray(row) && typeof row[4] === "string" ? row[4] : "").filter(Boolean) : [];
+  }
+  if (toolName === "get_file_tree") return Array.isArray(payload) ? payload.map((row) => Array.isArray(row) && typeof row[0] === "string" ? row[0] : "").filter(Boolean) : [];
+  if (toolName === "get_file_outline") {
+    return Array.isArray(payload) && Array.isArray(payload[1]) ? [payload[0], ...payload[1].map((row) => Array.isArray(row) ? row[4] : "")].filter((path): path is string => typeof path === "string") : [];
+  }
+  return Array.isArray(payload) ? payload.map((row) => Array.isArray(row) && typeof row[0] === "string" ? row[0] : "").filter(Boolean) : [];
+}
+
+function commonPathPrefix(paths: string[]): string | null {
+  if (paths.length < 2) return null;
+  const first = paths[0].split("/");
+  let length = first.length - 1;
+  for (const path of paths.slice(1)) {
+    const parts = path.split("/");
+    let shared = 0;
+    while (shared < length && first[shared] === parts[shared]) shared += 1;
+    length = shared;
+  }
+  return length > 0 ? `${first.slice(0, length).join("/")}/` : null;
+}
+
+function pathReference(path: unknown, prefix: string): unknown {
+  if (typeof path !== "string" || !path.startsWith(prefix)) throw new Error("Path does not match prefix legend");
+  return path.slice(prefix.length);
+}
+
+function restorePath(value: unknown, prefix: string): string {
+  if (typeof value !== "string") throw new Error("Invalid prefix-legend path reference");
+  return `${prefix}${value}`;
+}
+
+function encodeSchemaPaths(toolName: CompactCandidateToolName, payload: unknown, prefix: string): unknown {
+  if (toolName === "search_symbols") {
+    if (!Array.isArray(payload) || !Array.isArray(payload[0])) throw new Error("Invalid symbols schema payload");
+    return [payload[0].map((row) => { const copy = [...(row as unknown[])]; copy[4] = pathReference(copy[4], prefix); return copy; }), payload[1], payload[2], payload[3]];
+  }
+  if (toolName === "get_file_tree") return (payload as unknown[]).map((row) => { const copy = [...(row as unknown[])]; copy[0] = pathReference(copy[0], prefix); return copy; });
+  if (toolName === "get_file_outline") {
+    const outline = payload as unknown[];
+    return [pathReference(outline[0], prefix), (outline[1] as unknown[]).map((row) => { const copy = [...(row as unknown[])]; copy[4] = pathReference(copy[4], prefix); return copy; })];
+  }
+  return (payload as unknown[]).map((row) => { const copy = [...(row as unknown[])]; copy[0] = pathReference(copy[0], prefix); return copy; });
+}
+
+function decodeSchemaPaths(toolName: CompactCandidateToolName, payload: unknown, prefix: string): unknown {
+  if (toolName === "search_symbols") {
+    if (!Array.isArray(payload) || !Array.isArray(payload[0])) throw new Error("Invalid prefix-legend symbols payload");
+    return [payload[0].map((row) => { const copy = [...(row as unknown[])]; copy[4] = restorePath(copy[4], prefix); return copy; }), payload[1], payload[2], payload[3]];
+  }
+  if (toolName === "get_file_tree") return (payload as unknown[]).map((row) => { const copy = [...(row as unknown[])]; copy[0] = restorePath(copy[0], prefix); return copy; });
+  if (toolName === "get_file_outline") {
+    const outline = payload as unknown[];
+    return [restorePath(outline[0], prefix), (outline[1] as unknown[]).map((row) => { const copy = [...(row as unknown[])]; copy[4] = restorePath(copy[4], prefix); return copy; })];
+  }
+  return (payload as unknown[]).map((row) => { const copy = [...(row as unknown[])]; copy[0] = restorePath(copy[0], prefix); return copy; });
+}
+
 /** Frozen AGC1 reference encoder. It exists solely for corpus comparison. */
 export function encodeFrozenAgc1Reference(
   toolName: CompactCandidateToolName,
