@@ -53,12 +53,12 @@ opportunities and compact-format overhead.
 - Create: `tests/compact-output-fixtures.test.ts`
 - Modify: `tests/fixture-repo.ts` only if shared setup is genuinely reusable
 
-- [ ] Generate `small-frontend` (8–12 React/TypeScript/CSS/config/test files).
-- [ ] Generate `product-monorepo` (60–100 files: React/TypeScript, C#/.NET,
+- [x] Generate `small-frontend` (8–12 React/TypeScript/CSS/config/test files).
+- [x] Generate `product-monorepo` (60–100 files: React/TypeScript, C#/.NET,
   Java or Kotlin, OpenAPI/config, and tests).
-- [ ] Generate `text-heavy-workspace` (25–40 Markdown, JSON, YAML, and long
+- [x] Generate `text-heavy-workspace` (25–40 Markdown, JSON, YAML, and long
   text previews with Unicode, quotes, delimiters, and whitespace).
-- [ ] Generate `dead-code-workspace` (80–120 active, duplicated, and
+- [x] Generate `dead-code-workspace` (80–120 active, duplicated, and
   unreferenced TypeScript/C#/Java files).
 - [ ] Define small, medium, broad, empty, error, Unicode, truncated, and
   mixed-type query cases for every compact-capable tool.
