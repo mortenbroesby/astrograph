@@ -72,6 +72,7 @@
     "bench:perf:query": "node --experimental-strip-types ./scripts/perf-query.mjs",
     "bench:freshness-lifecycle": "node --experimental-strip-types ./scripts/measure-freshness-lifecycle.mjs",
     "bench:mcp-envelopes": "node --experimental-strip-types ./scripts/measure-mcp-envelopes.mjs",
+    "bench:compact-output-matrix": "node --experimental-strip-types ./scripts/measure-compact-output-matrix.mjs",
     "profile:index:clinic": "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./scripts/perf-index.mjs",
     "profile:query:clinic": "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./scripts/perf-query.mjs",
     "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./scripts/perf-index.mjs",

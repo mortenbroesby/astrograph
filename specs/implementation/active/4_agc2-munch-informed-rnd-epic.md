@@ -79,15 +79,15 @@ without changing a user-visible response.
 - Create: `tests/compact-output-benchmark.test.ts`
 - Modify: `package.json`
 
-- [ ] Extract an explicit frozen AGC1 reference encoder used only for
+- [x] Extract an explicit frozen AGC1 reference encoder used only for
   comparison; do not serve it as a new compatibility promise.
-- [ ] Make candidate codecs return encoded text, decoder result, token count,
+- [x] Make candidate codecs return encoded text, decoder result, token count,
   byte count, encode/decode time, and a rejection reason.
-- [ ] Add `pnpm bench:compact-output-matrix --json` with one record per
+- [x] Add `pnpm bench:compact-output-matrix --json` with one record per
   fixture/query/codec combination and aggregate weighted statistics.
-- [ ] Persist a reviewed baseline report or deterministic assertions so a
+- [x] Persist a reviewed baseline report or deterministic assertions so a
   future candidate cannot improve a single happy path while regressing others.
-- [ ] Report JSON, AGC1, each AGC2 candidate, and selected outcome separately.
+- [x] Report JSON, AGC1, each AGC2 candidate, and selected outcome separately.
 
 **Acceptance:** The same normalized envelope produces stable measurements;
 benchmark tests detect malformed codecs and unaccounted capture changes.

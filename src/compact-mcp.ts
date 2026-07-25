@@ -1,6 +1,7 @@
 import { performance } from "node:perf_hooks";
 
 import type { McpEnvelope, McpResponseEnvelope } from "./mcp-contract.ts";
+import { encodeFrozenAgc1Reference } from "./compact-mcp-candidates.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 
 export const COMPACT_MCP_VERSION = "agc2";
@@ -86,7 +87,7 @@ function compactRows(
   ];
 }
 
-function compactSuccessEnvelope(
+export function encodePackedRowsAgc2(
   toolName: CompactMcpToolName,
   envelope: McpResponseEnvelope<unknown>,
 ): CompactMcpEnvelope | null {
@@ -146,42 +147,16 @@ function compactSuccessEnvelope(
   return [COMPACT_MCP_VERSION, toolName, [dictionaries, rows], meta];
 }
 
-function legacyAgc1Envelope(
-  toolName: Extract<CompactMcpToolName, "search_symbols" | "get_file_tree" | "get_file_outline">,
-  envelope: McpResponseEnvelope<unknown>,
-): unknown[] | null {
-  const data = envelope.data;
-  if (!data || typeof data !== "object") return null;
-  const meta = [envelope.meta.toolVersion, envelope.meta.tokenBudgetUsed, envelope.meta.dataFreshness];
-  if (toolName === "search_symbols") {
-    const result = data as Record<string, unknown>;
-    if (!Array.isArray(result.items)) return null;
-    return ["agc1", toolName, [result.items.map((item) => compactSymbol(item as Record<string, unknown>)), result.truncated, result.refinementHints, result.tokenSavings], meta];
-  }
-  if (toolName === "get_file_tree") {
-    if (!Array.isArray(data)) return null;
-    return ["agc1", toolName, data.map((item) => {
-      const entry = item as Record<string, unknown>;
-      return [entry.path, entry.language, entry.symbolCount];
-    }), meta];
-  }
-  const result = data as Record<string, unknown>;
-  if (!Array.isArray(result.symbols)) return null;
-  return ["agc1", toolName, [result.filePath, result.symbols.map((item) => compactSymbol(item as Record<string, unknown>))], meta];
-}
-
 /** Benchmark-only evidence for deciding whether an AGC2 candidate can replace AGC1. */
 export function measureCompactMcpCandidate(
   toolName: string,
   envelope: McpEnvelope<unknown>,
 ): { agc2Tokens: number; agc1Tokens: number | null; agc2Wins: boolean } | null {
   if (!envelope.ok || !isCompactToolName(toolName)) return null;
-  const candidate = compactSuccessEnvelope(toolName, envelope);
+  const candidate = encodePackedRowsAgc2(toolName, envelope);
   if (!candidate) return null;
   const agc2Tokens = countTokens(JSON.stringify(candidate));
-  const legacy = (toolName === "search_symbols" || toolName === "get_file_tree" || toolName === "get_file_outline")
-    ? legacyAgc1Envelope(toolName, envelope)
-    : null;
+  const legacy = encodeFrozenAgc1Reference(toolName, envelope);
   const agc1Tokens = legacy ? countTokens(JSON.stringify(legacy)) : null;
   return { agc2Tokens, agc1Tokens, agc2Wins: agc1Tokens === null || agc2Tokens < agc1Tokens };
 }
@@ -320,12 +295,10 @@ export function formatMcpEnvelope(
   }
 
   try {
-    const compact = compactSuccessEnvelope(toolName as CompactMcpToolName, envelope);
+    const compact = encodePackedRowsAgc2(toolName as CompactMcpToolName, envelope);
     if (!compact) return metricsForJson(json, format, performance.now() - startedAt);
     const compactSerialized = JSON.stringify(compact);
-    const legacy = (toolName === "search_symbols" || toolName === "get_file_tree" || toolName === "get_file_outline")
-      ? legacyAgc1Envelope(toolName, envelope)
-      : null;
+    const legacy = encodeFrozenAgc1Reference(toolName as CompactMcpToolName, envelope);
     if (legacy && countTokens(compactSerialized) >= countTokens(JSON.stringify(legacy))) {
       return metricsForJson(json, format, performance.now() - startedAt);
     }
