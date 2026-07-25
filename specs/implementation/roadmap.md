@@ -70,6 +70,10 @@ roadmap explains everything else.
   only route for reopening them.
 - [Compact output versus internal serialization assessment](../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md):
   ingested roadmap input; it does not select either parked story.
+- [AGC2 encoding and benchmark redesign](./planned/8_agc2-encoding-and-benchmark-redesign.md):
+  deferred MUNCH-informed research plan with a small, monorepo, text-heavy,
+  and dead-code fixture matrix; do not switch formats until its exact-token
+  gate proves a material AGC2 win over AGC1.
 - [`specs/raw/`](../raw/): research inputs only; not a delivery queue.
 
 ## Descoped — do not quietly add
