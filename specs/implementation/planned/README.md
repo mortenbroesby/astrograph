@@ -6,6 +6,9 @@ checklist, and then move it to `../active/` before implementation begins.
 
 ## Backlog
 
+- [Complexity Cleanup Epic](./complexity-cleanup-epic.md) — non-pointer,
+  audit-derived cleanup delivered as one focused PR; it does not displace the
+  active Global Install and Cache queue.
 - [Remaining Delivery Epic](./remaining-delivery-epic.md) — Windows support
   and release-publication evidence remain planned; its Staff Engineer review
   is closed.

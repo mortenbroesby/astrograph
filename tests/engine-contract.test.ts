@@ -409,11 +409,7 @@ describe("ai-context-engine contract", () => {
         '    pathPresets: { generationCode: ["tools/**"] },',
         "  },",
         "  observability: {",
-        "    enabled: true,",
-        "    port: 0,",
-        "    recentLimit: 17,",
         "    retentionDays: 5,",
-        "    snapshotIntervalMs: 250,",
         "    redactSourceText: false,",
         "  },",
         "  performance: {",
@@ -458,12 +454,7 @@ describe("ai-context-engine contract", () => {
       },
     });
     expect(config.observability).toMatchObject({
-      enabled: true,
-      host: "127.0.0.1",
-      port: 0,
-      recentLimit: 17,
       retentionDays: 5,
-      snapshotIntervalMs: 250,
       redactSourceText: false,
     });
     expect(config.performance.fileProcessingConcurrency).toBe(1);
@@ -498,7 +489,7 @@ describe("ai-context-engine contract", () => {
       [
         "export default {",
         "  observability: {",
-        "    recentLimit: 0,",
+        "    retentionDays: 0,",
         "  },",
         "};",
         "",
@@ -572,6 +563,10 @@ describe("ai-context-engine contract", () => {
     expect(autoConfig.observability.retentionDays).toBe(
       DEFAULT_OBSERVABILITY_RETENTION_DAYS,
     );
+    expect(autoConfig.observability).toEqual({
+      retentionDays: DEFAULT_OBSERVABILITY_RETENTION_DAYS,
+      redactSourceText: true,
+    });
     expect(autoConfig.watch).toEqual({
       backend: "auto",
       debounceMs: DEFAULT_WATCH_DEBOUNCE_MS,

@@ -533,7 +533,7 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
+          tokenBudgetUsed: null,
         },
         data: {
           truncated: false,
@@ -566,7 +566,7 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
+          tokenBudgetUsed: null,
         },
       });
       const filteredDiscover = filteredSearchPayload.data.items;
@@ -727,7 +727,7 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
+          tokenBudgetUsed: null,
         },
       });
       expect(parsedSymbolSource.data.items).toHaveLength(2);
@@ -755,38 +755,23 @@ export function circumference(radius: number): string {
           tokenBudgetUsed: expect.any(Number),
         },
       });
-      let latestDiscoverEvent:
+      let latestSearchSymbolsEvent:
         | Awaited<ReturnType<typeof readRecentEngineEvents>>[number]
         | undefined;
       await waitFor(async () => {
         const recentEvents = await readRecentEngineEvents({ repoRoot, limit: 40 });
-        latestDiscoverEvent = [...recentEvents].reverse().find((event) =>
+        latestSearchSymbolsEvent = [...recentEvents].reverse().find((event) =>
           event.event === "mcp.tool.finished"
           && event.source === "mcp"
           && event.data?.toolName === "search_symbols"
-          && typeof event.data?.tokenEstimate === "object",
         );
-        return latestDiscoverEvent !== undefined;
+        return latestSearchSymbolsEvent !== undefined;
       });
-      expect(latestDiscoverEvent?.data?.tokenEstimate).toMatchObject({
-        baselineTokens: expect.any(Number),
-        returnedTokens: expect.any(Number),
-        savedTokens: expect.any(Number),
-        savedPercent: expect.any(Number),
-        tokenizer: "tokenx",
-        sampleEvery: 10,
-        sampleOrdinal: expect.any(Number),
+      expect(latestSearchSymbolsEvent?.data).toMatchObject({
+        toolName: "search_symbols",
+        durationMs: expect.any(Number),
       });
-      expect(["heuristic", "exact"]).toContain(
-        (
-          latestDiscoverEvent?.data?.tokenEstimate as { mode?: string } | undefined
-        )?.mode,
-      );
-      expect(
-        (
-          latestDiscoverEvent?.data?.tokenEstimate as { savedPercent?: number } | undefined
-        )?.savedPercent ?? 0,
-      ).toBeGreaterThanOrEqual(0);
+      expect(latestSearchSymbolsEvent?.data).not.toHaveProperty("tokenEstimate");
 
       const contextBundleResponse = await dispatchTool("get_context_bundle", {
         repoRoot,
@@ -821,36 +806,6 @@ export function circumference(radius: number): string {
         },
       });
 
-      for (let attempt = 0; attempt < 10; attempt += 1) {
-        await dispatchTool("get_repo_outline", { repoRoot });
-      }
-      let sampledRepoOutlineEvent:
-        | Awaited<ReturnType<typeof readRecentEngineEvents>>[number]
-        | undefined;
-      await waitFor(async () => {
-        const sampledEvents = await readRecentEngineEvents({ repoRoot, limit: 40 });
-        sampledRepoOutlineEvent = [...sampledEvents].reverse().find((event) =>
-          event.event === "mcp.tool.finished"
-          && event.source === "mcp"
-          && event.data?.toolName === "get_repo_outline"
-          && typeof event.data?.tokenEstimate === "object"
-          && typeof (event.data.tokenEstimate as { sampledExact?: unknown }).sampledExact === "object",
-        );
-        return sampledRepoOutlineEvent !== undefined;
-      });
-      expect(sampledRepoOutlineEvent?.data?.tokenEstimate).toMatchObject({
-        mode: "heuristic",
-        tokenizer: "cl100k_base",
-        sampleEvery: 10,
-        sampleOrdinal: expect.any(Number),
-        sampledExact: {
-          tokenizer: "cl100k_base",
-          baselineTokens: expect.any(Number),
-          returnedTokens: expect.any(Number),
-          savedTokens: expect.any(Number),
-          savedPercent: expect.any(Number),
-        },
-      });
     });
   }, 20_000);
 

@@ -298,22 +298,9 @@ export async function resolveDoctorObservability(
 ): Promise<DoctorResult["observability"]> {
   const repoConfig = await loadRepoEngineConfig(repoRoot, { repoRootResolved: true });
 
-  if (!repoConfig.observability.enabled) {
-    return {
-      enabled: false,
-      configuredHost: repoConfig.observability.host,
-      configuredPort: repoConfig.observability.port,
-      status: "disabled",
-      url: null,
-    };
-  }
-
   return {
-    enabled: true,
-    configuredHost: repoConfig.observability.host,
-    configuredPort: repoConfig.observability.port,
-    status: "recording",
-    url: null,
+    retentionDays: repoConfig.observability.retentionDays,
+    redactSourceText: repoConfig.observability.redactSourceText,
   };
 }
 

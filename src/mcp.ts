@@ -18,10 +18,6 @@ import {
 import { emitEngineEvent } from "./event-sink.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
-import {
-  buildToolFailureTokenEstimate,
-  summarizeToolCompletion,
-} from "./tool-observability.ts";
 
 type EngineModule = typeof import("./index.ts");
 
@@ -78,10 +74,7 @@ function toMcpDataFreshness(value: unknown): McpDataFreshness {
   return "unknown";
 }
 
-function extractUsedTokenBudget(
-  result: unknown,
-  returnedTokens: number,
-): number | null {
+function extractUsedTokenBudget(result: unknown): number | null {
   if (typeof result === "object" && result !== null) {
     const output = result as {
       usedTokens?: unknown;
@@ -102,7 +95,7 @@ function extractUsedTokenBudget(
     }
   }
 
-  return Math.max(0, Math.floor(returnedTokens));
+  return null;
 }
 
 function assertIsObject(value: unknown): asserts value is Record<string, unknown> {
@@ -476,13 +469,12 @@ export async function dispatchTool(
   try {
     const result = await tool.execute(engine, args);
     validateToolOutput(name, result);
-    const completion = summarizeToolCompletion(name, result);
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,
       data: result,
       meta: {
         toolVersion: tool.toolVersion,
-        tokenBudgetUsed: extractUsedTokenBudget(result, completion.tokenEstimate.returnedTokens),
+        tokenBudgetUsed: extractUsedTokenBudget(result),
         dataFreshness: toMcpDataFreshness(result),
       },
     };
@@ -501,9 +493,6 @@ export async function dispatchTool(
         data: {
           toolName: name,
           durationMs: Date.now() - startedAt,
-          summary: completion.summary,
-          detail: completion.detail,
-          tokenEstimate: completion.tokenEstimate,
         },
       });
     }
@@ -527,10 +516,6 @@ export async function dispatchTool(
           toolName: name,
           durationMs: Date.now() - startedAt,
           message,
-          tokenEstimate: buildToolFailureTokenEstimate({
-            toolName: name,
-            message,
-          }),
         },
       });
     }

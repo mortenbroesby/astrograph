@@ -33,11 +33,7 @@ export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
 export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";
 export const ENGINE_DISPLAY_NAME = "astrograph";
 export const DEFAULT_SUMMARY_STRATEGY: SummaryStrategy = "doc-comments-first";
-export const DEFAULT_OBSERVABILITY_HOST = "127.0.0.1";
-export const DEFAULT_OBSERVABILITY_PORT = 34323;
-export const DEFAULT_OBSERVABILITY_RECENT_LIMIT = 100;
 export const DEFAULT_OBSERVABILITY_RETENTION_DAYS = 3;
-export const DEFAULT_OBSERVABILITY_SNAPSHOT_INTERVAL_MS = 1000;
 export const DEFAULT_WATCH_DEBOUNCE_MS = 100;
 export const DEFAULT_MAX_FILES_DISCOVERED = 100_000;
 export const DEFAULT_MAX_FILE_BYTES = 250_000;
@@ -94,12 +90,7 @@ export const ENGINE_TOOLS: EngineToolName[] = [
 ];
 
 const repoObservabilityConfigSchema = z.object({
-  enabled: z.boolean().optional(),
-  host: z.string().min(1).optional(),
-  port: z.number().int().nonnegative().optional(),
-  recentLimit: z.number().int().positive().optional(),
   retentionDays: z.number().int().positive().optional(),
-  snapshotIntervalMs: z.number().int().positive().optional(),
   redactSourceText: z.boolean().optional(),
 });
 
@@ -258,12 +249,7 @@ function createDefaultResolvedRepoEngineConfig(
     summaryStrategy: DEFAULT_SUMMARY_STRATEGY,
     storageMode: "wal",
     observability: {
-      enabled: false,
-      host: DEFAULT_OBSERVABILITY_HOST,
-      port: DEFAULT_OBSERVABILITY_PORT,
-      recentLimit: DEFAULT_OBSERVABILITY_RECENT_LIMIT,
       retentionDays: DEFAULT_OBSERVABILITY_RETENTION_DAYS,
-      snapshotIntervalMs: DEFAULT_OBSERVABILITY_SNAPSHOT_INTERVAL_MS,
       redactSourceText: true,
     },
     performance: {
@@ -304,12 +290,7 @@ function resolveEngineConfigFromParsed(
     summaryStrategy: data.summaryStrategy ?? defaults.summaryStrategy,
     storageMode: data.storageMode ?? defaults.storageMode,
     observability: {
-      enabled: data.observability?.enabled ?? defaults.observability.enabled,
-      host: data.observability?.host ?? defaults.observability.host,
-      port: data.observability?.port ?? defaults.observability.port,
-      recentLimit: data.observability?.recentLimit ?? defaults.observability.recentLimit,
       retentionDays: data.observability?.retentionDays ?? defaults.observability.retentionDays,
-      snapshotIntervalMs: data.observability?.snapshotIntervalMs ?? defaults.observability.snapshotIntervalMs,
       redactSourceText: data.observability?.redactSourceText ?? defaults.observability.redactSourceText,
     },
     performance: {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { createPathMatcher } from "../src/path-matcher.ts";
+import {
+  createPathMatcher,
+  resolveRepoRelativePath,
+} from "../src/path-matcher.ts";
 
 describe("path matcher", () => {
   it("matches a single include glob", () => {
@@ -41,5 +44,18 @@ describe("path matcher", () => {
     const matcher = createPathMatcher({ include: ["src/*.ts"] });
 
     expect(matcher.matches("src/.hidden.ts")).toBe(true);
+  });
+
+  it("resolves only normalized paths inside the repository root", () => {
+    expect(resolveRepoRelativePath("/repo", "src\\index.ts")).toEqual({
+      absolutePath: "/repo/src/index.ts",
+      relativePath: "src/index.ts",
+    });
+    expect(() => resolveRepoRelativePath("/repo", "../outside.ts")).toThrow(
+      "File path escapes repository root: ../outside.ts",
+    );
+    expect(() => resolveRepoRelativePath("/repo", "")).toThrow(
+      "File path is required",
+    );
   });
 });

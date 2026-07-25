@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.4.3-alpha.114",
+  "version": "0.4.4-alpha.116",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -115,7 +115,6 @@
     "picomatch": "^4.0.4",
     "pino": "^10.3.1",
     "piscina": "^5.1.4",
-    "rxjs": "^7.8.2",
     "tiktoken": "^1.0.22",
     "tokenx": "^1.3.0",
     "tree-sitter": "0.21.1",

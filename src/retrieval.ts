@@ -1,7 +1,10 @@
 import path from "node:path";
 import { createHash } from "node:crypto";
 
-import { createPathMatcher, normalizeRepoRelativePath as normalizePortableRelativePath } from "./path-matcher.ts";
+import {
+  createPathMatcher,
+  resolveRepoRelativePath as normalizeRepoRelativePath,
+} from "./path-matcher.ts";
 import { hashString } from "./hash.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "./tokenizer.ts";
 import type {
@@ -61,36 +64,6 @@ export interface RetrievalContext {
 
 function sha256(value: string): string {
   return createHash("sha256").update(value).digest("hex");
-}
-
-function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
-  if (!filePath || filePath.trim().length === 0) {
-    throw new Error("File path is required");
-  }
-
-  const normalizedPath = path.normalize(filePath);
-  if (
-    path.isAbsolute(filePath) ||
-    normalizedPath === ".." ||
-    normalizedPath.startsWith(`..${path.sep}`)
-  ) {
-    throw new Error(`File path escapes repository root: ${filePath}`);
-  }
-
-  const absolutePath = path.resolve(repoRoot, normalizedPath);
-  const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
-  if (
-    relativePath === ".." ||
-    relativePath.startsWith("../") ||
-    path.isAbsolute(relativePath)
-  ) {
-    throw new Error(`File path escapes repository root: ${filePath}`);
-  }
-
-  return {
-    absolutePath,
-    relativePath,
-  };
 }
 
 function normalizeQuery(value: string): string {
