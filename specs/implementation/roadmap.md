@@ -17,13 +17,13 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Compact Output v2](./active/3_compact-output-v2.md)
-   - Goal: expand agent-visible compact output with an Astrograph-owned,
-     lossless JSON table format.
-   - First action: capture real `find_files` and `search_text` envelopes and
-     implement only mappings that meet the existing exact-token gate.
-   - Architecture: strict JSON remains default; `agc1` remains supported; no
-     third-party wire compatibility, binary transport, or shared state.
+1. [AGC2 Compact Output Research and Development Epic](./active/4_agc2-munch-informed-rnd-epic.md)
+   - Goal: establish a representative corpus and prove, rather than assume,
+     whether an Astrograph-owned AGC2 codec should replace AGC1.
+   - First action: build deterministic frontend, polyglot monorepo, text-heavy,
+     and dead-code fixture repositories.
+   - Architecture: strict JSON and AGC1 are release-safe fallbacks; MUNCH is
+     research input only, with no wire compatibility or imported codec code.
 
 ## Ready — detailed, but not selected
 
@@ -70,10 +70,6 @@ roadmap explains everything else.
   only route for reopening them.
 - [Compact output versus internal serialization assessment](../../docs/reviews/compact-output-vs-internal-serialization-2026-07-22.md):
   ingested roadmap input; it does not select either parked story.
-- [AGC2 encoding and benchmark redesign](./planned/8_agc2-encoding-and-benchmark-redesign.md):
-  deferred MUNCH-informed research plan with a small, monorepo, text-heavy,
-  and dead-code fixture matrix; do not switch formats until its exact-token
-  gate proves a material AGC2 win over AGC1.
 - [`specs/raw/`](../raw/): research inputs only; not a delivery queue.
 
 ## Descoped — do not quietly add

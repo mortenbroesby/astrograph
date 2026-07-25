@@ -37,9 +37,9 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    remains deferred and it is not authorized for implementation.
 6. [Spec System Backlog](./7_spec-system-backlog.md) — lower-impact durable
    architecture/API coverage and authoring consistency.
-7. [AGC2 Encoding and Benchmark Redesign](./8_agc2-encoding-and-benchmark-redesign.md)
-   — deferred research and fixture-matrix plan; select only after explicitly
-   choosing a new compact-output session.
+
+The AGC2 research outline is now selected as the active
+[AGC2 Compact Output R&D Epic](../active/4_agc2-munch-informed-rnd-epic.md).
 
 The completed [README and Docs Diagram Design](../closed/readme-docs-diagram-design.md)
 record now lives with closed evidence rather than in the delivery queue.

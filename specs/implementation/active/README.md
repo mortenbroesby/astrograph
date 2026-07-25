@@ -6,9 +6,9 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Compact Output v2](./3_compact-output-v2.md)
-   — extend measured, lossless agent-visible output compaction with an
-   Astrograph-owned JSON table format.
+1. [AGC2 Compact Output Research and Development Epic](./4_agc2-munch-informed-rnd-epic.md)
+   — research, corpus benchmarking, codec trials, and a hard release gate for
+   an Astrograph-owned compact-output redesign.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

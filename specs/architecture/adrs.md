@@ -375,10 +375,10 @@ not dynamically download grammars or claim all community grammars are covered.
 
 ---
 
-## ADR-008: Extend Compact Output with an Astrograph-Owned Table Format
+## ADR-009: Extend Compact Output with an Astrograph-Owned Table Format
 
 **Date:** 2026-07-24
-**Status:** Accepted
+**Status:** Superseded by ADR-010
 
 ## Context
 
@@ -432,3 +432,60 @@ altered automatically: Astrograph reports explicit recovery guidance instead.
   public mapping and compatibility rules.
 - The active [delivery plan](../implementation/active/3_compact-output-v2.md)
   records fixture, contract, benchmark, and package verification.
+
+---
+
+## ADR-010: Gate AGC2 on a Representative Research Corpus
+
+**Date:** 2026-07-25
+**Status:** Accepted
+
+## Context
+
+The compact-output v2 experiment demonstrated small gains on one two-file
+fixture, but a version label and a single favorable capture are insufficient
+evidence for a public wire-format replacement. MUNCH's published specification
+and implementation demonstrate useful patterns—schema-specific encoders,
+prefix interning, typed rows, generic fallback, and a measured fail-open
+gate—but Astrograph must preserve its own product boundary and cannot assume
+those patterns are token-efficient for its MCP envelopes or tokenizer.
+
+## Decision
+
+Astrograph will run a dedicated AGC2 R&D epic before selecting a production
+compact-output wire format. It will use deterministic small-frontend,
+polyglot-monorepo, text-heavy, and dead-code repository fixtures; compare
+normalized strict JSON, frozen AGC1, and independently implemented AGC2
+candidates with exact `cl100k_base` counts; and report individual as well as
+weighted results.
+
+AGC2 may replace AGC1 only if it saves at least 15% weighted exact tokens over
+AGC1 across successful migrated-tool captures, never regresses a representative
+capture, and meets the existing 20-token/25%-versus-JSON `auto` gate. Ties and
+losses select strict JSON. Codec candidates are non-serving until the gate
+passes. MUNCH remains research input only: Astrograph emits neither its header
+nor a compatible payload and imports no reference codec code.
+
+## Rationale
+
+- A fixture matrix exposes the header/legend cost that a single large response
+  can hide.
+- Per-tool schema IDs and a generic fallback are useful hypotheses, but each
+  must prove losslessness and measurable savings in Astrograph's data shapes.
+- Exact tokenizer counts reflect the cost paid by the agent more faithfully
+  than byte-only estimates.
+
+## Consequences
+
+- The packed-row AGC2 branch is a benchmark baseline, not evidence that AGC2
+  should ship.
+- The R&D epic can reject individual candidates or retain AGC1 entirely.
+- A public AGC2 contract, cache/storage version decision, release tag, or npm
+  publication is blocked until the corpus gate passes.
+
+## Verification
+
+- The active [AGC2 R&D epic](../implementation/active/4_agc2-munch-informed-rnd-epic.md)
+  defines fixture, codec, fuzzing, and release evidence.
+- `pnpm bench:compact-output-matrix --json` will record normalized JSON, AGC1,
+  and AGC2 candidate token/byte/latency comparisons per capture.

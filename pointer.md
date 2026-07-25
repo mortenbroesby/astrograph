@@ -8,9 +8,11 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Compact Output v2 Implementation Plan](./specs/implementation/active/3_compact-output-v2.md),
-starting with measured `find_files` and `search_text` envelopes while
-preserving strict JSON default behavior and the existing `agc1` contract.
+Execute the active [AGC2 Compact Output Research and Development Epic](./specs/implementation/active/4_agc2-munch-informed-rnd-epic.md),
+starting with Story 2's deterministic repository corpus. Treat the current
+packed-row AGC2 implementation as a baseline experiment only; strict JSON and
+AGC1 remain the release-safe fallback until the epic's corpus selection gate
+passes.
 
 ## Completion and update rule
 
