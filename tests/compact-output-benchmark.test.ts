@@ -4,6 +4,7 @@ import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
   prefixLegendAgc2Codec,
+  typedRowsAgc2Codec,
   schemaRowsAgc2Codec,
   type CompactCandidateCodec,
 } from "../src/compact-mcp-candidates.ts";
@@ -85,6 +86,16 @@ describe("compact output benchmark candidates", () => {
 
     const onePath: McpEnvelope<unknown> = { ...treeEnvelope, data: [(treeEnvelope.data as Array<unknown>)[0]] };
     expect(measureCompactCandidate(prefixLegendAgc2Codec, "get_file_tree", onePath).rejectionReason).toBe("unsupported_shape");
+  });
+
+  it("round-trips typed scalars, including escaped delimiters and Unicode", () => {
+    const typedEnvelope: McpEnvelope<unknown> = {
+      ok: true,
+      data: [{ filePath: "src/café\t✨.ts", line: 2, preview: "quoted \\\"text\\\"\nnext line" }],
+      meta: { toolVersion: "1", tokenBudgetUsed: 1.5, dataFreshness: "fresh" },
+    };
+    expect(measureCompactCandidate(typedRowsAgc2Codec, "search_text", typedEnvelope).decoded).toEqual(typedEnvelope);
+    expect(() => typedRowsAgc2Codec.decode(["agc2t", "text/3", ["xwat"], ["1", 1, "fresh"]])).toThrow("Invalid typed scalar");
   });
 
   it("records explicit rejections instead of silently measuring unsupported shapes", () => {

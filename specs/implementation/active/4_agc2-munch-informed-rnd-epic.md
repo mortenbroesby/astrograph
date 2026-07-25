@@ -108,7 +108,7 @@ unproven compression tricks in one opaque redesign.
   rejects an unknown schema ID and mismatched producer columns.
 - [x] Candidate C — shared prefix legend for paths only when its measured
   encoding cost is repaid within that response.
-- [ ] Candidate D — typed delimited rows with escaping and explicit null,
+- [x] Candidate D — typed delimited rows with escaping and explicit null,
   boolean, integer, float, and Unicode behavior.
 - [ ] Candidate E — bounded generic homogeneous-list fallback with explicit
   refusal for heterogeneous or lossy shapes.

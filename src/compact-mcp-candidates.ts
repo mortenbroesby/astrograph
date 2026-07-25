@@ -161,6 +161,101 @@ export const prefixLegendAgc2Codec: CompactCandidateCodec = {
   decode: decodePrefixLegendAgc2,
 };
 
+const TYPED_ROWS_VERSION = "agc2t";
+
+/** Candidate D: escaped typed-delimited rows, with explicit scalar tags. */
+export function encodeTypedRowsAgc2(
+  toolName: CompactCandidateToolName,
+  envelope: McpResponseEnvelope<unknown>,
+): unknown[] | null {
+  const schemaValue = encodeSchemaRowsAgc2(toolName, envelope);
+  if (!schemaValue) return null;
+  const [, schemaId, payload, meta] = schemaValue;
+  try {
+    if (toolName === "search_symbols") {
+      const value = payload as unknown[];
+      return [TYPED_ROWS_VERSION, schemaId, [(value[0] as unknown[]).map(encodeTypedRow), value[1], value[2], value[3]], meta];
+    }
+    if (toolName === "get_file_tree") return [TYPED_ROWS_VERSION, schemaId, (payload as unknown[]).map(encodeTypedRow), meta];
+    if (toolName === "get_file_outline") {
+      const value = payload as unknown[];
+      return [TYPED_ROWS_VERSION, schemaId, [value[0], (value[1] as unknown[]).map(encodeTypedRow)], meta];
+    }
+    return [TYPED_ROWS_VERSION, schemaId, (payload as unknown[]).map(encodeTypedRow), meta];
+  } catch {
+    return null;
+  }
+}
+
+export function decodeTypedRowsAgc2(value: unknown): McpResponseEnvelope<unknown> {
+  if (!Array.isArray(value) || value.length !== 4 || value[0] !== TYPED_ROWS_VERSION) throw new Error("Invalid typed-row header");
+  const [, schemaId, payload, meta] = value;
+  if (typeof schemaId !== "string") throw new Error("Invalid typed-row schema");
+  const toolName = TOOL_BY_SCHEMA_ROWS.get(schemaId);
+  if (!toolName) throw new Error("Unknown typed-row schema");
+  let decodedPayload: unknown;
+  if (toolName === "search_symbols") {
+    if (!Array.isArray(payload) || payload.length !== 4 || !Array.isArray(payload[0])) throw new Error("Invalid typed symbols payload");
+    decodedPayload = [payload[0].map(decodeTypedRow), payload[1], payload[2], payload[3]];
+  } else if (toolName === "get_file_tree") {
+    if (!Array.isArray(payload)) throw new Error("Invalid typed tree payload");
+    decodedPayload = payload.map(decodeTypedRow);
+  } else if (toolName === "get_file_outline") {
+    if (!Array.isArray(payload) || payload.length !== 2 || !Array.isArray(payload[1])) throw new Error("Invalid typed outline payload");
+    decodedPayload = [payload[0], payload[1].map(decodeTypedRow)];
+  } else {
+    if (!Array.isArray(payload)) throw new Error("Invalid typed table payload");
+    decodedPayload = payload.map(decodeTypedRow);
+  }
+  return decodeSchemaRowsAgc2([SCHEMA_ROWS_VERSION, schemaId, decodedPayload, meta]);
+}
+
+export const typedRowsAgc2Codec: CompactCandidateCodec = {
+  id: "agc2-typed-rows",
+  encode: encodeTypedRowsAgc2,
+  decode: decodeTypedRowsAgc2,
+};
+
+function encodeTypedRow(row: unknown): string {
+  if (!Array.isArray(row)) throw new Error("Typed row must be an array");
+  return row.map(encodeTypedScalar).join("\t");
+}
+
+function encodeTypedScalar(value: unknown): string {
+  if (value === null) return "n";
+  if (value === true) return "b1";
+  if (value === false) return "b0";
+  if (typeof value === "number") {
+    if (!Number.isFinite(value)) throw new Error("Typed rows reject non-finite numbers");
+    return Number.isInteger(value) ? `i${value}` : `f${value}`;
+  }
+  if (typeof value === "string") return `s${escapeTypedString(value)}`;
+  throw new Error("Typed rows reject non-scalar values");
+}
+
+function decodeTypedRow(row: unknown): unknown[] {
+  if (typeof row !== "string") throw new Error("Typed row must be a string");
+  return row.split("\t").map(decodeTypedScalar);
+}
+
+function decodeTypedScalar(token: string): unknown {
+  if (token === "n") return null;
+  if (token === "b1") return true;
+  if (token === "b0") return false;
+  if (token.startsWith("i") && /^-?\d+$/.test(token.slice(1))) return Number(token.slice(1));
+  if (token.startsWith("f") && /^-?(?:\d+\.\d*|\d*\.\d+|\d+)(?:e[+-]?\d+)?$/i.test(token.slice(1))) return Number(token.slice(1));
+  if (token.startsWith("s")) return unescapeTypedString(token.slice(1));
+  throw new Error("Invalid typed scalar");
+}
+
+function escapeTypedString(value: string): string {
+  return value.replaceAll("\\", "\\\\").replaceAll("\t", "\\t").replaceAll("\n", "\\n").replaceAll("\r", "\\r");
+}
+
+function unescapeTypedString(value: string): string {
+  return value.replace(/\\([\\tnr])/g, (_match, escape: string) => ({ "\\": "\\", t: "\t", n: "\n", r: "\r" })[escape] ?? "");
+}
+
 function pathsForSchemaPayload(toolName: CompactCandidateToolName, payload: unknown): string[] {
   if (toolName === "search_symbols") {
     return Array.isArray(payload) && Array.isArray(payload[0]) ? payload[0].map((row) => Array.isArray(row) && typeof row[4] === "string" ? row[4] : "").filter(Boolean) : [];
