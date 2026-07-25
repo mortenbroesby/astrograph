@@ -216,6 +216,60 @@ export const typedRowsAgc2Codec: CompactCandidateCodec = {
   decode: decodeTypedRowsAgc2,
 };
 
+const GENERIC_ROWS_VERSION = "agc2g";
+const GENERIC_LIST_TOOLS = new Set<CompactCandidateToolName>(["get_file_tree", "find_files", "search_text"]);
+
+/** Candidate E: bounded lossless fallback for homogeneous scalar object lists. */
+export function encodeGenericRowsAgc2(
+  toolName: CompactCandidateToolName,
+  envelope: McpResponseEnvelope<unknown>,
+): unknown[] | null {
+  if (!GENERIC_LIST_TOOLS.has(toolName) || !Array.isArray(envelope.data) || envelope.data.length === 0) return null;
+  const rows = envelope.data;
+  if (!rows.every((row) => row && typeof row === "object" && !Array.isArray(row))) return null;
+  const columns = Object.keys(rows[0] as Record<string, unknown>).sort();
+  if (columns.length === 0 || !rows.every((row) => sameColumns(row as Record<string, unknown>, columns))) return null;
+  const values = rows.map((row) => columns.map((column) => (row as Record<string, unknown>)[column]));
+  if (!values.flat().every(isGenericScalar)) return null;
+  return [
+    GENERIC_ROWS_VERSION,
+    toolName,
+    columns,
+    values,
+    [envelope.meta.toolVersion, envelope.meta.tokenBudgetUsed, envelope.meta.dataFreshness],
+  ];
+}
+
+export function decodeGenericRowsAgc2(value: unknown): McpResponseEnvelope<unknown> {
+  if (!Array.isArray(value) || value.length !== 5 || value[0] !== GENERIC_ROWS_VERSION) throw new Error("Invalid generic-row header");
+  const [, toolName, columns, rows, meta] = value;
+  if (!isCompactCandidateToolName(String(toolName)) || !GENERIC_LIST_TOOLS.has(toolName) || !Array.isArray(columns) || !columns.every((column) => typeof column === "string") || !Array.isArray(rows) || !Array.isArray(meta) || meta.length !== 3) {
+    throw new Error("Invalid generic-row schema");
+  }
+  const [toolVersion, tokenBudgetUsed, dataFreshness] = meta;
+  if (toolVersion !== "1" || (tokenBudgetUsed !== null && (typeof tokenBudgetUsed !== "number" || !Number.isFinite(tokenBudgetUsed))) || (dataFreshness !== "fresh" && dataFreshness !== "stale" && dataFreshness !== "unknown")) throw new Error("Invalid generic-row metadata");
+  const data = rows.map((row) => {
+    if (!Array.isArray(row) || row.length !== columns.length || !row.every(isGenericScalar)) throw new Error("Invalid generic-row values");
+    return Object.fromEntries(columns.map((column, index) => [column, row[index]]));
+  });
+  return { ok: true, data, meta: { toolVersion, tokenBudgetUsed, dataFreshness } };
+}
+
+export const genericRowsAgc2Codec: CompactCandidateCodec = {
+  id: "agc2-generic-rows",
+  encode: encodeGenericRowsAgc2,
+  decode: decodeGenericRowsAgc2,
+};
+
+function sameColumns(row: Record<string, unknown>, columns: string[]): boolean {
+  const keys = Object.keys(row).sort();
+  return keys.length === columns.length && keys.every((key, index) => key === columns[index]);
+}
+
+function isGenericScalar(value: unknown): value is string | number | boolean | null {
+  return value === null || typeof value === "string" || typeof value === "boolean" || (typeof value === "number" && Number.isFinite(value));
+}
+
 function encodeTypedRow(row: unknown): string {
   if (!Array.isArray(row)) throw new Error("Typed row must be an array");
   return row.map(encodeTypedScalar).join("\t");

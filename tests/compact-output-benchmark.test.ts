@@ -4,6 +4,7 @@ import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
   prefixLegendAgc2Codec,
+  genericRowsAgc2Codec,
   typedRowsAgc2Codec,
   schemaRowsAgc2Codec,
   type CompactCandidateCodec,
@@ -96,6 +97,30 @@ describe("compact output benchmark candidates", () => {
     };
     expect(measureCompactCandidate(typedRowsAgc2Codec, "search_text", typedEnvelope).decoded).toEqual(typedEnvelope);
     expect(() => typedRowsAgc2Codec.decode(["agc2t", "text/3", ["xwat"], ["1", 1, "fresh"]])).toThrow("Invalid typed scalar");
+  });
+
+  it("uses generic rows only for homogeneous scalar lists and preserves unknown fields", () => {
+    const genericEnvelope: McpEnvelope<unknown> = {
+      ok: true,
+      data: [
+        { filePath: "src/a.ts", custom: "α", enabled: true, rank: 1, optional: null },
+        { filePath: "src/b.ts", custom: "β", enabled: false, rank: 2, optional: null },
+      ],
+      meta: { toolVersion: "1", tokenBudgetUsed: 5, dataFreshness: "fresh" },
+    };
+    expect(measureCompactCandidate(genericRowsAgc2Codec, "find_files", genericEnvelope).decoded).toEqual(genericEnvelope);
+    const heterogeneous: McpEnvelope<unknown> = { ...genericEnvelope, data: [{ filePath: "src/a.ts" }, { filePath: "src/b.ts", extra: true }] };
+    expect(measureCompactCandidate(genericRowsAgc2Codec, "find_files", heterogeneous).rejectionReason).toBe("unsupported_shape");
+  });
+
+  it("rejects malformed headers, legends, rows, tags, and generic producer shapes", () => {
+    const malformed: Array<() => unknown> = [
+      () => schemaRowsAgc2Codec.decode(["agc2s", "missing/9", [], ["1", 0, "fresh"]]),
+      () => prefixLegendAgc2Codec.decode(["agc2p", "tree/3", "src/", [["only-path"]], ["1", 0, "fresh"]]),
+      () => typedRowsAgc2Codec.decode(["agc2t", "text/3", ["squoted \\\"value\\\"\tbad-tag\tsline\\nnext"], ["1", 0, "fresh"]]),
+      () => genericRowsAgc2Codec.decode(["agc2g", "find_files", ["path"], [["src/a.ts", "unexpected"]], ["1", 0, "fresh"]]),
+    ];
+    for (const decode of malformed) expect(decode).toThrow();
   });
 
   it("records explicit rejections instead of silently measuring unsupported shapes", () => {

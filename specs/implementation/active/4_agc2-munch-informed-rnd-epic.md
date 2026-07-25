@@ -102,7 +102,7 @@ unproven compression tricks in one opaque redesign.
 - Modify: `tests/compact-output-benchmark.test.ts`
 - Modify: `specs/api-design/compact-output-v2.md` only after a candidate wins
 
-- [ ] Candidate A — packed fixed-width rows, including the current AGC2
+- [x] Candidate A — packed fixed-width rows, including the current AGC2
   experiment, to establish its exact corpus profile.
 - [x] Candidate B — encoder IDs and declarative per-tool schemas; the decoder
   rejects an unknown schema ID and mismatched producer columns.
@@ -110,9 +110,9 @@ unproven compression tricks in one opaque redesign.
   encoding cost is repaid within that response.
 - [x] Candidate D — typed delimited rows with escaping and explicit null,
   boolean, integer, float, and Unicode behavior.
-- [ ] Candidate E — bounded generic homogeneous-list fallback with explicit
+- [x] Candidate E — bounded generic homogeneous-list fallback with explicit
   refusal for heterogeneous or lossy shapes.
-- [ ] Fuzz malformed headers, legends, row widths, type tags, delimiters,
+- [x] Fuzz malformed headers, legends, row widths, type tags, delimiters,
   embedded newlines, quotes, and unknown schema IDs.
 
 **Acceptance:** Each candidate has a lossless decoder, an adversarial test

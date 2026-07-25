@@ -4,6 +4,7 @@ import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
   prefixLegendAgc2Codec,
+  genericRowsAgc2Codec,
   schemaRowsAgc2Codec,
   typedRowsAgc2Codec,
 } from "../src/compact-mcp-candidates.ts";
@@ -94,6 +95,7 @@ try {
       const schemaRows = measureCompactCandidate(schemaRowsAgc2Codec, queryCase.toolName, envelope);
       const prefixLegend = measureCompactCandidate(prefixLegendAgc2Codec, queryCase.toolName, envelope);
       const typedRows = measureCompactCandidate(typedRowsAgc2Codec, queryCase.toolName, envelope);
+      const genericRows = measureCompactCandidate(genericRowsAgc2Codec, queryCase.toolName, envelope);
       records.push({
         fixture: fixtureName,
         query: queryCase.id,
@@ -106,6 +108,7 @@ try {
         agc2SchemaRows: schemaRows,
         agc2PrefixLegend: prefixLegend,
         agc2TypedRows: typedRows,
+        agc2GenericRows: genericRows,
         selectedOutcome: "research_only_no_serving_selection",
       });
     }
@@ -125,10 +128,12 @@ const report = {
     agc2SchemaRows: summarize(records, "agc2SchemaRows"),
     agc2PrefixLegend: summarize(records, "agc2PrefixLegend"),
     agc2TypedRows: summarize(records, "agc2TypedRows"),
+    agc2GenericRows: summarize(records, "agc2GenericRows"),
     agc2PackedRowsVsAgc1: compareAgainstAgc1(records, "agc2PackedRows"),
     agc2SchemaRowsVsAgc1: compareAgainstAgc1(records, "agc2SchemaRows"),
     agc2PrefixLegendVsAgc1: compareAgainstAgc1(records, "agc2PrefixLegend"),
     agc2TypedRowsVsAgc1: compareAgainstAgc1(records, "agc2TypedRows"),
+    agc2GenericRowsVsAgc1: compareAgainstAgc1(records, "agc2GenericRows"),
   },
   selection: "No production codec is selected by the Story 3 harness.",
 };
