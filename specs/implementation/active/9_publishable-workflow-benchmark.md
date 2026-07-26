@@ -62,7 +62,7 @@ renderer, Vitest, Markdown.
 ## Task 3: Add a proportionate CI regression gate
 
 **Files:** `tests/compact-agc1-harness.test.ts`,
-`tests/compact-output-fixtures.test.ts`, `scripts/measure-agc1-compact-output-matrix.mjs`,
+`tests/compact-output-fixtures.test.ts`, `bench/scripts/measure-agc1-compact-output-matrix.mjs`,
 `.github/workflows/ci.yml`, `.agents/rules/github-actions-cost.md`
 
 - [ ] Keep numerical throughput and end-to-end latency out of required hosted

@@ -62,7 +62,7 @@ responses without a known canonical comparison remain explicitly unavailable.
 
 ## Task 3: Prove negligible overhead and document the handoff
 
-**Files:** `scripts/measure-agc1-compact-output-matrix.mjs`,
+**Files:** `bench/scripts/measure-agc1-compact-output-matrix.mjs`,
 `tests/compact-output-traces.test.ts`, `docs/guides/performance.md`,
 `specs/api-design/cli-api.md`
 

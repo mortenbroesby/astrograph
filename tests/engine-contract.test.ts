@@ -457,13 +457,13 @@ describe("ai-context-engine contract", () => {
 
     expect(packageJson.scripts).toMatchObject({
       "profile:index:clinic":
-        "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./scripts/perf-index.mjs",
+        "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./bench/scripts/perf-index.mjs",
       "profile:query:clinic":
-        "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./scripts/perf-query.mjs",
+        "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./bench/scripts/perf-query.mjs",
       "profile:index:0x":
-        "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./scripts/perf-index.mjs",
+        "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./bench/scripts/perf-index.mjs",
       "profile:query:0x":
-        "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./scripts/perf-query.mjs",
+        "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./bench/scripts/perf-query.mjs",
     });
     expect(rootGitignore).toContain(".profiles/");
   });

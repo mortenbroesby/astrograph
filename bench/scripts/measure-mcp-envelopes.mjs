@@ -3,10 +3,10 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { dispatchTool } from "../src/mcp.ts";
-import { formatMcpEnvelope } from "../src/compact-mcp.ts";
-import { clearStorageProcessCaches, indexFolder } from "../src/index.ts";
-import { BENCHMARK_TOKENIZER, countTokens } from "../src/tokenizer.ts";
+import { dispatchTool } from "../../src/mcp.ts";
+import { formatMcpEnvelope } from "../../src/compact-mcp.ts";
+import { clearStorageProcessCaches, indexFolder } from "../../src/index.ts";
+import { BENCHMARK_TOKENIZER, countTokens } from "../../src/tokenizer.ts";
 
 async function createFixtureRepo() {
   const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-envelope-"));

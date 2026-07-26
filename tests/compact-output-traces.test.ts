@@ -35,7 +35,7 @@ describe("compact-output repeat-read traces", () => {
   it("prints a source-free, versioned trace report", async () => {
     const { stdout } = await execFile(process.execPath, [
       "--experimental-strip-types",
-      "./scripts/measure-agc1-compact-output-matrix.mjs",
+      "./bench/scripts/measure-agc1-compact-output-matrix.mjs",
       "--fixture=small-frontend",
       "--summary",
     ], { cwd: process.cwd() });

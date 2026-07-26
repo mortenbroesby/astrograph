@@ -5,14 +5,14 @@ import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { decodeCompactMcpEnvelope, formatMcpEnvelope } from "../src/compact-mcp.ts";
-import { dispatchTool } from "../src/mcp.ts";
-import { readDaemonRuntime } from "../src/daemon-runtime.ts";
-import { BENCHMARK_TOKENIZER, countTokens } from "../src/tokenizer.ts";
-import { cleanupCompactOutputFixtures, createCompactOutputFixture } from "../tests/fixtures/compact-output/build-fixtures.ts";
-import { normalizeCompactOutputEnvelope } from "../tests/fixtures/compact-output/normalize.ts";
-import { createCompactOutputQueryCases } from "../tests/fixtures/compact-output/queries.ts";
-import { createCompactOutputTraceCases } from "../tests/fixtures/compact-output/traces.ts";
+import { decodeCompactMcpEnvelope, formatMcpEnvelope } from "../../src/compact-mcp.ts";
+import { dispatchTool } from "../../src/mcp.ts";
+import { readDaemonRuntime } from "../../src/daemon-runtime.ts";
+import { BENCHMARK_TOKENIZER, countTokens } from "../../src/tokenizer.ts";
+import { cleanupCompactOutputFixtures, createCompactOutputFixture } from "../../tests/fixtures/compact-output/build-fixtures.ts";
+import { normalizeCompactOutputEnvelope } from "../../tests/fixtures/compact-output/normalize.ts";
+import { createCompactOutputQueryCases } from "../../tests/fixtures/compact-output/queries.ts";
+import { createCompactOutputTraceCases } from "../../tests/fixtures/compact-output/traces.ts";
 
 const names = ["small-frontend", "product-monorepo", "text-heavy-workspace", "dead-code-workspace"];
 const selected = process.argv.find((argument) => argument.startsWith("--fixture="));

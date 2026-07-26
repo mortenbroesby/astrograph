@@ -33,7 +33,10 @@ new work complements rather than duplicates existing plans.
 7. [Local Token-Savings Analytics Delivery Checklist](./6_local-token-savings-analytics-delivery-checklist.md)
    — selected by the user: make existing local efficiency evidence useful as a
    source-free, negligible-overhead report without adding tracking infrastructure.
-8. [Publishable Workflow Benchmark](./7_publishable-workflow-benchmark.md)
+8. [Repository Structure Cleanup Epic](./7_repository-structure-cleanup-epic.md)
+   — selected by the user: collate benchmark ownership, remove unsupported
+   script surfaces, and simplify repository automation one focused PR at a time.
+9. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
    — selected by the user: publish a small, snapshot-locked comparison between
    broad file reading and Astrograph retrieval, with auditable evidence.
 
