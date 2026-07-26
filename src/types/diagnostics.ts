@@ -14,6 +14,7 @@ import type {
   SummarySource,
 } from "./retrieval.ts";
 import type { WatchDiagnostics } from "./watch.ts";
+import type { RuntimePresenceSummary } from "../runtime-presence.ts";
 
 export interface DiagnosticsOptions {
   repoRoot: string;
@@ -112,6 +113,7 @@ export interface DiagnosticsResult {
     byFallbackExtension: FallbackSupportDescriptor[];
   };
   watch: WatchDiagnostics;
+  runtime: RuntimePresenceSummary;
 }
 
 export interface ProjectStatusOptions {
@@ -185,6 +187,7 @@ export interface DoctorResult {
   observability: DoctorObservabilityHealth;
   privacy: DoctorPrivacyHealth;
   watch: WatchDiagnostics;
+  runtime: RuntimePresenceSummary;
   retrievalHealth: RetrievalHealth;
   warnings: string[];
   suggestedActions: string[];

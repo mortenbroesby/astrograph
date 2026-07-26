@@ -8,10 +8,10 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [Comforting Install Experience Implementation
-Plan](./specs/implementation/active/2_comforting-global-install-experience.md),
-starting with readable global and repository-local setup feedback while
-preserving explicit, idempotent configuration.
+Execute the active [MCP Runtime Hygiene Delivery
+Checklist](./specs/implementation/active/mcp-runtime-hygiene-delivery-checklist.md),
+making abandoned stdio MCP processes visible and ensuring normal shutdown
+releases process-lifetime resources.
 
 ## Completion and update rule
 

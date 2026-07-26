@@ -19,6 +19,9 @@ import { formatMcpEnvelope, type McpOutputFormat } from "./compact-mcp.ts";
 import { emitEngineEvent } from "./event-sink.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
+import { registerRuntimePresence } from "./runtime-presence.ts";
+import { clearStorageProcessCaches } from "./storage.ts";
+import { disposeTokenizer } from "./tokenizer.ts";
 
 type EngineModule = typeof import("./index.ts");
 
@@ -527,20 +530,43 @@ async function main() {
   });
   const server = createMcpServer();
   const transport = new StdioServerTransport();
+  let runtimePresence: Awaited<ReturnType<typeof registerRuntimePresence>> | null = null;
+  let shutdownPromise: Promise<void> | null = null;
 
-  const closeServer = async () => {
-    await server.close();
-    process.exit(0);
+  const closeServer = (exitProcess: boolean) => {
+    if (shutdownPromise) {
+      return shutdownPromise;
+    }
+
+    shutdownPromise = (async () => {
+      await server.close().catch(() => undefined);
+      await runtimePresence?.close();
+      clearStorageProcessCaches();
+      disposeTokenizer();
+      logger.info({ event: "server_closed" });
+      if (exitProcess) {
+        process.exit(0);
+      }
+    })();
+    return shutdownPromise;
   };
 
   process.once("SIGINT", () => {
-    void closeServer();
+    void closeServer(true);
   });
   process.once("SIGTERM", () => {
-    void closeServer();
+    void closeServer(true);
+  });
+  process.stdin.once("end", () => {
+    void closeServer(false);
   });
 
+  transport.onclose = () => {
+    void closeServer(false);
+  };
+
   await server.connect(transport);
+  runtimePresence = await registerRuntimePresence().catch(() => null);
   logger.info({ event: "server_connected" });
 }
 

@@ -289,6 +289,7 @@ describe("cli boundaries", () => {
     expect(doctorText).toContain("Astrograph Doctor");
     expect(doctorText).toContain("Index: indexed");
     expect(doctorText).toContain("Parser: fallback 0.0%");
+    expect(doctorText).toContain("Runtime: ");
 
     const doctorJson = JSON.parse(
       await handleCli([
@@ -314,6 +315,12 @@ describe("cli boundaries", () => {
       observability: {
         retentionDays: 3,
         redactSourceText: true,
+      },
+      runtime: {
+        schemaVersion: 1,
+        liveProcessCount: expect.any(Number),
+        staleRecordCount: expect.any(Number),
+        invalidRecordCount: expect.any(Number),
       },
     });
   }, 45_000);

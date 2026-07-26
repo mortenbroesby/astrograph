@@ -1,6 +1,6 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
-import { mkdtemp, realpath, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
@@ -26,10 +26,24 @@ const packageRoot = path.resolve(
 const it = (name: string, fn: (...args: never[]) => unknown, timeout = 30_000) =>
   baseIt(name, fn as never, timeout);
 
+async function waitFor(predicate: () => boolean | Promise<boolean>, timeoutMs = 5_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (!await predicate()) {
+    if (Date.now() >= deadline) {
+      throw new Error(`Timed out after ${timeoutMs}ms`);
+    }
+    await delay(20);
+  }
+}
+
 type McpToolTextResult = { type: string; text: string };
 function parseMcpToolResult(value: { content: McpToolTextResult[] } | McpToolTextResult): any {
   const text = "content" in value ? value.content[0].text : value.text;
   return JSON.parse(text as string);
+}
+
+function expectTokenBudgetUsed(value: unknown): void {
+  expect(value === null || (typeof value === "number" && Number.isFinite(value))).toBe(true);
 }
 
 async function withMcpClient<T>(
@@ -37,6 +51,7 @@ async function withMcpClient<T>(
     client: Client;
     stderr: () => string;
   }) => Promise<T>,
+  options: { env?: NodeJS.ProcessEnv } = {},
 ) {
   const isolatedHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-home-"));
   const transport = new StdioClientTransport({
@@ -49,6 +64,7 @@ async function withMcpClient<T>(
       HOME: isolatedHome,
       XDG_CONFIG_HOME: path.join(isolatedHome, ".config"),
       ASTROGRAPH_USE_SOURCE: "1",
+      ...options.env,
     },
   });
   let stderr = "";
@@ -166,7 +182,13 @@ describe("ai-context-engine interfaces", () => {
           }),
         ]),
       },
+      runtime: {
+        schemaVersion: 1,
+        liveProcessCount: expect.any(Number),
+      },
     });
+    const runtimeWarning = JSON.parse(diagnosticsStdout).runtime.warning;
+    expect(runtimeWarning === null || typeof runtimeWarning === "string").toBe(true);
 
     const filteredStdout = await handleCli([
       "search-symbols",
@@ -551,7 +573,6 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
         data: {
           truncated: false,
@@ -565,6 +586,7 @@ export function circumference(radius: number): string {
           ]),
         },
       });
+      expectTokenBudgetUsed(discoverPayload.meta.tokenBudgetUsed);
       expect(discoverPayload.data.items).toHaveLength(1);
       expect(discoverPayload.data.items).toEqual(
         expect.not.arrayContaining([
@@ -584,9 +606,9 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
       });
+      expectTokenBudgetUsed(filteredSearchPayload.meta.tokenBudgetUsed);
       const filteredDiscover = filteredSearchPayload.data.items;
       expect(filteredDiscover.every((entry: { filePath: string }) =>
         entry.filePath.endsWith(".ts"),
@@ -704,13 +726,13 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
         data: {
           query: "Greeter",
           payloadTokenBudget: 1200,
         },
       });
+      expectTokenBudgetUsed(bundlePayload.meta.tokenBudgetUsed);
       expect(bundlePayload.data.items[0]).toMatchObject({
         symbol: {
           name: "Greeter",
@@ -729,9 +751,9 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
       });
+      expectTokenBudgetUsed(parsedSymbolSource.meta.tokenBudgetUsed);
       expect(parsedSymbolSource.data.items).toHaveLength(2);
       expect(parsedSymbolSource.data.items[0]).toMatchObject({
         provenance: {
@@ -976,6 +998,22 @@ export class Greeter {
       "src/math.ts",
       "src/strings.ts",
     ]);
+  }, 15_000);
+
+  it("removes its runtime presence record when the stdio client closes", async () => {
+    const runtimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-runtime-"));
+    try {
+      await withMcpClient(async ({ client }) => {
+        await waitFor(async () => (await readdir(runtimeDir)).some((entry) => /^\d+\.json$/.test(entry)));
+        await client.listTools();
+      }, {
+        env: { ASTROGRAPH_RUNTIME_DIR: runtimeDir },
+      });
+
+      await waitFor(async () => (await readdir(runtimeDir)).length === 0);
+    } finally {
+      await rm(runtimeDir, { recursive: true, force: true });
+    }
   }, 15_000);
 
   it("rejects malformed MCP arguments instead of treating them as empty filters", async () => {

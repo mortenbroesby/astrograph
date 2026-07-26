@@ -36,6 +36,10 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `diagnostics`, `get-project-status`, and JSON `doctor` expose `retrievalHealth`
   with a safety class, affected and safe operation lists, and one recovery
   action. The human `doctor` report renders the same safety guidance.
+- `diagnostics` and JSON `doctor` also expose a source-free `runtime` summary
+  of live Astrograph MCP processes plus pruned stale or invalid registry-record
+  counts. It is local-user metadata only; it never contains repository paths,
+  source, or queries.
 
 ## Verification
 
