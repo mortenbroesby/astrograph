@@ -1,6 +1,6 @@
 # Session-Aware Agent Efficiency Epic
 
-> **Status:** Active through Story 3 — later stories remain ready and unselected.
+> **Status:** Active — Stories 3–7 are consolidated in one user-selected PR.
 >
 > **Inspiration:** CodeDrift's emphasis on session-aware reads, composed
 > context, observable agent efficiency, and privacy controls. This is a
@@ -53,10 +53,10 @@ because its design is attractive.
 | 1 | Repeat-read trace and benchmark foundation | Existing compact-output fixtures | Reproducible baseline across four repository shapes and ordinary/repeated reads. |
 | 2 | Explicit session and content-reference contract | Story 1 | Selected by the user; preserve the full-response fallback and bounded local state. |
 | 3 | Optional exact delta responses | Stories 1–2 | Selected by the user; exact-reference reuse first, with full fallback. |
-| 4 | Bounded task dossier composition | Story 1 | Existing tool composition cannot meet a documented task/budget. |
-| 5 | Privacy-safe efficiency report | Story 1 | A developer/operator decision current diagnostics cannot answer. |
-| 6 | Explicit cross-session bookmarks | Stories 1, 4 | Repeat-task corpus proves a durable, user-controlled reference helps. |
-| 7 | Configurable privacy-output policy | Story 5 | Threat model and fixture proof show an opt-in policy is safer than raw output. |
+| 4 | Bounded task dossier composition | Story 1 | Consolidated by explicit user selection; audit existing composition first. |
+| 5 | Privacy-safe efficiency report | Story 1 | Consolidated by explicit user selection; opt-in JSON only. |
+| 6 | Explicit cross-session bookmarks | Stories 1, 4 | Consolidated by explicit user selection; explicit repository-local records only. |
+| 7 | Configurable privacy-output policy | Story 5 | Consolidated by explicit user selection; deterministic policy only. |
 
 ## Story 1: Repeat-read trace and benchmark foundation
 
