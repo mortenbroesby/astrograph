@@ -158,7 +158,7 @@ and the [MCP contract](../api-design/mcp-tools.md).
   — closed after Story 4 completed the measured agent-visible token-efficiency
   end-cap in PR #79.
 - [Session-Aware Agent Efficiency Epic](./closed/session-aware-agent-efficiency-epic.md)
-  — closed after PR #99 merged exact references, local efficiency reporting,
+  — closed after PR #99 merged exact references and local Astrograph reporting,
   explicit bookmarks, and optional marked output redaction.
 
 ## Maintaining this roadmap

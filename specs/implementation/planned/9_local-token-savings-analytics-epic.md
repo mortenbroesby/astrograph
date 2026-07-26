@@ -9,14 +9,14 @@ ordinary tool latency and a stable JSON shape that a future explicit exporter
 may consume.
 
 **Architecture:** Reuse the existing repository-local event sink and
-`astrograph efficiency-report` command. Record only already-known response
+`astrograph report` command. Record only already-known response
 metadata; do not tokenize, serialize, write, or call the network additionally
 on a tool request. The report aggregates exact savings when the serving path
 already supplies them and labels other values as unavailable rather than
 estimating them. No account, endpoint, SDK, daemon, background upload, or
 export configuration is part of this epic.
 
-**Default scope:** `efficiency-report --repo /abs/repo` always reports that
+**Default scope:** `report --repo /abs/repo` always reports that
 repository. Without `--repo`, repository-local storage reports the resolved
 current repository; global storage aggregates every registered local repository
 with retained Astrograph data. This is automatic scope selection, not a new
@@ -49,7 +49,7 @@ storage, `cl100k_base` metrics already used by serving paths, and Vitest.
 
 ## Acceptance evidence
 
-- `astrograph efficiency-report` is local and machine-readable: it defaults to
+- `astrograph report` is local and machine-readable: it defaults to
   all registered local repositories under global storage and the current
   repository under repository-local storage; `--repo` narrows it explicitly.
 - Its schema distinguishes exact savings, unavailable values, and

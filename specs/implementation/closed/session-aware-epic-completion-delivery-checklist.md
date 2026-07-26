@@ -57,7 +57,7 @@ source provenance. `tests/engine-behavior.test.ts` pins those four intent
 paths, source attribution, relation selection, and budget behavior. Adding a
 second composition API would only duplicate the existing contract.
 
-## Task 3: Story 5 opt-in local efficiency report
+## Task 3: Story 5 opt-in local Astrograph report
 
 **Files:** existing event/token telemetry seam, CLI surface, focused tests,
 `docs/guides/performance.md`
@@ -67,7 +67,7 @@ second composition API would only duplicate the existing contract.
 - [x] Guarantee no source, prompt, path, raw query, or session ID is emitted.
 - [x] Document retention/reset; do not build a dashboard.
 
-**Delivered (2026-07-26):** `astrograph efficiency-report --repo /abs/repo`
+**Delivered (2026-07-26; renamed):** `astrograph report --repo /abs/repo`
 is an explicit JSON-only read of retained local MCP completion aggregates.
 `--reset --yes` is the explicit repository-local reset. The report has no
 source, prompt, path, query, or session fields.

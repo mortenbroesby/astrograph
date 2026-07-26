@@ -55,7 +55,7 @@ because its design is attractive.
 | 2 | Explicit session and content-reference contract | Story 1 | Selected by the user; preserve the full-response fallback and bounded local state. |
 | 3 | Optional exact delta responses | Stories 1–2 | Selected by the user; exact-reference reuse first, with full fallback. |
 | 4 | Bounded task dossier composition | Story 1 | Consolidated by explicit user selection; audit existing composition first. |
-| 5 | Privacy-safe efficiency report | Story 1 | Consolidated by explicit user selection; opt-in JSON only. |
+| 5 | Privacy-safe Astrograph report | Story 1 | Consolidated by explicit user selection; opt-in JSON only. |
 | 6 | Explicit cross-session bookmarks | Stories 1, 4 | Consolidated by explicit user selection; explicit repository-local records only. |
 | 7 | Configurable privacy-output policy | Story 5 | Consolidated by explicit user selection; deterministic policy only. |
 
@@ -158,7 +158,7 @@ ordering, a token budget, exclusions, and source provenance. The existing
 engine behavior suite pins all four intents plus bounded, attributed selection.
 It is therefore the minimum composition surface.
 
-## Story 5: Privacy-safe efficiency report
+## Story 5: Privacy-safe Astrograph report
 
 **Status:** Complete — explicit local JSON aggregate report only.
 

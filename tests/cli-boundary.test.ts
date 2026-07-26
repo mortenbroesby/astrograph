@@ -13,11 +13,15 @@ afterEach(async () => {
 });
 
 describe("cli boundaries", () => {
-  it("keeps --repo as the explicit single-repository efficiency-report scope", async () => {
+  it("keeps --repo as the explicit single-repository report scope", async () => {
     const repoRoot = await createFixtureRepo();
     await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });
-    const result = JSON.parse(await handleCli(["efficiency-report", "--repo", repoRoot]));
+    const result = JSON.parse(await handleCli(["report", "--repo", repoRoot]));
     expect(result).toMatchObject({ scope: "repository", repositoryCount: 1, eventCount: 1 });
+  });
+
+  it("exposes the report command under its concise public name", async () => {
+    await expect(handleCli(["efficiency-report"])).rejects.toThrow("Unknown command: efficiency-report");
   });
 
   it("returns a versioned JSON cache status for the explicit repository", async () => {

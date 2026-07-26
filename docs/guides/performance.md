@@ -54,15 +54,15 @@ correctness-oriented baseline, not a real-repository throughput benchmark:
 compare its counts and fallback state across changes, then use
 `bench:perf:index` for larger corpus timing.
 
-## Local Efficiency Report
+## Local Astrograph Report
 
 Request a report explicitly when you want to inspect retained local MCP
 completion aggregates:
 
 ```bash
-astrograph efficiency-report
-astrograph efficiency-report --repo /abs/repo
-astrograph efficiency-report --repo /abs/repo --reset --yes
+astrograph report
+astrograph report --repo /abs/repo
+astrograph report --repo /abs/repo --reset --yes
 ```
 
 The JSON report groups local MCP calls into latency bands and reports exact

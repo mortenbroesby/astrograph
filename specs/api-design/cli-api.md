@@ -52,9 +52,9 @@ Primary tests:
 - `tests/cli-boundary.test.ts`
 - `tests/engine-contract.test.ts`
 - `src/scripts/smoke-package-bin.ts`
-## Local Efficiency Report
+## Local Astrograph Report
 
-`astrograph efficiency-report` emits a source-free local JSON aggregate. With
+`astrograph report` emits a source-free local JSON aggregate. With
 `--repo /abs/repo` it reports only that repository; without `--repo`,
 repository-local storage reports the current repository and global storage
 aggregates existing Astrograph repository stores. `--reset --yes` requires

@@ -101,12 +101,12 @@ incompatible storage marker causes Astrograph to archive the managed cache and
 rebuild it on the next operation. If a cache needs recovery, inspect status and
 use the scoped archive commands below.
 
-## Local Efficiency Report
+## Local Astrograph Report
 
 ```bash
-astrograph efficiency-report
-astrograph efficiency-report --repo /repo
-astrograph efficiency-report --repo /repo --reset --yes
+astrograph report
+astrograph report --repo /repo
+astrograph report --repo /repo --reset --yes
 ```
 
 The report is local, source-free JSON. Without `--repo`, it reports the current

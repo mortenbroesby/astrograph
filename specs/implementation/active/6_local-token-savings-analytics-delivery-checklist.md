@@ -3,7 +3,7 @@
 > **Status:** Active — selected by the user on 2026-07-26.
 
 **Goal:** Deliver the smallest credible local token-savings report by extending
-the existing `efficiency-report` command, without noticeable request-path
+the existing `report` command, without noticeable request-path
 overhead or any tracking service.
 
 **Architecture:** Start with the existing local event sink, MCP formatting

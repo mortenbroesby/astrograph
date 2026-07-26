@@ -108,11 +108,11 @@ const commands: Record<string, CliHandler> = {
       repoRoot: required(args, "repo"),
       scanFreshness: args["scan-freshness"] === "true",
     }),
-  "efficiency-report": async (args) => {
+  report: async (args) => {
     const repoRoot = optional(args, "repo");
     if (args.reset === "true") {
-      if (!repoRoot) throw new Error("efficiency-report --reset requires --repo and --yes.");
-      if (args.yes !== "true") throw new Error("efficiency-report --reset requires --yes.");
+      if (!repoRoot) throw new Error("report --reset requires --repo and --yes.");
+      if (args.yes !== "true") throw new Error("report --reset requires --yes.");
       return engine.resetEfficiencyReport(repoRoot);
     }
     if (repoRoot) return engine.getEfficiencyReport(repoRoot);
