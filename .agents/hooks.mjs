@@ -404,7 +404,7 @@ function maybeNotify(payload) {
   return {};
 }
 
-function handleVersionBumpCheck() {
+function handleStop() {
   const result = spawnSync("node", [
     "--experimental-strip-types",
     "./src/scripts/check-version-bump.ts",
@@ -443,7 +443,7 @@ async function handle(payload) {
     }
   }
   if (eventName === 'PostToolUse' && EDIT_TOOLS.has(toolName)) return handleAudit(payload);
-  if (eventName === 'Stop') return handleVersionBumpCheck();
+  if (eventName === 'Stop') return handleStop();
   if (eventName === 'Notification' || eventName === 'notify' || eventName === 'notify-error') return maybeNotify(payload);
   if (eventName === 'CodeNav' || eventName === 'Read') return handleCodeNav(payload);
 
