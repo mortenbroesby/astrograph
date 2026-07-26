@@ -1,6 +1,6 @@
 # Session-Aware Agent Efficiency Epic
 
-> **Status:** Ready — planned, not selected for implementation.
+> **Status:** Active for Story 1 — later stories remain ready and unselected.
 >
 > **Inspiration:** CodeDrift's emphasis on session-aware reads, composed
 > context, observable agent efficiency, and privacy controls. This is a
@@ -79,6 +79,13 @@ current harness; do not create a second benchmark framework.
 for each fixture and trace, with a checked test proving fixture determinism.
 The report separates raw source tokens, canonical JSON/AGC1 envelope tokens,
 and any candidate representation. It contains no source content by default.
+
+**Initial baseline (2026-07-26):** `pnpm bench:agc1-compact-output --
+--summary` on the four deterministic fixtures emitted 32 captures in eight
+traces. All 16 AGC1-eligible captures recovered exactly. Canonical JSON totaled
+23,519 `cl100k_base` tokens; AGC1 totaled 5,272 for eligible captures. This
+validates the harness only; it does not yet establish that a stateful session
+feature has material user benefit.
 
 ## Story 2: Explicit session and content-reference contract
 

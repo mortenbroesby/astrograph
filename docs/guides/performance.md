@@ -41,6 +41,9 @@ Those cover the main performance surfaces:
   compact-output round trips on a deterministic fixture
 - the four-fixture AGC1 compact-output baseline: real serving serialization,
   exact `cl100k_base` counts, and public-decoder losslessness checks
+- one-shot and repeat-read trace totals for the same four fixtures, including
+  canonical response hashes, exact token counts, response recovery, and elapsed
+  time without emitting source text or raw query text
 - the deterministic freshness lifecycle fixture: cold/no-op/edit/rename/delete,
   checkout change/restore, unavailable Git, and explicit polling fallback
 
@@ -67,6 +70,12 @@ still the default. See [MCP Tools](../../specs/api-design/mcp-tools.md) for the 
 The broader [AGC1 compact-output baseline](../reviews/agc1-compact-output-baseline-2026-07-26.md)
 uses four representative fixtures and protects the current serving contract
 without introducing a new wire format.
+
+The same command now emits `schemaVersion: 2` trace data. Each fixture has a
+one-shot exploration trace and a repeated symbol/context-read trace. The
+summary contains only fixture/trace IDs and aggregate measurements; omit
+`--summary` only when inspecting per-capture hashes and timings locally. These
+traces are decision evidence for session-aware work, not a new MCP feature.
 
 ## What Actually Moves Performance
 

@@ -33,6 +33,10 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
   — run one user-local, on-demand daemon that owns isolated repository runtime
   lifecycles for concurrent stdio MCP clients.
+- [Session-Aware Repeat-Read Trace Delivery
+  Checklist](./specs/implementation/active/session-aware-repeat-read-trace-delivery-checklist.md)
+  — establish repeat-read benchmark evidence before designing a
+  session-aware response feature.
 
 ## Keeping this useful
 

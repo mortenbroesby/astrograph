@@ -41,6 +41,12 @@ turns those focuses into an exclusive execution gate.
    - Architecture: on-demand local IPC proxying with authenticated singleton
      ownership and a five-minute idle exit; no network listener, source upload,
      or shared mutable repository index.
+6. [Session-Aware Repeat-Read Trace Delivery](./active/session-aware-repeat-read-trace-delivery-checklist.md)
+   - Goal: establish the deterministic repeat-read baseline before selecting
+     any session-aware response behavior.
+   - Architecture: extend the existing compact-output fixture corpus and
+     source-free JSON report; no serving contract, session state, daemon, or
+     output-format change.
 
 ## Ready — detailed, but not selected
 
@@ -53,10 +59,9 @@ turns those focuses into an exclusive execution gate.
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
 4. [Session-Aware Agent Efficiency Epic](./planned/8_session-aware-agent-efficiency-epic.md)
-   is ready for evidence collection, but no implementation story is selected.
-   It starts with repeat-read traces across representative repository shapes;
-   session state, deltas, dossiers, privacy reporting, and bookmarks remain
-   independently gated by measured benefit and local-first safety boundaries.
+   has Story 1 active. Session state, deltas, dossiers, privacy reporting, and
+   bookmarks remain independently gated by measured benefit and local-first
+   safety boundaries.
 
 ## Parked — revisit only with new evidence
 
