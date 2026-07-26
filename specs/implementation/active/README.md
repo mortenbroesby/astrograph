@@ -27,6 +27,9 @@ new work complements rather than duplicates existing plans.
 5. [Guided Install and Refresh Hooks](./3_guided-install-and-refresh-hooks.md)
    — selected by the user: unify local/global onboarding, add opt-in
    integrations, and verify harness readiness.
+6. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
+   — selected by the user: one user-local daemon owns isolated repository
+   runtimes, watches, workers, and SQLite lifecycles for MCP stdio clients.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the
