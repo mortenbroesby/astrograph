@@ -35,6 +35,9 @@
   `UserPromptSubmit` as portable shared events
 - treat `PreToolUse`, `PostToolUse`, and `Stop` as Codex adapter extensions
   even when they invoke shared `.agents/hooks/*.mjs` scripts
+- the `Stop` hook retains the version-bump check and asks for a 1-2 sentence
+  Astrograph retrospective: whether it was used, why, what it helped with, and
+  reported token savings (or `not measured`)
 - some Git and `gh stack` operations may need permission because they write
   under `.git/`
 - repository-local MCP configuration is intentionally Astrograph-only; configure

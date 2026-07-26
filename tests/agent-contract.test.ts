@@ -61,4 +61,16 @@ describe("agent contract", () => {
       },
     });
   });
+
+  it("requests a compact Astrograph session retrospective before stopping", () => {
+    expect(runHook({
+      hook_event_name: "Stop",
+      cwd: repoRoot.pathname,
+    })).toMatchObject({
+      hookSpecificOutput: {
+        hookEventName: "Stop",
+        additionalContext: expect.stringContaining("1-2 sentence Astrograph session retrospective"),
+      },
+    });
+  });
 });
