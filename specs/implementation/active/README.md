@@ -33,6 +33,9 @@ new work complements rather than duplicates existing plans.
 7. [Local Token-Savings Analytics Delivery Checklist](./6_local-token-savings-analytics-delivery-checklist.md)
    — selected by the user: make existing local efficiency evidence useful as a
    source-free, negligible-overhead report without adding tracking infrastructure.
+8. [Publishable Workflow Benchmark](./7_publishable-workflow-benchmark.md)
+   — selected by the user: publish a small, snapshot-locked comparison between
+   broad file reading and Astrograph retrieval, with auditable evidence.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

@@ -46,6 +46,7 @@ const INSTALL_IDE_KEYWORDS = [...ALL_INSTALL_IDES, "all"] as const;
 const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
+export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
@@ -638,17 +639,17 @@ async function runGuidedInstall(): Promise<void> {
     message: "Where should Astrograph be available?",
     options: [
       {
+        value: "global",
+        label: "Every repository on this device (Recommended)",
+        hint: "User-level client registration with one private cache per repository",
+      },
+      {
         value: "repository",
         label: "This repository",
         hint: "Project-owned MCP config and index; collaborators can review the setup",
       },
-      {
-        value: "global",
-        label: "Every repository on this device",
-        hint: "User-level client registration with one private cache per repository",
-      },
     ],
-    initialValue: "repository",
+    initialValue: DEFAULT_GUIDED_INSTALL_SCOPE,
   });
   if (isCancel(scope) || typeof scope !== "string") {
     outro("Setup cancelled.");

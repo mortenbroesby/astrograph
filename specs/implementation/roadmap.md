@@ -46,6 +46,11 @@ turns those focuses into an exclusive execution gate.
      report command without noticeable normal-request overhead.
    - Architecture: reuse existing event and response-format metadata; no
      network client, exporter, second event store, token recount, or daemon.
+7. [Publishable Workflow Benchmark](./active/7_publishable-workflow-benchmark.md)
+   - Goal: publish one small, auditable comparison between broad file reading
+     and Astrograph retrieval.
+   - Architecture: reuse the existing corpus and Markdown renderer; require a
+     matching snapshot and successful selected workflows before publishing.
 
 ## Ready — detailed, but not selected
 

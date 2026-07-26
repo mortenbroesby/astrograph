@@ -37,6 +37,9 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/6_local-token-savings-analytics-delivery-checklist.md)
   — make already-proven token savings inspectable locally, without a tracking
   service or additional normal-request work.
+- [Publishable Workflow Benchmark](./specs/implementation/active/7_publishable-workflow-benchmark.md)
+  — establish a small, honest, snapshot-locked comparison between broad file
+  reading and Astrograph retrieval before making workflow-level claims.
 
 ## Keeping this useful
 

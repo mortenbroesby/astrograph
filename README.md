@@ -20,373 +20,119 @@
 </p>
 
 <p align="center">
+  <a href="#start-here">Start here</a>
+  <span> | </span>
   <a href="#why-astrograph">Why Astrograph</a>
   <span> | </span>
-  <a href="#key-features">Key features</a>
-  <span> | </span>
-  <a href="#use-cases">Use cases</a>
-  <span> | </span>
-  <a href="#quick-start">Quick start</a>
-  <span> | </span>
-  <a href="#global-installation">Global installation</a>
-  <span> | </span>
-  <a href="./docs/README.md">Docs</a>
+  <a href="#key-features">Features</a>
   <span> | </span>
   <a href="#documentation">Documentation</a>
 </p>
 
 ---
 
-![Workflow diagram showing an agent question flowing through Astrograph's local retrieval surfaces to a grounded answer with lower token waste.](./assets/diagrams/readme-workflow.svg)
+<a id="start-here"></a>
+## 🚀 Start Here
 
-<a id="why-astrograph"></a>
-## 🔭 Why Astrograph
-
-Astrograph gives coding agents a local-first, structured way to navigate codebases
-without dumping full-repo context. It returns symbol-accurate insights faster,
-with source-linked confidence, and lower token spend across long sessions.
-
-<a id="key-features"></a>
-## ✨ Key Features
-
-- 🧠 **Persistent Context State** - stable indexing and diagnostics across sessions
-- 📊 **Progressive Retrieval** - less noise, fewer tokens, faster answers
-- 🔍 **Skill-Based Search** - find symbols, outlines, and dependencies by intent
-- 🛠️ **MCP + CLI Surfaces** - one retrieval engine for agents and shell
-- 🖥️ **Tooling Integration** - wire into Codex or Copilot once
-- 🧹 **Health & Refresh** - detect drift and fix stale indexes quickly
-- 🧪 **Token-Aware by Design** - fetch just enough context, not full files
-
-## 🧭 What It Is
-
-Astrograph is a local MCP server and CLI for code intelligence. It indexes your
-repository locally and exposes focused tools for file outlines, symbol lookup,
-source retrieval, code-aware search, diagnostics, and refresh workflows.
-
-Use it when you want an agent to ask targeted questions about real code
-structure instead of reading half the repository and hoping it found the right
-thing.
-
-## 🚫 What It Is Not
-
-Astrograph is not:
-
-- a memory layer for prior sessions
-- a generic chat shell around an LLM
-- a brute-force repo-to-context pipeline
-- a remote indexing service you have to ship your repo to
-
-It is the code-intelligence layer: local-first, source-grounded, and
-deterministic enough to give agents a better starting point than grep plus huge
-context windows.
-
-<a id="use-cases"></a>
-## ✨ Use Cases
-
-Reach for Astrograph when you want an agent to:
-
-- jump from a symbol name to its real implementation
-- trace a code path across files before making an edit
-- answer repository questions without loading whole files into context
-- gather precise source context before planning or patching code
-- stay efficient in larger repos where broad context gets noisy and expensive
-
-## ⚙️ How It Works
-
-Astrograph indexes your codebase locally and exposes structured tools over MCP
-and CLI surfaces. Instead of treating the repository like raw text, agents can
-ask for outlines, symbols, source, search results, diagnostics, and targeted
-context bundles.
-
-That is where the token savings come from: better questions, smaller retrievals,
-and fewer blind scans.
-
-## 🪓 Why Not Just Grep and File Reads?
-
-Because the default agent fallback is usually too blunt.
-
-Broad search, repeated full-file reads, and oversized context windows are noisy,
-expensive, and easy to derail. Astrograph gives the agent structured access to
-code so it can retrieve less and understand more.
-
-<a id="quick-start"></a>
-## 🚀 Quick Start
-
-### 1) Choose your setup
-
-For the most guided experience, run this from the repository you want to use:
+In the repository you want to explore:
 
 ```bash
 npx astrograph install
 ```
 
-Astrograph clearly explains the choice before writing anything:
+Choose your AI client when prompted, restart it, then let it ask Astrograph for
+file outlines, symbols, source, and targeted task context. The guided installer
+recommends **global setup**: it installs Astrograph for your device, connects
+your selected client, and keeps one private index per repository. Choose
+**this repository** instead when you want project-owned configuration that
+collaborators can review.
 
-- **This repository** adds project-owned MCP configuration, an optional local
-  dependency, and a repository-local index.
-- **Every repository on this device** asks before globally installing the
-  command and adding one user-level Codex or Copilot CLI registration. Each
-  repository still receives its own private cache.
+Before it writes anything, Astrograph asks which scope and client you want, then
+shows the next step. Choose the recommended options and confirm to set it up for
+every repository on this device.
 
-The repository route can also opt into two independent integrations:
-
-- **Agent guidance** adds an Astrograph-managed instruction block to `AGENTS.md`
-  or `.github/copilot-instructions.md`.
-- **Git refresh hooks** add detached `post-commit`, `post-checkout`, and
-  `post-merge` refreshes. Astrograph never overwrites a hook owned by another
-  tool, and the hooks do not block Git operations.
-
-Verify the harness before trusting it:
-
-```bash
-npx astrograph doctor
-```
-
-Doctor checks the configured local and global MCP clients, managed agent
-guidance, opted-in Git refresh hooks, and the current repository’s index
-health. It reports only what it can verify and gives the next command when a
-piece is missing. Add `--json` for automation.
-
-### 2) Configure a repository directly
-
-Use dependency-based setup if you want `astrograph` available in repository
-scripts:
-
-```bash
-npm install -D astrograph
-```
-
-### 2) Configure MCP
-
-Run the installer from the repository you want to index:
-
-```bash
-npx astrograph install
-```
-
-This shows a short setup progress indicator, then explains the selected
-clients, project-owned files, local index, and next step. It writes MCP
-configuration for your target editor or agent client and preserves unrelated
-local config. `npx` downloads and runs Astrograph when it is not already
-installed locally.
-
-If you want non-interactive setup:
-
-```bash
-npx astrograph install --yes --repo /absolute/path/to/repo
-```
-
-For unattended repository setup with both optional integrations:
-
-```bash
-npx astrograph install --yes --agents --git-hooks
-```
-
-Choose a specific target when needed:
-
-```bash
-npx astrograph install --ide codex
-npx astrograph install --ide copilot
-npx astrograph install --ide copilot-cli
-npx astrograph install --ide all
-```
-
-For scripts that need the complete generated configuration instead of the
-human-readable summary, opt into JSON explicitly:
-
-```bash
-npx astrograph install --yes --json
-```
-
-For a fresh repository, create the initial index before first use:
-
-```bash
-npx astrograph cli index-folder --repo /absolute/path/to/repo
-```
-
-### 3) Start your agent session
-
-Once the MCP config is written, start your editor or CLI agent session and use
-Astrograph's retrieval tools against the local repository.
-
-<a id="global-installation"></a>
-## 🌍 Global Installation and Use (Codex and Copilot CLI)
-
-Use global setup when you want one user-level MCP registration that works
-across repositories. Codex and Copilot CLI are first-party global targets.
-Astrograph keeps an isolated cache for each canonical repository root; it never
-combines source or mutable index data from separate repositories.
-
-### 1) Install the command
-
-Global setup requires Node.js `>=22.12.0`. The guided command above can install
-the global executable after showing a confirmation. To use the explicit,
-script-friendly route, install or update Astrograph, then open a new shell if
-your npm global bin directory was not already on `PATH`:
-
-```bash
-npm install --global astrograph@latest
-astrograph --version
-astrograph --diagnostics
-```
-
-The global install confirms the Astrograph version and prints the two client
-commands below. It does not change Codex, Copilot CLI, or any repository by
-itself; that choice stays explicit.
-
-### 2) Register your global server
-
-By default, Astrograph registers Copilot CLI:
-
-```bash
-astrograph install --global
-```
-
-For Codex instead:
-
-```bash
-astrograph install --global --ide codex
-```
-
-For Copilot CLI:
-
-```bash
-astrograph install --global --ide copilot-cli
-```
-
-The installer shows a short progress indicator, then explains what is ready:
-local code exploration tools, one private global cache per repository, and no
-Astrograph files added to repositories. The installer adds only Astrograph’s managed server entry to the client’s
-user-level configuration: `~/.codex/config.toml` for Codex, or
-`~/.copilot/mcp-config.json` for Copilot CLI (`$COPILOT_HOME/mcp-config.json`
-when that variable is set). It also writes the global-storage preference to
-your user-level Astrograph configuration. It does not modify any repository.
-Restart the selected harness after this command so it loads the MCP server.
-
-`astrograph --diagnostics` reports the installed Astrograph version, Node
-compatibility, selected global-storage configuration, cache root, and whether
-the Copilot CLI or Codex registration is present. On macOS all global state is
-visible under `~/.astrograph`: `config.json` is created during global setup and
-`cache/` is created when the first repository is indexed. Pre-v1 Astrograph
-does not reuse the previous Library cache/config locations.
-
-To preview the changes without writing files:
-
-```bash
-astrograph install --global --ide copilot-cli --dry-run
-```
-
-For scripts that need the complete configuration preview, request the original
-machine-readable result explicitly:
-
-```bash
-astrograph install --global --ide copilot-cli --dry-run --json
-```
-
-### 3) Use any repository — no repo setup
-
-Open Codex or Copilot CLI in any repository. The global registration finds the current
-repository and uses its own isolated directory beneath the global cache root.
-You do **not** run `astrograph install`, create `astrograph.config.*`, choose a
-cache directory, or add `.codex` or `.mcp.json` files in that repository.
-
-Create the first index from Codex with `index_folder`, or run this command from
-any shell:
-
-```bash
-astrograph cli index-folder --repo /absolute/path/to/repo
-astrograph cache status --repo /absolute/path/to/repo
-```
-
-Thereafter, use Astrograph normally from Codex or Copilot CLI. Astrograph
-automatically uses the repository you opened and its isolated global cache.
-
-### 4) Repository-local setup is an explicit alternative
-
-Global setup makes global storage the user default. Use repository-local
-`install` only when you intentionally want workspace-owned MCP configuration or
-storage. A repository can opt out with `storageLocation: "repo-local"` in
-`astrograph.config.ts` or `astrograph.config.json`; an explicit CLI flag wins
-for one command:
-
-```bash
-astrograph cli index-folder --repo /absolute/path/to/repo --storage-location global
-astrograph cli diagnostics --repo /absolute/path/to/repo --storage-location repo-local
-```
-
-## 🧩 IDE Setup
-
-Astrograph currently supports MCP setup for Codex, GitHub Copilot, and GitHub
-Copilot CLI.
-
-Codex writes `.codex/config.toml`:
+Use the explicit version for automation:
 
 ```bash
 npx astrograph install --yes --ide codex --repo /absolute/path/to/repo
 ```
 
-GitHub Copilot writes `.vscode/mcp.json`:
+New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
+
+<a id="why-astrograph"></a>
+## 🔭 Why Astrograph
+
+Astrograph gives coding agents a local-first, structured way to navigate a
+codebase without dumping full-repository context. It returns focused,
+source-linked answers so the agent can retrieve less and understand more.
+
+<a id="key-features"></a>
+## ✨ Key Features
+
+- 🧠 **Persistent local context** — an index per repository, stored on your machine
+- 🔍 **Progressive retrieval** — outlines, symbols, source, then bounded context when needed
+- 🛠️ **MCP + CLI surfaces** — the same engine for Codex, Copilot, and the shell
+- 🧹 **Health and refresh tools** — inspect stale indexes instead of guessing
+- 🧪 **Measured output efficiency** — source-grounded results with explicit evidence
+
+## 🧭 When To Use It
+
+Reach for Astrograph when an agent needs to:
+
+- jump from a symbol name to its real implementation
+- trace a code path before making an edit
+- answer a repository question without loading whole files into context
+- gather precise context for planning, debugging, or refactoring
+
+## ⚙️ How It Works
+
+Astrograph indexes code locally and exposes structured retrieval through MCP and
+the CLI. Instead of treating your repository as raw text, agents can ask for an
+outline, a symbol, verified source, or a bounded task-context bundle.
+
+## 🌍 Use It Everywhere (Recommended)
+
+Install once for Codex or Copilot CLI across repositories:
 
 ```bash
-npx astrograph install --yes --ide copilot --repo /absolute/path/to/repo
+npm install --global astrograph@latest
+astrograph install --global --ide codex
 ```
 
-GitHub Copilot CLI writes `.mcp.json`:
+This adds one user-level MCP registration and keeps a separate private cache
+for each repository. It does not modify repositories. For Copilot CLI, replace
+`codex` with `copilot-cli`.
 
-```bash
-npx astrograph install --yes --ide copilot-cli --repo /absolute/path/to/repo
-```
+## 🧪 Evidence, Not Promises
 
-To configure multiple clients in one pass:
+Astrograph ships reproducible benchmark commands. The current deterministic
+MCP-envelope baseline measured **55.6%–66.7% fewer `cl100k_base` tokens** for
+supported compact responses; ordinary JSON remains the default. This is a
+response-size measurement, not an end-to-end productivity claim.
 
-```bash
-npx astrograph install --yes --ide all --repo /absolute/path/to/repo
-npx astrograph install --yes --ide codex,copilot --repo /absolute/path/to/repo
-```
+For the method, limits, and the workflow benchmark that compares a broad
+read-all baseline with Astrograph retrieval, see [Benchmark evidence](./docs/guides/benchmarks.md).
 
-## Global Cache
+## 📈 npm Downloads
 
-Global setup is opt-in. It stores a separate SQLite cache for each canonical
-repository root and keeps all source paths, index contents, and events on the
-current OS user’s machine. Repository `astrograph.config.ts` or
-`astrograph.config.json` can override it with `storageLocation: "repo-local"`.
-For one CLI invocation, `--storage-location repo-local|global` takes precedence
-over both repository and user defaults.
-
-Use these JSON-first commands to inspect or recover a selected repository:
-
-```bash
-astrograph cache status --repo /absolute/path/to/repo
-astrograph cache remove --repo /absolute/path/to/repo --yes # archives; does not delete
-astrograph cache prune --all --max-bytes 1073741824
-astrograph cache prune --all --max-bytes 1073741824 --yes
-astrograph cache restore --repo /absolute/path/to/repo --receipt /path/to/archive.receipt.json --yes
-```
-
-`cache status` reports the canonical repository, selected storage, and the
-checkout identity that last populated that cache. Its `checkout` field is
-`null` before an index exists.
-
-Before v1, an obsolete Astrograph cache is discarded automatically and rebuilt;
-Astrograph does not copy, migrate, or preserve it for compatibility. Cache
-removal is CLI-only and defaults to a dry run. Pruning is explicitly all-cache
-scoped, removes oldest inactive repository caches first, and also defaults to
-a dry run. Global cache roots are `~/.cache/astrograph` on Linux
-(or `$XDG_CACHE_HOME/astrograph`), `~/Library/Caches/astrograph` on macOS, and
-`%LOCALAPPDATA%\\astrograph\\cache` on Windows.
+<p align="center">
+  <a href="https://www.npmjs.com/package/astrograph"><img alt="Astrograph npm downloads in the last month" src="https://img.shields.io/npm/dm/astrograph?label=npm%20downloads%20%2F%20month&color=0f172a"></a>
+</p>
 
 <a id="documentation"></a>
 ## 📚 Documentation
 
-The README is the short version. Use the docs for operational detail:
+The README is the guided introduction. Use the docs when you need more detail:
 
 - [Docs compendium](./docs/README.md)
 - [Concepts](./docs/getting-started/concepts.md)
 - [First steps](./docs/getting-started/first-steps.md)
-- [CLI reference](./docs/reference/cli.md)
-- [Performance guide](./docs/guides/performance.md)
+- [Retrieval workflows](./docs/guides/retrieval-workflows.md)
+- [Troubleshooting](./docs/guides/troubleshooting.md)
+- [Performance and benchmark evidence](./docs/guides/performance.md)
+- [CLI reference](./docs/reference/cli.md) and [config reference](./docs/reference/config.md)
+- [Language support](./docs/reference/language-support.md)
 - [Release reference](./docs/reference/release.md)
-- [Ralph runner](./docs/guides/ralph-runner.md)
 
 ## 🧪 Project Status
 
@@ -409,6 +155,9 @@ MIT. See [LICENSE](./LICENSE).
 ## 🙏 Acknowledgements
 
 - `pnpm`, `Turborepo`, `Vite`, `React`, and `Vitest` for the core workspace foundation
+- Tree-sitter and its grammar maintainers for local, structured parsing
+- the Model Context Protocol ecosystem for a common agent integration surface
+- the open-source maintainers whose work makes local-first developer tooling possible
 
 ---
 
