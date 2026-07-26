@@ -36,6 +36,9 @@ new work complements rather than duplicates existing plans.
 8. [Session Content-Reference Contract Delivery Checklist](./session-content-reference-contract-delivery-checklist.md)
    — selected by the user: add bounded, capability-gated full-response content
    references before considering any delta transport.
+9. [Session Exact-Reference Delta Delivery Checklist](./session-exact-reference-delta-delivery-checklist.md)
+   — selected by the user: prove exact reference reuse before considering a
+   general patch representation.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

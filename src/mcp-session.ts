@@ -18,8 +18,8 @@ export interface McpSessionInput {
 
 export interface McpContentReference {
   id: string;
-  representation: "full";
-  reason: "new_content" | "known_content_no_delta_support";
+  representation: "full" | "reference";
+  reason: "new_content" | "known_exact_content";
 }
 
 interface SessionRecord {
@@ -61,7 +61,7 @@ export class McpContentReferenceStore {
     while (record.knownContentIds.size > MAX_KNOWN_CONTENT_IDS) {
       record.knownContentIds.delete(record.knownContentIds.values().next().value as string);
     }
-    return { id, representation: "full", reason: known ? "known_content_no_delta_support" : "new_content" };
+    return { id, representation: known ? "reference" : "full", reason: known ? "known_exact_content" : "new_content" };
   }
 
   private prune(now: number) {

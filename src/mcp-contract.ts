@@ -37,8 +37,8 @@ export interface McpResponseEnvelope<T> {
     warnings?: string[];
     contentReference?: {
       id: string;
-      representation: "full";
-      reason: "new_content" | "known_content_no_delta_support";
+      representation: "full" | "reference";
+      reason: "new_content" | "known_exact_content";
     };
   };
 }

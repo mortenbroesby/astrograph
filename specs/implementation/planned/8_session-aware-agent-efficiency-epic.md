@@ -1,6 +1,6 @@
 # Session-Aware Agent Efficiency Epic
 
-> **Status:** Active for Story 1 — later stories remain ready and unselected.
+> **Status:** Active through Story 3 — later stories remain ready and unselected.
 >
 > **Inspiration:** CodeDrift's emphasis on session-aware reads, composed
 > context, observable agent efficiency, and privacy controls. This is a
@@ -52,7 +52,7 @@ because its design is attractive.
 | --- | --- | --- | --- |
 | 1 | Repeat-read trace and benchmark foundation | Existing compact-output fixtures | Reproducible baseline across four repository shapes and ordinary/repeated reads. |
 | 2 | Explicit session and content-reference contract | Story 1 | Selected by the user; preserve the full-response fallback and bounded local state. |
-| 3 | Optional exact delta responses | Stories 1–2 | Canonical round-trip proof and a material repeated-read gain. |
+| 3 | Optional exact delta responses | Stories 1–2 | Selected by the user; exact-reference reuse first, with full fallback. |
 | 4 | Bounded task dossier composition | Story 1 | Existing tool composition cannot meet a documented task/budget. |
 | 5 | Privacy-safe efficiency report | Story 1 | A developer/operator decision current diagnostics cannot answer. |
 | 6 | Explicit cross-session bookmarks | Stories 1, 4 | Repeat-task corpus proves a durable, user-controlled reference helps. |
@@ -89,7 +89,7 @@ stateful session feature has material user benefit.
 
 ## Story 2: Explicit session and content-reference contract
 
-**Status:** Active — execute through the [delivery checklist](../active/session-content-reference-contract-delivery-checklist.md).
+**Status:** Complete — merged in PR #97 as `0.9.0-alpha.180`.
 
 **Outcome:** A capable client may say which content-addressed responses it
 already has; Astrograph can decline safely and return the canonical full
@@ -108,6 +108,8 @@ before any abbreviated result; state limits are observable without leaking
 source; and all successful references bind to source identity/version.
 
 ## Story 3: Optional exact delta responses
+
+**Status:** Active — execute through the [delivery checklist](../active/session-exact-reference-delta-delivery-checklist.md).
 
 **Outcome:** Repeat reads can return a smaller lossless patch only when both
 client and server prove they share the same base response.

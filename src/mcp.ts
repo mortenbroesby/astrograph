@@ -463,7 +463,11 @@ export async function dispatchTool(
       },
     };
     if (session) {
-      envelope.meta.contentReference = mcpContentReferenceStore.record(session, envelope);
+      const contentReference = mcpContentReferenceStore.record(session, envelope);
+      envelope.meta.contentReference = contentReference;
+      if (contentReference.representation === "reference") {
+        envelope.data = null;
+      }
     }
     logger.debug({
       event: "tool_call_finish",

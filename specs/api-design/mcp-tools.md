@@ -63,12 +63,15 @@ router, hidden tool selection, or compatibility alias layer.
 
   The opaque ID is client-generated and only valid for the current
   Astrograph process. When supplied, a successful JSON envelope adds
-  `meta.contentReference` with a SHA-256 ID, `representation: "full"`, and a
-  reason of `"new_content"` or `"known_content_no_delta_support"`. The
-  complete ordinary JSON envelope is always returned; this contract has no
-  delta transport, source persistence, transcript storage, or cross-process
-  session recovery. Session-enabled calls use JSON even if `format` requests
-  compact output. Omitted sessions preserve the exact existing envelope.
+  `meta.contentReference` with a SHA-256 ID. A new or changed ID uses
+  `representation: "full"` and returns the complete ordinary JSON envelope.
+  When `knownContentIds` proves the exact current ID, Astrograph returns
+  `representation: "reference"`, `reason: "known_exact_content"`, and
+  `data: null`; the client reconstructs the canonical response from its cached
+  matching envelope. Unknown, changed, malformed, and absent bases always use
+  the full fallback. This contract stores no source, transcript, or
+  cross-process session state. Session-enabled calls use JSON even if `format`
+  requests compact output. Omitted sessions preserve the exact existing envelope.
 - `index_folder` and `index_file` return additive aggregate lifecycle counts:
   `reusedFiles`, `parsedFiles`, and `removedFiles`. They reveal no paths or
   source content. A reused file avoided source analysis through an indexed row

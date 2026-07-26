@@ -41,6 +41,9 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/session-content-reference-contract-delivery-checklist.md)
   — add a bounded, capability-gated full-response contract before any delta
   transport is considered.
+- [Session Exact-Reference Delta Delivery
+  Checklist](./specs/implementation/active/session-exact-reference-delta-delivery-checklist.md)
+  — prove exact reference reuse with full fallback before considering patches.
 
 ## Keeping this useful
 
