@@ -1,0 +1,24 @@
+# Keep destructive repository actions behind an explicit human decision.
+prefix_rule(
+  pattern = ["git", "reset", "--hard"],
+  decision = "forbidden",
+  justification = "Use a reversible checkout or inspect the diff first.",
+)
+
+prefix_rule(
+  pattern = ["git", "clean"],
+  decision = "forbidden",
+  justification = "Remove only explicitly reviewed paths.",
+)
+
+prefix_rule(
+  pattern = ["git", "push", "origin", ["main", "master"]],
+  decision = "forbidden",
+  justification = "Push a branch and open a pull request instead.",
+)
+
+prefix_rule(
+  pattern = [["npm", "pnpm"], "publish"],
+  decision = "forbidden",
+  justification = "Use the guarded release workflow instead.",
+)

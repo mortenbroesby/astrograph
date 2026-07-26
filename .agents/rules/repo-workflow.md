@@ -15,6 +15,10 @@ alwaysApply: true
   change alters behavior, architecture, workflow, or setup expectations.
 - Larger staged code/config changes must include a vault note under
   `vault/02 Repositories/`; `pnpm knowledge:check` enforces this before commit.
+- Use the configured GitHub MCP server as the primary interface for GitHub
+  branches, pull requests, reviews, and repository metadata. Use local Git only
+  for working-tree mechanics; reserve `gh` for surfaces the MCP server does not
+  expose, such as GitHub Actions logs.
 
 ## Epic Delivery
 
