@@ -1,15 +1,16 @@
 # Implementation Specifications
 
-This directory separates the executable queue from planned work and closed
-evidence so documentation status is visible from the file tree.
+This directory separates current focuses from planned work and closed evidence
+so documentation status is visible from the file tree.
 
 ## Work Status
 
 - [Delivery Roadmap](./roadmap.md) - One-page status of active, ready,
   parked, descoped, idea, and completed work.
-- [Active Work](./active/README.md) - The selected delivery queue; the next
-  follow-up candidates require their own evidence gates before implementation.
-- [Planned Work](./planned/README.md) - Approved backlog that has not been selected for delivery.
+- [Active Work](./active/README.md) - Current implementation focuses and their
+  delivery checklists.
+- [Planned Work](./planned/README.md) - Approved backlog that is not currently
+  in focus.
 - [Closed Records](./closed/README.md) - Completed and superseded implementation plans and evidence.
 
 ## Standing References

@@ -2,12 +2,13 @@
 
 ## Spec Workflow
 
-## Bare Goal Handoff
+## Focus Context
 
-When the user sends a bare `/goal` message in this repository, read
-[`pointer.md`](./pointer.md) before choosing work. It is the tracked source of
-truth for the one current goal, its boundary, and its executable checklist.
-Do not infer a different goal from older epics or closed records.
+Before choosing unspecified work, read [`pointer.md`](./pointer.md). It is a
+lightweight view of current focuses and the delivery roadmap, not a mandatory
+single-goal queue. A clear user request sets the work boundary; use the pointer
+to avoid duplicating roadmap work or reviving closed and deferred stories by
+accident. Multiple focuses may be active at once.
 
 Astrograph specs live under `specs/`, using the same broad taxonomy as the
 referenced `zyncbase/specs` setup:

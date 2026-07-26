@@ -1,8 +1,9 @@
 # Planned Implementation Work
 
-This directory contains approved but unstarted work. A planned epic is not an
-active delivery commitment: select it explicitly, create its delivery
-checklist, and then move it to `../active/` before implementation begins.
+This directory contains approved work that is not currently in focus. A
+planned epic is not an implied commitment, but a clear user request may begin
+it without a ceremonial queue transition. Move or index it under `../active/`
+when it becomes sustained work, and keep its delivery checklist current.
 
 ## Ordered Backlog
 

@@ -1,21 +1,21 @@
 # Astrograph Delivery Roadmap
 
-This is the one-page source of truth for delivery status. It answers “what do
-we do now?” before an agent opens a detailed epic, checklist, or closed record.
-The root [`pointer.md`](../../pointer.md) names the one executable goal; this
-roadmap explains everything else.
+This is the one-page source of truth for delivery status. It provides context
+before an agent opens a detailed epic, checklist, or closed record. The root
+[`pointer.md`](../../pointer.md) summarizes current focuses; neither document
+turns those focuses into an exclusive execution gate.
 
 | Status | Meaning | Agent action |
 | --- | --- | --- |
-| **Active** | Explicitly selected and executable. | Follow the linked checklist from its first unchecked task. |
-| **Ready** | Has a detailed checklist but is not selected. | Do not start until it is moved into `active/` and named by `pointer.md`. |
+| **Active** | Currently in focus, with an executable checklist. | Use its checklist for scope and verification; it may progress alongside other work. |
+| **Ready** | Has a detailed checklist but is not a current focus. | A clear user request may start it; update its status when it becomes sustained work. |
 | **Parked** | Evidence says the benefit or problem is not yet sufficient. | Reconsider only when the stated selection gate has new evidence. |
 | **Blocked** | Requires an external event or authority. | Record/perform the prerequisite; do not substitute unrelated code work. |
 | **Ideas** | Useful direction without an implementation commitment. | Keep out of the execution queue until scoped and selected. |
 | **Descoped** | Explicitly outside the current product direction. | Do not reintroduce without an ADR and explicit selection. |
 | **Done** | Merged evidence, retained for history. | Read only for context or verification pointers. |
 
-## Active — do this now
+## Active — current focuses
 
 1. [Tree-Sitter Polyglot Language Support](./active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
    - Goal: expand from JavaScript-family parsing to the bounded set of parsers
@@ -24,6 +24,12 @@ roadmap explains everything else.
      current four-language baseline before adding a grammar dependency.
    - Architecture: adapters and explicit `structured`/`graph` support tiers;
      do not claim the open-ended community grammar ecosystem.
+2. [MCP Runtime Hygiene Delivery Checklist](./active/mcp-runtime-hygiene-delivery-checklist.md)
+   - Goal: make abandoned stdio MCP processes visible and release
+     process-lifetime resources during normal shutdown.
+3. [Comforting Install Experience](./active/2_comforting-global-install-experience.md)
+   - Goal: make global and repository-local setup understandable without
+     hidden configuration writes.
 
 ## Ready — detailed, but not selected
 
@@ -138,7 +144,8 @@ and the [MCP contract](../api-design/mcp-tools.md).
 
 ## Maintaining this roadmap
 
-When selecting work, update this roadmap, `active/README.md`, and `pointer.md`
-in the same change. When closing work, move its detailed record to `closed/`
-and update this page before selecting the next goal. Do not duplicate task
-checklists here; this page links to their single authoritative record.
+When a work item's status changes, update this roadmap and the relevant
+implementation index; update `pointer.md` when its focus summary also changes.
+When closing work, move its detailed record to `closed/` and update this page.
+Do not duplicate task checklists here; this page links to their single
+authoritative record.
