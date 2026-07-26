@@ -128,12 +128,13 @@ async function main(): Promise<void> {
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
+    await run("pnpm", ["add", "-D", "@types/node"], installDir);
     await writeFile(
       path.join(installDir, "package-types.ts"),
       [
         'import { resolveEnginePaths, type EngineConfig } from "astrograph";',
         "",
-        "const config: EngineConfig = { repoRoot: process.cwd() };",
+        "declare const config: EngineConfig;",
         "resolveEnginePaths(config.repoRoot);",
         "",
       ].join("\n"),
