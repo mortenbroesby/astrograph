@@ -13,7 +13,7 @@ npm install -D astrograph
 If you just want to initialize once:
 
 ```bash
-npx astrograph init
+npx astrograph install
 ```
 
 ## 2. Configure MCP
@@ -21,7 +21,7 @@ npx astrograph init
 Run the installer:
 
 ```bash
-npx astrograph init
+npx astrograph install
 ```
 
 That writes MCP configuration for your chosen client and preserves unrelated
@@ -30,16 +30,16 @@ config.
 Useful explicit targets:
 
 ```bash
-npx astrograph init --ide codex
-npx astrograph init --ide copilot
-npx astrograph init --ide copilot-cli
-npx astrograph init --ide all
+npx astrograph install --ide codex
+npx astrograph install --ide copilot
+npx astrograph install --ide copilot-cli
+npx astrograph install --ide all
 ```
 
 For non-interactive setup:
 
 ```bash
-npx astrograph init --yes --repo /absolute/path/to/repo
+npx astrograph install --yes --repo /absolute/path/to/repo
 ```
 
 ## 3. Create the Initial Index

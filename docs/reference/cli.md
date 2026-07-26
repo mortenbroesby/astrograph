@@ -2,8 +2,7 @@
 
 Astrograph exposes three main command surfaces:
 
-- `astrograph init`
-- `astrograph install --global [--ide copilot-cli|codex]`
+- `astrograph install [--global]`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
@@ -29,7 +28,7 @@ invocation path in your environment.
 
 ## Command Groups
 
-- `astrograph init`
+- `astrograph install`
   Writes MCP configuration for supported clients.
 - `astrograph install --global [--ide copilot-cli|codex]`
   Registers one user-level MCP server and enables per-repository global cache
@@ -38,7 +37,7 @@ invocation path in your environment.
   `~/.copilot/mcp-config.json` (or `$COPILOT_HOME/mcp-config.json`). It does
   not modify a repository: after installing once, open any repository and
   index it or use the MCP tools directly. Normal global use does not require
-  `init`, repo-local config, or a chosen cache directory.
+  `install`, repo-local config, or a chosen cache directory.
   With no `--ide`, it installs for Copilot CLI.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
@@ -69,16 +68,16 @@ the complete current extension matrix and summary behavior.
 Interactive install:
 
 ```bash
-npx astrograph init
+npx astrograph install
 ```
 
 Common profiles:
 
 ```bash
-npx astrograph init --ide copilot
-npx astrograph init --yes --ide codex --repo /repo
-npx astrograph init --yes --ide all --repo /repo
-npx astrograph init --yes --ide codex,copilot-cli --repo /repo
+npx astrograph install --ide copilot
+npx astrograph install --yes --ide codex --repo /repo
+npx astrograph install --yes --ide all --repo /repo
+npx astrograph install --yes --ide codex,copilot-cli --repo /repo
 ```
 
 If the target repository has a `package.json`, setup ensures Astrograph is
@@ -246,11 +245,11 @@ repository on the device. The global route asks for confirmation before running
 `npm install --global astrograph@latest` or editing user-level client
 configuration.
 
-Repository setup remains available directly through `init` and keeps optional
+Repository setup remains available directly through `install` and keeps optional
 integrations explicit:
 
 ```bash
-npx astrograph init --yes --agents --git-hooks
+npx astrograph install --yes --agents --git-hooks
 ```
 
 `--agents` adds only an Astrograph-managed guidance block to the client’s

@@ -237,7 +237,7 @@ export function formatRepositoryInstallation(
     ...(hooks ? [hooks] : []),
     "",
     options.dryRun
-      ? "Next: run `astrograph init --yes` when you are ready to write these files."
+      ? "Next: run `astrograph install --yes` when you are ready to write these files."
       : "Next: restart your selected client, then run `index_folder` to create the first index.",
     "For a machine-readable result, add `--json`.",
   ].join("\n");
@@ -274,7 +274,7 @@ async function emitUpdateSuggestion(currentVersion: string): Promise<void> {
       `  Git Bash: rm -rf .astrograph\n` +
       `  PowerShell: Remove-Item -Recurse -Force .astrograph\n` +
       `  cmd.exe: rmdir /s /q .astrograph\n` +
-      `  astrograph init --yes\n`,
+      `  astrograph install --yes\n`,
   );
 }
 
@@ -282,7 +282,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph init [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
+      "  npx astrograph install [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -296,10 +296,10 @@ function usage(): void {
       "  - ensures: astrograph is set to latest in package.json when package.json exists",
       "",
       "Examples:",
-      "  npx astrograph init",
-      "  npx astrograph init --yes",
-      "  npx astrograph init --yes --ide all",
-      "  npx astrograph init --yes --json",
+      "  npx astrograph install",
+      "  npx astrograph install --yes",
+      "  npx astrograph install --yes --ide all",
+      "  npx astrograph install --yes --json",
     ].join("\n") + "\n",
   );
 }
@@ -402,7 +402,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     }
   }
 
-  const program = new Command("astrograph init")
+  const program = new Command("astrograph install")
     .allowUnknownOption(false)
     .exitOverride()
     .helpOption("-h, --help", "Show setup help.")
@@ -584,7 +584,7 @@ async function promptForSetupArgs(): Promise<{
 async function runGuidedInstall(): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
-      "Guided install requires a TTY. Use `astrograph init --yes` for repository setup or `astrograph install --global --ide codex|copilot-cli` for global setup.",
+      "Guided install requires a TTY. Use `astrograph install --yes` for repository setup or `astrograph install --global --ide codex|copilot-cli` for global setup.",
     );
   }
 
@@ -1478,9 +1478,6 @@ async function main(): Promise<void> {
     return;
   }
   if (argv.includes("--global")) {
-    if (process.env.ASTROGRAPH_ENTRY_MODE !== "install") {
-      throw new Error("Use `astrograph install --global [--ide copilot-cli|codex]`; `astrograph init` is repository-scoped.");
-    }
     const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run", "--json"]);
     if (argv.some((entry) => !allowed.has(entry))) {
       throw new Error("astrograph install --global accepts only --ide copilot-cli|codex, --dry-run, and --json.");

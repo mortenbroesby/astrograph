@@ -28,10 +28,9 @@ function usage() {
     "  astrograph --version",
     "  astrograph --diagnostics",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
-    "  astrograph init [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--dry-run] [--json]",
-    "  astrograph install                         # guided local or global setup",
+    "  astrograph install [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--agents] [--git-hooks] [--dry-run] [--json]",
     "  astrograph install --global [--ide copilot-cli|codex] [--dry-run] [--json]",
-    "  astrograph init --ide codex",
+    "  astrograph install --ide codex",
   ].join("\n") + "\n",
 );
 }
@@ -50,7 +49,7 @@ const sourceTarget =
       ? path.join(packageRoot, "src", "mcp.ts")
       : mode === "git-refresh"
         ? path.join(packageRoot, "src", "scripts", "git-smart-refresh.ts")
-        : mode === "init" || mode === "install" || mode === "--diagnostics"
+        : mode === "install" || mode === "--diagnostics"
           ? path.join(packageRoot, "src", "scripts", "install.ts")
           : null;
 const distTarget =
@@ -60,7 +59,7 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
         ? path.join(packageRoot, "dist", "scripts", "git-smart-refresh.js")
-        : mode === "init" || mode === "install" || mode === "--diagnostics"
+        : mode === "install" || mode === "--diagnostics"
           ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 

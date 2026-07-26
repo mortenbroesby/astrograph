@@ -25,8 +25,9 @@ execa, pnpm, and Vitest.
 - Test: `tests/engine-contract.test.ts`
 
 - [x] Establish the existing local/global setup test baseline.
-- [x] Add a guided `astrograph install` flow with clear local and global scope
-  descriptions, preserving `init` and existing non-interactive flags.
+- [x] Add one `astrograph install` flow with clear local and global scope
+  descriptions and the existing non-interactive flags; do not retain a
+  duplicate top-level `init` setup command.
 - [x] Make global package installation an explicit interactive confirmation;
   no package or user config writes occur before confirmation.
 - [x] Verify the rendered setup outcome names affected locations and next

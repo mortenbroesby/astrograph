@@ -10,7 +10,7 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
   returns the canonical source-attributed task-context payload. It is the only
   bounded-context command; `query-code` remains discovery/source only.
 - `astrograph git-refresh <event>` plans or executes index refreshes for git workflows.
-- `astrograph init --ide codex` writes managed local MCP configuration.
+- `astrograph install --ide codex` writes managed local MCP configuration.
 - `astrograph install --global --ide codex` writes only the marker-owned user
   Codex registration and user Astrograph default; it never edits a repository.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache

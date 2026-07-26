@@ -1030,7 +1030,7 @@ describe("ai-context-engine contract", () => {
     expect(output).toContain("Preview complete — no files were changed.");
     expect(output).toContain(`Astrograph ${ASTROGRAPH_PACKAGE_VERSION} is connected to Codex.`);
     expect(output).toContain("A local index that stays with this repository");
-    expect(output).toContain("astrograph init --yes");
+    expect(output).toContain("astrograph install --yes");
     expect(output).not.toContain(first.configPreview);
     expect(output).not.toContain(first.engineConfigPreview);
   });

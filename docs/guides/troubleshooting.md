@@ -63,7 +63,7 @@ reports the count; it never kills another application's process automatically.
 
 Fix:
 
-Run the reset command for your terminal, then run `astrograph init --yes`:
+Run the reset command for your terminal, then run `astrograph install --yes`:
 
 ```bash
 # Git Bash
@@ -121,7 +121,7 @@ source, then reindex.
 
 ## If Setup Works but Commands Do Not
 
-Remember that `astrograph init` writes MCP configuration. It does not create
+Remember that `astrograph install` writes MCP configuration. It does not create
 the initial index by itself.
 
 If setup succeeded but retrieval still feels empty, the next command to try is:
