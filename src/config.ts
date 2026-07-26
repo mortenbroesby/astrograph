@@ -48,6 +48,7 @@ export const DEFAULT_MAX_SYMBOL_RESULTS = 8;
 export const DEFAULT_MAX_TEXT_RESULTS = 100;
 export const DEFAULT_MAX_CHILD_PROCESS_OUTPUT_BYTES = 1_000_000;
 export const DEFAULT_MAX_LIVE_SEARCH_MATCHES = 100;
+const LEGACY_ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
 export const DEFAULT_RANKING_WEIGHTS: RankingWeights = {
   exactName: 1000,
   exactQualifiedName: 900,
@@ -478,6 +479,15 @@ export async function loadRepoEngineConfig(
   });
 
   if (contents === null) {
+    const legacyConfigPath = path.join(resolvedRepoRoot, LEGACY_ENGINE_CONFIG_FILENAME);
+    const legacyContents = await readFile(legacyConfigPath, "utf8")
+      .catch((error: unknown) => {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
+        throw error;
+      });
+    if (legacyContents !== null) {
+      throw new Error(`${LEGACY_ENGINE_CONFIG_FILENAME} is no longer supported. Rename it to ${ENGINE_CONFIG_FILENAME} and use JSON configuration.`);
+    }
     return applyExplicitStorageLocation(defaults, options.environment);
   }
 

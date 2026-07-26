@@ -78,7 +78,7 @@
     "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --import=tsx ./bench/scripts/perf-index.mjs",
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --import=tsx ./bench/scripts/perf-query.mjs",
     "test:package-bin": "node --import=tsx ./src/scripts/smoke-package-bin.ts",
-    "check:version-bump": "node ./dist/scripts/check-version-bump.js",
+    "check:version-bump": "node --import=tsx ./src/scripts/check-version-bump.ts",
     "release": "pnpm release:apply && pnpm test",
     "release:plan": "node ./dist/scripts/release-agent.js",
     "release:apply": "node ./dist/scripts/release-agent.js --apply",

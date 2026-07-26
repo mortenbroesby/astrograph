@@ -48,6 +48,13 @@ observability, watch behavior, or safety limits for one repository.
 
 Configuration is JSON so production commands never execute repository TypeScript.
 
+## Migrating from TypeScript Config
+
+`astrograph.config.ts` is no longer loaded. Astrograph stops with a migration
+error instead of silently ignoring it. Rename it to `astrograph.config.json`
+and convert its exported object to JSON; comments, imports, and executable
+expressions must be removed.
+
 ## Top-Level Options
 
 ### `summaryStrategy`

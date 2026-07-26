@@ -476,7 +476,7 @@ describe("ai-context-engine contract", () => {
     expect(Object.values(packageJson.scripts).join("\n")).not.toContain("--experimental-strip-types");
     expect(packageJson.scripts).toMatchObject({
       "git-refresh": "node ./dist/scripts/git-smart-refresh.js",
-      "check:version-bump": "node ./dist/scripts/check-version-bump.js",
+      "check:version-bump": "node --import=tsx ./src/scripts/check-version-bump.ts",
       "release:plan": "node ./dist/scripts/release-agent.js",
       "release:apply": "node ./dist/scripts/release-agent.js --apply",
       "dev:cli": "node --import=tsx ./src/cli.ts",
@@ -595,6 +595,13 @@ describe("ai-context-engine contract", () => {
     await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
       /Invalid astrograph\.config\.json/i,
     );
+  });
+
+  it("requires explicit migration from the retired TypeScript repo config", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-legacy-config-"));
+    tempDirs.push(repoRoot);
+    await writeFile(path.join(repoRoot, "astrograph.config.ts"), "export default { storageLocation: 'global' };\n");
+    await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(/astrograph\.config\.ts is no longer supported.*astrograph\.config\.json/i);
   });
 
   it("loads a repository global storage selection and rejects an invalid value", async () => {

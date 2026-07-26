@@ -87,6 +87,21 @@ published JavaScript/declarations or breaking direct developer execution.
 **Acceptance:** any Oxc adoption replaces a specific existing gap; it is not a
 second linter or formatter by default.
 
+## PR #105 Review Follow-ups
+
+- [x] Exercise the compiled release agent in CI; the existing fast job keeps
+  its triggers, runner, cache, and cost profile unchanged.
+- [x] Keep the source-checkout pre-push version gate runnable before a build by
+  using the developer-only `tsx` loader; published CLI and MCP entrypoints plus
+  the release agent remain compiled `dist/` JavaScript.
+- [x] Exclude `astrograph.config.json` from indexing and update CLI fixture
+  expectations to reflect that product behavior.
+- [x] Reject a retired `astrograph.config.ts` with explicit JSON migration
+  guidance instead of silently applying defaults.
+- [x] Record the full test suite as the local merge gate. Do not add it to the
+  required GitHub-hosted job without explicit Actions-cost approval; the
+  existing required job remains intentionally fast.
+
 ## Verification and Commit Checkpoint
 
 For source, package, test, or configuration changes, run focused checks first,
@@ -97,5 +112,6 @@ Actions unless the cost rule is separately reviewed.
 
 ## Rollback
 
-Each story has a dedicated PR. Reverting its PR restores the former toolchain;
-no user data, package format, or persistent storage migration is involved.
+PR #105 deliberately delivers all four stories together. Reverting that PR
+restores the former toolchain; no user data, package format, or persistent
+storage migration is involved.
