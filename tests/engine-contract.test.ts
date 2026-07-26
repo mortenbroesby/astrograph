@@ -250,7 +250,8 @@ describe("ai-context-engine contract", () => {
     }
     expect(managedContents).not.toContain("query_code");
     expect(managedContents).not.toContain("[mcp_servers.github]");
-    expect(config).toContain("[mcp_servers.github]");
+    expect(managedContents).toContain(`"astrograph@${ASTROGRAPH_PACKAGE_VERSION}"`);
+    expect(config).not.toContain("[mcp_servers.github]");
   });
 
   it("normalizes dispatch failures into MCP envelopes", async () => {
