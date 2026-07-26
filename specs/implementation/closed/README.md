@@ -6,6 +6,10 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Reopened AGC2 Compact Output R&D](./agc2-compact-output-rnd-reopened.md)
+  — direct serving-AGC1 corpus verification plus alias-symbol and
+  directory-tree experiments; all AGC2 formats remain non-serving.
+
 - [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) and its
   [delivery checklist](./astro-feedback-delivery-checklist.md)
 - [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md),

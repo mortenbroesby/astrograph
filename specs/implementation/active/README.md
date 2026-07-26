@@ -6,9 +6,8 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-- [Reopened AGC2 Compact Output R&D](./agc2-compact-output-rnd-reopened.md) —
-  make the actual AGC1 serving codec a directly measured, lossless corpus
-  baseline before evaluating any further AGC2 candidates.
+No work is currently selected. Completed evidence belongs in `../closed/`;
+select the next roadmap item explicitly before creating a new active record.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories

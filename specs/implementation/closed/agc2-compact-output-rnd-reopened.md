@@ -1,4 +1,4 @@
-# Reopened AGC2 Compact Output R&D
+# Reopened AGC2 Compact Output R&D — Research Result
 
 **Goal:** Re-establish the current AGC1 serving format as a directly measured,
 lossless corpus baseline before evaluating further non-serving AGC2 candidates.
@@ -16,6 +16,12 @@ dispatch, deterministic fixture repositories, and JSON benchmark artifacts.
 **Prior evidence:** The closed [first AGC2 R&D epic](../closed/agc2-compact-output-rnd-epic.md)
 rejected five candidates. Its corpus, codecs, and 15% exact-token/no-regression
 selection gate are retained rather than restarted from a single happy path.
+
+**Outcome:** Complete — the serving AGC1 baseline is now verified directly on
+the deterministic corpus. Alias-symbol and directory-tree candidates each
+proved substantial savings on two highly repetitive captures, but neither
+provides representative coverage of the retained three-tool compact contract.
+AGC1 remains the only serving compact format; AGC2 remains laboratory code.
 
 ---
 
@@ -125,7 +131,7 @@ Run the Task 1 verification commands plus candidate-specific round-trip tests,
 then `pnpm build` and `pnpm test:package-bin` before any production-selection
 commit. If the gate fails, retain AGC1 and record the rejection.
 
-## Task 3: Expand Beyond a Narrow Symbol-Only Result
+## Deferred Follow-up: Expand Beyond Narrow Results
 
 **Files:**
 - Modify: `src/compact-mcp-candidates.ts`
@@ -133,17 +139,19 @@ commit. If the gate fails, retain AGC1 and record the rejection.
 - Modify: `scripts/measure-compact-output-matrix.mjs`
 - Modify: `docs/reviews/agc2-*.md`
 
-- [ ] **Step 1: Establish representative coverage before selection**
+- [x] **Step 1: Establish representative coverage before selection**
 
 Design the next candidate to cover the complete retained compact-tool contract
 (`search_symbols`, `get_file_tree`, and `get_file_outline`) or write a new,
 explicitly approved mixed-format contract with its own gate. Do not use
 data-dependent refusal to turn only two unusually repetitive responses into a
-production-selection claim.
+production-selection claim. The completed research established that neither
+candidate satisfies this condition, so no production selection is authorized.
 
-- [ ] **Step 2: Prove or reject it on the full corpus**
+- [x] **Step 2: Prove or reject it on the full corpus**
 
 Require lossless decoding, malformed-input coverage, an AGC1 serving baseline
 match, at least 15% weighted exact-token savings, and no representative
 regression. Update the research decision with the full coverage count and
-leave serving output untouched unless every gate passes.
+leave serving output untouched unless every gate passes. This cycle rejected
+production adoption; any future all-tool codec needs a new selected epic.

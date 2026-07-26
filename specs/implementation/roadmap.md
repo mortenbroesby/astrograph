@@ -17,9 +17,8 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-- [Reopened AGC2 Compact Output R&D](./active/agc2-compact-output-rnd-reopened.md)
-  — first establish serving AGC1 as a directly measured, lossless corpus
-  baseline; then evaluate only non-serving candidates under ADR-010.
+No work is currently selected. Select a detailed ready item before starting
+implementation.
 
 ## Ready — detailed, but not selected
 
@@ -85,6 +84,10 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [AGC2 Compact Output R&D Epic](./closed/agc2-compact-output-rnd-epic.md)
   closed without an AGC2 release: the four-fixture corpus rejected all five
   candidates. AGC1 remains the compact contract and JSON remains default.
+
+- [Reopened AGC2 Compact Output R&D](./closed/agc2-compact-output-rnd-reopened.md)
+  closed without a production change after direct serving-AGC1 corpus proof
+  and two additional lossless candidates showed only narrow coverage.
 
 - [Closed records](./closed/README.md) contain the completed global install and
   cache, global Codex/Copilot setup, cache cleanup, branch-aware indexing,
