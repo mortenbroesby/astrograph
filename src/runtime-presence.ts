@@ -4,6 +4,7 @@ import path from "node:path";
 import process from "node:process";
 
 import { resolveGlobalConfigPath } from "./config.ts";
+import { getDaemonRuntimeSummary, type DaemonRuntimeSummary } from "./daemon-runtime.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
 const RUNTIME_DIRECTORY_ENV = "ASTROGRAPH_RUNTIME_DIR";
@@ -15,6 +16,7 @@ export interface RuntimePresenceSummary {
   staleRecordCount: number;
   invalidRecordCount: number;
   warning: string | null;
+  daemon: DaemonRuntimeSummary;
 }
 
 interface RuntimePresenceRecord {
@@ -157,5 +159,6 @@ export async function getRuntimePresenceSummary(
     warning: liveProcessCount > PROCESS_WARNING_THRESHOLD
       ? `${liveProcessCount} live Astrograph MCP processes detected; close unused agent sessions to release local resources.`
       : null,
+    daemon: await getDaemonRuntimeSummary({ runtimeDir, isProcessAlive }),
   };
 }

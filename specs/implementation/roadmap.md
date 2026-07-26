@@ -35,6 +35,12 @@ turns those focuses into an exclusive execution gate.
      advances or changes without dependable filesystem events.
    - Architecture: a session-bound 30-second checkout probe queues existing
      folder reconciliation; no daemon, Git-diff planner, or cache migration.
+5. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+   - Goal: one user-local daemon owns independent repository runtimes, watches,
+     SQLite connections, and workers for concurrent stdio MCP clients.
+   - Architecture: on-demand local IPC proxying with authenticated singleton
+     ownership and a five-minute idle exit; no network listener, source upload,
+     or shared mutable repository index.
 
 ## Ready — detailed, but not selected
 
@@ -91,7 +97,7 @@ turns those focuses into an exclusive execution gate.
 ## Descoped — do not quietly add
 
 - One shared mutable SQLite index or cross-repository source search.
-- A background daemon, network synchronization, or hidden source upload.
+- Network synchronization or hidden source upload.
 - Hidden tool routing, generic MCP router, compatibility aliases, or destructive
   MCP cache controls.
 - Backward compatibility solely to preserve obsolete pre-v1 cache data.

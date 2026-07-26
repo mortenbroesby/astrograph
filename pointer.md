@@ -29,6 +29,10 @@ use its recorded evidence or selection gate instead.
 - [Guided Install and Refresh Hooks](./specs/implementation/active/3_guided-install-and-refresh-hooks.md)
   — simplify setup to one install command, make integrations opt-in, and
   verify harness readiness before relying on it.
+- [Local Daemon Runtime Ownership Delivery
+  Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+  — run one user-local, on-demand daemon that owns isolated repository runtime
+  lifecycles for concurrent stdio MCP clients.
 
 ## Keeping this useful
 

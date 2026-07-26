@@ -372,3 +372,77 @@ not dynamically download grammars or claim all community grammars are covered.
 - The active [polyglot delivery checklist](../implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
   records the inventory, adapter migration, fixtures, package measurements,
   public contract tests, and release evidence.
+
+---
+
+## ADR-009: Use One User-Local Daemon for Repository Runtime Ownership
+
+**Date:** 2026-07-26
+**Status:** Accepted
+
+## Context
+
+Each stdio MCP connection currently creates its own process-lifetime engine,
+database connections, workers, and optional filesystem watch. Concurrent agent
+sessions therefore contend for the same repository cache and may duplicate
+watches. A timer-based reconciliation sweep can repair missed events but does
+not establish a durable owner for that lifecycle.
+
+The former product boundary excluded background daemons. The user has explicitly
+selected a daemon to make cache freshness and ownership more robust. This ADR
+defines the narrow local-only form that preserves Astrograph's repository
+isolation and privacy model.
+
+## Decision
+
+- Run at most one Astrograph daemon for each local user/runtime profile. It is
+  started on demand by an MCP stdio proxy and exits after a documented idle
+  grace period; it is not a login service.
+- The daemon owns engine instances, SQLite connections, workers, and watchers.
+  It keeps independent tenants keyed by canonical repository root and resolved
+  storage identity. It never combines repository indexes or serves a
+  cross-repository search surface.
+- MCP remains stdio. The stdio process validates and formats the public MCP v1
+  contract, then forwards a bounded internal command request to the daemon.
+  The daemon is not an MCP or HTTP endpoint.
+- Use a user-private local IPC endpoint (Unix-domain socket where available,
+  Windows named pipe where required), an atomic singleton record, and a
+  per-launch capability token. Validate endpoint ownership, token, protocol
+  version, and canonical repository authorization before dispatch.
+- Detect stale records safely, wait for daemon readiness before proxying, and
+  expose source-free lifecycle health through existing diagnostics/doctor.
+  Failure to connect must be actionable and must not silently fall back to a
+  second competing engine owner.
+
+## Rationale
+
+- A single local owner removes duplicate watcher and SQLite-runtime lifecycles
+  while retaining one explicit repository boundary per index.
+- On-demand startup and idle exit give the requested durability without an
+  always-running service, network listener, hidden repository discovery, or
+  source upload.
+- Keeping MCP at stdio preserves current client configuration and v1 tool
+  compatibility; the internal protocol can evolve separately and remains
+  local-only.
+- Capability-authenticated IPC and strict runtime-directory permissions are a
+  smaller trust boundary than a user-visible port or a shared global database.
+
+## Consequences
+
+- This supersedes the prior blanket daemon exclusion in the delivery roadmap;
+  network synchronization, source upload, and shared mutable repository
+  indexes remain descoped.
+- The change requires a staged implementation plan, lifecycle failure tests,
+  and platform coverage for Unix sockets and Windows named pipes before the
+  daemon becomes the default MCP execution path.
+- The first delivery does not add remote control, daemon-managed cache
+  mutation, automatic repository scanning, background Git fetch/pull, or a
+  second periodic reconciliation algorithm.
+
+## Verification
+
+- The [local daemon delivery checklist](../implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+  defines singleton, stale-record, authentication, tenant-isolation, shutdown,
+  and MCP-compatibility proofs.
+- `tests/interface.test.ts`, focused daemon/proxy tests, type checks, package
+  smoke tests, and platform-specific IPC evidence must pass before release.

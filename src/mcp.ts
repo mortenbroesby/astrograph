@@ -20,13 +20,24 @@ import { emitEngineEvent } from "./event-sink.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
 import { registerRuntimePresence } from "./runtime-presence.ts";
+import { executeDaemonCommand } from "./daemon-client.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
 import { disposeTokenizer } from "./tokenizer.ts";
 
-type EngineModule = typeof import("./index.ts");
-
-let engineModulePromise: Promise<EngineModule> | null = null;
 const logger = getLogger({ component: "mcp" });
+
+type McpCommandExecutor = typeof executeDaemonCommand;
+
+let executeMcpCommand: McpCommandExecutor = executeDaemonCommand;
+
+/** Test seam for strict MCP-envelope validation; production always uses local IPC. */
+export function setMcpCommandExecutorForTest(executor: McpCommandExecutor): () => void {
+  const previous = executeMcpCommand;
+  executeMcpCommand = executor;
+  return () => {
+    executeMcpCommand = previous;
+  };
+}
 
 function asTextResult(text: string) {
   return {
@@ -396,11 +407,6 @@ function buildFailureEnvelope(message: string): McpErrorEnvelope {
   };
 }
 
-function loadEngineModule(): Promise<EngineModule> {
-  engineModulePromise ??= import("./index.ts");
-  return engineModulePromise;
-}
-
 export async function dispatchTool(
   name: string,
   args: Record<string, unknown>,
@@ -432,9 +438,8 @@ export async function dispatchTool(
     });
   }
 
-  const engine = await loadEngineModule();
   try {
-    const result = await tool.execute(engine, args);
+    const result = await executeMcpCommand(name, args);
     validateToolOutput(name, result);
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,

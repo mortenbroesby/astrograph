@@ -57,7 +57,7 @@ import {
   getSetupReadiness,
   formatSetupReadiness,
 } from "../src/scripts/install.ts";
-import { dispatchTool } from "../src/mcp.ts";
+import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
 
 const tempDirs: string[] = [];
@@ -268,34 +268,31 @@ describe("ai-context-engine contract", () => {
       },
     });
 
-    const invalidArgResult = await dispatchTool("search_symbols", {
-      repoRoot: "/tmp",
-      query: "Greeter",
-      kind: "bogus",
+    const reset = setMcpCommandExecutorForTest(async () => {
+      throw new Error("Invalid kind: bogus");
     });
-    expect(invalidArgResult).toMatchObject({
-      ok: false,
-      error: {
-        code: "invalid_argument",
-      },
-    });
+    try {
+      const invalidArgResult = await dispatchTool("search_symbols", {
+        repoRoot: "/tmp",
+        query: "Greeter",
+        kind: "bogus",
+      });
+      expect(invalidArgResult).toMatchObject({
+        ok: false,
+        error: {
+          code: "invalid_argument",
+        },
+      });
+    } finally {
+      reset();
+    }
   });
 
   it("rejects malformed MCP tool output with a strict failure envelope", async () => {
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "search_symbols");
-    expect(tool).toBeDefined();
-
-    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
-    const originalExecute = mutableTool.execute;
+    const reset = setMcpCommandExecutorForTest(async () => [
+      { id: "sym-id", kind: "class", filePath: "src/strings.ts" },
+    ]);
     try {
-      mutableTool.execute = async () => [
-        {
-          id: "sym-id",
-          kind: "class",
-          filePath: "src/strings.ts",
-        },
-      ];
-
       const malformedResult = await dispatchTool("search_symbols", {
         repoRoot: "/tmp",
         query: "Greeter",
@@ -315,22 +312,16 @@ describe("ai-context-engine contract", () => {
         },
       });
     } finally {
-      mutableTool.execute = originalExecute;
+      reset();
     }
   });
 
   it("rejects malformed get_symbol_source output with a strict failure envelope", async () => {
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_symbol_source");
-    expect(tool).toBeDefined();
-
-    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
-    const originalExecute = mutableTool.execute;
+    const reset = setMcpCommandExecutorForTest(async () => ({
+      requestedContextLines: 5,
+      items: "not-an-array",
+    }));
     try {
-      mutableTool.execute = async () => ({
-        requestedContextLines: 5,
-        items: "not-an-array",
-      });
-
       const malformedResult = await dispatchTool("get_symbol_source", {
         repoRoot: "/tmp",
         symbolId: "fake-symbol",
@@ -350,28 +341,22 @@ describe("ai-context-engine contract", () => {
         },
       });
     } finally {
-      mutableTool.execute = originalExecute;
+      reset();
     }
   });
 
   it("rejects malformed get_task_context output with a strict failure envelope", async () => {
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_task_context");
-    expect(tool).toBeDefined();
-
-    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
-    const originalExecute = mutableTool.execute;
+    const reset = setMcpCommandExecutorForTest(async () => ({
+      payloadTokenBudget: 128,
+      usedPayloadTokens: 12,
+      estimatedPayloadTokens: 18,
+      sourceTokens: 12,
+      truncated: false,
+      query: "Greeter",
+      repoRoot: "/tmp",
+      items: "not-an-array",
+    }));
     try {
-      mutableTool.execute = async () => ({
-        payloadTokenBudget: 128,
-        usedPayloadTokens: 12,
-        estimatedPayloadTokens: 18,
-        sourceTokens: 12,
-        truncated: false,
-        query: "Greeter",
-        repoRoot: "/tmp",
-        items: "not-an-array",
-      });
-
       const malformedResult = await dispatchTool("get_task_context", {
         repoRoot: "/tmp",
         query: "Greeter",
@@ -391,7 +376,7 @@ describe("ai-context-engine contract", () => {
         },
       });
     } finally {
-      mutableTool.execute = originalExecute;
+      reset();
     }
   });
 

@@ -1681,6 +1681,20 @@ export async function indexFile(input: {
 }
 
 export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
+  return watchFolderInternal(input);
+}
+
+export async function watchFolderAfterIndex(
+  input: WatchOptions,
+  initialSummary: IndexSummary,
+): Promise<WatchHandle> {
+  return watchFolderInternal(input, initialSummary);
+}
+
+async function watchFolderInternal(
+  input: WatchOptions,
+  initialSummaryFromCaller?: IndexSummary,
+): Promise<WatchHandle> {
   const repoRoot = await resolveRepoRoot(input.repoRoot);
   const repoConfig = await loadRepoEngineConfig(repoRoot, {
     repoRootResolved: true,
@@ -2099,7 +2113,7 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
     });
   };
 
-  const initialSummary = await indexFolder({
+  const initialSummary = initialSummaryFromCaller ?? await indexFolder({
     repoRoot,
     summaryStrategy: input.summaryStrategy,
   });
