@@ -36,12 +36,7 @@ function runGitDiff(args) {
     .filter(Boolean);
 }
 
-function getChangedFiles() {
-  const explicitFiles = [...new Set(process.argv.slice(2).filter(Boolean))];
-  if (explicitFiles.length > 0) {
-    return explicitFiles;
-  }
-
+function getComparisonRef() {
   const upstreamResult = spawnSync(
     'git',
     ['rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}'],
@@ -51,20 +46,24 @@ function getChangedFiles() {
       env: process.env,
     },
   );
+  return upstreamResult.status === 0 ? upstreamResult.stdout.trim() : 'HEAD~1';
+}
 
-  const upstream = upstreamResult.status === 0 ? upstreamResult.stdout.trim() : '';
-  if (!upstream) {
-    return runGitDiff(['--name-only', '--diff-filter=ACMR', 'HEAD~1']);
+function getChangedFiles(comparisonRef) {
+  const explicitFiles = [...new Set(process.argv.slice(2).filter(Boolean))];
+  if (explicitFiles.length > 0) {
+    return explicitFiles;
   }
 
-  return runGitDiff(['--name-only', '--diff-filter=ACMR', `${upstream}...HEAD`]);
+  return runGitDiff(['--name-only', '--diff-filter=ACMR', `${comparisonRef}...HEAD`]);
 }
 
 function hasMatch(files, predicate) {
   return files.some(predicate);
 }
 
-const changedFiles = getChangedFiles();
+const comparisonRef = getComparisonRef();
+const changedFiles = getChangedFiles(comparisonRef);
 if (changedFiles.length === 0) {
   process.exit(0);
 }
@@ -79,6 +78,9 @@ const isCriticalFile = (file) =>
   ['package.json', 'pnpm-lock.yaml'].includes(file) ||
   file.startsWith('.github/workflows/') ||
   file.startsWith('.husky/');
+
+run('git', ['fetch', '--quiet', 'origin', 'main'], 'Could not refresh origin/main before checking the required version bump.');
+run('pnpm', ['check:version-bump', '--base', 'origin/main'], 'Version bump is required before pushing versioned changes.');
 
 if (!changedFiles.some(isDocFile)) {
   run('pnpm', ['type-lint'], 'Type check failed during pre-push hook.');
