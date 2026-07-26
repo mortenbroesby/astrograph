@@ -12,6 +12,12 @@ response formatting, correlate them with the existing completion event, and
 aggregate on explicit report invocation. Keep collection source-free and local.
 No new database, periodic job, exporter, network call, token recount, or SDK.
 
+**Default scope:** With `--repo`, report only that repository. Without it,
+report the current resolved repository for repository-local storage and all
+registered local repositories for global storage. Do not add a scope flag or
+scan user directories; global aggregation is limited to existing Astrograph
+storage records.
+
 **Tech Stack:** TypeScript, Node.js 22, existing event sink/MCP/CLI modules,
 Vitest, and the current compact-output benchmark.
 
@@ -22,8 +28,12 @@ Vitest, and the current compact-output benchmark.
 **Files:** `src/event-sink.ts`, `src/mcp.ts`, `src/efficiency-report.ts`,
 `tests/efficiency-report.test.ts`, `docs/guides/performance.md`
 
-- [ ] Run `astrograph efficiency-report --repo <fixture>` and map every current
-  field to its event source, marking it exact, heuristic, or unavailable.
+- [ ] Run the current report against repo-local and global-storage fixtures;
+  map every field to its event source, marking it exact, heuristic, or
+  unavailable.
+- [ ] Specify and test default scope: explicit `--repo` is target-only,
+  repository-local no-argument use resolves the current repository, and global
+  no-argument use reads only registered Astrograph repositories.
 - [ ] Prove which formatting paths already expose exact delivered/baseline token
   counts, including JSON, AGC1, and content references.
 - [ ] Record request-path work before changes; do not add a new counter or
@@ -42,6 +52,8 @@ Vitest, and the current compact-output benchmark.
   response body by focused regression test.
 - [ ] Keep the command explicit and local; no exporter flag, endpoint, or
   credential option.
+- [ ] Keep one command: derive default scope from storage mode rather than
+  adding a flag, profile, or separate global-report command.
 
 ## Task 3: Prove negligible overhead and document the handoff
 

@@ -3,8 +3,10 @@
 > **Status:** Active — selected by the user on 2026-07-26.
 
 **Goal:** Let a user inspect the token savings Astrograph can prove locally,
-with negligible effect on ordinary tool latency and a stable JSON shape that a
-future explicit exporter may consume.
+across all local repositories by default for global storage or for the current
+repository by default for repository-local storage, with negligible effect on
+ordinary tool latency and a stable JSON shape that a future explicit exporter
+may consume.
 
 **Architecture:** Reuse the existing repository-local event sink and
 `astrograph efficiency-report` command. Record only already-known response
@@ -13,6 +15,12 @@ on a tool request. The report aggregates exact savings when the serving path
 already supplies them and labels other values as unavailable rather than
 estimating them. No account, endpoint, SDK, daemon, background upload, or
 export configuration is part of this epic.
+
+**Default scope:** `efficiency-report --repo /abs/repo` always reports that
+repository. Without `--repo`, repository-local storage reports the resolved
+current repository; global storage aggregates every registered local repository
+with retained Astrograph data. This is automatic scope selection, not a new
+flag, profile, or tracking configuration.
 
 **Tech Stack:** TypeScript, Node.js 22, the existing event sink, CLI, local
 storage, `cl100k_base` metrics already used by serving paths, and Vitest.
@@ -33,14 +41,17 @@ storage, `cl100k_base` metrics already used by serving paths, and Vitest.
   in the report or retained analytics event data.
 - Do not add a second event log or database; reuse the existing local event
   sink.
+- Do not scan arbitrary directories: global aggregation reads only existing
+  Astrograph repository storage records.
 - Do not calculate new token counts on normal tool requests. If a serving path
   does not already know an exact saving, report it as unavailable.
 - A later exporter requires a separate user decision and contract review.
 
 ## Acceptance evidence
 
-- `astrograph efficiency-report --repo /abs/repo` remains local and
-  machine-readable.
+- `astrograph efficiency-report` is local and machine-readable: it defaults to
+  all registered local repositories under global storage and the current
+  repository under repository-local storage; `--repo` narrows it explicitly.
 - Its schema distinguishes exact savings, unavailable values, and
   reference/full response counts without leaking excluded fields.
 - Focused tests prove no network API is imported or invoked, and benchmark or
