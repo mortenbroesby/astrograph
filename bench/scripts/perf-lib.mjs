@@ -12,6 +12,7 @@ import {
   diagnostics,
   getFileTree,
   getRepoOutline,
+  getTaskContext,
   indexFile,
   indexFolder,
   queryCode,
@@ -243,12 +244,11 @@ export async function measureQueryLatency(repoRoot, runs) {
     discoverSamples.push(performance.now() - discoverStartedAt);
 
     const assembleStartedAt = performance.now();
-    await queryCode({
+    await getTaskContext({
       repoRoot,
       query,
-      intent: "assemble",
-      tokenBudget: 180,
-      includeRankedCandidates: true,
+      intent: "explore",
+      payloadTokenBudget: 180,
     });
     assembleSamples.push(performance.now() - assembleStartedAt);
   }

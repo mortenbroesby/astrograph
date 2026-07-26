@@ -48,6 +48,7 @@ import {
   setupForAllIdes,
   setupForCodex,
   setupForIde,
+  DEFAULT_GUIDED_INSTALL_SCOPE,
   formatGlobalInstallation,
   formatRepositoryInstallation,
   getGlobalInstallationDiagnostics,
@@ -73,6 +74,10 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
+  it("recommends global setup in the guided installer", () => {
+    expect(DEFAULT_GUIDED_INSTALL_SCOPE).toBe("global");
+  });
+
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
 

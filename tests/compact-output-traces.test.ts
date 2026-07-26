@@ -1,8 +1,10 @@
-import { execFile as execFileCallback } from "node:child_process";
-import { promisify } from "node:util";
-
 import { describe, expect, it } from "vitest";
 
+// @ts-expect-error This test is the typed contract for the JavaScript benchmark runner.
+import { runCompactOutputTraceBenchmark } from "../bench/scripts/measure-agc1-compact-output-matrix.mjs";
+import { getCommandByMcpToolName } from "../src/command-registry.ts";
+import * as engine from "../src/index.ts";
+import { setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { createCompactOutputTraceCases } from "./fixtures/compact-output/traces.ts";
 import { createCompactOutputQueryCases } from "./fixtures/compact-output/queries.ts";
 
@@ -13,8 +15,6 @@ const fixture = {
   symbolQuery: "Button",
   textQuery: "Save",
 };
-const execFile = promisify(execFileCallback);
-
 describe("compact-output repeat-read traces", () => {
   it("keeps checked-in one-shot and repeat-read sequences deterministic", () => {
     const traces = createCompactOutputTraceCases(fixture, createCompactOutputQueryCases(fixture));
@@ -33,18 +33,26 @@ describe("compact-output repeat-read traces", () => {
   });
 
   it("prints a source-free, versioned trace report", async () => {
-    const { stdout } = await execFile(process.execPath, [
-      "--experimental-strip-types",
-      "./bench/scripts/measure-agc1-compact-output-matrix.mjs",
-      "--fixture=small-frontend",
-      "--summary",
-    ], { cwd: process.cwd() });
-    const report = JSON.parse(stdout) as {
+    const reset = setMcpCommandExecutorForTest(async (name, args) => {
+      const command = getCommandByMcpToolName(name);
+      if (!command) {
+        throw new Error(`Unsupported test command: ${name}`);
+      }
+      return command.execute(engine, args as never);
+    });
+    let report: {
       schemaVersion: number;
       records: number;
       traces: Array<{ operationClass: string; captures: number; referenceCaptures: number; referenceSavingsTokens: number }>;
       agc1Integrity: { matchingSamples: number };
     };
+    try {
+      ({ summary: report } = await runCompactOutputTraceBenchmark({
+        fixtures: ["small-frontend"],
+      }));
+    } finally {
+      reset();
+    }
 
     expect(report).toMatchObject({ schemaVersion: 3, records: 8, agc1Integrity: { matchingSamples: 4 } });
     expect(report.traces).toEqual([
@@ -52,7 +60,7 @@ describe("compact-output repeat-read traces", () => {
       expect.objectContaining({ operationClass: "repeat-read", captures: 4, referenceCaptures: 2, referenceSavingsTokens: expect.any(Number) }),
     ]);
     expect(report.traces[1].referenceSavingsTokens).toBeGreaterThan(0);
-    expect(stdout).not.toContain("Button");
-    expect(stdout).not.toContain("/fixture");
+    expect(JSON.stringify(report)).not.toContain("Button");
+    expect(JSON.stringify(report)).not.toContain("/fixture");
   }, 30_000);
 });

@@ -65,3 +65,13 @@ pnpm, and Vitest.
   required intermediate `0.8.0-alpha.168` increment.
 - [ ] Commit, push, open a draft PR, and record CI evidence before closing this
   plan.
+
+## Follow-up: Make the guided default match the recommended setup
+
+**Files:** `src/scripts/install.ts`, `tests/engine-contract.test.ts`,
+`README.md`.
+
+- [x] Preselect and visibly recommend global setup in the interactive scope
+  chooser, while retaining repository-local setup as the explicit alternative.
+- [x] Explain the global default, private per-repository indexes, and the
+  installer confirmation flow in the README.

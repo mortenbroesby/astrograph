@@ -18,6 +18,8 @@ The practical outcome is simple:
 - token usage drops because retrieval is narrower
 - long sessions stay cleaner because less irrelevant context accumulates
 
+![Workflow diagram showing an AI coding agent question flowing through Astrograph's local retrieval surfaces to a source-grounded answer with lower token waste.](../../assets/diagrams/readme-workflow.svg)
+
 ## What Astrograph Is
 
 Astrograph is:
@@ -35,8 +37,20 @@ Astrograph is not:
 - a generic agent shell
 - a remote indexing service
 - a brute-force repo-to-prompt pipeline
+- a vector database or generic RAG service
 
 Those categories can complement Astrograph, but they are not the same job.
+Astrograph uses a local, structured code index so an AI coding agent can ask
+for exact repository facts rather than retrieve broad text fragments.
+
+## When Astrograph Helps
+
+Reach for Astrograph when an agent needs to:
+
+- jump from a symbol name to its real implementation
+- trace a code path before making an edit
+- answer a repository question without loading whole files into context
+- gather precise context for planning, debugging, or refactoring
 
 ## Why It Saves Tokens
 
@@ -48,6 +62,16 @@ or a ranked context bundle around one question, it does not need to read five
 files just to get oriented.
 
 Less blind reading means less waste.
+
+## Why Not Just Grep and File Reads?
+
+Broad search, repeated full-file reads, and oversized context windows are useful
+fallbacks, but they are blunt tools for code understanding. They can add noise,
+miss the relevant implementation, and make a long agent session harder to
+follow.
+
+Astrograph gives an agent structure first, then exact symbols and source, and
+only then broader task context when it is actually needed.
 
 ## Local-First Matters
 

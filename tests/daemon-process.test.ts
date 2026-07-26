@@ -1,3 +1,4 @@
+import { createServer } from "node:net";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -11,6 +12,30 @@ import { getDaemonRuntimeSummary, readDaemonRuntime } from "../src/daemon-runtim
 
 const temporaryPaths: string[] = [];
 const daemonPids: number[] = [];
+
+async function supportsUnixSockets(): Promise<boolean> {
+  const runtimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-daemon-capability-"));
+  const server = createServer();
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(path.join(runtimeDir, "daemon.sock"), () => {
+        server.off("error", reject);
+        resolve();
+      });
+    });
+    return true;
+  } catch {
+    return false;
+  } finally {
+    if (server.listening) {
+      await new Promise<void>((resolve) => server.close(() => resolve()));
+    }
+    await rm(runtimeDir, { recursive: true, force: true });
+  }
+}
+
+const describeDaemonProcess = await supportsUnixSockets() ? describe.sequential : describe.skip;
 
 async function createTempPath(prefix: string): Promise<string> {
   const value = await mkdtemp(path.join(os.tmpdir(), prefix));
@@ -47,7 +72,7 @@ afterEach(async () => {
   ));
 });
 
-describe.sequential("daemon process", () => {
+describeDaemonProcess("daemon process", () => {
   it("starts one child daemon, indexes through IPC, and releases its runtime state", async () => {
     const runtimeDir = await createTempPath("astrograph-daemon-runtime-");
     const repoRoot = await createTempPath("astrograph-daemon-repo-");

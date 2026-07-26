@@ -36,6 +36,9 @@ new work complements rather than duplicates existing plans.
 8. [Repository Structure Cleanup Epic](./7_repository-structure-cleanup-epic.md)
    — selected by the user: collate benchmark ownership, remove unsupported
    script surfaces, and simplify repository automation one focused PR at a time.
+9. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
+   — selected by the user: publish a small, snapshot-locked comparison between
+   broad file reading and Astrograph retrieval, with auditable evidence.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

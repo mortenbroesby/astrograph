@@ -44,13 +44,18 @@ turns those focuses into an exclusive execution gate.
 6. [Local Token-Savings Analytics](./active/6_local-token-savings-analytics-delivery-checklist.md)
    - Goal: make exact local token savings inspectable through the existing
      report command without noticeable normal-request overhead.
-  - Architecture: reuse existing event and response-format metadata; no
-    network client, exporter, second event store, token recount, or daemon.
+   - Architecture: reuse existing event and response-format metadata; no
+     network client, exporter, second event store, token recount, or daemon.
 7. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
    - Goal: make benchmark, workflow, and repository automation ownership
      obvious without changing runtime behavior or increasing CI cost.
    - First action: move benchmark/profiling entrypoints under `bench/` while
      preserving all existing package commands and output shapes.
+8. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
+   - Goal: publish one small, auditable comparison between broad file reading
+     and Astrograph retrieval.
+   - Architecture: reuse the existing corpus and Markdown renderer; require a
+     matching snapshot and successful selected workflows before publishing.
 
 ## Ready — detailed, but not selected
 
