@@ -39,6 +39,9 @@ new work complements rather than duplicates existing plans.
 9. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
    — selected by the user: publish a small, snapshot-locked comparison between
    broad file reading and Astrograph retrieval, with auditable evidence.
+10. [VoidZero Toolchain Epic](./8_voidzero-toolchain-epic.md)
+    — migrate package builds to tsdown first; add runtime loaders, aliases, and
+    Oxc only through separate proof-gated stories.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

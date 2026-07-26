@@ -56,6 +56,11 @@ turns those focuses into an exclusive execution gate.
      and Astrograph retrieval.
    - Architecture: reuse the existing corpus and Markdown renderer; require a
      matching snapshot and successful selected workflows before publishing.
+9. [VoidZero Toolchain](./active/8_voidzero-toolchain-epic.md)
+   - Goal: migrate Astrograph's package build to tsdown, with production
+     remaining compiled JavaScript and subsequent tool adoption proof-gated.
+   - First action: replace tsup plus the separate declaration emitter with a
+     package-safe tsdown build.
 
 ## Ready — detailed, but not selected
 

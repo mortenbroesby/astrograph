@@ -128,6 +128,34 @@ async function main(): Promise<void> {
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
+    await writeFile(
+      path.join(installDir, "package-types.ts"),
+      [
+        'import { resolveEnginePaths, type EngineConfig } from "astrograph";',
+        "",
+        "const config: EngineConfig = { repoRoot: process.cwd() };",
+        "resolveEnginePaths(config.repoRoot);",
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      path.join(installDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          target: "ES2022",
+          strict: true,
+          noEmit: true,
+        },
+        include: ["package-types.ts"],
+      }, null, 2),
+    );
+    await run(
+      process.execPath,
+      [path.join(packageRoot, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.json"],
+      installDir,
+    );
     const { stdout } = await run(
       "pnpm",
       [
