@@ -53,6 +53,9 @@ import {
   getGlobalInstallationDiagnostics,
   setupGlobalForCodex,
   setupGlobalForCopilotCli,
+  setupGitRefreshHooks,
+  getSetupReadiness,
+  formatSetupReadiness,
 } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -902,10 +905,8 @@ describe("ai-context-engine contract", () => {
     expect(result.packageName).toBe("astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
     expect(result.engineConfigPath).toContain("astrograph.config.ts");
-    expect(result.engineConfigPreview).toContain(
-      'import { defineConfig } from "astrograph";',
-    );
-    expect(result.engineConfigPreview).toContain("export default defineConfig({");
+    expect(result.engineConfigPreview).toContain("export default {");
+    expect(result.engineConfigPreview).not.toContain('from "astrograph"');
     expect(result.engineConfigPreview).toContain("performance:");
     expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
@@ -1029,7 +1030,7 @@ describe("ai-context-engine contract", () => {
     expect(output).toContain("Preview complete — no files were changed.");
     expect(output).toContain(`Astrograph ${ASTROGRAPH_PACKAGE_VERSION} is connected to Codex.`);
     expect(output).toContain("A local index that stays with this repository");
-    expect(output).toContain("astrograph init --yes");
+    expect(output).toContain("astrograph install --yes");
     expect(output).not.toContain(first.configPreview);
     expect(output).not.toContain(first.engineConfigPreview);
   });
@@ -1412,6 +1413,74 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("search_symbols");
     expect(result.agentsPolicyPreview).toContain("get_task_context");
     expect(result.agentsPolicyPreview).not.toContain("query_code");
+  });
+
+  it("installs idempotent non-blocking Git refresh hooks only when opted in", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-git-hooks-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+
+    const first = await setupGitRefreshHooks(repoRoot);
+    const second = await setupGitRefreshHooks(repoRoot);
+    expect(first).toHaveLength(3);
+    expect(first.map((hook) => hook.hook)).toEqual(["post-commit", "post-checkout", "post-merge"]);
+    expect(first.every((hook) => hook.updated)).toBe(true);
+    expect(second.every((hook) => hook.reason === "already installed")).toBe(true);
+    const checkout = first.find((hook) => hook.hook === "post-checkout");
+    expect(checkout?.preview).toContain('git-refresh checkout "$1" "$2" "$3"');
+    expect(checkout?.preview).toContain("Runs detached");
+  });
+
+  it("does not overwrite Git hooks owned by another tool", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-existing-hook-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    const hookPath = path.join(repoRoot, ".git", "hooks", "post-commit");
+    await writeFile(hookPath, "#!/bin/sh\necho owned-by-another-tool\n");
+
+    const result = await setupGitRefreshHooks(repoRoot);
+    const postCommit = result.find((hook) => hook.hook === "post-commit");
+    expect(postCommit).toMatchObject({ updated: false, reason: "not installed because another tool owns this hook" });
+    await expect(readFile(hookPath, "utf8")).resolves.toContain("owned-by-another-tool");
+  });
+
+  it("includes opted-in Git hook outcomes in the repository setup summary", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-hook-summary-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    const result = await setupForAllIdes(repoRoot, { dryRun: true, gitHooks: true });
+    expect(formatRepositoryInstallation(result, { dryRun: true })).toContain("Git refresh hooks: post-commit (would install non-blocking refresh hook)");
+  });
+
+  it("reports whether the installed harness is wired and ready", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-setup-doctor-"));
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-setup-doctor-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-setup-doctor-config-"));
+    tempDirs.push(repoRoot, homeDir, configHome);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    await setupForAllIdes(repoRoot, { agentsPolicy: true, gitHooks: true });
+    await writeFile(path.join(repoRoot, "astrograph.config.ts"), 'export default { storageLocation: "repo-local" };\n');
+
+    const result = await getSetupReadiness(repoRoot, {
+      environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
+    });
+    expect(result.local.clients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ide: "codex", configured: true }),
+    ]));
+    expect(result.local.agentGuidance.some((entry) => entry.configured)).toBe(true);
+    expect(result.local.gitHooks.every((hook) => hook.status === "managed")).toBe(true);
+    expect(result.index.status).toBe("not-indexed");
+    expect(result.ready).toBe(false);
+    expect(formatSetupReadiness(result)).toContain("Astrograph Setup Doctor");
+    expect(formatSetupReadiness(result)).toContain("create the first index");
   });
 
   it("writes copilot-instructions.md when --agents is used with copilot IDE", async () => {

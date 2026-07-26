@@ -46,6 +46,11 @@ turns those focuses into an exclusive execution gate.
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
+4. [Session-Aware Agent Efficiency Epic](./planned/8_session-aware-agent-efficiency-epic.md)
+   is ready for evidence collection, but no implementation story is selected.
+   It starts with repeat-read traces across representative repository shapes;
+   session state, deltas, dossiers, privacy reporting, and bookmarks remain
+   independently gated by measured benefit and local-first safety boundaries.
 
 ## Parked — revisit only with new evidence
 

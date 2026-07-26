@@ -112,7 +112,42 @@ code so it can retrieve less and understand more.
 <a id="quick-start"></a>
 ## 🚀 Quick Start
 
-### 1) Install
+### 1) Choose your setup
+
+For the most guided experience, run this from the repository you want to use:
+
+```bash
+npx astrograph install
+```
+
+Astrograph clearly explains the choice before writing anything:
+
+- **This repository** adds project-owned MCP configuration, an optional local
+  dependency, and a repository-local index.
+- **Every repository on this device** asks before globally installing the
+  command and adding one user-level Codex or Copilot CLI registration. Each
+  repository still receives its own private cache.
+
+The repository route can also opt into two independent integrations:
+
+- **Agent guidance** adds an Astrograph-managed instruction block to `AGENTS.md`
+  or `.github/copilot-instructions.md`.
+- **Git refresh hooks** add detached `post-commit`, `post-checkout`, and
+  `post-merge` refreshes. Astrograph never overwrites a hook owned by another
+  tool, and the hooks do not block Git operations.
+
+Verify the harness before trusting it:
+
+```bash
+npx astrograph doctor
+```
+
+Doctor checks the configured local and global MCP clients, managed agent
+guidance, opted-in Git refresh hooks, and the current repository’s index
+health. It reports only what it can verify and gives the next command when a
+piece is missing. Add `--json` for automation.
+
+### 2) Configure a repository directly
 
 Use dependency-based setup if you want `astrograph` available in repository
 scripts:
@@ -126,7 +161,7 @@ npm install -D astrograph
 Run the installer from the repository you want to index:
 
 ```bash
-npx astrograph init
+npx astrograph install
 ```
 
 This shows a short setup progress indicator, then explains the selected
@@ -138,23 +173,29 @@ installed locally.
 If you want non-interactive setup:
 
 ```bash
-npx astrograph init --yes --repo /absolute/path/to/repo
+npx astrograph install --yes --repo /absolute/path/to/repo
+```
+
+For unattended repository setup with both optional integrations:
+
+```bash
+npx astrograph install --yes --agents --git-hooks
 ```
 
 Choose a specific target when needed:
 
 ```bash
-npx astrograph init --ide codex
-npx astrograph init --ide copilot
-npx astrograph init --ide copilot-cli
-npx astrograph init --ide all
+npx astrograph install --ide codex
+npx astrograph install --ide copilot
+npx astrograph install --ide copilot-cli
+npx astrograph install --ide all
 ```
 
 For scripts that need the complete generated configuration instead of the
 human-readable summary, opt into JSON explicitly:
 
 ```bash
-npx astrograph init --yes --json
+npx astrograph install --yes --json
 ```
 
 For a fresh repository, create the initial index before first use:
@@ -178,8 +219,10 @@ combines source or mutable index data from separate repositories.
 
 ### 1) Install the command
 
-Global setup requires Node.js `>=22.12.0`. Install or update Astrograph, then
-open a new shell if your npm global bin directory was not already on `PATH`:
+Global setup requires Node.js `>=22.12.0`. The guided command above can install
+the global executable after showing a confirmation. To use the explicit,
+script-friendly route, install or update Astrograph, then open a new shell if
+your npm global bin directory was not already on `PATH`:
 
 ```bash
 npm install --global astrograph@latest
@@ -244,7 +287,7 @@ astrograph install --global --ide copilot-cli --dry-run --json
 
 Open Codex or Copilot CLI in any repository. The global registration finds the current
 repository and uses its own isolated directory beneath the global cache root.
-You do **not** run `astrograph init`, create `astrograph.config.*`, choose a
+You do **not** run `astrograph install`, create `astrograph.config.*`, choose a
 cache directory, or add `.codex` or `.mcp.json` files in that repository.
 
 Create the first index from Codex with `index_folder`, or run this command from
@@ -261,7 +304,7 @@ automatically uses the repository you opened and its isolated global cache.
 ### 4) Repository-local setup is an explicit alternative
 
 Global setup makes global storage the user default. Use repository-local
-`init` only when you intentionally want workspace-owned MCP configuration or
+`install` only when you intentionally want workspace-owned MCP configuration or
 storage. A repository can opt out with `storageLocation: "repo-local"` in
 `astrograph.config.ts` or `astrograph.config.json`; an explicit CLI flag wins
 for one command:
@@ -279,26 +322,26 @@ Copilot CLI.
 Codex writes `.codex/config.toml`:
 
 ```bash
-npx astrograph init --yes --ide codex --repo /absolute/path/to/repo
+npx astrograph install --yes --ide codex --repo /absolute/path/to/repo
 ```
 
 GitHub Copilot writes `.vscode/mcp.json`:
 
 ```bash
-npx astrograph init --yes --ide copilot --repo /absolute/path/to/repo
+npx astrograph install --yes --ide copilot --repo /absolute/path/to/repo
 ```
 
 GitHub Copilot CLI writes `.mcp.json`:
 
 ```bash
-npx astrograph init --yes --ide copilot-cli --repo /absolute/path/to/repo
+npx astrograph install --yes --ide copilot-cli --repo /absolute/path/to/repo
 ```
 
 To configure multiple clients in one pass:
 
 ```bash
-npx astrograph init --yes --ide all --repo /absolute/path/to/repo
-npx astrograph init --yes --ide codex,copilot --repo /absolute/path/to/repo
+npx astrograph install --yes --ide all --repo /absolute/path/to/repo
+npx astrograph install --yes --ide codex,copilot --repo /absolute/path/to/repo
 ```
 
 ## Global Cache

@@ -72,7 +72,7 @@ async function main(): Promise<void> {
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
     await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
-    // `init` writes an ESM config that imports `astrograph`. Model the
+    // `install` writes an ESM config that imports `astrograph`. Model the
     // supported repository setup: the configured project owns the package,
     // rather than relying on a sibling CLI-only install.
     await writeFile(
@@ -172,7 +172,7 @@ async function main(): Promise<void> {
       [
         "exec",
         "astrograph",
-        "init",
+        "install",
         "--yes",
         "--agents",
         "--json",
@@ -184,19 +184,31 @@ async function main(): Promise<void> {
 
     const installed = JSON.parse(installResult.stdout);
     if (!String(installed.configPreview).includes("[mcp_servers.astrograph]")) {
-      throw new Error(`Expected astrograph init to write a Codex MCP block: ${installResult.stdout}`);
+      throw new Error(`Expected astrograph install to write a Codex MCP block: ${installResult.stdout}`);
     }
     if (!String(installed.engineConfigPath).endsWith("astrograph.config.ts")) {
-      throw new Error(`Expected astrograph init to report astrograph.config.ts: ${installResult.stdout}`);
+      throw new Error(`Expected astrograph install to report astrograph.config.ts: ${installResult.stdout}`);
     }
     if (installed.mode !== undefined || installed.ide !== "codex") {
-      throw new Error(`Expected astrograph init defaults to use codex without a profile mode: ${installResult.stdout}`);
+      throw new Error(`Expected astrograph install defaults to use codex without a profile mode: ${installResult.stdout}`);
     }
     if (!String(installed.agentsPolicyPath).endsWith("AGENTS.md")) {
-      throw new Error(`Expected astrograph init to report AGENTS.md policy path: ${installResult.stdout}`);
+      throw new Error(`Expected astrograph install to report AGENTS.md policy path: ${installResult.stdout}`);
     }
     if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
-      throw new Error(`Expected astrograph init --agents to write code exploration policy: ${installResult.stdout}`);
+      throw new Error(`Expected astrograph install --agents to write code exploration policy: ${installResult.stdout}`);
+    }
+
+    const { stdout: doctorOutput } = await run(
+      "pnpm",
+      ["exec", "astrograph", "doctor", "--repo", fixtureRepo, "--json"],
+      installDir,
+    );
+    const doctor = JSON.parse(doctorOutput) as {
+      local?: { clients?: Array<{ ide?: string; configured?: boolean }> };
+    };
+    if (!doctor.local?.clients?.some((client) => client.ide === "codex" && client.configured)) {
+      throw new Error(`Expected astrograph doctor to verify the Codex setup: ${doctorOutput}`);
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);

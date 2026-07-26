@@ -24,6 +24,9 @@ new work complements rather than duplicates existing plans.
 4. [Git Ref Watch Reconciliation Delivery Checklist](./3_git-ref-watch-reconciliation-delivery-checklist.md)
    — selected by the user: reconcile active watch sessions after a Git checkout
    identity changes, without adding a daemon or another cache.
+5. [Guided Install and Refresh Hooks](./3_guided-install-and-refresh-hooks.md)
+   — selected by the user: unify local/global onboarding, add opt-in
+   integrations, and verify harness readiness.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the
