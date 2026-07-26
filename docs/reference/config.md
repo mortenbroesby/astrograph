@@ -1,14 +1,16 @@
 # Config Reference
 
-Astrograph reads optional repository defaults from `astrograph.config.json`.
+Astrograph reads optional repository defaults from `astrograph.config.ts`.
 
 Use config when you want to tune retrieval behavior, indexing scope,
 observability, watch behavior, or safety limits for one repository.
 
 ## File Shape
 
-```json
-{
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
   summaryStrategy: "doc-comments-first",
   storageMode: "wal",
   storageLocation: "repo-local",
@@ -43,17 +45,16 @@ observability, watch behavior, or safety limits for one repository.
     maxChildProcessOutputBytes: 1000000,
     maxLiveSearchMatches: 100,
   },
-}
+});
 ```
 
-Configuration is JSON so production commands never execute repository TypeScript.
+`defineConfig()` provides autocomplete and type checking. Repository configuration
+is executable local code, like other TypeScript tool configuration files.
 
-## Migrating from TypeScript Config
+## JSON Fallback
 
-`astrograph.config.ts` is no longer loaded. Astrograph stops with a migration
-error instead of silently ignoring it. Rename it to `astrograph.config.json`
-and convert its exported object to JSON; comments, imports, and executable
-expressions must be removed.
+`astrograph.config.json` remains a fallback only when no TypeScript config is
+present. New projects should use the typed TypeScript file.
 
 ## Top-Level Options
 
@@ -190,35 +191,41 @@ Available fields:
 
 ### Narrow indexing to source files
 
-```json
-{
-  performance: {
-    include: ["src/**/*.{ts,tsx,js,jsx}"],
-    exclude: ["**/*.test.ts"],
-  },
-}
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  "performance": {
+    "include": ["src/**/*.{ts,tsx,js,jsx}"],
+    "exclude": ["**/*.test.ts"]
+  }
+});
 ```
 
 ### Force polling watch mode
 
-```json
-{
-  watch: {
-    backend: "polling",
-    debounceMs: 150,
-  },
-}
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  "watch": {
+    "backend": "polling",
+    "debounceMs": 150
+  }
+});
 ```
 
 ### Keep observability privacy-safe
 
-```json
-{
-  observability: {
-    retentionDays: 3,
-    redactSourceText: true,
-  },
-}
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  "observability": {
+    "retentionDays": 3,
+    "redactSourceText": true
+  }
+});
 ```
 
 ## Where To Go Next

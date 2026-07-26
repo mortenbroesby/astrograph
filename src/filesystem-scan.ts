@@ -3,7 +3,7 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { fdir } from "fdir";
 
-import { createDefaultEngineConfig, ENGINE_CONFIG_FILENAME } from "./config.ts";
+import { createDefaultEngineConfig, ENGINE_CONFIG_FILENAME, ENGINE_LEGACY_CONFIG_FILENAME } from "./config.ts";
 import { hashString } from "./hash.ts";
 import { supportedLanguageForFile } from "./language-registry.ts";
 import { createPathMatcher, normalizeRepoRelativePath } from "./path-matcher.ts";
@@ -157,7 +157,7 @@ export async function discoverSourceFiles(options: {
       if (relativePath.startsWith("../") || relativePath === "..") {
         return null;
       }
-      if (relativePath === ENGINE_CONFIG_FILENAME) {
+      if (relativePath === ENGINE_CONFIG_FILENAME || relativePath === ENGINE_LEGACY_CONFIG_FILENAME) {
         return null;
       }
 

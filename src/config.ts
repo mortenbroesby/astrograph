@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { createJiti } from "jiti";
 import { z } from "zod";
 
 import { probeGitCheckout } from "./git-checkout.ts";
@@ -33,7 +34,8 @@ import {
 export const ENGINE_STORAGE_DIRNAME = ".astrograph";
 export const ENGINE_STORAGE_VERSION = 1;
 export const ENGINE_SCHEMA_VERSION = 7;
-export const ENGINE_CONFIG_FILENAME = "astrograph.config.json";
+export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
+export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";
 export const ENGINE_DISPLAY_NAME = "astrograph";
 export const DEFAULT_SUMMARY_STRATEGY: SummaryStrategy = "doc-comments-first";
 export const DEFAULT_OBSERVABILITY_RETENTION_DAYS = 3;
@@ -43,12 +45,11 @@ export const DEFAULT_MAX_FILE_BYTES = 250_000;
 export const DEFAULT_MAX_SYMBOLS_PER_FILE = 2_000;
 // Keep broad symbol discovery small enough for agents to refine before reading
 // a large payload. Callers can still request a lower limit and repositories can
-// set a stricter cap in astrograph.config.json.
+// set a stricter cap in astrograph.config.ts.
 export const DEFAULT_MAX_SYMBOL_RESULTS = 8;
 export const DEFAULT_MAX_TEXT_RESULTS = 100;
 export const DEFAULT_MAX_CHILD_PROCESS_OUTPUT_BYTES = 1_000_000;
 export const DEFAULT_MAX_LIVE_SEARCH_MATCHES = 100;
-const LEGACY_ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
 export const DEFAULT_RANKING_WEIGHTS: RankingWeights = {
   exactName: 1000,
   exactQualifiedName: 900,
@@ -470,6 +471,7 @@ export async function loadRepoEngineConfig(
     options.environment,
   );
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
+  const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
   const contents = await readFile(configPath, "utf8")
     .catch((error: unknown) => {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
@@ -479,26 +481,35 @@ export async function loadRepoEngineConfig(
   });
 
   if (contents === null) {
-    const legacyConfigPath = path.join(resolvedRepoRoot, LEGACY_ENGINE_CONFIG_FILENAME);
     const legacyContents = await readFile(legacyConfigPath, "utf8")
       .catch((error: unknown) => {
         if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
         throw error;
       });
-    if (legacyContents !== null) {
-      throw new Error(`${LEGACY_ENGINE_CONFIG_FILENAME} is no longer supported. Rename it to ${ENGINE_CONFIG_FILENAME} and use JSON configuration.`);
+    if (legacyContents === null) {
+      return applyExplicitStorageLocation(defaults, options.environment);
     }
-    return applyExplicitStorageLocation(defaults, options.environment);
-  }
-
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(contents);
-  } catch (error) {
-    throw new Error(
-      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(legacyContents);
+    } catch (error) {
+      throw new Error(
+        `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    const parsed = repoEngineConfigSchema.safeParse(parsedJson);
+    if (!parsed.success) {
+      throw new Error(
+        `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      );
+    }
+    return applyExplicitStorageLocation(
+      resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults),
+      options.environment,
     );
   }
+
+  const parsedJson = await loadTsConfig(configPath);
 
   const parsed = repoEngineConfigSchema.safeParse(parsedJson);
   if (!parsed.success) {
@@ -511,6 +522,21 @@ export async function loadRepoEngineConfig(
     resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
     options.environment,
   );
+}
+
+export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
+  return config;
+}
+
+async function loadTsConfig(configPath: string): Promise<unknown> {
+  try {
+    const jiti = createJiti(import.meta.url, { fsCache: false, moduleCache: false });
+    return await jiti.import(configPath, { default: true });
+  } catch (error) {
+    throw new Error(
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 function applyExplicitStorageLocation(

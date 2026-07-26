@@ -51,16 +51,19 @@ dependency or standalone declaration-emission command.
   production/package paths; benchmarks, test runner, and explicit `dev:*`
   commands are developer-only.
 - [x] Move production and packaged paths to compiled `dist/` JavaScript,
-  including release and version-check scripts. Repository configuration is now
-  JSON-only, so no production command executes TypeScript.
+  including release and version-check scripts. Repository configuration remains
+  typed `astrograph.config.ts`, loaded through the stable, config-specific
+  `jiti` runtime loader; JSON remains a fallback for existing repositories.
 - [x] Use `node --import=tsx` only for developer-only source execution that
   cannot use a built artifact; `tsx` is a development dependency only.
 - [x] Delete every `--experimental-strip-types` command and prove source,
   built, packed, and MCP paths separately with focused runtime, engine-contract,
   and package smoke checks.
 
-**Acceptance:** no supported production/package command executes TypeScript;
-developer source execution uses a supported runtime loader where needed.
+**Acceptance:** supported production/package commands run compiled JavaScript;
+the explicit repository-config boundary may load `astrograph.config.ts` through
+the stable, config-specific `jiti` runtime loader. Developer source execution
+uses a supported runtime loader where needed.
 
 ## Story 3: Establish Internal Module Aliases
 
@@ -94,10 +97,11 @@ second linter or formatter by default.
 - [x] Keep the source-checkout pre-push version gate runnable before a build by
   using the developer-only `tsx` loader; published CLI and MCP entrypoints plus
   the release agent remain compiled `dist/` JavaScript.
-- [x] Exclude `astrograph.config.json` from indexing and update CLI fixture
-  expectations to reflect that product behavior.
-- [x] Reject a retired `astrograph.config.ts` with explicit JSON migration
-  guidance instead of silently applying defaults.
+- [x] Exclude both `astrograph.config.ts` and the JSON fallback from indexing,
+  and update CLI fixture expectations to reflect that product behavior.
+- [x] Keep `astrograph.config.ts` as the typed primary configuration contract.
+  `astrograph install` creates a typed starting point with `defineConfig`; JSON
+  remains a quiet fallback when no TypeScript configuration exists.
 - [x] Record the full test suite as the local merge gate. Do not add it to the
   required GitHub-hosted job without explicit Actions-cost approval; the
   existing required job remains intentionally fast.

@@ -136,10 +136,11 @@ async function main(): Promise<void> {
     await writeFile(
       path.join(installDir, "package-types.ts"),
       [
-        'import { resolveEnginePaths, type EngineConfig } from "astrograph";',
+        'import { defineConfig, resolveEnginePaths, type EngineConfig } from "astrograph";',
         "",
         "declare const config: EngineConfig;",
         "resolveEnginePaths(config.repoRoot);",
+        'defineConfig({ storageLocation: "global" });',
         "",
       ].join("\n"),
     );
@@ -219,8 +220,8 @@ async function main(): Promise<void> {
     if (!String(installed.configPreview).includes("[mcp_servers.astrograph]")) {
       throw new Error(`Expected astrograph install to write a Codex MCP block: ${installResult.stdout}`);
     }
-    if (!String(installed.engineConfigPath).endsWith("astrograph.config.json")) {
-      throw new Error(`Expected astrograph install to report astrograph.config.json: ${installResult.stdout}`);
+    if (!String(installed.engineConfigPath).endsWith("astrograph.config.ts")) {
+      throw new Error(`Expected astrograph install to report astrograph.config.ts: ${installResult.stdout}`);
     }
     if (installed.mode !== undefined || installed.ide !== "codex") {
       throw new Error(`Expected astrograph install defaults to use codex without a profile mode: ${installResult.stdout}`);
@@ -245,6 +246,22 @@ async function main(): Promise<void> {
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);
+    const { stdout: typedConfigOutput } = await run(
+      "pnpm",
+      [
+        "exec",
+        "astrograph",
+        "cli",
+        "index-folder",
+        "--repo",
+        fixtureRepo,
+      ],
+      installDir,
+    );
+    const typedConfigSummary = JSON.parse(typedConfigOutput);
+    if (typedConfigSummary.staleStatus !== "fresh") {
+      throw new Error(`Unexpected typed-config package result: ${typedConfigOutput}`);
+    }
 
     const globalInstall = await run(
       "pnpm",

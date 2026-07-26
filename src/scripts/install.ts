@@ -333,7 +333,7 @@ function usage(): void {
       "Defaults:",
       "  - repo: current git worktree, or current directory",
       "  - IDE: Codex",
-      "  - writes: astrograph.config.json and managed MCP config",
+      "  - writes: astrograph.config.ts and managed MCP config",
       "  - optional: --agents adds a tailored agent instruction file for each IDE:",
       "      codex       → AGENTS.md",
       "      copilot     → .github/copilot-instructions.md",
@@ -878,12 +878,17 @@ function resolveManagedInvocation(): ManagedInvocation {
   };
 }
 
-function createMinimalJsonConfig(): string {
-  return `${JSON.stringify({
-    performance: {
-      exclude: ["node_modules/**", "dist/**", "coverage/**", ".git/**"],
-    },
-  }, null, 2)}\n`;
+function createMinimalTsConfig(): string {
+  return [
+    'import { defineConfig } from "astrograph";',
+    "",
+    "export default defineConfig({",
+    "  performance: {",
+    '    exclude: ["node_modules/**", "dist/**", "coverage/**", ".git/**"],',
+    "  },",
+    "});",
+    "",
+  ].join("\n");
 }
 
 function astrographConfigBlock(): string {
@@ -1506,8 +1511,8 @@ export async function setupForIde(
 ): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
   const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "");
-  const engineConfigPath = path.join(resolvedRepoRoot, "astrograph.config.json");
-  const engineConfigPreview = createMinimalJsonConfig();
+  const engineConfigPath = path.join(resolvedRepoRoot, "astrograph.config.ts");
+  const engineConfigPreview = createMinimalTsConfig();
   const currentContents = await readFile(configPath, "utf8").catch(() => "");
   const { configPath: finalConfigPath, nextContents } = resolveManagedConfig(
     ide,

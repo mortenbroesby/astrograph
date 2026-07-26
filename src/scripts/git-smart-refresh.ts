@@ -18,6 +18,7 @@ const SUPPORTED_EXTENSIONS = new Set([
 const STRUCTURAL_FILES = new Set([
   "package.json",
   "pnpm-lock.yaml",
+  "astrograph.config.ts",
   "astrograph.config.json",
 ]);
 const MAX_INCREMENTAL_FILES = 12;

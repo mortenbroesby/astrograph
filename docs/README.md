@@ -48,7 +48,7 @@ If you are new to Astrograph, read these in order:
 - [CLI Reference](./reference/cli.md)
   Command groups, common examples, config shape, and development commands.
 - [Config Reference](./reference/config.md)
-  The repo-level `astrograph.config.json` surface and the knobs that matter.
+  The repo-level `astrograph.config.ts` surface and the knobs that matter.
 - [Language Support](./reference/language-support.md)
   Exact parser-backed languages, tiers, extensions, and evidence-based exclusions.
 - [Release Reference](./reference/release.md)

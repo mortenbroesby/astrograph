@@ -280,44 +280,46 @@ refuses to replace a hook owned by another tool.
 
 ## Configuration
 
-Astrograph reads optional defaults from `astrograph.config.json`.
+Astrograph reads optional defaults from `astrograph.config.ts`.
 
-```json
-{
-  summaryStrategy: "doc-comments-first",
-  storageMode: "wal",
-  observability: {
-    retentionDays: 3,
-    redactSourceText: true,
+```ts
+import { defineConfig } from "astrograph";
+
+export default defineConfig({
+  "summaryStrategy": "doc-comments-first",
+  "storageMode": "wal",
+  "observability": {
+    "retentionDays": 3,
+    "redactSourceText": true
   },
-  ranking: {
-    exactName: 1000,
-    filePathContains: 120,
-    exportedBonus: 20,
+  "ranking": {
+    "exactName": 1000,
+    "filePathContains": 120,
+    "exportedBonus": 20
   },
-  performance: {
-    include: ["src/**/*.{ts,tsx,js,jsx}"],
-    exclude: ["**/*.test.ts"],
-    fileProcessingConcurrency: "auto",
-    workerPool: {
-      enabled: false,
-      maxWorkers: "auto",
-    },
+  "performance": {
+    "include": ["src/**/*.{ts,tsx,js,jsx}"],
+    "exclude": ["**/*.test.ts"],
+    "fileProcessingConcurrency": "auto",
+    "workerPool": {
+      "enabled": false,
+      "maxWorkers": "auto"
+    }
   },
-  watch: {
-    backend: "auto",
-    debounceMs: 100,
+  "watch": {
+    "backend": "auto",
+    "debounceMs": 100
   },
-  limits: {
-    maxFilesDiscovered: 100000,
-    maxFileBytes: 250000,
-    maxSymbolsPerFile: 2000,
-    maxSymbolResults: 8,
-    maxTextResults: 100,
-    maxChildProcessOutputBytes: 1000000,
-    maxLiveSearchMatches: 100,
-  },
-}
+  "limits": {
+    "maxFilesDiscovered": 100000,
+    "maxFileBytes": 250000,
+    "maxSymbolsPerFile": 2000,
+    "maxSymbolResults": 8,
+    "maxTextResults": 100,
+    "maxChildProcessOutputBytes": 1000000,
+    "maxLiveSearchMatches": 100
+  }
+});
 ```
 
 ## Development Commands

@@ -48,7 +48,6 @@ import {
   setupForAllIdes,
   setupForCodex,
   setupForIde,
-  DEFAULT_GUIDED_INSTALL_SCOPE,
   formatGlobalInstallation,
   formatRepositoryInstallation,
   getGlobalInstallationDiagnostics,
@@ -74,10 +73,6 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
-  it("recommends global setup in the guided installer", () => {
-    expect(DEFAULT_GUIDED_INSTALL_SCOPE).toBe("global");
-  });
-
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
 
@@ -597,11 +592,28 @@ describe("ai-context-engine contract", () => {
     );
   });
 
-  it("requires explicit migration from the retired TypeScript repo config", async () => {
+  it("loads a typed TypeScript repo config", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-legacy-config-"));
     tempDirs.push(repoRoot);
-    await writeFile(path.join(repoRoot, "astrograph.config.ts"), "export default { storageLocation: 'global' };\n");
-    await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(/astrograph\.config\.ts is no longer supported.*astrograph\.config\.json/i);
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.ts"),
+      'export default { storageLocation: "global" };\n',
+    );
+
+    await expect(loadRepoEngineConfig(repoRoot)).resolves.toMatchObject({
+      configPath: expect.stringMatching(/astrograph\.config\.ts$/),
+      storageLocation: "global",
+    });
+  });
+
+  it("fails clearly for an invalid TypeScript repo config", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-config-"));
+    tempDirs.push(repoRoot);
+    await writeFile(path.join(repoRoot, "astrograph.config.ts"), "export default {\n");
+
+    await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
+      /Invalid astrograph\.config\.ts/i,
+    );
   });
 
   it("loads a repository global storage selection and rejects an invalid value", async () => {
@@ -852,9 +864,9 @@ describe("ai-context-engine contract", () => {
 
     expect(result.packageName).toBe("astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
-    expect(result.engineConfigPath).toContain("astrograph.config.json");
-    expect(result.engineConfigPreview).not.toContain('from "astrograph"');
-    expect(result.engineConfigPreview).toContain('"performance"');
+    expect(result.engineConfigPath).toContain("astrograph.config.ts");
+    expect(result.engineConfigPreview).toContain('from "astrograph"');
+    expect(result.engineConfigPreview).toContain("performance:");
     expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
@@ -1320,7 +1332,7 @@ describe("ai-context-engine contract", () => {
 
     expect(result.ide).toBe("codex");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
-    expect(result.engineConfigPath).toContain("astrograph.config.json");
+    expect(result.engineConfigPath).toContain("astrograph.config.ts");
     expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("index_folder");
     expect(result.agentsPolicyPath).toContain("AGENTS.md");
