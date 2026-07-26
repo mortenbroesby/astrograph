@@ -55,6 +55,9 @@ async function run(
 }
 
 async function main(): Promise<void> {
+  const packageManifest = JSON.parse(
+    await readFile(path.join(packageRoot, "package.json"), "utf8"),
+  ) as { packageManager?: string };
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-pack-"));
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
@@ -85,6 +88,7 @@ async function main(): Promise<void> {
       JSON.stringify({
         name: "astrograph-package-smoke",
         private: true,
+        packageManager: packageManifest.packageManager,
       }, null, 2),
     );
 
@@ -311,6 +315,9 @@ async function main(): Promise<void> {
       COPILOT_HOME: globalCopilotHome,
       ASTROGRAPH_CACHE_HOME: globalCacheHome,
     };
+    const expectedGlobalCacheRoot = process.platform === "darwin"
+      ? path.join(globalHome, ".astrograph", "cache")
+      : path.join(globalCacheHome, "astrograph");
     const { stdout: diagnosticsOutput } = await run(
       "pnpm",
       ["exec", "astrograph", "--diagnostics"],
@@ -329,7 +336,7 @@ async function main(): Promise<void> {
       || typeof diagnostics.package.version !== "string"
       || diagnostics.runtime?.supported !== true
       || diagnostics.storage?.location !== "global"
-      || diagnostics.storage.cacheRoot !== path.join(globalCacheHome, "astrograph")
+      || diagnostics.storage.cacheRoot !== expectedGlobalCacheRoot
       || !diagnostics.clients?.some((client) => client.ide === "codex" && client.configured)
       || !diagnostics.clients?.some((client) => client.ide === "copilot-cli" && client.configured)
       || typeof diagnostics.nextStep !== "string"
