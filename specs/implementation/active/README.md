@@ -39,6 +39,9 @@ new work complements rather than duplicates existing plans.
 9. [Session Exact-Reference Delta Delivery Checklist](./session-exact-reference-delta-delivery-checklist.md)
    — selected by the user: prove exact reference reuse before considering a
    general patch representation.
+10. [Session-Aware Agent Efficiency Epic Completion Checklist](./session-aware-epic-completion-delivery-checklist.md)
+    — selected by the user: deliver the remaining Stories 3–7 in one PR while
+    retaining each story's safety and measurement gates.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

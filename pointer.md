@@ -44,6 +44,9 @@ use its recorded evidence or selection gate instead.
 - [Session Exact-Reference Delta Delivery
   Checklist](./specs/implementation/active/session-exact-reference-delta-delivery-checklist.md)
   — prove exact reference reuse with full fallback before considering patches.
+- [Session-Aware Agent Efficiency Epic Completion
+  Checklist](./specs/implementation/active/session-aware-epic-completion-delivery-checklist.md)
+  — complete the remaining Stories 3–7 in one bounded, local-first PR.
 
 ## Keeping this useful
 

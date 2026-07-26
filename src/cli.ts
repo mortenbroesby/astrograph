@@ -30,6 +30,7 @@ const BOOLEAN_FLAGS = new Set([
   "json",
   "yes",
   "dry-run",
+  "reset",
   "all",
 ]);
 
@@ -107,6 +108,29 @@ const commands: Record<string, CliHandler> = {
       repoRoot: required(args, "repo"),
       scanFreshness: args["scan-freshness"] === "true",
     }),
+  "efficiency-report": async (args) => {
+    const repoRoot = required(args, "repo");
+    if (args.reset === "true") {
+      if (args.yes !== "true") throw new Error("efficiency-report --reset requires --yes.");
+      return engine.resetEfficiencyReport(repoRoot);
+    }
+    return engine.getEfficiencyReport(repoRoot);
+  },
+  "bookmark-add": async (args) => engine.createBookmark({
+    repoRoot: required(args, "repo"),
+    symbolId: required(args, "symbol"),
+    intent: required(args, "intent"),
+    note: optional(args, "note"),
+  }),
+  "bookmark-list": async (args) => engine.listBookmarks(required(args, "repo")),
+  "bookmark-remove": async (args) => engine.deleteBookmark({
+    repoRoot: required(args, "repo"),
+    id: required(args, "id"),
+  }),
+  "bookmark-resolve": async (args) => engine.resolveBookmark({
+    repoRoot: required(args, "repo"),
+    id: required(args, "id"),
+  }),
   doctor: async (args) => {
     const result = await COMMAND_REGISTRY.doctor.execute(engine, {
       repoRoot: required(args, "repo"),

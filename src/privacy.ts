@@ -27,3 +27,22 @@ export function containsSecretLikeText(value: string): boolean {
     return pattern.test(value);
   });
 }
+
+export function redactSecretLikeValue(value: unknown): { value: unknown; redacted: boolean } {
+  if (typeof value === "string") {
+    const redacted = redactSecretLikeString(value);
+    return { value: redacted, redacted: redacted !== value };
+  }
+  if (Array.isArray(value)) {
+    const entries = value.map(redactSecretLikeValue);
+    return { value: entries.map((entry) => entry.value), redacted: entries.some((entry) => entry.redacted) };
+  }
+  if (value && typeof value === "object") {
+    const entries = Object.entries(value).map(([key, entry]) => [key, redactSecretLikeValue(entry)] as const);
+    return {
+      value: Object.fromEntries(entries.map(([key, entry]) => [key, entry.value])),
+      redacted: entries.some(([, entry]) => entry.redacted),
+    };
+  }
+  return { value, redacted: false };
+}
