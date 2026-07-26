@@ -21,6 +21,9 @@ new work complements rather than duplicates existing plans.
 3. [Comforting Install Experience](./2_comforting-global-install-experience.md)
    — make package installation plus global and repository-local client setup
    understandable without hidden configuration writes.
+4. [Git Ref Watch Reconciliation Delivery Checklist](./3_git-ref-watch-reconciliation-delivery-checklist.md)
+   — selected by the user: reconcile active watch sessions after a Git checkout
+   identity changes, without adding a daemon or another cache.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

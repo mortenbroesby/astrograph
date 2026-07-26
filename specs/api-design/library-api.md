@@ -11,7 +11,10 @@ The TypeScript API exports Astrograph's core operations for direct Node use.
 
 ## Current Major Areas
 
-- Indexing and refresh: `indexFolder`, `indexFile`, `watchFolder`
+- Indexing and refresh: `indexFolder`, `indexFile`, `watchFolder`. An active
+  `watchFolder` session also checks Git checkout identity every 30 seconds and
+  queues the existing folder reconciliation when HEAD, branch, or checkout mode
+  changes; it is process-lifetime only and never starts a daemon.
 - Discovery and retrieval: `findFiles`, `searchText`, `searchSymbols`, `queryCode`
 - Exact source and context: `getSymbolSource`, `getFileContent`, `getTaskContext`
 - Health and operations: `diagnostics`, `doctor`, `getProjectStatus`

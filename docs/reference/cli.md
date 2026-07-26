@@ -223,6 +223,11 @@ before trusting retrieval. The formatted doctor report prints the same guidance.
 
 ## Git Refresh
 
+An active `astrograph cli watch` session also polls its local Git checkout every
+30 seconds. A changed HEAD, branch, or checkout mode queues a normal folder
+reconciliation behind pending file changes. This monitor lives only for that
+watch process; it does not create a background service.
+
 `astrograph git-refresh` computes refresh actions for common repository events:
 
 ```bash
