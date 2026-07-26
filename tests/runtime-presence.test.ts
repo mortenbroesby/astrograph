@@ -65,6 +65,7 @@ describe("runtime presence", () => {
       staleRecordCount: 1,
       invalidRecordCount: 1,
       warning: null,
+      daemon: { status: "unavailable", version: null, warning: null },
     });
     await expect(readFile(path.join(runtimeDir, "123.json"), "utf8")).rejects.toMatchObject({ code: "ENOENT" });
     await expect(readFile(path.join(runtimeDir, "456.json"), "utf8")).rejects.toMatchObject({ code: "ENOENT" });
@@ -83,5 +84,6 @@ describe("runtime presence", () => {
     expect(summary.staleRecordCount).toBe(0);
     expect(summary.invalidRecordCount).toBe(0);
     expect(summary.warning).toContain("6 live Astrograph MCP processes");
+    expect(summary.daemon.status).toBe("unavailable");
   });
 });
