@@ -60,16 +60,20 @@ Request a report explicitly when you want to inspect retained local MCP
 completion aggregates:
 
 ```bash
+astrograph efficiency-report
 astrograph efficiency-report --repo /abs/repo
 astrograph efficiency-report --repo /abs/repo --reset --yes
 ```
 
-The JSON report groups local MCP calls into latency bands and reports token
-budget totals plus full/reference counts. It excludes source, file paths, raw
-queries, and session IDs. It reads the existing repository-local observability
-log; it does not upload data or create a dashboard. Retention follows
-`observability.retentionDays` (three days by default); reset is explicit and
-only clears that repository's local event log.
+The JSON report groups local MCP calls into latency bands and reports exact
+formatted-response tokens/savings when the existing serving path already knows
+them, plus full/reference counts. It excludes source, file paths, raw queries,
+and session IDs. Without `--repo`, repository-local storage reports the current
+repository and global storage aggregates existing Astrograph repository stores;
+`--repo` always narrows the report to one repository. It does not upload data
+or create a dashboard. Retention follows `observability.retentionDays` (three
+days by default); reset is explicit and only clears the named repository's
+local event log.
 
 ## Explicit Bookmarks
 

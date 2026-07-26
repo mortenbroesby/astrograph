@@ -109,12 +109,20 @@ const commands: Record<string, CliHandler> = {
       scanFreshness: args["scan-freshness"] === "true",
     }),
   "efficiency-report": async (args) => {
-    const repoRoot = required(args, "repo");
+    const repoRoot = optional(args, "repo");
     if (args.reset === "true") {
+      if (!repoRoot) throw new Error("efficiency-report --reset requires --repo and --yes.");
       if (args.yes !== "true") throw new Error("efficiency-report --reset requires --yes.");
       return engine.resetEfficiencyReport(repoRoot);
     }
-    return engine.getEfficiencyReport(repoRoot);
+    if (repoRoot) return engine.getEfficiencyReport(repoRoot);
+    try {
+      const config = await engine.loadRepoEngineConfig(process.cwd());
+      if (config.storageLocation === "repo-local") return engine.getEfficiencyReport(config.repoRoot);
+    } catch {
+      // Outside a repository, global storage is the only meaningful default.
+    }
+    return engine.getGlobalEfficiencyReport();
   },
   "bookmark-add": async (args) => engine.createBookmark({
     repoRoot: required(args, "repo"),

@@ -28,31 +28,36 @@ Vitest, and the current compact-output benchmark.
 **Files:** `src/event-sink.ts`, `src/mcp.ts`, `src/efficiency-report.ts`,
 `tests/efficiency-report.test.ts`, `docs/guides/performance.md`
 
-- [ ] Run the current report against repo-local and global-storage fixtures;
+- [x] Run the current report against repo-local and global-storage fixtures;
   map every field to its event source, marking it exact, heuristic, or
   unavailable.
-- [ ] Specify and test default scope: explicit `--repo` is target-only,
+- [x] Specify and test default scope: explicit `--repo` is target-only,
   repository-local no-argument use resolves the current repository, and global
   no-argument use reads only registered Astrograph repositories.
-- [ ] Prove which formatting paths already expose exact delivered/baseline token
+- [x] Prove which formatting paths already expose exact delivered/baseline token
   counts, including JSON, AGC1, and content references.
-- [ ] Record request-path work before changes; do not add a new counter or
+- [x] Record request-path work before changes; do not add a new counter or
   serializer merely to satisfy the report.
+
+**Result (2026-07-26):** Existing `mcp.tool.response_formatted` events already
+contain exact `tokens` and `savedTokens` from `formatMcpEnvelope`; the report
+aggregates those values only when explicitly invoked. JSON and reference
+responses without a known canonical comparison remain explicitly unavailable.
 
 ## Task 2: Add only exact, source-free aggregates
 
 **Files:** `src/mcp.ts`, `src/efficiency-report.ts`, `src/cli.ts`,
 `tests/efficiency-report.test.ts`, `tests/interface.test.ts`
 
-- [ ] Reuse one existing correlation ID so report aggregation joins only
-  metadata that was already available for that response.
-- [ ] Add schema-versioned totals for exact delivered tokens, exact saved
+- [x] Aggregate existing formatted-response metadata directly; no correlation
+  join or additional request event is required.
+- [x] Add schema-versioned totals for exact delivered tokens, exact saved
   tokens, unavailable samples, and reference/full counts.
-- [ ] Exclude source, path, prompt, raw query, session ID, symbol name, and
+- [x] Exclude source, path, prompt, raw query, session ID, symbol name, and
   response body by focused regression test.
-- [ ] Keep the command explicit and local; no exporter flag, endpoint, or
+- [x] Keep the command explicit and local; no exporter flag, endpoint, or
   credential option.
-- [ ] Keep one command: derive default scope from storage mode rather than
+- [x] Keep one command: derive default scope from storage mode rather than
   adding a flag, profile, or separate global-report command.
 
 ## Task 3: Prove negligible overhead and document the handoff
@@ -61,13 +66,19 @@ Vitest, and the current compact-output benchmark.
 `tests/compact-output-traces.test.ts`, `docs/guides/performance.md`,
 `specs/api-design/cli-api.md`
 
-- [ ] Compare the existing compact-output trace before and after; account for
+- [x] Compare the existing compact-output trace before and after; account for
   any latency change and reject a change that adds tokenization or persistence
   to a normal request.
-- [ ] Document the JSON report as a local offline handoff shape for a future
+- [x] Document the JSON report as a local offline handoff shape for a future
   separately selected exporter.
-- [ ] Run focused tests, `pnpm type-lint`, `pnpm build`,
+- [x] Run focused tests, `pnpm type-lint`, `pnpm build`,
   `pnpm test:package-bin`, `pnpm check:version-bump`, and `git diff --check`.
+
+**Verification (2026-07-26):** focused report/CLI tests, type-lint, build,
+package-bin smoke, version policy, and diff check passed. The small frontend
+trace retained 1,578 reference-saved tokens and four exact AGC1 recoveries;
+the implementation performs no new request-path formatting, tokenization, or
+persistence work.
 
 ## Commit checkpoint
 
