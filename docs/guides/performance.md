@@ -40,7 +40,8 @@ Those cover the main performance surfaces:
 - complete agent-visible MCP v1 envelope bytes, `cl100k_base` tokens, and
   compact-output round trips on a deterministic fixture
 - the four-fixture compact-output research matrix, including normalized JSON,
-  frozen AGC1, every non-serving AGC2 candidate, exact token/byte counts, and
+  the actual serving AGC1 serialization, its frozen-reference drift check,
+  every non-serving AGC2 candidate, exact token/byte counts, and
   encode/decode latency
 - the deterministic freshness lifecycle fixture: cold/no-op/edit/rename/delete,
   checkout change/restore, unavailable Git, and explicit polling fallback
@@ -62,10 +63,14 @@ JSON envelope with bytes, `cl100k_base` tokens, and elapsed time.
 It also compares the public, lossless `agc1` compact JSON format for
 `search_symbols`, `get_file_tree`, and `get_file_outline`. Ordinary JSON is
 still the default. The separate `bench:compact-output-matrix` research corpus
+also verifies every eligible AGC1 serving capture round-trips through the
+public decoder and exactly matches the frozen reference encoder. It then
 rejected all AGC2 candidates on 2026-07-26: the best packed-row baseline saved
 only 3.90% versus AGC1 and had five non-winning captures. See the
 [decision record](../reviews/agc2-corpus-decision-2026-07-26.md) and
 [MCP Tools](../../specs/api-design/mcp-tools.md) for the retained contract.
+An `agc1ServingBaselineIntegrity` report must show every eligible capture as a
+match before candidate savings are considered.
 
 ## What Actually Moves Performance
 

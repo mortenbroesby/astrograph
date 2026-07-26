@@ -8,10 +8,10 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-No implementation goal is selected. The [closed AGC2 compact-output R&D
-epic](./specs/implementation/closed/agc2-compact-output-rnd-epic.md) rejected
-AGC2 for production; strict JSON and the proven AGC1 contract remain in force.
-Consult the roadmap before selecting new work.
+Follow the [reopened AGC2 compact-output R&D checklist](./specs/implementation/active/agc2-compact-output-rnd-reopened.md).
+It first strengthens the deterministic corpus evidence for the existing AGC1
+serving contract; AGC2 remains non-serving until the documented selection gate
+passes.
 
 ## Completion and update rule
 

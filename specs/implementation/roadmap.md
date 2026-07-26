@@ -17,8 +17,9 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-No work is currently selected. Select a detailed ready item before starting
-implementation.
+- [Reopened AGC2 Compact Output R&D](./active/agc2-compact-output-rnd-reopened.md)
+  — first establish serving AGC1 as a directly measured, lossless corpus
+  baseline; then evaluate only non-serving candidates under ADR-010.
 
 ## Ready — detailed, but not selected
 

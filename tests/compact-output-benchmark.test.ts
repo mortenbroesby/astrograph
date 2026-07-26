@@ -10,9 +10,12 @@ import {
   type CompactCandidateCodec,
 } from "../src/compact-mcp-candidates.ts";
 import {
+  decodeCompactMcpEnvelope,
   decodePackedRowsAgc2,
   encodePackedRowsAgc2,
+  formatMcpEnvelope,
 } from "../src/compact-mcp.ts";
+import { countTokens } from "../src/tokenizer.ts";
 import type { McpEnvelope } from "../src/mcp-contract.ts";
 
 const treeEnvelope: McpEnvelope<unknown> = {
@@ -55,6 +58,16 @@ describe("compact output benchmark candidates", () => {
     expect(reference.encoded).toContain("agc1");
     expect(reference.tokens).toBeGreaterThan(0);
     expect(reference.decoded).toBeNull();
+  });
+
+  it("makes the actual serving AGC1 serialization the benchmark baseline", () => {
+    const formatted = formatMcpEnvelope("get_file_tree", "compact", treeEnvelope);
+    const reference = measureFrozenAgc1Reference("get_file_tree", treeEnvelope);
+
+    expect(formatted.metrics.selectedFormat).toBe("compact");
+    expect(formatted.serialized).toBe(reference.encoded);
+    expect(formatted.metrics.tokens).toBe(countTokens(formatted.serialized));
+    expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(treeEnvelope);
   });
 
   it("rejects unknown schemas and producer row-width mismatches", () => {
