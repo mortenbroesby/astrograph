@@ -396,6 +396,8 @@ already usable today.
 ## 📦 Install Details
 
 - Node target: `>=22.12.0` (Node 22 LTS or newer; Node 24 is supported)
+- Repository tooling: [`.tool-versions`](./.tool-versions) pins Node `22.23.1`
+  and pnpm `9.15.9` for ASDF users.
 - Entry command: `astrograph`
 - Supported terminals on Windows: PowerShell, `cmd.exe`, and Git Bash.
 - Git is optional for ordinary indexing and retrieval. When Git is unavailable
