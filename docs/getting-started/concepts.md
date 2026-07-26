@@ -43,6 +43,15 @@ Those categories can complement Astrograph, but they are not the same job.
 Astrograph uses a local, structured code index so an AI coding agent can ask
 for exact repository facts rather than retrieve broad text fragments.
 
+## When Astrograph Helps
+
+Reach for Astrograph when an agent needs to:
+
+- jump from a symbol name to its real implementation
+- trace a code path before making an edit
+- answer a repository question without loading whole files into context
+- gather precise context for planning, debugging, or refactoring
+
 ## Why It Saves Tokens
 
 Token savings are not the product by themselves. They are the consequence of a
@@ -53,6 +62,16 @@ or a ranked context bundle around one question, it does not need to read five
 files just to get oriented.
 
 Less blind reading means less waste.
+
+## Why Not Just Grep and File Reads?
+
+Broad search, repeated full-file reads, and oversized context windows are useful
+fallbacks, but they are blunt tools for code understanding. They can add noise,
+miss the relevant implementation, and make a long agent session harder to
+follow.
+
+Astrograph gives an agent structure first, then exact symbols and source, and
+only then broader task context when it is actually needed.
 
 ## Local-First Matters
 

@@ -27,6 +27,11 @@ npx astrograph install
 That writes MCP configuration for your chosen client and preserves unrelated
 config.
 
+The guided installer recommends **global setup**: it registers Astrograph for
+your chosen client once, keeps a separate private index for each repository,
+and does not modify those repositories. Choose **this repository** only when
+you want project-owned configuration that collaborators can review.
+
 Useful explicit targets:
 
 ```bash

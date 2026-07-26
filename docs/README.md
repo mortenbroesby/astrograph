@@ -18,8 +18,8 @@ If you are new to Astrograph, read these in order:
 ## Getting Started
 
 - [Concepts](./getting-started/concepts.md)
-  The short mental model: what Astrograph is, what it is not, and why it saves
-  tokens.
+  The mental model: what Astrograph is, when it helps, and why structured
+  retrieval beats broad file reading.
 - [First Steps](./getting-started/first-steps.md)
   Install Astrograph, wire up MCP, run a few useful commands, and know what to
   do next.
