@@ -67,6 +67,8 @@
     "bench:perf:index": "node --import=tsx ./bench/scripts/perf-index.mjs",
     "prebench:perf:query": "pnpm build",
     "bench:perf:query": "node --import=tsx ./bench/scripts/perf-query.mjs",
+    "prebench:perf:daemon": "pnpm build",
+    "bench:perf:daemon": "node --import=tsx ./bench/scripts/perf-daemon.mjs",
     "prebench:freshness-lifecycle": "pnpm build",
     "bench:freshness-lifecycle": "node --import=tsx ./bench/scripts/measure-freshness-lifecycle.mjs",
     "prebench:mcp-envelopes": "pnpm build",

@@ -118,19 +118,28 @@ Vitest, Tinybench, and existing Astrograph performance fixtures.
 - Test: existing daemon and performance fixtures
 - Document: this epic
 
-- [ ] **Step 1: Measure warm repeated work.**
+- [x] **Step 1: Measure warm repeated work.**
 
   Record cold and warm index/query timings on the small fixture plus one
   representative fixture. A performance claim requires the same Node version,
   fixture revision, storage isolation, and at least five warm repetitions.
 
-- [ ] **Step 2: Decide follow-on parser work from evidence.**
+  Observed under Node 22.23.1 with five warm repetitions: the small fixture
+  recorded cold daemon index `1129.6ms`, warm index p50/p95
+  `171.4ms`/`180.2ms`, and warm outline p50/p95 `36.7ms`/`52.8ms`; the
+  React-style frontend plus Java and C# monorepo fixture recorded cold index
+  `1563.7ms`, warm index p50/p95 `282.0ms`/`289.5ms`, and warm outline p50/p95
+  `37.4ms`/`38.4ms`. `tests/perf-scripts.test.ts` proves the command emits all
+  measurements and `bench:perf:daemon` is the repeatable entrypoint.
 
-  Add a concise result: retain Tree-sitter when startup/index reuse is the
-  bottleneck; create a separate Oxc or native-analyzer experiment only when a
-  profile shows JS/TS parsing/extraction dominates after this work.
+- [x] **Step 2: Decide follow-on parser work from evidence.**
 
-- [ ] **Step 3: Final verification and commit checkpoint.**
+  Result: retain Tree-sitter. The proved gain is retaining the existing local
+  runtime and avoiding disposable CLI indexing, not replacing a parser. Create
+  a separate Oxc or native-analyzer experiment only when a profile shows
+  JS/TS parsing or extraction dominates after this work.
+
+- [x] **Step 3: Final verification and commit checkpoint.**
 
   Run:
 
@@ -143,5 +152,7 @@ Vitest, Tinybench, and existing Astrograph performance fixtures.
   pnpm test:package-bin
   ```
 
-  Expected: all commands exit `0`; a runtime-compatible patch release is
-  planned before the PR is marked merge-ready.
+  Observed: the focused runtime and benchmark suite passed 14 tests; type
+  checks, version policy, whitespace validation, package build, packed-bin
+  smoke, and repository contract checks passed. The runtime-compatible patch
+  release is `0.10.3-alpha.199`.

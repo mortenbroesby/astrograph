@@ -6,6 +6,8 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
+import process from "node:process";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -16,6 +18,8 @@ import {
   indexFolder,
   queryCode,
 } from "../../src/index.ts";
+import { executeDaemonCommand } from "../../src/daemon-client.ts";
+import { readDaemonRuntime } from "../../src/daemon-runtime.ts";
 import { listSupportedFiles } from "../../src/filesystem-scan.ts";
 import { parseSourceFile, supportedLanguageForFile } from "../../src/parser.ts";
 
@@ -283,6 +287,65 @@ export async function measureQueryLatency(repoRoot, runs) {
     queryCodeSourceP50Ms: round(percentile(sourceSamples, 0.5)),
     queryCodeSourceP95Ms: round(percentile(sourceSamples, 0.95)),
   };
+}
+
+async function stopBenchmarkDaemon(runtimeDir) {
+  const state = await readDaemonRuntime({ runtimeDir });
+  if (!state || state.pid === process.pid) return;
+  try {
+    process.kill(state.pid, "SIGTERM");
+  } catch {
+    return;
+  }
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (!await readDaemonRuntime({ runtimeDir })) return;
+    await delay(20);
+  }
+  throw new Error("Benchmark daemon did not remove its runtime record after SIGTERM.");
+}
+
+export async function collectDaemonPerfMetrics(sourceRepoRoot, runs) {
+  const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
+  const runtimeDir = path.join(benchRoot, "daemon-runtime");
+  const requestOptions = { runtimeDir, timeoutMs: 60_000 };
+
+  try {
+    return await withIsolatedBenchmarkStorage(async () => {
+      const coldStartedAt = performance.now();
+      await executeDaemonCommand("index_folder", { repoRoot: targetRoot }, requestOptions);
+      const coldIndexMs = round(performance.now() - coldStartedAt);
+
+      const warmIndexSamples = [];
+      const outlineSamples = [];
+      for (let run = 0; run < runs; run += 1) {
+        const indexStartedAt = performance.now();
+        await executeDaemonCommand("index_folder", { repoRoot: targetRoot }, requestOptions);
+        warmIndexSamples.push(performance.now() - indexStartedAt);
+
+        const outlineStartedAt = performance.now();
+        await executeDaemonCommand("get_repo_outline", { repoRoot: targetRoot }, requestOptions);
+        outlineSamples.push(performance.now() - outlineStartedAt);
+      }
+
+      return {
+        schemaVersion: "1.0",
+        sourceRepoRoot,
+        commit: getGitCommit(sourceRepoRoot),
+        measuredAt: new Date().toISOString(),
+        runs,
+        metrics: {
+          coldDaemonIndexMs: coldIndexMs,
+          warmDaemonIndexP50Ms: round(percentile(warmIndexSamples, 0.5)),
+          warmDaemonIndexP95Ms: round(percentile(warmIndexSamples, 0.95)),
+          warmDaemonOutlineP50Ms: round(percentile(outlineSamples, 0.5)),
+          warmDaemonOutlineP95Ms: round(percentile(outlineSamples, 0.95)),
+        },
+      };
+    });
+  } finally {
+    await stopBenchmarkDaemon(runtimeDir);
+    await cleanupBenchRoot(benchRoot);
+  }
 }
 
 export async function collectIndexPerfMetrics(sourceRepoRoot) {

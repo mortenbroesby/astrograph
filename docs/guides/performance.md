@@ -24,6 +24,7 @@ Use the benchmark commands before changing code or dependencies:
 pnpm --filter astrograph bench:perf -- --repo /abs/repo --runs 10
 pnpm --filter astrograph bench:perf:index -- --repo /abs/repo
 pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
+pnpm --filter astrograph bench:perf:daemon -- --repo /abs/repo --runs 5
 pnpm --filter astrograph bench:freshness-lifecycle
 pnpm --filter astrograph bench:mcp-envelopes
 pnpm bench:agc1-compact-output -- --summary
@@ -34,6 +35,7 @@ Those cover the main performance surfaces:
 - cold indexing
 - warm noop refresh
 - warm changed-file refresh
+- cold daemon indexing plus warm daemon index and outline latency
 - `query_code` latency
 - MCP envelope and compact-output serialization gates
 - complete agent-visible MCP v1 envelope bytes, `cl100k_base` tokens, and
@@ -52,6 +54,11 @@ Git fixtures. Its JSON output records elapsed time plus `reusedFiles`,
 correctness-oriented baseline, not a real-repository throughput benchmark:
 compare its counts and fallback state across changes, then use
 `bench:perf:index` for larger corpus timing.
+
+`bench:perf:daemon` copies the selected repository into an isolated temporary
+fixture, forces repository-local storage, starts one local daemon, and removes
+both after measurement. Use it to measure repeated MCP work; compare runs only
+when Node version, fixture revision, and storage mode match.
 
 ## Local Astrograph Report
 
