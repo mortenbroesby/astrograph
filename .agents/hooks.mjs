@@ -17,7 +17,7 @@ const SECRET_PATTERNS = [
 
 const DESKTOP_NOTIFY_TITLE = 'Astrograph';
 
-const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit']);
+const EDIT_TOOLS = new Set(['Edit', 'Write', 'MultiEdit', 'apply_patch']);
 const BLOCKED_DIRECTORY_PATTERNS = [
   { pattern: /(^|\/)\.git(\/|$)/i, reason: 'Editing inside .git is blocked.' },
   { pattern: /(^|\/)\.ssh(\/|$)/i, reason: 'Editing inside .ssh is blocked.' },
@@ -113,6 +113,12 @@ function getTouchedPaths(payload) {
     ...(Array.isArray(toolInput?.file_paths) ? toolInput.file_paths : []),
     ...(Array.isArray(toolInput?.paths) ? toolInput.paths : []),
   ];
+  if (getToolName(payload) === 'apply_patch') {
+    const patch = firstNonEmpty(toolInput?.command, '');
+    for (const match of patch.matchAll(/^\*\*\* (?:Add|Delete|Update) File: (.+)$/gm)) {
+      candidates.push(match[1]);
+    }
+  }
   return candidates.map((value) => firstNonEmpty(value, '')).filter(Boolean);
 }
 
@@ -129,6 +135,9 @@ function getWriteContentFragments(payload) {
     return Array.isArray(toolInput?.edits)
       ? toolInput.edits.map((edit) => edit?.new_string).filter(Boolean)
       : [];
+  }
+  if (toolName === 'apply_patch') {
+    return [toolInput?.command].filter(Boolean);
   }
   return [];
 }
@@ -303,9 +312,7 @@ function findDangerousCommand(command, projectRoot) {
   }
 
   for (const item of DANGEROUS_PATTERNS) {
-    if (item.pattern?.test?.(command)) {
-      return item.reason || 'Blocked command.';
-    }
+    if (item.test(command)) return 'Blocked command.';
   }
   return '';
 }
