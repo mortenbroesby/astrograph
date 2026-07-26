@@ -24,12 +24,12 @@ execa, pnpm, and Vitest.
 - Modify: `src/astrograph.ts`
 - Test: `tests/engine-contract.test.ts`
 
-- [ ] Establish the existing local/global setup test baseline.
-- [ ] Add a guided `astrograph install` flow with clear local and global scope
+- [x] Establish the existing local/global setup test baseline.
+- [x] Add a guided `astrograph install` flow with clear local and global scope
   descriptions, preserving `init` and existing non-interactive flags.
-- [ ] Make global package installation an explicit interactive confirmation;
+- [x] Make global package installation an explicit interactive confirmation;
   no package or user config writes occur before confirmation.
-- [ ] Verify the rendered setup outcome names affected locations and next
+- [x] Verify the rendered setup outcome names affected locations and next
   action without exposing configuration contents.
 
 ## Task 2: Add opt-in safe refresh hooks
@@ -40,13 +40,13 @@ execa, pnpm, and Vitest.
 - Modify: `README.md`
 - Modify: `docs/reference/cli.md`
 
-- [ ] Add `--git-hooks` and interactive consent for `post-commit`,
+- [x] Add `--git-hooks` and interactive consent for `post-commit`,
   `post-checkout`, and `post-merge` refresh hooks.
-- [ ] Generate idempotent managed shell hooks which invoke the existing
+- [x] Generate idempotent managed shell hooks which invoke the existing
   detached `astrograph git-refresh` behavior.
-- [ ] Refuse to overwrite hooks not owned by Astrograph and report that
+- [x] Refuse to overwrite hooks not owned by Astrograph and report that
   decision clearly.
-- [ ] Keep the existing `--agents` managed instruction block as a separate,
+- [x] Keep the existing `--agents` managed instruction block as a separate,
   opt-in agent integration; document that it is guidance rather than an
   unsupported universal runtime hook.
 
@@ -58,9 +58,9 @@ execa, pnpm, and Vitest.
 - Modify: `specs/implementation/active/README.md`
 - Modify: `pointer.md`
 
-- [ ] Run focused installer/hook tests, `pnpm type-lint`, `pnpm build`,
+- [x] Run focused installer/hook tests, `pnpm type-lint`, `pnpm build`,
   `pnpm test:package-bin`, `pnpm check:version-bump`, and `git diff --check`.
-- [ ] Apply the release policy: this backward-compatible CLI feature receives
+- [x] Apply the release policy: this backward-compatible CLI feature receives
   a minor alpha increment.
-- [ ] Commit, push, open one draft PR, and record CI evidence before changing
-  the active pointer again.
+- [x] Commit, push, and open [draft PR #92](https://github.com/mortenbroesby/astrograph/pull/92).
+- [ ] Record CI evidence before changing the active pointer again.
