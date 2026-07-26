@@ -112,7 +112,31 @@ code so it can retrieve less and understand more.
 <a id="quick-start"></a>
 ## 🚀 Quick Start
 
-### 1) Install
+### 1) Choose your setup
+
+For the most guided experience, run this from the repository you want to use:
+
+```bash
+npx astrograph install
+```
+
+Astrograph clearly explains the choice before writing anything:
+
+- **This repository** adds project-owned MCP configuration, an optional local
+  dependency, and a repository-local index.
+- **Every repository on this device** asks before globally installing the
+  command and adding one user-level Codex or Copilot CLI registration. Each
+  repository still receives its own private cache.
+
+The repository route can also opt into two independent integrations:
+
+- **Agent guidance** adds an Astrograph-managed instruction block to `AGENTS.md`
+  or `.github/copilot-instructions.md`.
+- **Git refresh hooks** add detached `post-commit`, `post-checkout`, and
+  `post-merge` refreshes. Astrograph never overwrites a hook owned by another
+  tool, and the hooks do not block Git operations.
+
+### 2) Configure a repository directly
 
 Use dependency-based setup if you want `astrograph` available in repository
 scripts:
@@ -139,6 +163,12 @@ If you want non-interactive setup:
 
 ```bash
 npx astrograph init --yes --repo /absolute/path/to/repo
+```
+
+For unattended repository setup with both optional integrations:
+
+```bash
+npx astrograph init --yes --agents --git-hooks
 ```
 
 Choose a specific target when needed:
@@ -178,8 +208,10 @@ combines source or mutable index data from separate repositories.
 
 ### 1) Install the command
 
-Global setup requires Node.js `>=22.12.0`. Install or update Astrograph, then
-open a new shell if your npm global bin directory was not already on `PATH`:
+Global setup requires Node.js `>=22.12.0`. The guided command above can install
+the global executable after showing a confirmation. To use the explicit,
+script-friendly route, install or update Astrograph, then open a new shell if
+your npm global bin directory was not already on `PATH`:
 
 ```bash
 npm install --global astrograph@latest

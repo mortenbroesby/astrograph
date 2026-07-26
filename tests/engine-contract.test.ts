@@ -53,6 +53,7 @@ import {
   getGlobalInstallationDiagnostics,
   setupGlobalForCodex,
   setupGlobalForCopilotCli,
+  setupGitRefreshHooks,
 } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -1412,6 +1413,49 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("search_symbols");
     expect(result.agentsPolicyPreview).toContain("get_task_context");
     expect(result.agentsPolicyPreview).not.toContain("query_code");
+  });
+
+  it("installs idempotent non-blocking Git refresh hooks only when opted in", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-git-hooks-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+
+    const first = await setupGitRefreshHooks(repoRoot);
+    const second = await setupGitRefreshHooks(repoRoot);
+    expect(first).toHaveLength(3);
+    expect(first.map((hook) => hook.hook)).toEqual(["post-commit", "post-checkout", "post-merge"]);
+    expect(first.every((hook) => hook.updated)).toBe(true);
+    expect(second.every((hook) => hook.reason === "already installed")).toBe(true);
+    const checkout = first.find((hook) => hook.hook === "post-checkout");
+    expect(checkout?.preview).toContain('git-refresh checkout "$1" "$2" "$3"');
+    expect(checkout?.preview).toContain("Runs detached");
+  });
+
+  it("does not overwrite Git hooks owned by another tool", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-existing-hook-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    const hookPath = path.join(repoRoot, ".git", "hooks", "post-commit");
+    await writeFile(hookPath, "#!/bin/sh\necho owned-by-another-tool\n");
+
+    const result = await setupGitRefreshHooks(repoRoot);
+    const postCommit = result.find((hook) => hook.hook === "post-commit");
+    expect(postCommit).toMatchObject({ updated: false, reason: "not installed because another tool owns this hook" });
+    await expect(readFile(hookPath, "utf8")).resolves.toContain("owned-by-another-tool");
+  });
+
+  it("includes opted-in Git hook outcomes in the repository setup summary", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-hook-summary-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    const result = await setupForAllIdes(repoRoot, { dryRun: true, gitHooks: true });
+    expect(formatRepositoryInstallation(result, { dryRun: true })).toContain("Git refresh hooks: post-commit (would install non-blocking refresh hook)");
   });
 
   it("writes copilot-instructions.md when --agents is used with copilot IDE", async () => {

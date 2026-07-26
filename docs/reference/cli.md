@@ -238,6 +238,27 @@ npx astrograph git-refresh merge --execute
 npx astrograph git-refresh push --execute
 ```
 
+## Guided Setup and Opt-in Integrations
+
+Use `npx astrograph install` in an interactive terminal to choose between
+project-owned setup for the current repository and user-global setup for every
+repository on the device. The global route asks for confirmation before running
+`npm install --global astrograph@latest` or editing user-level client
+configuration.
+
+Repository setup remains available directly through `init` and keeps optional
+integrations explicit:
+
+```bash
+npx astrograph init --yes --agents --git-hooks
+```
+
+`--agents` adds only an Astrograph-managed guidance block to the client’s
+native instruction file. It is guidance, not an unsupported universal agent
+runtime hook. `--git-hooks` manages non-blocking `post-commit`,
+`post-checkout`, and `post-merge` hooks that delegate to `git-refresh`. It
+refuses to replace a hook owned by another tool.
+
 ## Configuration
 
 Astrograph reads optional defaults from `astrograph.config.ts`. Legacy

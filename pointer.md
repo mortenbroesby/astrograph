@@ -26,6 +26,9 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/3_git-ref-watch-reconciliation-delivery-checklist.md)
   — keep active watch sessions correct when Git checkout identity changes
   without dependable filesystem events.
+- [Guided Install and Refresh Hooks](./specs/implementation/active/3_guided-install-and-refresh-hooks.md)
+  — simplify setup to one install command, make integrations opt-in, and
+  verify harness readiness before relying on it.
 
 ## Keeping this useful
 

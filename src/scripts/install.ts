@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { constants as fsConstants, accessSync, existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   isCancel,
   intro,
@@ -28,6 +28,8 @@ const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
 const AGENTS_POLICY_BEGIN = "<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->";
 const AGENTS_POLICY_END = "<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->";
+const GIT_HOOK_BEGIN = "# BEGIN ASTROGRAPH GIT REFRESH";
+const GIT_HOOK_END = "# END ASTROGRAPH GIT REFRESH";
 const MCP_SERVER_NAME = "astrograph";
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
 const packageJson = JSON.parse(
@@ -55,6 +57,7 @@ interface ParsedArgs {
   json: boolean;
   nonInteractive: boolean;
   agentsPolicy: boolean;
+  gitHooks: boolean;
   hasExplicitArgs: boolean;
   showHelp: boolean;
 }
@@ -89,6 +92,7 @@ interface SetupResult {
   agentsPolicyUpdated: boolean;
   agentsPolicyReason: string;
   agentsPolicyPreview?: string;
+  gitHooks: GitHookResult[];
 }
 
 interface CliOptions {
@@ -98,6 +102,7 @@ interface CliOptions {
   repo?: string;
   yes?: boolean;
   agents?: boolean;
+  gitHooks?: boolean;
   help?: boolean;
 }
 
@@ -120,6 +125,15 @@ interface SetupForAllOptions {
   ides?: RequestedIde[];
   dryRun?: boolean;
   agentsPolicy?: boolean;
+  gitHooks?: boolean;
+}
+
+export interface GitHookResult {
+  hook: "post-commit" | "post-checkout" | "post-merge";
+  path: string;
+  updated: boolean;
+  reason: string;
+  preview?: string;
 }
 
 export interface SetupGlobalClientOptions {
@@ -202,6 +216,9 @@ export function formatRepositoryInstallation(
   const policy = first.agentsPolicyReason === "not requested"
     ? null
     : `Agent guidance: ${first.agentsPolicyReason}.`;
+  const hooks = first.gitHooks.length === 0
+    ? null
+    : `Git refresh hooks: ${first.gitHooks.map((hook) => `${hook.hook} (${hook.reason})`).join(", ")}.`;
 
   return [
     heading,
@@ -217,6 +234,7 @@ export function formatRepositoryInstallation(
     `Astrograph project config: ${first.engineConfigPath}`,
     dependency,
     ...(policy ? [policy] : []),
+    ...(hooks ? [hooks] : []),
     "",
     options.dryRun
       ? "Next: run `astrograph init --yes` when you are ready to write these files."
@@ -264,7 +282,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph init [--yes] [--agents] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
+      "  npx astrograph init [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -274,6 +292,7 @@ function usage(): void {
       "      codex       → AGENTS.md",
       "      copilot     → .github/copilot-instructions.md",
       "      copilot-cli → AGENTS.md",
+      "  - optional: --git-hooks adds non-blocking post-commit, post-checkout, and post-merge index refresh hooks when those hooks are not owned by another tool",
       "  - ensures: astrograph is set to latest in package.json when package.json exists",
       "",
       "Examples:",
@@ -344,6 +363,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       json: false,
       nonInteractive: false,
       agentsPolicy: false,
+      gitHooks: false,
       hasExplicitArgs: false,
       showHelp: true,
     };
@@ -352,6 +372,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   const knownFlag = new Set<string>([
     "--yes",
     "--agents",
+    "--git-hooks",
     "--dry-run",
     "--json",
     "--repo",
@@ -387,6 +408,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     .helpOption("-h, --help", "Show setup help.")
     .addOption(new Option("--yes", "Run setup with defaults and without prompts."))
     .addOption(new Option("--agents", "Add a tailored agent instruction file for the selected IDE."))
+    .addOption(new Option("--git-hooks", "Install safe, non-blocking Git refresh hooks when available."))
     .addOption(new Option("--dry-run", "Preview changes only."))
     .addOption(new Option("--json", "Print the machine-readable setup result."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
@@ -406,6 +428,7 @@ function parseArgs(argv: string[]): ParsedArgs {
         json: false,
         nonInteractive: false,
         agentsPolicy: false,
+        gitHooks: false,
         hasExplicitArgs: false,
         showHelp: true,
       };
@@ -421,6 +444,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       json: false,
       nonInteractive: false,
       agentsPolicy: false,
+      gitHooks: false,
       hasExplicitArgs: false,
       showHelp: true,
     };
@@ -438,9 +462,11 @@ function parseArgs(argv: string[]): ParsedArgs {
     json: Boolean(options.json),
     nonInteractive: Boolean(options.yes),
     agentsPolicy: Boolean(options.agents),
+    gitHooks: Boolean(argv.includes("--git-hooks")),
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("agents") ||
+      hasFlag("git-hooks") ||
       hasFlag("dry-run") ||
       hasFlag("json") ||
       hasFlag("repo") ||
@@ -484,6 +510,7 @@ async function promptForSetupArgs(): Promise<{
   dryRun: boolean;
   json: boolean;
   agentsPolicy: boolean;
+  gitHooks: boolean;
 }> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
@@ -534,13 +561,97 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
+  const gitHooks = await confirm({
+    message: "Keep the index fresh after commits, branch switches, and merges?",
+    initialValue: false,
+  });
+
+  if (isCancel(gitHooks)) {
+    outro("Setup cancelled.");
+    process.exit(0);
+  }
+
   return {
     ides: [ide as RequestedIde],
     repo: resolvedRepo,
     dryRun: false,
     json: false,
     agentsPolicy: Boolean(agentsPolicy),
+    gitHooks: Boolean(gitHooks),
   };
+}
+
+async function runGuidedInstall(): Promise<void> {
+  if (!process.stdin.isTTY || !process.stdout.isTTY) {
+    throw new Error(
+      "Guided install requires a TTY. Use `astrograph init --yes` for repository setup or `astrograph install --global --ide codex|copilot-cli` for global setup.",
+    );
+  }
+
+  intro("Astrograph setup");
+  const scope = await select({
+    message: "Where should Astrograph be available?",
+    options: [
+      {
+        value: "repository",
+        label: "This repository",
+        hint: "Project-owned MCP config and index; collaborators can review the setup",
+      },
+      {
+        value: "global",
+        label: "Every repository on this device",
+        hint: "User-level client registration with one private cache per repository",
+      },
+    ],
+    initialValue: "repository",
+  });
+  if (isCancel(scope) || typeof scope !== "string") {
+    outro("Setup cancelled.");
+    return;
+  }
+
+  if (scope === "repository") {
+    const args = await promptForSetupArgs();
+    const result = await setupForAllIdes(args.repo, {
+      ides: args.ides,
+      dryRun: args.dryRun,
+      agentsPolicy: args.agentsPolicy,
+      gitHooks: args.gitHooks,
+    });
+    outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));
+    return;
+  }
+
+  const ide = await select({
+    message: "Which global client should Astrograph connect to?",
+    options: [
+      { value: "codex", label: "Codex", hint: "Writes only ~/.codex/config.toml" },
+      { value: "copilot-cli", label: "GitHub Copilot CLI", hint: "Writes only ~/.copilot/mcp-config.json" },
+    ],
+    initialValue: DEFAULT_GLOBAL_INSTALL_IDE,
+  });
+  if (isCancel(ide) || (ide !== "codex" && ide !== "copilot-cli")) {
+    outro("Setup cancelled.");
+    return;
+  }
+  const shouldInstall = await confirm({
+    message: `Install or update Astrograph globally, then connect ${ide === "codex" ? "Codex" : "GitHub Copilot CLI"}?`,
+    initialValue: true,
+  });
+  if (isCancel(shouldInstall) || shouldInstall === false) {
+    outro("Setup cancelled. No package or client configuration was changed.");
+    return;
+  }
+
+  const progress = spinner();
+  progress.start("Installing Astrograph globally…");
+  runProcess("npm", ["install", "--global", `${PACKAGE_NAME}@latest`], { stdio: "inherit" });
+  progress.message("Connecting your selected client…");
+  const result = ide === "codex"
+    ? await setupGlobalForCodex({ executableAvailable: true })
+    : await setupGlobalForCopilotCli({ executableAvailable: true });
+  progress.stop("Global setup ready");
+  outro(formatGlobalInstallation(result));
 }
 
 function parseJsonFromString(raw: string, configPath: string): InstalledObject {
@@ -1086,6 +1197,86 @@ async function writeAgentsPolicy(
   };
 }
 
+function gitRefreshHookContents(hook: GitHookResult["hook"]): string {
+  const args = hook === "post-checkout"
+    ? 'checkout "$1" "$2" "$3"'
+    : hook === "post-commit"
+      ? "commit"
+      : "merge";
+  return [
+    "#!/bin/sh",
+    GIT_HOOK_BEGIN,
+    "# Runs detached so ordinary Git operations are never blocked by indexing.",
+    `npx -y --package ${PACKAGE_NAME}@latest astrograph git-refresh ${args} >/dev/null 2>&1 &`,
+    GIT_HOOK_END,
+    "",
+  ].join("\n");
+}
+
+function resolveGitHooksDirectory(repoRoot: string): string | null {
+  try {
+    const configuredPath = runProcess("git", ["rev-parse", "--git-path", "hooks"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    }).stdout.trim();
+    return configuredPath ? path.resolve(repoRoot, configuredPath) : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function setupGitRefreshHooks(
+  repoRoot: string,
+  { dryRun = false }: { dryRun?: boolean } = {},
+): Promise<GitHookResult[]> {
+  const resolvedRepoRoot = resolveRepoRoot(repoRoot);
+  const hooksDirectory = resolveGitHooksDirectory(resolvedRepoRoot);
+  const hooks: GitHookResult["hook"][] = ["post-commit", "post-checkout", "post-merge"];
+
+  if (!hooksDirectory) {
+    return hooks.map((hook) => ({
+      hook,
+      path: path.join(resolvedRepoRoot, ".git", "hooks", hook),
+      updated: false,
+      reason: "not installed because this directory is not a Git repository",
+    }));
+  }
+
+  const results: GitHookResult[] = [];
+  for (const hook of hooks) {
+    const hookPath = path.join(hooksDirectory, hook);
+    const contents = gitRefreshHookContents(hook);
+    const current = await readFile(hookPath, "utf8").catch(() => null);
+    if (current !== null && !current.includes(GIT_HOOK_BEGIN)) {
+      results.push({
+        hook,
+        path: hookPath,
+        updated: false,
+        reason: "not installed because another tool owns this hook",
+      });
+      continue;
+    }
+    if (current === contents) {
+      results.push({ hook, path: hookPath, updated: false, reason: "already installed", preview: contents });
+      continue;
+    }
+    if (!dryRun) {
+      await mkdir(hooksDirectory, { recursive: true });
+      await writeFile(hookPath, contents, "utf8");
+      await chmod(hookPath, 0o755);
+    }
+    results.push({
+      hook,
+      path: hookPath,
+      updated: !dryRun,
+      reason: dryRun ? "would install non-blocking refresh hook" : "installed non-blocking refresh hook",
+      preview: contents,
+    });
+  }
+  return results;
+}
+
 function parseJsonConfig(contents: string, configPath: string): InstalledObject {
   if (!contents.trim()) {
     return {};
@@ -1217,6 +1408,7 @@ export async function setupForIde(
     agentsPolicyPath: path.join(resolvedRepoRoot, "AGENTS.md"),
     agentsPolicyUpdated: false,
     agentsPolicyReason: "not requested",
+    gitHooks: [],
   };
 }
 
@@ -1233,6 +1425,7 @@ export async function setupForAllIdes(
     ides = [...DEFAULT_INSTALL_IDES],
     dryRun = false,
     agentsPolicy = false,
+    gitHooks = false,
   }: SetupForAllOptions = {},
 ): Promise<SetupResult | SetupResult[]> {
   const normalizedIdes = validateIdes({ ides }).ides;
@@ -1241,6 +1434,9 @@ export async function setupForAllIdes(
     resolvedRepoRoot,
     dryRun,
   );
+  const hookResults = gitHooks
+    ? await setupGitRefreshHooks(resolvedRepoRoot, { dryRun })
+    : [];
 
   const results: SetupResult[] = [];
   for (const ide of normalizedIdes) {
@@ -1261,6 +1457,7 @@ export async function setupForAllIdes(
       agentsPolicyUpdated: agentsPolicyResult.agentsPolicyUpdated,
       agentsPolicyReason: agentsPolicyResult.agentsPolicyReason,
       agentsPolicyPreview: agentsPolicyResult.agentsPolicyPreview,
+      gitHooks: hookResults,
     });
   }
 
@@ -1271,6 +1468,13 @@ async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   if (argv.length === 1 && argv[0] === "--diagnostics") {
     process.stdout.write(`${JSON.stringify(await getGlobalInstallationDiagnostics(), null, 2)}\n`);
+    return;
+  }
+  if (
+    process.env.ASTROGRAPH_ENTRY_MODE === "install"
+    && argv.length === 0
+  ) {
+    await runGuidedInstall();
     return;
   }
   if (argv.includes("--global")) {
@@ -1327,6 +1531,7 @@ async function main(): Promise<void> {
       dryRun: normalizedArgs.dryRun,
       json: normalizedArgs.json,
       agentsPolicy: normalizedArgs.agentsPolicy,
+      gitHooks: normalizedArgs.gitHooks,
     }
     : await promptForSetupArgs();
 
@@ -1339,6 +1544,7 @@ async function main(): Promise<void> {
     ides: args.ides,
     dryRun: args.dryRun,
     agentsPolicy: args.agentsPolicy,
+    gitHooks: args.gitHooks,
   });
 
   await emitUpdateSuggestion(PACKAGE_VERSION);
