@@ -1,6 +1,10 @@
 {
   "$schema": "https://json.schemastore.org/tsconfig",
   "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "#astrograph/*": ["src/*.ts"]
+    },
     "target": "ES2022",
     "lib": ["ES2022"],
     "module": "NodeNext",

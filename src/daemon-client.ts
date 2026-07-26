@@ -28,7 +28,7 @@ function startDaemonProcess(runtimeDir?: string) {
   const useBuiltEntrypoint = existsSync(builtDaemonEntrypoint) && !clientModulePath.endsWith(".ts");
   const child = spawn(process.execPath, useBuiltEntrypoint
     ? [builtDaemonEntrypoint]
-    : ["--experimental-strip-types", sourceDaemonEntrypoint], {
+    : ["--import=tsx", sourceDaemonEntrypoint], {
     detached: true,
     stdio: "ignore",
     env: runtimeDir ? { ...process.env, ASTROGRAPH_RUNTIME_DIR: runtimeDir } : process.env,

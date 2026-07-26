@@ -9,7 +9,7 @@ import {
   getSymbolSource,
   searchSymbols,
   searchText,
-} from "../../src/index.ts";
+} from "#astrograph/index";
 
 import { countTokens, estimateTokens } from "./tokenizer.ts";
 import type { BenchmarkCorpusTask } from "./types.ts";

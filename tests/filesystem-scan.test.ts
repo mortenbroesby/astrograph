@@ -41,6 +41,7 @@ describe("astrograph filesystem scan", () => {
     await writeFile(path.join(repoRoot, "src", "nested", "beta.js"), "export const beta = 2;\n");
     await writeFile(path.join(repoRoot, "src", "nested", "legacy.CJS"), "module.exports = {};\n");
     await writeFile(path.join(repoRoot, "src", "nested", "module.MJS"), "export const module = true;\n");
+    await writeFile(path.join(repoRoot, "astrograph.config.json"), "{}\n");
     await writeFile(path.join(repoRoot, "src", "notes.md"), "# Discovery-only documentation\n");
     await writeFile(path.join(repoRoot, "dist", "bundle.ts"), "export const ignored = true;\n");
     await writeFile(path.join(repoRoot, "node_modules", "pkg", "index.ts"), "export const dep = true;\n");

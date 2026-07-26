@@ -1,16 +1,14 @@
 # Config Reference
 
-Astrograph reads optional repository defaults from `astrograph.config.ts`.
+Astrograph reads optional repository defaults from `astrograph.config.json`.
 
 Use config when you want to tune retrieval behavior, indexing scope,
 observability, watch behavior, or safety limits for one repository.
 
 ## File Shape
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   summaryStrategy: "doc-comments-first",
   storageMode: "wal",
   storageLocation: "repo-local",
@@ -45,11 +43,10 @@ export default defineConfig({
     maxChildProcessOutputBytes: 1000000,
     maxLiveSearchMatches: 100,
   },
-});
+}
 ```
 
-If no TypeScript config is present, Astrograph can still read legacy
-`astrograph.config.json`, but `astrograph.config.ts` is the preferred surface.
+Configuration is JSON so production commands never execute repository TypeScript.
 
 ## Top-Level Options
 
@@ -186,41 +183,35 @@ Available fields:
 
 ### Narrow indexing to source files
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   performance: {
     include: ["src/**/*.{ts,tsx,js,jsx}"],
     exclude: ["**/*.test.ts"],
   },
-});
+}
 ```
 
 ### Force polling watch mode
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   watch: {
     backend: "polling",
     debounceMs: 150,
   },
-});
+}
 ```
 
 ### Keep observability privacy-safe
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   observability: {
     retentionDays: 3,
     redactSourceText: true,
   },
-});
+}
 ```
 
 ## Where To Go Next

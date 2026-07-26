@@ -217,33 +217,29 @@ Artifacts land under:
 
 Worker-pool parsing is optional and off by default.
 
-Disable it explicitly in `astrograph.config.ts`:
+Disable it explicitly in `astrograph.config.json`:
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   performance: {
     workerPool: {
       enabled: false,
     },
   },
-});
+}
 ```
 
 To cap concurrency directly:
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   performance: {
     fileProcessingConcurrency: 1,
     workerPool: {
       enabled: false,
     },
   },
-});
+}
 ```
 
 That is the simplest way to compare worker and non-worker behavior on the same

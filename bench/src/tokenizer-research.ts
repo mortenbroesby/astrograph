@@ -96,7 +96,7 @@ export function runTokenizerResearchInFreshProcesses(iterations = 100): Tokenize
     candidates: TOKENIZER_RESEARCH_CANDIDATES.map((candidate) => {
       const output = execFileSync(
         process.execPath,
-        ["--experimental-strip-types", scriptPath, "--candidate", candidate, "--iterations", String(iterations)],
+        ["--import=tsx", scriptPath, "--candidate", candidate, "--iterations", String(iterations)],
         { encoding: "utf8" },
       );
       return JSON.parse(output) as TokenizerResearchCandidateResult;

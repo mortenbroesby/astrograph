@@ -280,13 +280,10 @@ refuses to replace a hook owned by another tool.
 
 ## Configuration
 
-Astrograph reads optional defaults from `astrograph.config.ts`. Legacy
-`astrograph.config.json` is still read when no TypeScript config exists.
+Astrograph reads optional defaults from `astrograph.config.json`.
 
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
+```json
+{
   summaryStrategy: "doc-comments-first",
   storageMode: "wal",
   observability: {
@@ -320,7 +317,7 @@ export default defineConfig({
     maxChildProcessOutputBytes: 1000000,
     maxLiveSearchMatches: 100,
   },
-});
+}
 ```
 
 ## Development Commands

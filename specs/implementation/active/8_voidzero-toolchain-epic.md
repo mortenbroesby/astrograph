@@ -46,35 +46,43 @@ dependency or standalone declaration-emission command.
 
 ## Story 2: Use a Stable Developer-Only TypeScript Runtime
 
-- [ ] Inventory each current `--experimental-strip-types` caller and classify
-  it as production, packaged maintenance script, or developer-only runner.
-- [ ] Move production and packaged paths to compiled `dist/` JavaScript.
-- [ ] Use `node --import=tsx` only for developer-only source execution that
-  cannot use a built artifact; do not make the package runtime depend on tsx.
-- [ ] Delete every `--experimental-strip-types` command and prove source,
-  built, packed, and MCP paths separately.
+- [x] Inventory each current `--experimental-strip-types` caller: CLI, MCP,
+  daemon, workers, config loading, and packaged maintenance scripts are
+  production/package paths; benchmarks, test runner, and explicit `dev:*`
+  commands are developer-only.
+- [x] Move production and packaged paths to compiled `dist/` JavaScript,
+  including release and version-check scripts. Repository configuration is now
+  JSON-only, so no production command executes TypeScript.
+- [x] Use `node --import=tsx` only for developer-only source execution that
+  cannot use a built artifact; `tsx` is a development dependency only.
+- [x] Delete every `--experimental-strip-types` command and prove source,
+  built, packed, and MCP paths separately with focused runtime, engine-contract,
+  and package smoke checks.
 
 **Acceptance:** no supported production/package command executes TypeScript;
 developer source execution uses a supported runtime loader where needed.
 
 ## Story 3: Establish Internal Module Aliases
 
-- [ ] Use `#astrograph/*` only for cross-directory module boundaries; retain
+- [x] Use `#astrograph/*` only for cross-directory module boundaries; retain
   sibling `./module.ts` imports.
-- [ ] Prove the mapping in the developer runtime, Vitest, tsdown output, and
+- [x] Prove the mapping in the developer runtime, Vitest, tsdown output, and
   declarations before converting imports.
-- [ ] Migrate the five existing multi-parent imports first; expand only after
-  package and declaration tests show no alias leaks.
+- [x] Migrate the five existing multi-parent imports first; package output and
+  declarations contain no alias leaks.
 
 **Acceptance:** aliases improve cross-tree navigation without appearing in
 published JavaScript/declarations or breaking direct developer execution.
 
 ## Story 4: Evaluate Oxc Enforcement
 
-- [ ] Inventory current lint/format rules and measurable CI timing.
-- [ ] Trial Oxlint without changing required CI.
-- [ ] Adopt only rules that protect the agreed import/runtime contract and do
-  not duplicate TypeScript checks.
+- [x] Inventory current lint/format rules and measurable CI timing: no existing
+  linter or formatter was configured; an Oxlint trial across source, benchmarks,
+  and tests completed in about 1.5 seconds.
+- [x] Trial Oxlint without changing required CI.
+- [x] Adopt only the scoped `no-restricted-imports` rule that protects the
+  shared package-script process seam; `lint:runtime` remains opt-in and does
+  not duplicate TypeScript checks or become a formatter.
 
 **Acceptance:** any Oxc adoption replaces a specific existing gap; it is not a
 second linter or formatter by default.

@@ -18,7 +18,6 @@ const SUPPORTED_EXTENSIONS = new Set([
 const STRUCTURAL_FILES = new Set([
   "package.json",
   "pnpm-lock.yaml",
-  "astrograph.config.ts",
   "astrograph.config.json",
 ]);
 const MAX_INCREMENTAL_FILES = 12;
@@ -29,7 +28,7 @@ const wrapperPath = path.join(packageRoot, "dist", "astrograph.js");
 const sourceWrapperPath = path.join(packageRoot, "src", "astrograph.ts");
 const wrapperArgs = existsSync(wrapperPath)
   ? [wrapperPath]
-  : ["--experimental-strip-types", sourceWrapperPath];
+  : ["--import=tsx", sourceWrapperPath];
 
 interface GitCommandResult {
   status: number;

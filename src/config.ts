@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
@@ -34,8 +33,7 @@ import {
 export const ENGINE_STORAGE_DIRNAME = ".astrograph";
 export const ENGINE_STORAGE_VERSION = 1;
 export const ENGINE_SCHEMA_VERSION = 7;
-export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
-export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";
+export const ENGINE_CONFIG_FILENAME = "astrograph.config.json";
 export const ENGINE_DISPLAY_NAME = "astrograph";
 export const DEFAULT_SUMMARY_STRATEGY: SummaryStrategy = "doc-comments-first";
 export const DEFAULT_OBSERVABILITY_RETENTION_DAYS = 3;
@@ -471,60 +469,36 @@ export async function loadRepoEngineConfig(
     options.environment,
   );
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
-  const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
-
   const contents = await readFile(configPath, "utf8")
     .catch((error: unknown) => {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return null;
       }
       throw error;
-    });
+  });
 
-  if (contents !== null) {
-    const parsedJson = await loadTsConfig(configPath);
-    const parsed = repoEngineConfigSchema.safeParse(parsedJson);
-    if (!parsed.success) {
-      throw new Error(
-        `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
-      );
-    }
-    return applyExplicitStorageLocation(
-      resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
-      options.environment,
-    );
-  }
-
-  const legacyContents = await readFile(legacyConfigPath, "utf8")
-    .catch((error: unknown) => {
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        return null;
-      }
-      throw error;
-    });
-
-  if (legacyContents === null) {
+  if (contents === null) {
     return applyExplicitStorageLocation(defaults, options.environment);
   }
 
   let parsedJson: unknown;
   try {
-    parsedJson = JSON.parse(legacyContents);
+    parsedJson = JSON.parse(contents);
   } catch (error) {
     throw new Error(
-      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
 
   const parsed = repoEngineConfigSchema.safeParse(parsedJson);
   if (!parsed.success) {
     throw new Error(
-      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
     );
   }
 
   return applyExplicitStorageLocation(
-    resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults),
+    resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
     options.environment,
   );
 }
@@ -538,48 +512,6 @@ function applyExplicitStorageLocation(
   return { ...config, storageLocation: parseStorageLocation(value) };
 }
 
-export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
-  return config;
-}
-
-async function loadTsConfig(configPath: string): Promise<unknown> {
-  const loaderCode = [
-    "import { pathToFileURL } from 'node:url';",
-    `const mod = await import(pathToFileURL(${JSON.stringify(configPath)}).href);`,
-    "process.stdout.write(JSON.stringify(mod.default ?? mod));",
-  ].join("\n");
-
-  let output: string;
-  try {
-    output = execFileSync(
-      process.execPath,
-      ["--experimental-strip-types", "--input-type=module"],
-      {
-        input: loaderCode,
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5_000,
-      },
-    ) as string;
-  } catch (error) {
-    const maybeProcessError = error as { stderr?: Buffer | string; message?: string };
-    const stderr = typeof maybeProcessError.stderr === "string"
-      ? maybeProcessError.stderr.trim()
-      : maybeProcessError.stderr instanceof Buffer
-        ? maybeProcessError.stderr.toString("utf8").trim()
-        : "";
-    const message = stderr || maybeProcessError.message || String(error);
-    throw new Error(`Invalid ${ENGINE_CONFIG_FILENAME}: ${message}`);
-  }
-
-  try {
-    return JSON.parse(output);
-  } catch (error) {
-    throw new Error(
-      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
 
 export function isSummaryStrategy(value: unknown): value is SummaryStrategy {
   return typeof value === "string" && SUMMARY_STRATEGIES.has(value as SummaryStrategy);

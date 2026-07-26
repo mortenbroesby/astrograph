@@ -15,7 +15,7 @@ const child = spawn(
   process.execPath,
   useBuiltEntry
     ? [distEntry, ...process.argv.slice(2)]
-    : ["--experimental-strip-types", sourceEntry, ...process.argv.slice(2)],
+    : ["--import=tsx", sourceEntry, ...process.argv.slice(2)],
   {
     stdio: "inherit",
     env: process.env,

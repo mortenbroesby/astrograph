@@ -29,7 +29,7 @@ async function main() {
     warmNoopRefreshMs: index.metrics.warmNoopRefreshMs,
     warmChangedRefreshMs: index.metrics.warmChangedRefreshMs,
     queryCodeDiscoverP50Ms: query.metrics.queryCodeDiscoverP50Ms,
-    queryCodeAssembleP50Ms: query.metrics.queryCodeAssembleP50Ms,
+    queryCodeSourceP50Ms: query.metrics.queryCodeSourceP50Ms,
   });
 
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

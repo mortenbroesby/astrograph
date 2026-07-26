@@ -9,6 +9,8 @@ export default defineConfig({
     astrograph: "src/astrograph.ts",
     "scripts/install": "src/scripts/install.ts",
     "scripts/git-smart-refresh": "src/scripts/git-smart-refresh.ts",
+    "scripts/check-version-bump": "src/scripts/check-version-bump.ts",
+    "scripts/release-agent": "src/scripts/release-agent.ts",
     "workers/analyze-file-worker": "src/workers/analyze-file-worker.ts",
   },
   format: "esm",

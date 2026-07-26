@@ -219,8 +219,8 @@ async function main(): Promise<void> {
     if (!String(installed.configPreview).includes("[mcp_servers.astrograph]")) {
       throw new Error(`Expected astrograph install to write a Codex MCP block: ${installResult.stdout}`);
     }
-    if (!String(installed.engineConfigPath).endsWith("astrograph.config.ts")) {
-      throw new Error(`Expected astrograph install to report astrograph.config.ts: ${installResult.stdout}`);
+    if (!String(installed.engineConfigPath).endsWith("astrograph.config.json")) {
+      throw new Error(`Expected astrograph install to report astrograph.config.json: ${installResult.stdout}`);
     }
     if (installed.mode !== undefined || installed.ide !== "codex") {
       throw new Error(`Expected astrograph install defaults to use codex without a profile mode: ${installResult.stdout}`);

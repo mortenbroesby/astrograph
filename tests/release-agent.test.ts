@@ -14,7 +14,7 @@ describe("release agent arguments", () => {
     const result = spawnSync(
       process.execPath,
       [
-        "--experimental-strip-types",
+        "--import=tsx",
         "./src/scripts/release-agent.ts",
         "--force-patch",
       ],
