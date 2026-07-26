@@ -42,15 +42,16 @@ describe("compact-output repeat-read traces", () => {
     const report = JSON.parse(stdout) as {
       schemaVersion: number;
       records: number;
-      traces: Array<{ operationClass: string; captures: number }>;
+      traces: Array<{ operationClass: string; captures: number; referenceCaptures: number; referenceSavingsTokens: number }>;
       agc1Integrity: { matchingSamples: number };
     };
 
-    expect(report).toMatchObject({ schemaVersion: 2, records: 8, agc1Integrity: { matchingSamples: 4 } });
+    expect(report).toMatchObject({ schemaVersion: 3, records: 8, agc1Integrity: { matchingSamples: 4 } });
     expect(report.traces).toEqual([
-      expect.objectContaining({ operationClass: "one-shot-exploration", captures: 4 }),
-      expect.objectContaining({ operationClass: "repeat-read", captures: 4 }),
+      expect.objectContaining({ operationClass: "one-shot-exploration", captures: 4, referenceCaptures: 0, referenceSavingsTokens: 0 }),
+      expect.objectContaining({ operationClass: "repeat-read", captures: 4, referenceCaptures: 2, referenceSavingsTokens: expect.any(Number) }),
     ]);
+    expect(report.traces[1].referenceSavingsTokens).toBeGreaterThan(0);
     expect(stdout).not.toContain("Button");
     expect(stdout).not.toContain("/fixture");
   }, 30_000);

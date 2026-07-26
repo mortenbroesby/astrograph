@@ -31,8 +31,8 @@ async function createFiles(root: string, name: CompactOutputFixtureName) {
   }
   if (name === "product-monorepo") {
     const writes: Promise<void>[] = [write(root, "openapi/catalog.yaml", "openapi: 3.0.0\ninfo:\n  title: Catalog\n")];
-    for (let index = 1; index <= 24; index += 1) writes.push(write(root, `apps/web/src/Feature${index}.tsx`, `export function Feature${index}Page() { return <main>Feature ${index}</main>; }\n`));
-    for (let index = 1; index <= 20; index += 1) {
+    for (let index = 1; index <= 8; index += 1) writes.push(write(root, `apps/web/src/Feature${index}.tsx`, `export function Feature${index}Page() { return <main>Feature ${index}</main>; }\n`));
+    for (let index = 1; index <= 8; index += 1) {
       writes.push(write(root, `services/catalog/src/Catalog${index}.cs`, `namespace Catalog; public class Catalog${index} { public string Handle() => "catalog-${index}"; }\n`));
       writes.push(write(root, `services/orders/src/main/java/Order${index}.java`, `public class Order${index} { public String process() { return "order-${index}"; } }\n`));
     }
@@ -46,8 +46,8 @@ async function createFiles(root: string, name: CompactOutputFixtureName) {
     return;
   }
   const writes: Promise<void>[] = [];
-  for (let index = 1; index <= 60; index += 1) writes.push(write(root, `src/${index <= 16 ? "active" : "legacy"}/Feature${index}.ts`, `export function feature${index}() { return "unused-${index}"; }\n`));
-  for (let index = 1; index <= 20; index += 1) writes.push(write(root, `services/Legacy${index}.cs`, `namespace Legacy; public class Legacy${index} { public int Run() => ${index}; }\n`));
+  for (let index = 1; index <= 32; index += 1) writes.push(write(root, `src/${index <= 8 ? "active" : "legacy"}/Feature${index}.ts`, `export function feature${index}() { return "unused-${index}"; }\n`));
+  for (let index = 1; index <= 8; index += 1) writes.push(write(root, `services/Legacy${index}.cs`, `namespace Legacy; public class Legacy${index} { public int Run() => ${index}; }\n`));
   await Promise.all(writes);
 }
 

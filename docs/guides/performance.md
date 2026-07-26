@@ -54,6 +54,40 @@ correctness-oriented baseline, not a real-repository throughput benchmark:
 compare its counts and fallback state across changes, then use
 `bench:perf:index` for larger corpus timing.
 
+## Local Efficiency Report
+
+Request a report explicitly when you want to inspect retained local MCP
+completion aggregates:
+
+```bash
+astrograph efficiency-report --repo /abs/repo
+astrograph efficiency-report --repo /abs/repo --reset --yes
+```
+
+The JSON report groups local MCP calls into latency bands and reports token
+budget totals plus full/reference counts. It excludes source, file paths, raw
+queries, and session IDs. It reads the existing repository-local observability
+log; it does not upload data or create a dashboard. Retention follows
+`observability.retentionDays` (three days by default); reset is explicit and
+only clears that repository's local event log.
+
+## Explicit Bookmarks
+
+Save only a symbol reference the caller explicitly chooses:
+
+```bash
+astrograph bookmark-add --repo /abs/repo --symbol <symbol-id> --intent refactor --note "optional"
+astrograph bookmark-list --repo /abs/repo
+astrograph bookmark-resolve --repo /abs/repo --id <bookmark-id>
+astrograph bookmark-remove --repo /abs/repo --id <bookmark-id>
+```
+
+Bookmarks are inspectable repository-local JSON records containing an intent,
+symbol identity, optional note, and creation time. Resolution returns only
+`available` or `missing`; renamed or deleted symbols are safely missing. There
+is no automatic bookmark creation, transcript capture, embedding, or
+cross-repository lookup.
+
 ## MCP Output Budget
 
 `bench:mcp-envelopes` creates and removes its own deterministic two-file
@@ -71,11 +105,19 @@ The broader [AGC1 compact-output baseline](../reviews/agc1-compact-output-baseli
 uses four representative fixtures and protects the current serving contract
 without introducing a new wire format.
 
-The same command now emits `schemaVersion: 2` trace data. Each fixture has a
-one-shot exploration trace and a repeated symbol/context-read trace. The
-summary contains only fixture/trace IDs and aggregate measurements; omit
-`--summary` only when inspecting per-capture hashes and timings locally. These
-traces are decision evidence for session-aware work, not a new MCP feature.
+The same command emits `schemaVersion: 3` trace data. Each fixture has a
+one-shot exploration trace and a repeated symbol/context-read trace. It runs
+against an isolated daemon, so an older globally installed Astrograph does not
+contaminate the result. The summary contains only fixture/trace IDs and
+aggregate measurements; omit `--summary` only when inspecting per-capture
+hashes and timings locally.
+
+With an explicit `content-references-v1` session, a known exact response is
+returned as an opaque reference and otherwise falls back to full JSON. On the
+recorded four-fixture corpus (2026-07-26), each repeat-read trace contained two
+references, all 16 AGC1-eligible round trips recovered exactly, and references
+saved 6,812 of 24,614 canonical JSON `cl100k_base` tokens (27.7%). These traces
+are decision evidence for session-aware work, not a new compact wire format.
 
 ## What Actually Moves Performance
 
@@ -221,6 +263,20 @@ Retained engine event payloads are privacy-safe by default.
   redacted before being written to `events.jsonl`
 - obvious secret-shaped tokens are scrubbed even when source-text redaction is
   disabled locally
+
+For MCP output, normal source truth remains the default. Teams may opt into
+the deliberately narrow, lossy policy below when their output boundary needs
+it:
+
+```json
+{
+  "outputPrivacy": { "redactSecretLikeValues": true }
+}
+```
+
+It replaces only known secret-like token patterns with `[REDACTED:secret]` and
+adds `meta.warnings: ["output_redacted_secret_like_values"]` whenever it
+transforms a response. It is not a general secret detector.
 
 ## Storage and Hashing Constraints
 

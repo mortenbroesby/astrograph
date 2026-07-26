@@ -78,6 +78,13 @@ router, hidden tool selection, or compatibility alias layer.
   or artifact; a parsed file required source analysis; a removed file was no
   longer indexable. `indexedFiles` remains the count of index rows written,
   and none of these counts override `staleStatus` or diagnostics.
+- `outputPrivacy.redactSecretLikeValues` is an off-by-default repository
+  configuration for teams that need a narrow, lossy MCP-output boundary. When
+  it transforms a known secret-like string, Astrograph replaces it with
+  `[REDACTED:secret]` and adds
+  `meta.warnings: ["output_redacted_secret_like_values"]`. It does not claim
+  complete secret detection; omitted configuration preserves the ordinary
+  source contract.
 - Results must be bounded by config limits or explicit options.
 - Diagnostic and readiness state must distinguish `fresh`, `stale`, and `unknown`.
 - Source-returning tools should support exact source verification where applicable.
@@ -333,6 +340,10 @@ production tokenizer. A request that cannot fit its own envelope fails rather
 than returning an over-budget result. Explicit symbol anchors are selected
 before lexical matches, followed by enabled relations. Every omitted candidate
 is counted with a deterministic exclusion reason.
+
+This is Astrograph's bounded task dossier. It intentionally reuses the existing
+tool instead of adding a second composition API: callers can reproduce the
+selection from the declared query, anchors, relation flags, intent, and budget.
 
 ## Contract Versioning
 
