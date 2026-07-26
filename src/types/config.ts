@@ -97,6 +97,10 @@ export interface RepoObservabilityConfig {
   redactSourceText?: boolean;
 }
 
+export interface RepoOutputPrivacyConfig {
+  redactSecretLikeValues?: boolean;
+}
+
 export interface RepoPerformanceConfig {
   include?: string[];
   exclude?: string[];
@@ -133,6 +137,7 @@ export interface RepoEngineConfig {
   storageMode?: StorageMode;
   storageLocation?: StorageLocation;
   observability?: RepoObservabilityConfig;
+  outputPrivacy?: RepoOutputPrivacyConfig;
   performance?: RepoPerformanceConfig;
   ranking?: RepoRankingConfig;
   watch?: RepoWatchConfig;
@@ -154,6 +159,10 @@ export interface GlobalEngineConfig {
 export interface ResolvedObservabilityConfig {
   retentionDays: number;
   redactSourceText: boolean;
+}
+
+export interface ResolvedOutputPrivacyConfig {
+  redactSecretLikeValues: boolean;
 }
 
 export interface ResolvedPerformanceConfig {
@@ -193,6 +202,7 @@ export interface ResolvedRepoEngineConfig {
   storageMode: StorageMode;
   storageLocation: StorageLocation;
   observability: ResolvedObservabilityConfig;
+  outputPrivacy: ResolvedOutputPrivacyConfig;
   performance: ResolvedPerformanceConfig;
   ranking: ResolvedRankingConfig;
   watch: ResolvedWatchConfig;

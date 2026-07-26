@@ -25,6 +25,8 @@ import { registerRuntimePresence } from "./runtime-presence.ts";
 import { executeDaemonCommand } from "./daemon-client.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
 import { disposeTokenizer } from "./tokenizer.ts";
+import { loadRepoEngineConfig } from "./config.ts";
+import { redactSecretLikeValue } from "./privacy.ts";
 import { MCP_SESSION_CAPABILITY, mcpContentReferenceStore, parseMcpSession } from "./mcp-session.ts";
 
 const logger = getLogger({ component: "mcp" });
@@ -469,6 +471,13 @@ export async function dispatchTool(
         envelope.data = null;
       }
     }
+    if (repoRoot && (await loadRepoEngineConfig(repoRoot)).outputPrivacy.redactSecretLikeValues) {
+      const redacted = redactSecretLikeValue(envelope.data);
+      if (redacted.redacted) {
+        envelope.data = redacted.value;
+        envelope.meta.warnings = ["output_redacted_secret_like_values"];
+      }
+    }
     logger.debug({
       event: "tool_call_finish",
       toolName: name,
@@ -484,6 +493,8 @@ export async function dispatchTool(
         data: {
           toolName: name,
           durationMs: Date.now() - startedAt,
+          tokenBudgetUsed: envelope.meta.tokenBudgetUsed,
+          responseRepresentation: envelope.meta.contentReference?.representation ?? "full",
         },
       });
     }

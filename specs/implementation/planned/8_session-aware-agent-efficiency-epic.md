@@ -109,7 +109,8 @@ source; and all successful references bind to source identity/version.
 
 ## Story 3: Optional exact delta responses
 
-**Status:** Active — execute through the [delivery checklist](../active/session-exact-reference-delta-delivery-checklist.md).
+**Status:** Complete — exact references were selected over a general patch
+format; see the [consolidated delivery checklist](../active/session-aware-epic-completion-delivery-checklist.md).
 
 **Outcome:** Repeat reads can return a smaller lossless patch only when both
 client and server prove they share the same base response.
@@ -125,7 +126,16 @@ canonical responses for changed, unchanged, reordered, truncated, stale,
 malformed, and unknown-base cases. Benchmark results satisfy the selection
 rules and show the complete fallback cost.
 
+**Evidence (2026-07-26):** The four-fixture, 32-capture benchmark produced two
+exact references in each repeat-read trace, preserved all 16 eligible AGC1
+round trips, and reduced delivered JSON by 6,812 of 24,614 canonical
+`cl100k_base` tokens (27.7%). Exact references retain the existing full
+fallback, so no general patch representation is justified.
+
 ## Story 4: Bounded task dossier composition
+
+**Status:** Complete by audit — the existing `get_task_context` is the bounded
+composition surface; no duplicate dossier tool was added.
 
 **Outcome:** An agent can request a deterministic dossier—definition, selected
 callers/importers/tests, and provenance—only when that is demonstrably better
@@ -141,7 +151,15 @@ budget improvement versus the best current tool composition. Every omitted
 item has a deterministic explanation, and a user can reproduce the dossier
 from its declared inputs.
 
+**Audit evidence (2026-07-26):** `get_task_context` already has explicit
+anchors/queries, the four requested intents, deterministic anchor/match/relation
+ordering, a token budget, exclusions, and source provenance. The existing
+engine behavior suite pins all four intents plus bounded, attributed selection.
+It is therefore the minimum composition surface.
+
 ## Story 5: Privacy-safe efficiency report
+
+**Status:** Complete — explicit local JSON aggregate report only.
 
 **Outcome:** Developers can see whether Astrograph is saving context in a
 useful way without collecting their source or agent conversations.
@@ -157,6 +175,8 @@ queries. Documentation states retention, reset, and privacy boundaries.
 
 ## Story 6: Explicit cross-session bookmarks
 
+**Status:** Complete — explicit repository-local symbol bookmarks only.
+
 **Outcome:** A user or agent may intentionally save a small set of task/symbol
 references for a later session without hidden transcript mining.
 
@@ -170,6 +190,9 @@ improvement; stale/renamed/deleted source resolves safely; the user can inspect
 and delete every saved record; and no bookmark is created implicitly.
 
 ## Story 7: Configurable privacy-output policy
+
+**Status:** Complete — narrow deterministic redaction is off by default and
+explicitly marked when applied.
 
 **Outcome:** Teams with stricter output rules can opt into a predictable local
 policy without silently altering source truth for everyone else.

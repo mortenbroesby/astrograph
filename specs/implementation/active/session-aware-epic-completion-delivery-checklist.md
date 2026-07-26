@@ -24,52 +24,83 @@ unless a concrete implementation step proves native facilities insufficient.
 `tests/compact-output-traces.test.ts`, `docs/guides/performance.md`,
 `specs/implementation/planned/8_session-aware-agent-efficiency-epic.md`
 
-- [ ] Measure full versus reference-only repeated reads on all four fixtures.
-- [ ] Prove exact reconstruction plus full fallback for changed, malformed,
+- [x] Measure full versus reference-only repeated reads on all four fixtures.
+- [x] Prove exact reconstruction plus full fallback for changed, malformed,
   unknown, and error cases.
-- [ ] Record whether a general patch format is justified; do not add one unless
+- [x] Record whether a general patch format is justified; do not add one unless
   the benchmark beats exact-reference reuse materially.
+
+**Result (2026-07-26):** `pnpm bench:agc1-compact-output -- --summary`
+emitted 32 captures: every repeat-read trace returned two exact references,
+all 16 AGC1-eligible reconstructions were exact, and references saved 6,812 of
+24,614 canonical JSON `cl100k_base` tokens (27.7%). Existing malformed,
+unknown, changed, and error fallback tests remain the contract. A general patch
+format is not selected: exact content identity already exceeds the selection
+rule without another client-side reconstruction format.
 
 ## Task 2: Story 4 dossier audit and minimum composition surface
 
 **Files:** `src/command-registry.ts`, `src/mcp-contract.ts`, `src/mcp.ts`,
 `src/index.ts`, `tests/*task-context*.test.ts`, `specs/api-design/mcp-tools.md`
 
-- [ ] Compare the best existing composition (`get_task_context`, symbol source,
+- [x] Compare the best existing composition (`get_task_context`, symbol source,
   search, outline/tree) against pinned exploration/refactor/debug tasks.
-- [ ] Add one deterministic budgeted dossier only if that audit proves a gap;
+- [x] Add one deterministic budgeted dossier only if that audit proves a gap;
   otherwise document existing composition as the delivered outcome.
-- [ ] Preserve provenance, token accounting, and deterministic exclusions.
+- [x] Preserve provenance, token accounting, and deterministic exclusions.
+
+**Audit result (2026-07-26):** No additional dossier tool is justified.
+`get_task_context` already accepts explicit anchors or a query, covers explore,
+debug, refactor, and audit intents, orders anchors/matches/relations
+deterministically, bounds the payload, reports exclusions, and attaches exact
+source provenance. `tests/engine-behavior.test.ts` pins those four intent
+paths, source attribution, relation selection, and budget behavior. Adding a
+second composition API would only duplicate the existing contract.
 
 ## Task 3: Story 5 opt-in local efficiency report
 
 **Files:** existing event/token telemetry seam, CLI surface, focused tests,
 `docs/guides/performance.md`
 
-- [ ] Add a JSON-first, opt-in aggregate report with operation class, token
+- [x] Add a JSON-first, opt-in aggregate report with operation class, token
   totals, reference/full fallback counts, and latency bands.
-- [ ] Guarantee no source, prompt, path, raw query, or session ID is emitted.
-- [ ] Document retention/reset; do not build a dashboard.
+- [x] Guarantee no source, prompt, path, raw query, or session ID is emitted.
+- [x] Document retention/reset; do not build a dashboard.
+
+**Delivered (2026-07-26):** `astrograph efficiency-report --repo /abs/repo`
+is an explicit JSON-only read of retained local MCP completion aggregates.
+`--reset --yes` is the explicit repository-local reset. The report has no
+source, prompt, path, query, or session fields.
 
 ## Task 4: Story 6 explicit repository-local bookmarks
 
 **Files:** bookmark storage/API/CLI implementation and focused tests,
 `specs/api-design/`, `docs/`
 
-- [ ] Add inspectable, explicitly created/deleted references to stable source
+- [x] Add inspectable, explicitly created/deleted references to stable source
   identities and optional user notes.
-- [ ] Safely resolve stale, renamed, and deleted sources.
-- [ ] Do not create automatic memories, embeddings, or cross-repository search.
+- [x] Safely resolve stale, renamed, and deleted sources.
+- [x] Do not create automatic memories, embeddings, or cross-repository search.
+
+**Delivered (2026-07-26):** `bookmark-add`, `bookmark-list`,
+`bookmark-resolve`, and `bookmark-remove` persist only explicit repository-local
+symbol IDs, intent, optional note, and creation time. Resolve is source-free
+and reports renamed/deleted/stale identities as `missing`.
 
 ## Task 5: Story 7 opt-in privacy-output policy
 
 **Files:** output-policy module/config, focused fixtures/tests,
 `specs/api-design/`, docs
 
-- [ ] Write and test narrow deterministic redaction patterns with explicit
+- [x] Write and test narrow deterministic redaction patterns with explicit
   transformed/withheld markers.
-- [ ] Keep the policy off by default and the normal source contract intact.
-- [ ] Do not claim complete secret detection or add ML/crypto packages.
+- [x] Keep the policy off by default and the normal source contract intact.
+- [x] Do not claim complete secret detection or add ML/crypto packages.
+
+**Delivered (2026-07-26):** `outputPrivacy.redactSecretLikeValues` is off by
+default. When explicitly enabled, known secret-like strings are replaced with
+`[REDACTED:secret]` and the MCP response has an explicit warning. It is narrow,
+deterministic, and not a claim of complete secret detection.
 
 ## Final verification
 

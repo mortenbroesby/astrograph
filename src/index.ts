@@ -66,6 +66,10 @@ export {
   emitEngineEvent,
   readRecentEngineEvents,
 } from "./event-sink.ts";
+export { getEfficiencyReport, resetEfficiencyReport } from "./efficiency-report.ts";
+export type { EfficiencyReport } from "./efficiency-report.ts";
+export { createBookmark, deleteBookmark, listBookmarks, resolveBookmark } from "./bookmarks.ts";
+export type { Bookmark } from "./bookmarks.ts";
 export {
   COMPACT_MCP_AUTO_MIN_SAVED_PERCENT,
   COMPACT_MCP_AUTO_MIN_SAVED_TOKENS,

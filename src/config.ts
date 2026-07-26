@@ -98,6 +98,9 @@ const repoObservabilityConfigSchema = z.object({
   retentionDays: z.number().int().positive().optional(),
   redactSourceText: z.boolean().optional(),
 });
+const repoOutputPrivacyConfigSchema = z.object({
+  redactSecretLikeValues: z.boolean().optional(),
+});
 
 const repoPerformanceConfigSchema = z.object({
   include: z.array(z.string().min(1)).optional(),
@@ -155,6 +158,7 @@ const repoEngineConfigSchema = z.object({
   storageMode: z.enum(["wal"]).optional(),
   storageLocation: z.enum(["repo-local", "global"]).optional(),
   observability: repoObservabilityConfigSchema.optional(),
+  outputPrivacy: repoOutputPrivacyConfigSchema.optional(),
   performance: repoPerformanceConfigSchema.optional(),
   ranking: repoRankingConfigSchema.optional(),
   watch: repoWatchConfigSchema.optional(),
@@ -351,6 +355,7 @@ async function createDefaultResolvedRepoEngineConfig(
       retentionDays: DEFAULT_OBSERVABILITY_RETENTION_DAYS,
       redactSourceText: true,
     },
+    outputPrivacy: { redactSecretLikeValues: false },
     performance: {
       include: [],
       exclude: [],
@@ -424,6 +429,9 @@ function resolveEngineConfigFromParsed(
     observability: {
       retentionDays: data.observability?.retentionDays ?? defaults.observability.retentionDays,
       redactSourceText: data.observability?.redactSourceText ?? defaults.observability.redactSourceText,
+    },
+    outputPrivacy: {
+      redactSecretLikeValues: data.outputPrivacy?.redactSecretLikeValues ?? defaults.outputPrivacy.redactSecretLikeValues,
     },
     performance: {
       include: data.performance?.include ?? defaults.performance.include,
