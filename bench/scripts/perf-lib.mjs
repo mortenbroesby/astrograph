@@ -12,7 +12,6 @@ import {
   diagnostics,
   getFileTree,
   getRepoOutline,
-  getTaskContext,
   indexFile,
   indexFolder,
   queryCode,
@@ -228,14 +227,14 @@ export async function measureQueryLatency(repoRoot, runs) {
   await indexFolder({ repoRoot });
 
   const discoverSamples = [];
-  const assembleSamples = [];
+  const sourceSamples = [];
   const queries = ["Greeter", "area", "formatLabel"];
 
   for (let run = 0; run < runs; run += 1) {
     const query = queries[run % queries.length];
 
     const discoverStartedAt = performance.now();
-    await queryCode({
+    const discovered = await queryCode({
       repoRoot,
       query,
       intent: "discover",
@@ -243,21 +242,26 @@ export async function measureQueryLatency(repoRoot, runs) {
     });
     discoverSamples.push(performance.now() - discoverStartedAt);
 
-    const assembleStartedAt = performance.now();
-    await getTaskContext({
+    const symbolId = discovered.symbolMatches[0]?.id;
+    if (!symbolId) {
+      throw new Error(`Expected discovery to find a symbol for ${query}`);
+    }
+    const sourceStartedAt = performance.now();
+    await queryCode({
       repoRoot,
-      query,
-      intent: "explore",
-      payloadTokenBudget: 180,
+      intent: "source",
+      symbolIds: [symbolId],
+      contextLines: 1,
+      verify: true,
     });
-    assembleSamples.push(performance.now() - assembleStartedAt);
+    sourceSamples.push(performance.now() - sourceStartedAt);
   }
 
   return {
     queryCodeDiscoverP50Ms: round(percentile(discoverSamples, 0.5)),
     queryCodeDiscoverP95Ms: round(percentile(discoverSamples, 0.95)),
-    queryCodeAssembleP50Ms: round(percentile(assembleSamples, 0.5)),
-    queryCodeAssembleP95Ms: round(percentile(assembleSamples, 0.95)),
+    queryCodeSourceP50Ms: round(percentile(sourceSamples, 0.5)),
+    queryCodeSourceP95Ms: round(percentile(sourceSamples, 0.95)),
   };
 }
 
