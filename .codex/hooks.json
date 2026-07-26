@@ -1,0 +1,17 @@
+{
+  "description": "Report the version-bump policy result when a Codex session stops.",
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .agents/hooks.mjs",
+            "timeout": 15,
+            "statusMessage": "Checking version bump..."
+          }
+        ]
+      }
+    ]
+  }
+}

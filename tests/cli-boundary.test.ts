@@ -312,8 +312,8 @@ describe("cli boundaries", () => {
         fallbackRate: 0,
       },
       observability: {
-        enabled: false,
-        status: "disabled",
+        retentionDays: 3,
+        redactSourceText: true,
       },
     });
   }, 45_000);

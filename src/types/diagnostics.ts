@@ -47,11 +47,8 @@ export interface ParserHealthDiagnostics {
 }
 
 export interface DoctorObservabilityHealth {
-  enabled: boolean;
-  configuredHost: string;
-  configuredPort: number;
-  status: "disabled" | "recording";
-  url: string | null;
+  retentionDays: number;
+  redactSourceText: boolean;
 }
 
 export interface DoctorPrivacyHealth {

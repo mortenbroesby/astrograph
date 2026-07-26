@@ -271,8 +271,8 @@ describe("ai-context-engine behavior", () => {
         recommendedAction: expect.stringContaining("index-folder"),
       },
       observability: {
-        enabled: false,
-        status: "disabled",
+        retentionDays: 3,
+        redactSourceText: true,
       },
     });
     expect(result.warnings).toContain(

@@ -38,5 +38,8 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
 6. [Spec System Backlog](./7_spec-system-backlog.md) — lower-impact durable
    architecture/API coverage and authoring consistency.
 
+- [Complexity Cleanup Epic](./complexity-cleanup-epic.md) — completed
+  non-pointer cleanup evidence retained outside the active delivery queue.
+
 The completed [README and Docs Diagram Design](../closed/readme-docs-diagram-design.md)
 record now lives with closed evidence rather than in the delivery queue.

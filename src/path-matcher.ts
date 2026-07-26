@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import picomatch from "picomatch";
 
 export interface PathMatcherConfig {
@@ -11,6 +13,33 @@ export interface PathMatcher {
 
 export function normalizeRepoRelativePath(value: string): string {
   return value.replaceAll("\\", "/").replace(/^\.\//u, "");
+}
+
+export function resolveRepoRelativePath(repoRoot: string, filePath: string) {
+  if (!filePath || filePath.trim().length === 0) {
+    throw new Error("File path is required");
+  }
+
+  const normalizedPath = path.normalize(filePath.replaceAll("\\", path.sep));
+  if (
+    path.isAbsolute(filePath)
+    || normalizedPath === ".."
+    || normalizedPath.startsWith(`..${path.sep}`)
+  ) {
+    throw new Error(`File path escapes repository root: ${filePath}`);
+  }
+
+  const absolutePath = path.resolve(repoRoot, normalizedPath);
+  const relativePath = normalizeRepoRelativePath(path.relative(repoRoot, absolutePath));
+  if (
+    relativePath === ".."
+    || relativePath.startsWith("../")
+    || path.isAbsolute(relativePath)
+  ) {
+    throw new Error(`File path escapes repository root: ${filePath}`);
+  }
+
+  return { absolutePath, relativePath };
 }
 
 function normalizePathForMatch(value: string): string {

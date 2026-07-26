@@ -95,12 +95,7 @@ Controls local event retention and redaction.
 
 Available fields:
 
-- `enabled`
-- `host`
-- `port`
-- `recentLimit`
 - `retentionDays`
-- `snapshotIntervalMs`
 - `redactSourceText`
 
 The most important setting for most users is `redactSourceText`, which defaults

@@ -204,8 +204,6 @@ Retained engine event payloads are privacy-safe by default.
 - `observability.retentionDays` defaults to `3`
 - source-like fields such as `source`, `content`, `preview`, and `text` are
   redacted before being written to `events.jsonl`
-- MCP token savings use `tokenx` as the default guestimate path and rerun every
-  tenth matching tool event through `cl100k_base` for an exact comparison sample
 - obvious secret-shaped tokens are scrubbed even when source-text redaction is
   disabled locally
 

@@ -375,7 +375,7 @@ function formatDoctorReport(result: Awaited<ReturnType<typeof engine.doctor>>): 
     `Drift: missing ${result.freshness.missingFiles}, changed ${result.freshness.changedFiles}, extra ${result.freshness.extraFiles}`,
     `Age: ${formatAge(result.freshness.indexAgeMs)}`,
     `Parser: fallback ${formatPercent(result.parser.fallbackRate)} (${result.parser.fallbackFileCount}/${result.parser.indexedFileCount}), unknown ${result.parser.unknownFileCount}`,
-    `Observability: ${result.observability.status}${result.observability.url ? ` (${result.observability.url})` : ""}`,
+    `Observability: retain ${result.observability.retentionDays} day(s); source redaction ${result.observability.redactSourceText ? "enabled" : "disabled"}`,
     `Privacy: secret-like files ${result.privacy.secretLikeFileCount}`,
     `Watch: ${result.watch.status}`,
   ];
