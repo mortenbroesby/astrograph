@@ -50,9 +50,6 @@ importers:
       piscina:
         specifier: ^5.1.4
         version: 5.1.4
-      rxjs:
-        specifier: ^7.8.2
-        version: 7.8.2
       semver:
         specifier: 7.8.5
         version: 7.8.5
@@ -3638,9 +3635,6 @@ packages:
   rxjs@6.6.7:
     resolution: {integrity: sha512-hTdwr+7yYNIT5n4AMYp85KA6yw2Va0FLa3Rguvbpa4W3I5xynaBZo41cM3XM+4Q6fRMj3sBYIR1VAmZMXYJvRQ==}
     engines: {npm: '>=2.0.0'}
-
-  rxjs@7.8.2:
-    resolution: {integrity: sha512-dhKf903U/PQZY6boNNtAGdWbG85WAbjT/1xYoZIC7FAY0yWapOBQVsVrDl58W86//e1VpMNBtRV4MaXfdMySFA==}
 
   safe-buffer@5.1.2:
     resolution: {integrity: sha512-Gd2UZBJDkXlY7GbJxfsE8/nvKkUEU1G38c1siN6QP6a9PT9MmHB8GnpscSmMJSoF8LOIrt8ud/wPtojys4G6+g==}
@@ -8119,10 +8113,6 @@ snapshots:
     dependencies:
       tslib: 1.14.1
 
-  rxjs@7.8.2:
-    dependencies:
-      tslib: 2.8.1
-
   safe-buffer@5.1.2: {}
 
   safe-buffer@5.2.1: {}
@@ -8718,7 +8708,8 @@ snapshots:
 
   tslib@1.14.1: {}
 
-  tslib@2.8.1: {}
+  tslib@2.8.1:
+    optional: true
 
   tsx@4.23.1:
     dependencies:
