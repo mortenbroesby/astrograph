@@ -14,7 +14,7 @@ describe("astrograph perf scripts", () => {
       "node",
       [
         "--experimental-strip-types",
-        "./scripts/perf.mjs",
+        "./bench/scripts/perf.mjs",
         "--repo",
         repoRoot,
         "--runs",

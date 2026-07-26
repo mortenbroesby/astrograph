@@ -24,7 +24,6 @@ Use the benchmark commands before changing code or dependencies:
 pnpm --filter astrograph bench:perf -- --repo /abs/repo --runs 10
 pnpm --filter astrograph bench:perf:index -- --repo /abs/repo
 pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
-pnpm --filter astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
 pnpm --filter astrograph bench:freshness-lifecycle
 pnpm --filter astrograph bench:mcp-envelopes
 pnpm bench:agc1-compact-output -- --summary
@@ -36,7 +35,7 @@ Those cover the main performance surfaces:
 - warm noop refresh
 - warm changed-file refresh
 - `query_code` latency
-- serialization gates
+- MCP envelope and compact-output serialization gates
 - complete agent-visible MCP v1 envelope bytes, `cl100k_base` tokens, and
   compact-output round trips on a deterministic fixture
 - the four-fixture AGC1 compact-output baseline: real serving serialization,
