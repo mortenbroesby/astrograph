@@ -49,6 +49,26 @@ router, hidden tool selection, or compatibility alias layer.
   `agc1` JSON array. `"auto"` selects it only when it saves at least 20
   `cl100k_base` tokens and 25% of the ordinary serialized JSON response;
   otherwise it returns JSON. All other tools remain JSON-only.
+- Every tool also accepts an optional, explicit session capability:
+
+  ```ts
+  {
+    session: {
+      capability: "content-references-v1",
+      id: "opaque-client-session-id",
+      knownContentIds?: ["sha256:<canonical-envelope-hash>"]
+    }
+  }
+  ```
+
+  The opaque ID is client-generated and only valid for the current
+  Astrograph process. When supplied, a successful JSON envelope adds
+  `meta.contentReference` with a SHA-256 ID, `representation: "full"`, and a
+  reason of `"new_content"` or `"known_content_no_delta_support"`. The
+  complete ordinary JSON envelope is always returned; this contract has no
+  delta transport, source persistence, transcript storage, or cross-process
+  session recovery. Session-enabled calls use JSON even if `format` requests
+  compact output. Omitted sessions preserve the exact existing envelope.
 - `index_folder` and `index_file` return additive aggregate lifecycle counts:
   `reusedFiles`, `parsedFiles`, and `removedFiles`. They reveal no paths or
   source content. A reused file avoided source analysis through an indexed row

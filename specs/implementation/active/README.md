@@ -33,6 +33,9 @@ new work complements rather than duplicates existing plans.
 7. [Session-Aware Repeat-Read Trace Delivery Checklist](./session-aware-repeat-read-trace-delivery-checklist.md)
    — selected by the user: establish the measured baseline before deciding
    whether any session-aware agent-efficiency feature should exist.
+8. [Session Content-Reference Contract Delivery Checklist](./session-content-reference-contract-delivery-checklist.md)
+   — selected by the user: add bounded, capability-gated full-response content
+   references before considering any delta transport.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the
