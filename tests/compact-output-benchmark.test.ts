@@ -4,6 +4,7 @@ import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
   aliasSymbolsAgc2Codec,
+  directoryTreeAgc2Codec,
   prefixLegendAgc2Codec,
   genericRowsAgc2Codec,
   typedRowsAgc2Codec,
@@ -153,6 +154,17 @@ describe("compact output benchmark candidates", () => {
     expect(measureCompactCandidate(aliasSymbolsAgc2Codec, "search_symbols", incompatible).rejectionReason).toBe("unsupported_shape");
   });
 
+  it("interns repeated tree directories and languages without changing rows", () => {
+    const repeatedTree: McpEnvelope<unknown> = {
+      ...treeEnvelope,
+      data: Array.from({ length: 12 }, (_, index) => ({ path: `src/features/feature-${index}.ts`, language: "ts", symbolCount: 1 })),
+    };
+    const measurement = measureCompactCandidate(directoryTreeAgc2Codec, "get_file_tree", repeatedTree);
+    expect(measurement.rejectionReason).toBeNull();
+    expect(measurement.decoded).toEqual(repeatedTree);
+    expect(() => directoryTreeAgc2Codec.decode(["agc2d", ["src/"], ["ts"], [[5, "a.ts", 0, 1]], ["1", 1, "fresh"]])).toThrow("Invalid directory-tree row");
+  });
+
   it("rejects malformed headers, legends, rows, tags, and generic producer shapes", () => {
     const malformed: Array<() => unknown> = [
       () => schemaRowsAgc2Codec.decode(["agc2s", "missing/9", [], ["1", 0, "fresh"]]),
@@ -160,6 +172,7 @@ describe("compact output benchmark candidates", () => {
       () => typedRowsAgc2Codec.decode(["agc2t", "text/3", ["squoted \\\"value\\\"\tbad-tag\tsline\\nnext"], ["1", 0, "fresh"]]),
       () => genericRowsAgc2Codec.decode(["agc2g", "find_files", ["path"], [["src/a.ts", "unexpected"]], ["1", 0, "fresh"]]),
       () => aliasSymbolsAgc2Codec.decode(["agc2a", 1, "src/", ["function"], ["signature"], [["id"]], false, [], {}, ["1", 0, "fresh"]]),
+      () => directoryTreeAgc2Codec.decode(["agc2d", [], [], [[0, "a.ts", 0, 1]], ["1", 0, "fresh"]]),
     ];
     for (const decode of malformed) expect(decode).toThrow();
   });

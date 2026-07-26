@@ -21,11 +21,13 @@ requirement for any auto-selected response.
 | Typed rows | Regressed comparable captures | Fail |
 | Generic homogeneous rows | Regressed comparable captures | Fail |
 | Alias-symbol table | 455 / 1,497 tokens saved (30.39%) across 2 broad symbol captures; deliberately refused every other shape | Not a full replacement |
+| Directory-tree table | 760 / 2,654 tokens saved (28.64%) across 2 broad tree captures; deliberately refused every other shape | Not a full replacement |
 
 All candidates round-trip their declared shapes and reject malformed input in
 the decoder matrix. Losslessness alone is insufficient: none proves the
 required materially better token outcome on the complete representative corpus.
 The alias-symbol result is preserved in its [focused research review](./agc2-alias-symbols-research-2026-07-26.md).
+The matching directory-table result is preserved in its [focused research review](./agc2-directory-tree-research-2026-07-26.md).
 
 ## Reproduction
 

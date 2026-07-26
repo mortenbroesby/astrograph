@@ -5,6 +5,7 @@ import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
   aliasSymbolsAgc2Codec,
+  directoryTreeAgc2Codec,
   prefixLegendAgc2Codec,
   genericRowsAgc2Codec,
   schemaRowsAgc2Codec,
@@ -190,6 +191,7 @@ try {
       const typedRows = measureCompactCandidate(typedRowsAgc2Codec, queryCase.toolName, envelope);
       const genericRows = measureCompactCandidate(genericRowsAgc2Codec, queryCase.toolName, envelope);
       const aliasSymbols = measureCompactCandidate(aliasSymbolsAgc2Codec, queryCase.toolName, envelope);
+      const directoryTree = measureCompactCandidate(directoryTreeAgc2Codec, queryCase.toolName, envelope);
       records.push({
         fixture: fixtureName,
         query: queryCase.id,
@@ -205,6 +207,7 @@ try {
         agc2TypedRows: typedRows,
         agc2GenericRows: genericRows,
         agc2AliasSymbols: aliasSymbols,
+        agc2DirectoryTree: directoryTree,
         selectedOutcome: "research_only_no_serving_selection",
       });
     }
@@ -227,6 +230,7 @@ const report = {
     agc2TypedRows: summarize(records, "agc2TypedRows"),
     agc2GenericRows: summarize(records, "agc2GenericRows"),
     agc2AliasSymbols: summarize(records, "agc2AliasSymbols"),
+    agc2DirectoryTree: summarize(records, "agc2DirectoryTree"),
     agc1ServingBaselineIntegrity: summarizeServingAgc1Integrity(records),
     agc2PackedRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2PackedRows"),
     agc2SchemaRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2SchemaRows"),
@@ -234,6 +238,7 @@ const report = {
     agc2TypedRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2TypedRows"),
     agc2GenericRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2GenericRows"),
     agc2AliasSymbolsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2AliasSymbols"),
+    agc2DirectoryTreeVsAgc1: compareMeasurements(records, "agc1Serving", "agc2DirectoryTree"),
   },
   selection: "No production codec is selected by the Story 3 harness.",
 };

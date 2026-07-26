@@ -403,9 +403,62 @@ export const aliasSymbolsAgc2Codec: CompactCandidateCodec = {
   decode: decodeAliasSymbolsAgc2,
 };
 
+const DIRECTORY_TREE_VERSION = "agc2d";
+
+/** Candidate G: lossless tree rows with interned directories and languages. */
+export function encodeDirectoryTreeAgc2(
+  toolName: CompactCandidateToolName,
+  envelope: McpResponseEnvelope<unknown>,
+): unknown[] | null {
+  if (toolName !== "get_file_tree" || !Array.isArray(envelope.data) || envelope.data.length === 0) return null;
+  const entries = envelope.data as Array<Record<string, unknown>>;
+  if (!entries.every((entry) => typeof entry.path === "string" && typeof entry.language === "string" && typeof entry.symbolCount === "number" && Number.isFinite(entry.symbolCount))) return null;
+  const directories = [...new Set(entries.map((entry) => directoryOf(entry.path as string)))];
+  const languages = [...new Set(entries.map((entry) => entry.language as string))];
+  const encoded: unknown[] = [
+    DIRECTORY_TREE_VERSION,
+    directories,
+    languages,
+    entries.map((entry) => {
+      const path = entry.path as string;
+      const directory = directoryOf(path);
+      return [directories.indexOf(directory), path.slice(directory.length), languages.indexOf(entry.language as string), entry.symbolCount];
+    }),
+    [envelope.meta.toolVersion, envelope.meta.tokenBudgetUsed, envelope.meta.dataFreshness],
+  ];
+  const agc1 = encodeFrozenAgc1Reference(toolName, envelope);
+  return agc1 && countTokens(JSON.stringify(encoded)) < countTokens(JSON.stringify(agc1)) ? encoded : null;
+}
+
+export function decodeDirectoryTreeAgc2(value: unknown): McpResponseEnvelope<unknown> {
+  if (!Array.isArray(value) || value.length !== 5 || value[0] !== DIRECTORY_TREE_VERSION) throw new Error("Invalid directory-tree header");
+  const [, directories, languages, rows, meta] = value;
+  if (!Array.isArray(directories) || !directories.every((directory) => typeof directory === "string") || !Array.isArray(languages) || !languages.every((language) => typeof language === "string") || !Array.isArray(rows) || !Array.isArray(meta) || meta.length !== 3) throw new Error("Invalid directory-tree schema");
+  const [toolVersion, tokenBudgetUsed, dataFreshness] = meta;
+  if (toolVersion !== "1" || (tokenBudgetUsed !== null && (typeof tokenBudgetUsed !== "number" || !Number.isFinite(tokenBudgetUsed))) || (dataFreshness !== "fresh" && dataFreshness !== "stale" && dataFreshness !== "unknown")) throw new Error("Invalid directory-tree metadata");
+  const data = rows.map((row) => {
+    if (!Array.isArray(row) || row.length !== 4) throw new Error("Invalid directory-tree row");
+    const [directoryIndex, basename, languageIndex, symbolCount] = row;
+    if (!Number.isInteger(directoryIndex) || directoryIndex < 0 || directoryIndex >= directories.length || typeof basename !== "string" || !Number.isInteger(languageIndex) || languageIndex < 0 || languageIndex >= languages.length || typeof symbolCount !== "number" || !Number.isFinite(symbolCount)) throw new Error("Invalid directory-tree row");
+    return { path: `${directories[directoryIndex]}${basename}`, language: languages[languageIndex], symbolCount };
+  });
+  return { ok: true, data, meta: { toolVersion, tokenBudgetUsed, dataFreshness } };
+}
+
+export const directoryTreeAgc2Codec: CompactCandidateCodec = {
+  id: "agc2-directory-tree",
+  encode: encodeDirectoryTreeAgc2,
+  decode: decodeDirectoryTreeAgc2,
+};
+
 function sameColumns(row: Record<string, unknown>, columns: string[]): boolean {
   const keys = Object.keys(row).sort();
   return keys.length === columns.length && keys.every((key, index) => key === columns[index]);
+}
+
+function directoryOf(path: string): string {
+  const slash = path.lastIndexOf("/");
+  return slash === -1 ? "" : path.slice(0, slash + 1);
 }
 
 function isGenericScalar(value: unknown): value is string | number | boolean | null {
