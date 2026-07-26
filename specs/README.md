@@ -23,13 +23,15 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 
 ### [Implementation](./implementation/README.md)
 
-Executable implementation queues, planned work, closed evidence, and internal
+Current implementation focuses, planned work, closed evidence, and internal
 subsystem references.
 
-- [Active Work](./implementation/active/README.md) - The selected delivery queue, currently the Token-Efficient Agent Output end-cap after the merged Incremental Freshness Lifecycle delivery.
+- [Active Work](./implementation/active/README.md) - Current implementation
+  focuses and their detailed delivery checklists.
 - [Delivery Roadmap](./implementation/roadmap.md) - One-page view of active,
   ready, parked, descoped, idea, and completed implementation work.
-- [Planned Work](./implementation/planned/README.md) - Approved work that is not yet selected for delivery.
+- [Planned Work](./implementation/planned/README.md) - Approved work that is
+  not currently in focus.
 - [Closed Records](./implementation/closed/README.md) - Completed and superseded implementation evidence.
 - [Standing References](./implementation/README.md#standing-references) - Spec-system, CI cost, and release workflow guidance.
 

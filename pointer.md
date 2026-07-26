@@ -1,20 +1,31 @@
-# Current Codex Goal
+# Current Focus
 
-This tracked file is the single entry point for a bare `/goal` request in the
-Astrograph repository. Read it before choosing work; do not revive a closed or
-deferred story merely because it appears earlier in repository history.
-For the full active/ready/parked/descoped/idea/done map, read the
-[Delivery Roadmap](./specs/implementation/roadmap.md).
+This tracked file is a quick orientation point for work in the Astrograph
+repository. Read it before choosing unspecified work, then use the user's
+request and the [Delivery Roadmap](./specs/implementation/roadmap.md) to set
+scope. It is not an exclusive queue or authorization gate: multiple focuses
+can progress at once, and a clear request can legitimately concern other work.
 
-## Current goal
+Do not revive a closed or deferred story merely because it appears in history;
+use its recorded evidence or selection gate instead.
 
-Execute the active [MCP Runtime Hygiene Delivery
-Checklist](./specs/implementation/active/mcp-runtime-hygiene-delivery-checklist.md),
-making abandoned stdio MCP processes visible and ensuring normal shutdown
-releases process-lifetime resources.
+## Current focuses
 
-## Completion and update rule
+- [Tree-Sitter Polyglot Language Support Delivery
+  Checklist](./specs/implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
+  — expand parser coverage through the documented compatibility and evidence
+  gates.
+- [MCP Runtime Hygiene Delivery
+  Checklist](./specs/implementation/active/mcp-runtime-hygiene-delivery-checklist.md)
+  — finish review/merge evidence for visible stdio MCP processes and clean
+  process-lifetime shutdown.
+- [Comforting Install Experience](./specs/implementation/active/2_comforting-global-install-experience.md)
+  — finish the remaining delivery/PR evidence for understandable global and
+  repository-local setup.
 
-When the selected checklist completes, update this file in the same change to
-name the next selected checklist. If no next story passes its selection gate,
-state that no goal is selected and point to the roadmap rather than guessing.
+## Keeping this useful
+
+Update this summary when the current focus materially changes. Update the
+roadmap and implementation indexes when a work item's status changes, but do
+not require a pointer update for every implementation change or force a
+successor before completing unrelated work.

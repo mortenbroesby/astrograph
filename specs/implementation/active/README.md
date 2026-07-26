@@ -1,18 +1,29 @@
-# Active Implementation Work
+# Current Implementation Focuses
 
-This directory contains selected delivery work. A selected checklist is the
-only authorized implementation queue; completed evidence belongs in
-`../closed/` and deferred candidates belong in `../planned/`.
+This directory contains implementation work currently in focus. Its checklists
+are the authoritative detail for their own scope and verification, but this is
+not an exclusive authorization queue: multiple focuses may proceed at once,
+and a clear user request may concern another roadmap item.
 
-## Current Queue
+Completed evidence belongs in `../closed/`; deferred candidates belong in
+`../planned/`. Check the [Delivery Roadmap](../roadmap.md) and
+[`pointer.md`](../../../pointer.md) before starting unspecified work so that
+new work complements rather than duplicates existing plans.
 
-1. [MCP Runtime Hygiene Delivery Checklist](./mcp-runtime-hygiene-delivery-checklist.md)
+## Current focuses
+
+1. [Tree-Sitter Polyglot Language Support Delivery Checklist](./1_tree-sitter-polyglot-language-support-delivery-checklist.md)
+   — expand parser coverage through the documented compatibility and evidence
+   gates.
+2. [MCP Runtime Hygiene Delivery Checklist](./mcp-runtime-hygiene-delivery-checklist.md)
    — selected by the user: make stdio-server process sprawl visible and ensure
    normal shutdown releases process-lifetime resources.
-2. [Comforting Install Experience](./2_comforting-global-install-experience.md)
+3. [Comforting Install Experience](./2_comforting-global-install-experience.md)
    — make package installation plus global and repository-local client setup
    understandable without hidden configuration writes.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
-descoped, idea, and completed work. Do not select work from those categories
-without updating this queue and `pointer.md` together.
+descoped, idea, and completed work. Update the roadmap, this index, and the
+pointer when a work item's status or the current-focus summary materially
+changes; do not make a mechanical pointer update a prerequisite for a valid
+user-requested change.
