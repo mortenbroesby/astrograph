@@ -2,8 +2,8 @@ import { mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { indexFolder } from "../../src/index.ts";
-import { ASTROGRAPH_PACKAGE_VERSION } from "../../src/version.ts";
+import { indexFolder } from "#astrograph/index";
+import { ASTROGRAPH_PACKAGE_VERSION } from "#astrograph/version";
 
 import { loadBenchmarkCorpus } from "./corpus.ts";
 import {

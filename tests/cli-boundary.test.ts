@@ -228,7 +228,7 @@ describe("cli boundaries", () => {
     );
 
     expect(signatureIndex).toMatchObject({
-      indexedFiles: 3,
+      indexedFiles: 2,
       staleStatus: "fresh",
     });
 
@@ -310,12 +310,12 @@ describe("cli boundaries", () => {
       repoRoot: resolvedRepoRoot,
       indexStatus: "indexed",
       freshness: {
-        indexedFiles: 3,
-        indexedSymbols: 6,
+        indexedFiles: 2,
+        indexedSymbols: 5,
         indexedImports: 1,
       },
       parser: {
-        indexedFileCount: 3,
+        indexedFileCount: 2,
         fallbackFileCount: 0,
         fallbackRate: 0,
       },

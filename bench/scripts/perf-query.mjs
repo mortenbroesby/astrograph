@@ -15,8 +15,8 @@ async function main() {
     runs: result.runs,
     queryCodeDiscoverP50Ms: result.metrics.queryCodeDiscoverP50Ms,
     queryCodeDiscoverP95Ms: result.metrics.queryCodeDiscoverP95Ms,
-    queryCodeAssembleP50Ms: result.metrics.queryCodeAssembleP50Ms,
-    queryCodeAssembleP95Ms: result.metrics.queryCodeAssembleP95Ms,
+    queryCodeSourceP50Ms: result.metrics.queryCodeSourceP50Ms,
+    queryCodeSourceP95Ms: result.metrics.queryCodeSourceP95Ms,
   });
 
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);

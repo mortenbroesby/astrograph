@@ -246,7 +246,7 @@ function resolveAnalyzeFileWorkerOptions(): {
       }
     : {
         filename: sourceAnalyzeFileWorkerEntrypoint,
-        execArgv: ["--experimental-strip-types"],
+        execArgv: ["--import=tsx"],
       };
 }
 
@@ -389,7 +389,7 @@ async function runIndexCommandInChild(
   const args = cliEntrypoint.endsWith(".ts")
     ? [
         "--no-warnings",
-        "--experimental-strip-types",
+        "--import=tsx",
         cliEntrypoint,
         command,
         "--repo",

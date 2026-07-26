@@ -20,10 +20,6 @@ yet.
 
 Use the benchmark commands before changing code or dependencies:
 
-Every `pnpm bench:*` command runs a fresh `pnpm build` first. Do not invoke the
-underlying Node scripts directly when recording evidence: they bypass that
-precondition and may observe stale `dist/` output.
-
 ```bash
 pnpm --filter astrograph bench:perf -- --repo /abs/repo --runs 10
 pnpm --filter astrograph bench:perf:index -- --repo /abs/repo
@@ -223,11 +219,11 @@ Disable it explicitly in `astrograph.config.ts`:
 import { defineConfig } from "astrograph";
 
 export default defineConfig({
-  performance: {
-    workerPool: {
-      enabled: false,
-    },
-  },
+  "performance": {
+    "workerPool": {
+      "enabled": false
+    }
+  }
 });
 ```
 
@@ -237,12 +233,12 @@ To cap concurrency directly:
 import { defineConfig } from "astrograph";
 
 export default defineConfig({
-  performance: {
-    fileProcessingConcurrency: 1,
-    workerPool: {
-      enabled: false,
-    },
-  },
+  "performance": {
+    "fileProcessingConcurrency": 1,
+    "workerPool": {
+      "enabled": false
+    }
+  }
 });
 ```
 

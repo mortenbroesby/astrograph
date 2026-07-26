@@ -5,7 +5,6 @@ export default defineConfig({
     retentionDays: 14,
     redactSourceText: false,
   },
-
   performance: {
     exclude: [
       "node_modules/**",
@@ -14,7 +13,7 @@ export default defineConfig({
       ".git/**",
       ".astrograph/**",
       "pnpm-lock.yaml",
-      "*.lock",
+      "*.lock"
     ],
     fileProcessingConcurrency: "auto",
     workerPool: {
@@ -22,7 +21,6 @@ export default defineConfig({
       maxWorkers: "auto",
     },
   },
-
   limits: {
     maxSymbolResults: 100,
   },

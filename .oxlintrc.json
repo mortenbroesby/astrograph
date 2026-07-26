@@ -1,0 +1,24 @@
+{
+  "overrides": [
+    {
+      "files": [
+        "src/scripts/install.ts",
+        "src/scripts/release-agent.ts",
+        "src/scripts/run-vitest.ts"
+      ],
+      "rules": {
+        "no-restricted-imports": [
+          "error",
+          {
+            "paths": [
+              {
+                "name": "node:child_process",
+                "message": "Use the shared process seam so package scripts retain bounded output and consistent error handling."
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

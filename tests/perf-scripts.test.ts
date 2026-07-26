@@ -13,7 +13,7 @@ describe("astrograph perf scripts", () => {
     const stdout = execFileSync(
       "node",
       [
-        "--experimental-strip-types",
+        "--import=tsx",
         "./bench/scripts/perf.mjs",
         "--repo",
         repoRoot,
@@ -41,8 +41,8 @@ describe("astrograph perf scripts", () => {
     expect(result.query.runs).toBe(3);
     expect(result.query.metrics.queryCodeDiscoverP50Ms).toBeGreaterThanOrEqual(0);
     expect(result.query.metrics.queryCodeDiscoverP95Ms).toBeGreaterThanOrEqual(0);
-    expect(result.query.metrics.queryCodeAssembleP50Ms).toBeGreaterThanOrEqual(0);
-    expect(result.query.metrics.queryCodeAssembleP95Ms).toBeGreaterThanOrEqual(0);
+    expect(result.query.metrics.queryCodeSourceP50Ms).toBeGreaterThanOrEqual(0);
+    expect(result.query.metrics.queryCodeSourceP95Ms).toBeGreaterThanOrEqual(0);
   });
 
 });

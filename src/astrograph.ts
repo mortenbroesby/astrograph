@@ -89,7 +89,7 @@ const child = spawn(
   process.execPath,
   useBuiltTarget
     ? [...nodeArgs, distTarget, ...commandArgs]
-    : [...nodeArgs, "--experimental-strip-types", sourceTarget, ...commandArgs],
+    : [...nodeArgs, "--import=tsx", sourceTarget, ...commandArgs],
   {
     stdio: "inherit",
     env: { ...process.env, ASTROGRAPH_ENTRY_MODE: mode },

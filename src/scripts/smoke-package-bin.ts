@@ -55,6 +55,9 @@ async function run(
 }
 
 async function main(): Promise<void> {
+  const packageManifest = JSON.parse(
+    await readFile(path.join(packageRoot, "package.json"), "utf8"),
+  ) as { packageManager?: string };
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-pack-"));
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
@@ -85,6 +88,7 @@ async function main(): Promise<void> {
       JSON.stringify({
         name: "astrograph-package-smoke",
         private: true,
+        packageManager: packageManifest.packageManager,
       }, null, 2),
     );
 
@@ -128,6 +132,36 @@ async function main(): Promise<void> {
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
+    await run("pnpm", ["add", "-D", "@types/node"], installDir);
+    await writeFile(
+      path.join(installDir, "package-types.ts"),
+      [
+        'import { defineConfig, resolveEnginePaths, type EngineConfig } from "astrograph";',
+        "",
+        "declare const config: EngineConfig;",
+        "resolveEnginePaths(config.repoRoot);",
+        'defineConfig({ storageLocation: "global" });',
+        "",
+      ].join("\n"),
+    );
+    await writeFile(
+      path.join(installDir, "tsconfig.json"),
+      JSON.stringify({
+        compilerOptions: {
+          module: "NodeNext",
+          moduleResolution: "NodeNext",
+          target: "ES2022",
+          strict: true,
+          noEmit: true,
+        },
+        include: ["package-types.ts"],
+      }, null, 2),
+    );
+    await run(
+      process.execPath,
+      [path.join(packageRoot, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.json"],
+      installDir,
+    );
     const { stdout } = await run(
       "pnpm",
       [
@@ -212,6 +246,22 @@ async function main(): Promise<void> {
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);
+    const { stdout: typedConfigOutput } = await run(
+      "pnpm",
+      [
+        "exec",
+        "astrograph",
+        "cli",
+        "index-folder",
+        "--repo",
+        fixtureRepo,
+      ],
+      installDir,
+    );
+    const typedConfigSummary = JSON.parse(typedConfigOutput);
+    if (typedConfigSummary.staleStatus !== "fresh") {
+      throw new Error(`Unexpected typed-config package result: ${typedConfigOutput}`);
+    }
 
     const globalInstall = await run(
       "pnpm",
@@ -282,6 +332,9 @@ async function main(): Promise<void> {
       COPILOT_HOME: globalCopilotHome,
       ASTROGRAPH_CACHE_HOME: globalCacheHome,
     };
+    const expectedGlobalCacheRoot = process.platform === "darwin"
+      ? path.join(globalHome, ".astrograph", "cache")
+      : path.join(globalCacheHome, "astrograph");
     const { stdout: diagnosticsOutput } = await run(
       "pnpm",
       ["exec", "astrograph", "--diagnostics"],
@@ -300,7 +353,7 @@ async function main(): Promise<void> {
       || typeof diagnostics.package.version !== "string"
       || diagnostics.runtime?.supported !== true
       || diagnostics.storage?.location !== "global"
-      || diagnostics.storage.cacheRoot !== path.join(globalCacheHome, "astrograph")
+      || diagnostics.storage.cacheRoot !== expectedGlobalCacheRoot
       || !diagnostics.clients?.some((client) => client.ide === "codex" && client.configured)
       || !diagnostics.clients?.some((client) => client.ide === "copilot-cli" && client.configured)
       || typeof diagnostics.nextStep !== "string"

@@ -48,8 +48,13 @@ export default defineConfig({
 });
 ```
 
-If no TypeScript config is present, Astrograph can still read legacy
-`astrograph.config.json`, but `astrograph.config.ts` is the preferred surface.
+`defineConfig()` provides autocomplete and type checking. Repository configuration
+is executable local code, like other TypeScript tool configuration files.
+
+## JSON Fallback
+
+`astrograph.config.json` remains a fallback only when no TypeScript config is
+present. New projects should use the typed TypeScript file.
 
 ## Top-Level Options
 
@@ -190,10 +195,10 @@ Available fields:
 import { defineConfig } from "astrograph";
 
 export default defineConfig({
-  performance: {
-    include: ["src/**/*.{ts,tsx,js,jsx}"],
-    exclude: ["**/*.test.ts"],
-  },
+  "performance": {
+    "include": ["src/**/*.{ts,tsx,js,jsx}"],
+    "exclude": ["**/*.test.ts"]
+  }
 });
 ```
 
@@ -203,10 +208,10 @@ export default defineConfig({
 import { defineConfig } from "astrograph";
 
 export default defineConfig({
-  watch: {
-    backend: "polling",
-    debounceMs: 150,
-  },
+  "watch": {
+    "backend": "polling",
+    "debounceMs": 150
+  }
 });
 ```
 
@@ -216,10 +221,10 @@ export default defineConfig({
 import { defineConfig } from "astrograph";
 
 export default defineConfig({
-  observability: {
-    retentionDays: 3,
-    redactSourceText: true,
-  },
+  "observability": {
+    "retentionDays": 3,
+    "redactSourceText": true
+  }
 });
 ```
 

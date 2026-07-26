@@ -879,20 +879,12 @@ function resolveManagedInvocation(): ManagedInvocation {
 }
 
 function createMinimalTsConfig(): string {
-  const excludeLines = [
-    "node_modules/**",
-    "dist/**",
-    "coverage/**",
-    ".git/**",
-  ].map((p) => `    "${p}",`).join("\n");
   return [
     "export default {",
     "  performance: {",
-    "    exclude: [",
-    excludeLines,
-    "    ],",
+    '    exclude: ["node_modules/**", "dist/**", "coverage/**", ".git/**"],',
     "  },",
-    "};",
+    '} satisfies import("astrograph").RepoEngineConfig;',
     "",
   ].join("\n");
 }

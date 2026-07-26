@@ -48,7 +48,6 @@ import {
   setupForAllIdes,
   setupForCodex,
   setupForIde,
-  DEFAULT_GUIDED_INSTALL_SCOPE,
   formatGlobalInstallation,
   formatRepositoryInstallation,
   getGlobalInstallationDiagnostics,
@@ -74,10 +73,6 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
-  it("recommends global setup in the guided installer", () => {
-    expect(DEFAULT_GUIDED_INSTALL_SCOPE).toBe("global");
-  });
-
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
 
@@ -457,15 +452,31 @@ describe("ai-context-engine contract", () => {
 
     expect(packageJson.scripts).toMatchObject({
       "profile:index:clinic":
-        "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./bench/scripts/perf-index.mjs",
+        "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --import=tsx ./bench/scripts/perf-index.mjs",
       "profile:query:clinic":
-        "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./bench/scripts/perf-query.mjs",
+        "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --import=tsx ./bench/scripts/perf-query.mjs",
       "profile:index:0x":
-        "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./bench/scripts/perf-index.mjs",
+        "0x --output-dir .profiles/0x/index -- node --import=tsx ./bench/scripts/perf-index.mjs",
       "profile:query:0x":
-        "0x --output-dir .profiles/0x/query -- node --experimental-strip-types ./bench/scripts/perf-query.mjs",
+        "0x --output-dir .profiles/0x/query -- node --import=tsx ./bench/scripts/perf-query.mjs",
     });
     expect(rootGitignore).toContain(".profiles/");
+  });
+
+  it("keeps package paths compiled and reserves tsx for developer source runners", async () => {
+    const packageJson = JSON.parse(
+      await readFile(new URL("../package.json", import.meta.url), "utf8"),
+    ) as { scripts: Record<string, string> };
+
+    expect(Object.values(packageJson.scripts).join("\n")).not.toContain("--experimental-strip-types");
+    expect(packageJson.scripts).toMatchObject({
+      "git-refresh": "node ./dist/scripts/git-smart-refresh.js",
+      "check:version-bump": "node --import=tsx ./src/scripts/check-version-bump.ts",
+      "release:plan": "node ./dist/scripts/release-agent.js",
+      "release:apply": "node ./dist/scripts/release-agent.js --apply",
+      "dev:cli": "node --import=tsx ./src/cli.ts",
+      "dev:mcp": "node --no-warnings --import=tsx ./src/mcp.ts",
+    });
   });
 
   it("enforces Astrograph bump rules with a monotonic alpha increment", () => {
@@ -515,45 +526,15 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.ts"),
-      [
-        "export default {",
-        '  summaryStrategy: "signature-only",',
-        '  storageMode: "wal",',
-        "  ranking: {",
-        "    exactName: 0,",
-        "    filePathContains: 2000,",
-        '    pathPresets: { generationCode: ["tools/**"] },',
-        "  },",
-        "  observability: {",
-        "    retentionDays: 5,",
-        "    redactSourceText: false,",
-        "  },",
-        "  performance: {",
-        '    include: ["src/**/*.ts"],',
-        '    exclude: ["**/*.test.ts"],',
-        "    fileProcessingConcurrency: 1,",
-        "    workerPool: {",
-        "      enabled: true,",
-        "      maxWorkers: 2,",
-        "    },",
-        "  },",
-        "  watch: {",
-        '    backend: "polling",',
-        "    debounceMs: 175,",
-        "  },",
-        "  limits: {",
-        "    maxFilesDiscovered: 1234,",
-        "    maxFileBytes: 4321,",
-        "    maxSymbolsPerFile: 7,",
-        "    maxSymbolResults: 9,",
-        "    maxTextResults: 8,",
-        "    maxChildProcessOutputBytes: 7654,",
-        "    maxLiveSearchMatches: 3,",
-        "  },",
-        "};",
-        "",
-      ].join("\n"),
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({
+        summaryStrategy: "signature-only", storageMode: "wal",
+        ranking: { exactName: 0, filePathContains: 2000, pathPresets: { generationCode: ["tools/**"] } },
+        observability: { retentionDays: 5, redactSourceText: false },
+        performance: { include: ["src/**/*.ts"], exclude: ["**/*.test.ts"], fileProcessingConcurrency: 1, workerPool: { enabled: true, maxWorkers: 2 } },
+        watch: { backend: "polling", debounceMs: 175 },
+        limits: { maxFilesDiscovered: 1234, maxFileBytes: 4321, maxSymbolsPerFile: 7, maxSymbolResults: 9, maxTextResults: 8, maxChildProcessOutputBytes: 7654, maxLiveSearchMatches: 3 },
+      }),
     );
 
     const config = await loadRepoEngineConfig(repoRoot);
@@ -594,7 +575,7 @@ describe("ai-context-engine contract", () => {
       maxChildProcessOutputBytes: 7654,
       maxLiveSearchMatches: 3,
     });
-    expect(config.configPath).toContain("astrograph.config.ts");
+    expect(config.configPath).toContain("astrograph.config.json");
   });
 
   it("fails clearly for invalid repo-root config", async () => {
@@ -602,16 +583,33 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.ts"),
-      [
-        "export default {",
-        "  observability: {",
-        "    retentionDays: 0,",
-        "  },",
-        "};",
-        "",
-      ].join("\n"),
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ observability: { retentionDays: 0 } }),
     );
+
+    await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
+      /Invalid astrograph\.config\.json/i,
+    );
+  });
+
+  it("loads a typed TypeScript repo config", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-legacy-config-"));
+    tempDirs.push(repoRoot);
+    await writeFile(
+      path.join(repoRoot, "astrograph.config.ts"),
+      'export default { storageLocation: "global" };\n',
+    );
+
+    await expect(loadRepoEngineConfig(repoRoot)).resolves.toMatchObject({
+      configPath: expect.stringMatching(/astrograph\.config\.ts$/),
+      storageLocation: "global",
+    });
+  });
+
+  it("fails clearly for an invalid TypeScript repo config", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-config-"));
+    tempDirs.push(repoRoot);
+    await writeFile(path.join(repoRoot, "astrograph.config.ts"), "export default {\n");
 
     await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
       /Invalid astrograph\.config\.ts/i,
@@ -781,19 +779,12 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.ts"),
-      [
-        "export default {",
-        "  ranking: {",
-        '    pathPresets: { unknownCategory: ["src/**"] },',
-        "  },",
-        "};",
-        "",
-      ].join("\n"),
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ ranking: { pathPresets: { unknownCategory: ["src/**"] } } }),
     );
 
     await expect(loadRepoEngineConfig(repoRoot)).rejects.toThrow(
-      /Invalid astrograph\.config\.ts/i,
+      /Invalid astrograph\.config\.json/i,
     );
   });
 
@@ -802,19 +793,8 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(repoRoot);
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.ts"),
-      [
-        "export default {",
-        '  storageMode: "wal",',
-        "  ranking: {",
-        "    exportedBonus: 5,",
-        "  },",
-        "  performance: {",
-        '    fileProcessingConcurrency: "auto",',
-        "  },",
-        "};",
-        "",
-      ].join("\n"),
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ storageMode: "wal", ranking: { exportedBonus: 5 }, performance: { fileProcessingConcurrency: "auto" } }),
     );
 
     const autoConfig = await loadRepoEngineConfig(repoRoot);
@@ -857,19 +837,8 @@ describe("ai-context-engine contract", () => {
     });
 
     await writeFile(
-      path.join(repoRoot, "astrograph.config.ts"),
-      [
-        "export default {",
-        "  performance: {",
-        "    fileProcessingConcurrency: 99,",
-        "    workerPool: {",
-        "      enabled: true,",
-        "      maxWorkers: 99,",
-        "    },",
-        "  },",
-        "};",
-        "",
-      ].join("\n"),
+      path.join(repoRoot, "astrograph.config.json"),
+      JSON.stringify({ performance: { fileProcessingConcurrency: 99, workerPool: { enabled: true, maxWorkers: 99 } } }),
     );
 
     const boundedConfig = await loadRepoEngineConfig(repoRoot);
@@ -896,8 +865,7 @@ describe("ai-context-engine contract", () => {
     expect(result.packageName).toBe("astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
     expect(result.engineConfigPath).toContain("astrograph.config.ts");
-    expect(result.engineConfigPreview).toContain("export default {");
-    expect(result.engineConfigPreview).not.toContain('from "astrograph"');
+    expect(result.engineConfigPreview).toContain('satisfies import("astrograph").RepoEngineConfig');
     expect(result.engineConfigPreview).toContain("performance:");
     expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
@@ -1130,8 +1098,6 @@ describe("ai-context-engine contract", () => {
       await expect(stat(path.join(secondRepo, ".astrograph"))).rejects.toMatchObject({ code: "ENOENT" });
       await expect(stat(path.join(firstRepo, "astrograph.config.json"))).rejects.toMatchObject({ code: "ENOENT" });
       await expect(stat(path.join(secondRepo, "astrograph.config.json"))).rejects.toMatchObject({ code: "ENOENT" });
-      await expect(stat(path.join(firstRepo, "astrograph.config.ts"))).rejects.toMatchObject({ code: "ENOENT" });
-      await expect(stat(path.join(secondRepo, "astrograph.config.ts"))).rejects.toMatchObject({ code: "ENOENT" });
       await expect(stat(path.join(firstRepo, ".codex"))).rejects.toMatchObject({ code: "ENOENT" });
       await expect(stat(path.join(secondRepo, ".codex"))).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
@@ -1202,7 +1168,6 @@ describe("ai-context-engine contract", () => {
         await expect(stat(path.join(repoRoot, ".mcp.json"))).rejects.toMatchObject({ code: "ENOENT" });
         await expect(stat(path.join(repoRoot, ".astrograph"))).rejects.toMatchObject({ code: "ENOENT" });
         await expect(stat(path.join(repoRoot, "astrograph.config.json"))).rejects.toMatchObject({ code: "ENOENT" });
-        await expect(stat(path.join(repoRoot, "astrograph.config.ts"))).rejects.toMatchObject({ code: "ENOENT" });
       }
     } finally {
       if (previousHome === undefined) delete process.env.HOME;

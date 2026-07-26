@@ -91,7 +91,7 @@ jobs:
         run: pnpm type-lint
 
       - name: Node runtime script smoke
-        run: node --experimental-strip-types ./src/scripts/release-agent.ts --base HEAD
+        run: node ./dist/scripts/release-agent.js --base HEAD
 
       - name: Node package smoke
         run: pnpm test:package-bin
@@ -180,6 +180,9 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Build release agent
+        run: pnpm build
+
       - name: Read merged PR release exception
         id: release_exception
         env:
@@ -199,7 +202,7 @@ jobs:
           if [ "${{ steps.release_exception.outputs.no_release }}" = "true" ]; then
             args+=(--no-release)
           fi
-          node --experimental-strip-types ./src/scripts/release-agent.ts "${args[@]}" \
+          node ./dist/scripts/release-agent.js "${args[@]}" \
             | tee "$RUNNER_TEMP/astrograph-release-decision.json"
           {
             echo "## Astrograph release decision"

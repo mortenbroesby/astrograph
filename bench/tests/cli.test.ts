@@ -20,7 +20,7 @@ describe("benchmark cli", () => {
       const stdout = execFileSync(
         process.execPath,
         [
-          "--experimental-strip-types",
+          "--import=tsx",
           cliPath,
           "--repo-root",
           fixture.repoRoot,
@@ -74,7 +74,7 @@ describe("benchmark cli", () => {
         execFileSync(
           process.execPath,
           [
-            "--experimental-strip-types",
+            "--import=tsx",
             cliPath,
             "--repo-root",
             fixture.repoRoot,

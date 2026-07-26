@@ -1,9 +1,9 @@
-import { execFileSync } from "node:child_process";
 import { realpathSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { createJiti } from "jiti";
 import { z } from "zod";
 
 import { probeGitCheckout } from "./git-checkout.ts";
@@ -45,7 +45,7 @@ export const DEFAULT_MAX_FILE_BYTES = 250_000;
 export const DEFAULT_MAX_SYMBOLS_PER_FILE = 2_000;
 // Keep broad symbol discovery small enough for agents to refine before reading
 // a large payload. Callers can still request a lower limit and repositories can
-// set a stricter cap in astrograph.config.json.
+// set a stricter cap in astrograph.config.ts.
 export const DEFAULT_MAX_SYMBOL_RESULTS = 8;
 export const DEFAULT_MAX_TEXT_RESULTS = 100;
 export const DEFAULT_MAX_CHILD_PROCESS_OUTPUT_BYTES = 1_000_000;
@@ -472,61 +472,71 @@ export async function loadRepoEngineConfig(
   );
   const configPath = path.join(resolvedRepoRoot, ENGINE_CONFIG_FILENAME);
   const legacyConfigPath = path.join(resolvedRepoRoot, ENGINE_LEGACY_CONFIG_FILENAME);
-
   const contents = await readFile(configPath, "utf8")
     .catch((error: unknown) => {
       if (error instanceof Error && "code" in error && error.code === "ENOENT") {
         return null;
       }
       throw error;
-    });
+  });
 
-  if (contents !== null) {
-    const parsedJson = await loadTsConfig(configPath);
+  if (contents === null) {
+    const legacyContents = await readFile(legacyConfigPath, "utf8")
+      .catch((error: unknown) => {
+        if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
+        throw error;
+      });
+    if (legacyContents === null) {
+      return applyExplicitStorageLocation(defaults, options.environment);
+    }
+    let parsedJson: unknown;
+    try {
+      parsedJson = JSON.parse(legacyContents);
+    } catch (error) {
+      throw new Error(
+        `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     const parsed = repoEngineConfigSchema.safeParse(parsedJson);
     if (!parsed.success) {
       throw new Error(
-        `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+        `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
       );
     }
     return applyExplicitStorageLocation(
-      resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
+      resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults),
       options.environment,
     );
   }
 
-  const legacyContents = await readFile(legacyConfigPath, "utf8")
-    .catch((error: unknown) => {
-      if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-        return null;
-      }
-      throw error;
-    });
-
-  if (legacyContents === null) {
-    return applyExplicitStorageLocation(defaults, options.environment);
-  }
-
-  let parsedJson: unknown;
-  try {
-    parsedJson = JSON.parse(legacyContents);
-  } catch (error) {
-    throw new Error(
-      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
+  const parsedJson = await loadTsConfig(configPath);
 
   const parsed = repoEngineConfigSchema.safeParse(parsedJson);
   if (!parsed.success) {
     throw new Error(
-      `Invalid ${ENGINE_LEGACY_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${parsed.error.issues[0]?.message ?? "validation failed"}`,
     );
   }
 
   return applyExplicitStorageLocation(
-    resolveEngineConfigFromParsed(legacyConfigPath, resolvedRepoRoot, parsed.data, defaults),
+    resolveEngineConfigFromParsed(configPath, resolvedRepoRoot, parsed.data, defaults),
     options.environment,
   );
+}
+
+export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
+  return config;
+}
+
+async function loadTsConfig(configPath: string): Promise<unknown> {
+  try {
+    const jiti = createJiti(import.meta.url, { fsCache: false, moduleCache: false });
+    return await jiti.import(configPath, { default: true });
+  } catch (error) {
+    throw new Error(
+      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 }
 
 function applyExplicitStorageLocation(
@@ -538,48 +548,6 @@ function applyExplicitStorageLocation(
   return { ...config, storageLocation: parseStorageLocation(value) };
 }
 
-export function defineConfig(config: RepoEngineConfig): RepoEngineConfig {
-  return config;
-}
-
-async function loadTsConfig(configPath: string): Promise<unknown> {
-  const loaderCode = [
-    "import { pathToFileURL } from 'node:url';",
-    `const mod = await import(pathToFileURL(${JSON.stringify(configPath)}).href);`,
-    "process.stdout.write(JSON.stringify(mod.default ?? mod));",
-  ].join("\n");
-
-  let output: string;
-  try {
-    output = execFileSync(
-      process.execPath,
-      ["--experimental-strip-types", "--input-type=module"],
-      {
-        input: loaderCode,
-        encoding: "utf8",
-        stdio: ["pipe", "pipe", "pipe"],
-        timeout: 5_000,
-      },
-    ) as string;
-  } catch (error) {
-    const maybeProcessError = error as { stderr?: Buffer | string; message?: string };
-    const stderr = typeof maybeProcessError.stderr === "string"
-      ? maybeProcessError.stderr.trim()
-      : maybeProcessError.stderr instanceof Buffer
-        ? maybeProcessError.stderr.toString("utf8").trim()
-        : "";
-    const message = stderr || maybeProcessError.message || String(error);
-    throw new Error(`Invalid ${ENGINE_CONFIG_FILENAME}: ${message}`);
-  }
-
-  try {
-    return JSON.parse(output);
-  } catch (error) {
-    throw new Error(
-      `Invalid ${ENGINE_CONFIG_FILENAME}: ${error instanceof Error ? error.message : String(error)}`,
-    );
-  }
-}
 
 export function isSummaryStrategy(value: unknown): value is SummaryStrategy {
   return typeof value === "string" && SUMMARY_STRATEGIES.has(value as SummaryStrategy);

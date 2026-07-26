@@ -36,6 +36,9 @@ use its recorded evidence or selection gate instead.
 - [Repository Structure Cleanup Epic](./specs/implementation/active/7_repository-structure-cleanup-epic.md)
   — collate benchmark/profiling ownership and simplify repository automation
   through small, behavior-preserving pull requests.
+- [VoidZero Toolchain Epic](./specs/implementation/active/8_voidzero-toolchain-epic.md)
+  — migrate package builds to tsdown first, then prove any runtime-loader,
+  alias, or Oxc adoption independently.
 - [Local Token-Savings Analytics Delivery
   Checklist](./specs/implementation/active/6_local-token-savings-analytics-delivery-checklist.md)
   — make already-proven token savings inspectable locally, without a tracking

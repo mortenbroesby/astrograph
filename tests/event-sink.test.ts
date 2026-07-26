@@ -49,6 +49,7 @@ describe("event sink privacy", () => {
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         observability: {
           redactSourceText: false,
         },
@@ -153,6 +154,7 @@ describe("event sink privacy", () => {
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
       JSON.stringify({
+        storageLocation: "repo-local",
         observability: {
           retentionDays: 5,
         },

@@ -4,4 +4,4 @@ export {
   countTokens,
   disposeTokenizer,
   estimateTokens,
-} from "../../src/tokenizer.ts";
+} from "#astrograph/tokenizer";
