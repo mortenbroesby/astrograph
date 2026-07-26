@@ -1,5 +1,5 @@
 module.exports = {
-  allowDirectMainPush: true,
+  allowDirectMainPush: false,
   // One path per line. Lines starting with # are ignored.
   // Use exact repo-relative paths, or a directory prefix ending in `/**`.
   //
