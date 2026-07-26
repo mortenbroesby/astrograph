@@ -24,51 +24,30 @@ turns those focuses into an exclusive execution gate.
      current four-language baseline before adding a grammar dependency.
    - Architecture: adapters and explicit `structured`/`graph` support tiers;
      do not claim the open-ended community grammar ecosystem.
-2. [MCP Runtime Hygiene Delivery Checklist](./active/mcp-runtime-hygiene-delivery-checklist.md)
-   - Goal: make abandoned stdio MCP processes visible and release
-     process-lifetime resources during normal shutdown.
-3. [Comforting Install Experience](./active/2_comforting-global-install-experience.md)
-   - Goal: make global and repository-local setup understandable without
-     hidden configuration writes.
-4. [Git Ref Watch Reconciliation](./active/3_git-ref-watch-reconciliation-delivery-checklist.md)
-   - Goal: reconcile an active watch session when its Git checkout identity
-     advances or changes without dependable filesystem events.
-   - Architecture: a session-bound 30-second checkout probe queues existing
-     folder reconciliation; no daemon, Git-diff planner, or cache migration.
-5. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+2. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
    - Goal: one user-local daemon owns independent repository runtimes, watches,
      SQLite connections, and workers for concurrent stdio MCP clients.
    - Architecture: on-demand local IPC proxying with authenticated singleton
      ownership and a five-minute idle exit; no network listener, source upload,
      or shared mutable repository index.
-6. [Local Token-Savings Analytics](./active/6_local-token-savings-analytics-delivery-checklist.md)
-   - Goal: make exact local token savings inspectable through the existing
-     report command without noticeable normal-request overhead.
-   - Architecture: reuse existing event and response-format metadata; no
-     network client, exporter, second event store, token recount, or daemon.
-7. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
+3. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
    - Goal: make benchmark, workflow, and repository automation ownership
      obvious without changing runtime behavior or increasing CI cost.
    - First action: move benchmark/profiling entrypoints under `bench/` while
      preserving all existing package commands and output shapes.
-8. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
+4. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
    - Goal: publish one small, auditable comparison between broad file reading
      and Astrograph retrieval.
    - Architecture: reuse the existing corpus and Markdown renderer; require a
      matching snapshot and successful selected workflows before publishing.
-9. [VoidZero Toolchain](./active/8_voidzero-toolchain-epic.md)
-   - Goal: migrate Astrograph's package build to tsdown, with production
-     remaining compiled JavaScript and subsequent tool adoption proof-gated.
-   - First action: replace tsup plus the separate declaration emitter with a
-     package-safe tsdown build.
 
 ## Ready — detailed, but not selected
 
-2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
+1. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
    1–3 complete; Stories 4–6 remain parked behind their CI-cost and
    third-party-command evidence gates. Preserve product-specific behavior;
    package-quality gates require an explicit renewed selection.
-3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
+2. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
@@ -175,6 +154,23 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Session-Aware Agent Efficiency Epic](./closed/session-aware-agent-efficiency-epic.md)
   — closed after PR #99 merged exact references and local Astrograph reporting,
   explicit bookmarks, and optional marked output redaction.
+- [Comforting Install Experience](./closed/comforting-global-install-experience.md)
+  — closed after PR #82 made package, global, and repository setup legible
+  without automatic configuration writes.
+- [Guided Install and Refresh Hooks](./closed/guided-install-and-refresh-hooks.md)
+  — closed after PR #92 delivered unified onboarding, opt-in guidance/hooks,
+  and harness readiness checks.
+- [MCP Runtime Hygiene](./closed/mcp-runtime-hygiene-delivery-checklist.md)
+  — closed after PR #90 added source-free process presence and idempotent
+  resource cleanup.
+- [Git Ref Watch Reconciliation](./closed/git-ref-watch-reconciliation-delivery-checklist.md)
+  — closed after PR #94 added session-bound checkout-change reconciliation.
+- [Local Token-Savings Analytics](./closed/local-token-savings-analytics-delivery-checklist.md)
+  — closed after PR #101 exposed exact local savings without request-path
+  tracking overhead.
+- [VoidZero Toolchain](./closed/voidzero-toolchain-epic.md)
+  — closed after PR #105 migrated the package build to tsdown and completed
+  the scoped runtime, alias, and Oxlint evidence gates.
 
 ## Maintaining this roadmap
 

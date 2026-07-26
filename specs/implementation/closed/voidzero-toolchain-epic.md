@@ -1,6 +1,6 @@
 # VoidZero Toolchain Epic
 
-> **Status:** Active — selected by the user on 2026-07-26.
+> **Status:** Done — merged in PR #105 (`c3571bb`).
 
 **Goal:** Replace Astrograph's unmaintained package bundler with the supported
 VoidZero library toolchain, while keeping production on compiled JavaScript and
