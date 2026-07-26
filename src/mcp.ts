@@ -26,6 +26,19 @@ import { disposeTokenizer } from "./tokenizer.ts";
 
 const logger = getLogger({ component: "mcp" });
 
+type McpCommandExecutor = typeof executeDaemonCommand;
+
+let executeMcpCommand: McpCommandExecutor = executeDaemonCommand;
+
+/** Test seam for strict MCP-envelope validation; production always uses local IPC. */
+export function setMcpCommandExecutorForTest(executor: McpCommandExecutor): () => void {
+  const previous = executeMcpCommand;
+  executeMcpCommand = executor;
+  return () => {
+    executeMcpCommand = previous;
+  };
+}
+
 function asTextResult(text: string) {
   return {
     content: [
@@ -426,7 +439,7 @@ export async function dispatchTool(
   }
 
   try {
-    const result = await executeDaemonCommand(name, args);
+    const result = await executeMcpCommand(name, args);
     validateToolOutput(name, result);
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,
