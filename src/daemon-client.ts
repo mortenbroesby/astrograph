@@ -12,7 +12,7 @@ import {
   encodeDaemonMessage,
   type DaemonResponse,
 } from "./daemon-protocol.ts";
-import { readDaemonRuntime, type DaemonState } from "./daemon-runtime.ts";
+import { getDaemonRuntimeSummary, readDaemonRuntime, type DaemonState } from "./daemon-runtime.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
 const DEFAULT_DAEMON_REQUEST_TIMEOUT_MS = 10_000;
@@ -24,37 +24,42 @@ const clientModuleDir = path.dirname(clientModulePath);
 const builtDaemonEntrypoint = path.join(clientModuleDir, "daemon.js");
 const sourceDaemonEntrypoint = path.join(clientModuleDir, "daemon.ts");
 
-function startDaemonProcess(): void {
+function startDaemonProcess(runtimeDir?: string): void {
   const useBuiltEntrypoint = existsSync(builtDaemonEntrypoint) && !clientModulePath.endsWith(".ts");
   const child = spawn(process.execPath, useBuiltEntrypoint
     ? [builtDaemonEntrypoint]
     : ["--experimental-strip-types", sourceDaemonEntrypoint], {
     detached: true,
     stdio: "ignore",
+    env: runtimeDir ? { ...process.env, ASTROGRAPH_RUNTIME_DIR: runtimeDir } : process.env,
   });
   child.unref();
 }
 
-export async function ensureLocalDaemon(): Promise<DaemonState> {
-  const existing = await readDaemonRuntime();
-  if (existing?.status === "ready"
+export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): Promise<DaemonState> {
+  const existing = await readDaemonRuntime(options);
+  const existingSummary = await getDaemonRuntimeSummary(options);
+  if (existingSummary.status !== "stale"
+    && existing?.status === "ready"
     && existing.version === ASTROGRAPH_PACKAGE_VERSION
     && existing.protocolVersion === 1) {
     return existing;
   }
-  if (existing && existing.version !== ASTROGRAPH_PACKAGE_VERSION) {
+  if (existing && existingSummary.status !== "stale" && existing.version !== ASTROGRAPH_PACKAGE_VERSION) {
     throw new Error(
       `Astrograph daemon version ${existing.version} is incompatible with ${ASTROGRAPH_PACKAGE_VERSION}; stop the old daemon before retrying`,
     );
   }
 
-  startDaemonProcess();
+  const staleToken = existingSummary.status === "stale" ? existing?.token : null;
+  startDaemonProcess(options.runtimeDir);
   const deadline = Date.now() + DAEMON_START_TIMEOUT_MS;
   while (Date.now() < deadline) {
-    const state = await readDaemonRuntime();
+    const state = await readDaemonRuntime(options);
     if (state?.status === "ready"
       && state.version === ASTROGRAPH_PACKAGE_VERSION
-      && state.protocolVersion === 1) {
+      && state.protocolVersion === 1
+      && state.token !== staleToken) {
       return state;
     }
     await delay(DAEMON_START_RETRY_MS);
@@ -65,8 +70,17 @@ export async function ensureLocalDaemon(): Promise<DaemonState> {
 export async function executeDaemonCommand(
   command: string,
   input: Record<string, unknown>,
+  options: { runtimeDir?: string } = {},
 ): Promise<unknown> {
-  return requestDaemon(await ensureLocalDaemon(), command, input);
+  const state = await ensureLocalDaemon(options);
+  try {
+    return await requestDaemon(state, command, input);
+  } catch (error) {
+    if ((await getDaemonRuntimeSummary(options)).status !== "stale") {
+      throw error;
+    }
+    return requestDaemon(await ensureLocalDaemon(options), command, input);
+  }
 }
 
 export async function requestDaemon(
