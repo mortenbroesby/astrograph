@@ -17,6 +17,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
+import { diagnostics } from "../index.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import { runProcess } from "../lib/process.ts";
@@ -166,6 +167,28 @@ export interface GlobalInstallationDiagnostics {
   nextStep: string;
 }
 
+type SetupClient = "codex" | "copilot" | "copilot-cli";
+
+export interface SetupReadinessResult {
+  schemaVersion: 1;
+  repoRoot: string;
+  local: {
+    clients: Array<{ ide: SetupClient; configPath: string; configured: boolean }>;
+    agentGuidance: Array<{ path: string; configured: boolean }>;
+    gitHooks: Array<{ hook: GitHookResult["hook"]; path: string; status: "managed" | "missing" | "other" }>;
+    localDependencyDetected: boolean;
+  };
+  global: GlobalInstallationDiagnostics;
+  index: {
+    status: "ready" | "not-indexed" | "stale" | "unavailable";
+    indexedFiles: number;
+    retrievalHealth: "safe" | "degraded" | "unsafe" | null;
+    error: string | null;
+  };
+  ready: boolean;
+  actions: string[];
+}
+
 export function formatGlobalInstallation(
   result: GlobalSetupResult,
   options: { dryRun?: boolean } = {},
@@ -240,6 +263,28 @@ export function formatRepositoryInstallation(
       ? "Next: run `astrograph install --yes` when you are ready to write these files."
       : "Next: restart your selected client, then run `index_folder` to create the first index.",
     "For a machine-readable result, add `--json`.",
+  ].join("\n");
+}
+
+export function formatSetupReadiness(result: SetupReadinessResult): string {
+  const configuredClients = result.local.clients
+    .filter((client) => client.configured)
+    .map((client) => client.ide);
+  const managedHooks = result.local.gitHooks
+    .filter((hook) => hook.status === "managed")
+    .map((hook) => hook.hook);
+  return [
+    "Astrograph Setup Doctor",
+    `Repository: ${result.repoRoot}`,
+    `Local clients: ${configuredClients.length ? configuredClients.join(", ") : "none"}`,
+    `Global clients: ${result.global.clients.filter((client) => client.configured).map((client) => client.ide).join(", ") || "none"}`,
+    `Agent guidance: ${result.local.agentGuidance.some((entry) => entry.configured) ? "configured" : "not configured"}`,
+    `Git refresh hooks: ${managedHooks.length ? managedHooks.join(", ") : "not configured"}`,
+    `Index: ${result.index.status} (${result.index.indexedFiles} files; retrieval ${result.index.retrievalHealth ?? "unavailable"})`,
+    `Ready: ${result.ready ? "yes" : "not yet"}`,
+    ...(result.actions.length ? ["", "Next:", ...result.actions.map((action) => `  • ${action}`)] : []),
+    "",
+    "For machine-readable output, add `--json`.",
   ].join("\n");
 }
 
@@ -840,15 +885,13 @@ function createMinimalTsConfig(): string {
     ".git/**",
   ].map((p) => `    "${p}",`).join("\n");
   return [
-    `import { defineConfig } from "${PACKAGE_NAME}";`,
-    "",
-    "export default defineConfig({",
+    "export default {",
     "  performance: {",
     "    exclude: [",
     excludeLines,
     "    ],",
     "  },",
-    "});",
+    "};",
     "",
   ].join("\n");
 }
@@ -1277,6 +1320,101 @@ export async function setupGitRefreshHooks(
   return results;
 }
 
+async function managedJsonServerExists(
+  configPath: string,
+  rootKey: "servers" | "mcpServers",
+): Promise<boolean> {
+  const contents = await readFile(configPath, "utf8").catch(() => "");
+  if (!contents) return false;
+  try {
+    const parsed = parseJsonConfig(contents, configPath);
+    const servers = parsed[rootKey];
+    return Boolean(
+      servers
+      && typeof servers === "object"
+      && !Array.isArray(servers)
+      && MCP_SERVER_NAME in servers,
+    );
+  } catch {
+    return false;
+  }
+}
+
+export async function getSetupReadiness(
+  repoRoot: string,
+  options: { environment?: StoragePathEnvironment; scanFreshness?: boolean } = {},
+): Promise<SetupReadinessResult> {
+  const resolvedRepoRoot = resolveRepoRoot(repoRoot);
+  const codexConfigPath = path.join(resolvedRepoRoot, ".codex", "config.toml");
+  const copilotConfigPath = path.join(resolvedRepoRoot, ".vscode", "mcp.json");
+  const copilotCliConfigPath = path.join(resolvedRepoRoot, ".mcp.json");
+  const [codexContents, hooksDirectory, indexOutcome] = await Promise.all([
+    readFile(codexConfigPath, "utf8").catch(() => ""),
+    Promise.resolve(resolveGitHooksDirectory(resolvedRepoRoot)),
+    diagnostics({ repoRoot: resolvedRepoRoot, scanFreshness: options.scanFreshness ?? true })
+      .then((result) => ({ result, error: null }))
+      .catch((error) => ({ result: null, error: error instanceof Error ? error.message : String(error) })),
+  ]);
+  const clients: SetupReadinessResult["local"]["clients"] = [
+    { ide: "codex", configPath: codexConfigPath, configured: codexContents.includes(MARKER_BEGIN) },
+    { ide: "copilot", configPath: copilotConfigPath, configured: await managedJsonServerExists(copilotConfigPath, "servers") },
+    { ide: "copilot-cli", configPath: copilotCliConfigPath, configured: await managedJsonServerExists(copilotCliConfigPath, "mcpServers") },
+  ];
+  const agentGuidance = await Promise.all([
+    path.join(resolvedRepoRoot, "AGENTS.md"),
+    path.join(resolvedRepoRoot, ".github", "copilot-instructions.md"),
+  ].map(async (policyPath) => ({
+    path: policyPath,
+    configured: (await readFile(policyPath, "utf8").catch(() => "")).includes(AGENTS_POLICY_BEGIN),
+  })));
+  const hooks = await Promise.all((["post-commit", "post-checkout", "post-merge"] as const).map(async (hook) => {
+    const hookPath = path.join(hooksDirectory ?? path.join(resolvedRepoRoot, ".git", "hooks"), hook);
+    const contents = await readFile(hookPath, "utf8").catch(() => "");
+    return {
+      hook,
+      path: hookPath,
+      status: contents.includes(GIT_HOOK_BEGIN)
+        ? "managed" as const
+        : contents.length > 0 ? "other" as const : "missing" as const,
+    };
+  }));
+  const global = await getGlobalInstallationDiagnostics(options.environment);
+  const index = indexOutcome.result === null
+    ? { status: "unavailable" as const, indexedFiles: 0, retrievalHealth: null, error: indexOutcome.error }
+    : {
+      status: indexOutcome.result.indexedFiles === 0
+        ? "not-indexed" as const
+        : indexOutcome.result.staleStatus === "stale" ? "stale" as const : "ready" as const,
+      indexedFiles: indexOutcome.result.indexedFiles,
+      retrievalHealth: indexOutcome.result.retrievalHealth.status,
+      error: null,
+    };
+  const hasClient = clients.some((client) => client.configured) || global.clients.some((client) => client.configured);
+  const actions: string[] = [];
+  if (!hasClient) actions.push("Run `astrograph install` to connect an MCP client.");
+  if (index.status === "not-indexed") actions.push(`Run \`astrograph cli index-folder --repo ${resolvedRepoRoot}\` to create the first index.`);
+  if (index.status === "stale") actions.push(`Run \`astrograph cli index-folder --repo ${resolvedRepoRoot}\` to refresh the index.`);
+  if (index.status === "unavailable") actions.push(`Fix the index health error: ${index.error ?? "unknown error"}`);
+  if (!agentGuidance.some((entry) => entry.configured)) actions.push("Optional: run `astrograph install --agents` to add tool-priority guidance.");
+  if (hooks.some((hook) => hook.status === "missing")) actions.push("Optional: run `astrograph install --git-hooks` to refresh after Git changes.");
+  if (hooks.some((hook) => hook.status === "other")) actions.push("Astrograph left another tool’s Git hook unchanged.");
+
+  return {
+    schemaVersion: 1,
+    repoRoot: resolvedRepoRoot,
+    local: {
+      clients,
+      agentGuidance,
+      gitHooks: hooks,
+      localDependencyDetected: hasLocalAstrographDependency(resolvedRepoRoot),
+    },
+    global,
+    index,
+    ready: hasClient && index.status === "ready" && index.retrievalHealth === "safe",
+    actions,
+  };
+}
+
 function parseJsonConfig(contents: string, configPath: string): InstalledObject {
   if (!contents.trim()) {
     return {};
@@ -1468,6 +1606,23 @@ async function main(): Promise<void> {
   const argv = process.argv.slice(2);
   if (argv.length === 1 && argv[0] === "--diagnostics") {
     process.stdout.write(`${JSON.stringify(await getGlobalInstallationDiagnostics(), null, 2)}\n`);
+    return;
+  }
+  if (argv[0] === "--doctor") {
+    const allowed = new Set(["--doctor", "--repo", "--json"]);
+    if (argv.some((entry) => !allowed.has(entry) && entry !== argv[argv.indexOf("--repo") + 1])) {
+      throw new Error("astrograph doctor accepts only --repo /abs/repo and --json.");
+    }
+    const repoIndex = argv.indexOf("--repo");
+    if (repoIndex >= 0 && !argv[repoIndex + 1]) {
+      throw new Error("astrograph doctor requires a value after --repo.");
+    }
+    const result = await getSetupReadiness(repoIndex >= 0 ? argv[repoIndex + 1]! : process.cwd());
+    if (argv.includes("--json")) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${formatSetupReadiness(result)}\n`);
+    }
     return;
   }
   if (

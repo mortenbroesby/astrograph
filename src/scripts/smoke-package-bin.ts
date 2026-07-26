@@ -199,6 +199,18 @@ async function main(): Promise<void> {
       throw new Error(`Expected astrograph install --agents to write code exploration policy: ${installResult.stdout}`);
     }
 
+    const { stdout: doctorOutput } = await run(
+      "pnpm",
+      ["exec", "astrograph", "doctor", "--repo", fixtureRepo, "--json"],
+      installDir,
+    );
+    const doctor = JSON.parse(doctorOutput) as {
+      local?: { clients?: Array<{ ide?: string; configured?: boolean }> };
+    };
+    if (!doctor.local?.clients?.some((client) => client.ide === "codex" && client.configured)) {
+      throw new Error(`Expected astrograph doctor to verify the Codex setup: ${doctorOutput}`);
+    }
+
     await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);
 
     const globalInstall = await run(

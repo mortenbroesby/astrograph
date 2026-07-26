@@ -3,6 +3,7 @@
 Astrograph exposes three main command surfaces:
 
 - `astrograph install [--global]`
+- `astrograph doctor [--repo /abs/repo] [--json]`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
@@ -39,6 +40,11 @@ invocation path in your environment.
   index it or use the MCP tools directly. Normal global use does not require
   `install`, repo-local config, or a chosen cache directory.
   With no `--ide`, it installs for Copilot CLI.
+- `astrograph doctor [--repo /abs/repo] [--json]`
+  Verifies the current setup without writing files: repository-local MCP
+  registrations, global registrations, managed agent guidance, opted-in Git
+  refresh hooks, and index/retrieval health. Use this after setup or whenever
+  the harness seems unavailable.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`

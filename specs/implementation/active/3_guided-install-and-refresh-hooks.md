@@ -65,3 +65,21 @@ execa, pnpm, and Vitest.
   a minor alpha increment.
 - [x] Commit, push, and open [draft PR #92](https://github.com/mortenbroesby/astrograph/pull/92).
 - [ ] Record CI evidence before changing the active pointer again.
+
+## Task 4: Verify the installed harness
+
+**Files:**
+- Modify: `src/astrograph.ts`
+- Modify: `src/scripts/install.ts`
+- Modify: `tests/engine-contract.test.ts`
+- Modify: `README.md`
+- Modify: `docs/reference/cli.md`
+
+- [x] Add `astrograph doctor` as a human-readable and `--json` setup-readiness
+  report for the current repository.
+- [x] Verify local client registration, managed agent guidance, each opted-in
+  Git refresh hook, global client registration, and index health without
+  writing configuration.
+- [x] Make missing wiring actionable and test the report against managed and
+  other-tool-owned hooks.
+- [x] Re-run the focused setup, package, and type checks; update PR #92.

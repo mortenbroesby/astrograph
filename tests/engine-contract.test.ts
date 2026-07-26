@@ -54,6 +54,8 @@ import {
   setupGlobalForCodex,
   setupGlobalForCopilotCli,
   setupGitRefreshHooks,
+  getSetupReadiness,
+  formatSetupReadiness,
 } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -903,10 +905,8 @@ describe("ai-context-engine contract", () => {
     expect(result.packageName).toBe("astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
     expect(result.engineConfigPath).toContain("astrograph.config.ts");
-    expect(result.engineConfigPreview).toContain(
-      'import { defineConfig } from "astrograph";',
-    );
-    expect(result.engineConfigPreview).toContain("export default defineConfig({");
+    expect(result.engineConfigPreview).toContain("export default {");
+    expect(result.engineConfigPreview).not.toContain('from "astrograph"');
     expect(result.engineConfigPreview).toContain("performance:");
     expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
@@ -1456,6 +1456,31 @@ describe("ai-context-engine contract", () => {
     });
     const result = await setupForAllIdes(repoRoot, { dryRun: true, gitHooks: true });
     expect(formatRepositoryInstallation(result, { dryRun: true })).toContain("Git refresh hooks: post-commit (would install non-blocking refresh hook)");
+  });
+
+  it("reports whether the installed harness is wired and ready", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-setup-doctor-"));
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-setup-doctor-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-setup-doctor-config-"));
+    tempDirs.push(repoRoot, homeDir, configHome);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    await setupForAllIdes(repoRoot, { agentsPolicy: true, gitHooks: true });
+    await writeFile(path.join(repoRoot, "astrograph.config.ts"), 'export default { storageLocation: "repo-local" };\n');
+
+    const result = await getSetupReadiness(repoRoot, {
+      environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
+    });
+    expect(result.local.clients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ide: "codex", configured: true }),
+    ]));
+    expect(result.local.agentGuidance.some((entry) => entry.configured)).toBe(true);
+    expect(result.local.gitHooks.every((hook) => hook.status === "managed")).toBe(true);
+    expect(result.index.status).toBe("not-indexed");
+    expect(result.ready).toBe(false);
+    expect(formatSetupReadiness(result)).toContain("Astrograph Setup Doctor");
+    expect(formatSetupReadiness(result)).toContain("create the first index");
   });
 
   it("writes copilot-instructions.md when --agents is used with copilot IDE", async () => {

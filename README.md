@@ -136,6 +136,17 @@ The repository route can also opt into two independent integrations:
   `post-merge` refreshes. Astrograph never overwrites a hook owned by another
   tool, and the hooks do not block Git operations.
 
+Verify the harness before trusting it:
+
+```bash
+npx astrograph doctor
+```
+
+Doctor checks the configured local and global MCP clients, managed agent
+guidance, opted-in Git refresh hooks, and the current repository’s index
+health. It reports only what it can verify and gives the next command when a
+piece is missing. Add `--json` for automation.
+
 ### 2) Configure a repository directly
 
 Use dependency-based setup if you want `astrograph` available in repository

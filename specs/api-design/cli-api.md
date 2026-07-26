@@ -13,6 +13,9 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph install --ide codex` writes managed local MCP configuration.
 - `astrograph install --global --ide codex` writes only the marker-owned user
   Codex registration and user Astrograph default; it never edits a repository.
+- `astrograph doctor --repo <path>` verifies the current repository’s local
+  and global client registration, managed agent guidance, Git refresh-hook
+  state, and index readiness without writing configuration.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
   status, including the persisted checkout identity that last populated the
   selected cache (or `checkout: null` before indexing). `astrograph cache

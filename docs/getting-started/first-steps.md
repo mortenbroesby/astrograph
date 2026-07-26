@@ -53,6 +53,16 @@ npx astrograph cli index-folder --repo /absolute/path/to/repo
 
 ## 4. Check That the Repo Is Healthy
 
+First, confirm that the installed harness is actually wired:
+
+```bash
+npx astrograph doctor
+```
+
+It checks MCP registration, agent guidance, optional Git refresh hooks, and
+whether the index is usable. For the detailed engine-health report, continue
+with diagnostics:
+
 Start with diagnostics:
 
 ```bash
