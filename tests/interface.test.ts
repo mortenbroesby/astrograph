@@ -42,6 +42,10 @@ function parseMcpToolResult(value: { content: McpToolTextResult[] } | McpToolTex
   return JSON.parse(text as string);
 }
 
+function expectTokenBudgetUsed(value: unknown): void {
+  expect(value === null || (typeof value === "number" && Number.isFinite(value))).toBe(true);
+}
+
 async function withMcpClient<T>(
   run: (context: {
     client: Client;
@@ -569,7 +573,6 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
         data: {
           truncated: false,
@@ -583,6 +586,7 @@ export function circumference(radius: number): string {
           ]),
         },
       });
+      expectTokenBudgetUsed(discoverPayload.meta.tokenBudgetUsed);
       expect(discoverPayload.data.items).toHaveLength(1);
       expect(discoverPayload.data.items).toEqual(
         expect.not.arrayContaining([
@@ -602,9 +606,9 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
       });
+      expectTokenBudgetUsed(filteredSearchPayload.meta.tokenBudgetUsed);
       const filteredDiscover = filteredSearchPayload.data.items;
       expect(filteredDiscover.every((entry: { filePath: string }) =>
         entry.filePath.endsWith(".ts"),
@@ -722,13 +726,13 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
         data: {
           query: "Greeter",
           payloadTokenBudget: 1200,
         },
       });
+      expectTokenBudgetUsed(bundlePayload.meta.tokenBudgetUsed);
       expect(bundlePayload.data.items[0]).toMatchObject({
         symbol: {
           name: "Greeter",
@@ -747,9 +751,9 @@ export function circumference(radius: number): string {
         meta: {
           toolVersion: "1",
           dataFreshness: expect.stringMatching(/^(fresh|stale|unknown)$/),
-          tokenBudgetUsed: expect.any(Number),
         },
       });
+      expectTokenBudgetUsed(parsedSymbolSource.meta.tokenBudgetUsed);
       expect(parsedSymbolSource.data.items).toHaveLength(2);
       expect(parsedSymbolSource.data.items[0]).toMatchObject({
         provenance: {

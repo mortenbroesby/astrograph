@@ -2,10 +2,7 @@ import { defineConfig } from "astrograph";
 
 export default defineConfig({
   observability: {
-    enabled: true,
     retentionDays: 14,
-    recentLimit: 50,
-    snapshotIntervalMs: 250,
     redactSourceText: false,
   },
 

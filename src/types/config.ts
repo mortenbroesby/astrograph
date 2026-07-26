@@ -93,12 +93,7 @@ export interface EngineConfig {
 }
 
 export interface RepoObservabilityConfig {
-  enabled?: boolean;
-  host?: string;
-  port?: number;
-  recentLimit?: number;
   retentionDays?: number;
-  snapshotIntervalMs?: number;
   redactSourceText?: boolean;
 }
 
@@ -157,12 +152,7 @@ export interface GlobalEngineConfig {
 }
 
 export interface ResolvedObservabilityConfig {
-  enabled: boolean;
-  host: string;
-  port: number;
-  recentLimit: number;
   retentionDays: number;
-  snapshotIntervalMs: number;
   redactSourceText: boolean;
 }
 

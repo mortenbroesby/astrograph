@@ -8,17 +8,6 @@ import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import pMap from "p-map";
 import { Piscina } from "piscina";
-import {
-  Subject,
-  buffer,
-  concatMap,
-  debounceTime,
-  filter,
-  from,
-  map,
-  mergeMap,
-  share,
-} from "rxjs";
 
 import {
   createDefaultEngineConfig,
@@ -81,7 +70,11 @@ import {
   supportedLanguageForFile,
   supportTierForFile,
 } from "./language-registry.ts";
-import { createPathMatcher, normalizeRepoRelativePath as normalizePortableRelativePath } from "./path-matcher.ts";
+import {
+  createPathMatcher,
+  normalizeRepoRelativePath as normalizePortableRelativePath,
+  resolveRepoRelativePath as normalizeRepoRelativePath,
+} from "./path-matcher.ts";
 import {
   normalizeRepoReadiness,
   summarizeReadiness,
@@ -782,36 +775,6 @@ async function createEngineContext(input: {
 
 function closeEngineContext(context: EngineContext) {
   context.db.close();
-}
-
-function normalizeRepoRelativePath(repoRoot: string, filePath: string) {
-  if (!filePath || filePath.trim().length === 0) {
-    throw new Error("File path is required");
-  }
-
-  const normalizedPath = path.normalize(filePath);
-  if (
-    path.isAbsolute(filePath) ||
-    normalizedPath === ".." ||
-    normalizedPath.startsWith(`..${path.sep}`)
-  ) {
-    throw new Error(`File path escapes repository root: ${filePath}`);
-  }
-
-  const absolutePath = path.resolve(repoRoot, normalizedPath);
-  const relativePath = normalizePortableRelativePath(path.relative(repoRoot, absolutePath));
-  if (
-    relativePath === ".." ||
-    relativePath.startsWith("../") ||
-    path.isAbsolute(relativePath)
-  ) {
-    throw new Error(`File path escapes repository root: ${filePath}`);
-  }
-
-  return {
-    absolutePath,
-    relativePath,
-  };
 }
 
 async function assertInsideRepoRoot(repoRoot: string, absolutePath: string) {
@@ -1741,7 +1704,9 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
   let lastSummary: IndexSummary | null = null;
   let lastError: string | null = null;
   let lastEventType: WatchEvent["type"] | null = null;
-  const changedPathInputs$ = new Subject<string[]>();
+  const pendingChangedPaths = new Set<string>();
+  let debounceTimer: NodeJS.Timeout | null = null;
+  let refreshQueue = Promise.resolve();
 
   const persistWatchEvent = async (event: WatchEvent) => {
     lastEventType = event.type;
@@ -1853,7 +1818,16 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
     if (closed || paths.length === 0) {
       return;
     }
-    changedPathInputs$.next(paths);
+    for (const changedPath of paths) {
+      pendingChangedPaths.add(changedPath);
+    }
+    if (debounceTimer) {
+      clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+      debounceTimer = null;
+      queueRefresh();
+    }, debounceMs);
   };
 
   const flushChangedPaths = async (changedPaths: string[]): Promise<WatchEvent> => {
@@ -2081,40 +2055,18 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
     }
   };
 
-  const changedPathItems$ = changedPathInputs$.pipe(
-    mergeMap((paths) => from(paths)),
-    share(),
-  );
-  const flushQueue$ = changedPathItems$.pipe(
-    buffer(changedPathItems$.pipe(debounceTime(debounceMs))),
-    map((paths) => [...new Set(paths)].sort()),
-    filter((paths) => paths.length > 0),
-    concatMap((paths) =>
-      from(flushChangedPaths(paths)).pipe(
-        concatMap(async (event) => {
-          await persistWatchEvent(event);
-          await emitWatchEvent(input.onEvent, event);
-          return event;
-        }),
-      )
-    ),
-  );
-
-  let resolveProcessingDone!: () => void;
-  let rejectProcessingDone!: (error: unknown) => void;
-  const processingDone = new Promise<void>((resolve, reject) => {
-    resolveProcessingDone = resolve;
-    rejectProcessingDone = reject;
-  });
-  const flushSubscription = flushQueue$.subscribe({
-    next() {},
-    error(error) {
-      rejectProcessingDone(error);
-    },
-    complete() {
-      resolveProcessingDone();
-    },
-  });
+  const queueRefresh = () => {
+    const changedPaths = [...pendingChangedPaths].sort();
+    pendingChangedPaths.clear();
+    if (changedPaths.length === 0) {
+      return;
+    }
+    refreshQueue = refreshQueue.then(async () => {
+      const event = await flushChangedPaths(changedPaths);
+      await persistWatchEvent(event);
+      await emitWatchEvent(input.onEvent, event);
+    });
+  };
 
   const initialSummary = await indexFolder({
     repoRoot,
@@ -2150,11 +2102,14 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
         clearInterval(pollInterval);
         pollInterval = null;
       }
+      if (debounceTimer) {
+        clearTimeout(debounceTimer);
+        debounceTimer = null;
+      }
       await nativeSubscription?.close().catch(() => undefined);
       nativeSubscription = null;
-      changedPathInputs$.complete();
-      await processingDone;
-      flushSubscription.unsubscribe();
+      queueRefresh();
+      await refreshQueue;
       const event = {
         type: "close",
         changedPaths: [],

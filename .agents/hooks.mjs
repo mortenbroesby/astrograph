@@ -397,6 +397,29 @@ function maybeNotify(payload) {
   return {};
 }
 
+function handleVersionBumpCheck() {
+  const result = spawnSync("node", [
+    "--experimental-strip-types",
+    "./src/scripts/check-version-bump.ts",
+    "--summary",
+  ], {
+    cwd: path.resolve(process.cwd()),
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 10_000,
+  });
+  const message = String(result.stdout || result.stderr || result.error?.message || "Version bump check: failed.").trim();
+
+  return {
+    stdout: buildJson({
+      hookSpecificOutput: {
+        hookEventName: "Stop",
+        additionalContext: message,
+      },
+    }),
+  };
+}
+
 async function handle(payload) {
   const eventName = getEventName(payload);
   const toolName = getToolName(payload);
@@ -412,6 +435,7 @@ async function handle(payload) {
     }
   }
   if (eventName === 'PostToolUse' && EDIT_TOOLS.has(toolName)) return handleAudit(payload);
+  if (eventName === 'Stop') return handleVersionBumpCheck();
   if (eventName === 'Notification' || eventName === 'notify' || eventName === 'notify-error') return maybeNotify(payload);
   if (eventName === 'CodeNav' || eventName === 'Read') return handleCodeNav(payload);
 
