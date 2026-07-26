@@ -47,6 +47,10 @@ turns those focuses into an exclusive execution gate.
    - Architecture: extend the existing compact-output fixture corpus and
      source-free JSON report; no serving contract, session state, daemon, or
      output-format change.
+7. [Session Content-Reference Contract Delivery](./active/session-content-reference-contract-delivery-checklist.md)
+   - Goal: add a bounded, capability-gated reference for full JSON responses.
+   - Architecture: process-local opaque IDs and SHA-256 metadata only; no
+     source persistence, delta transport, new MCP tool, or daemon migration.
 
 ## Ready — detailed, but not selected
 

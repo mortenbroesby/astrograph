@@ -51,7 +51,7 @@ because its design is attractive.
 | Order | Story | Depends on | Selection evidence |
 | --- | --- | --- | --- |
 | 1 | Repeat-read trace and benchmark foundation | Existing compact-output fixtures | Reproducible baseline across four repository shapes and ordinary/repeated reads. |
-| 2 | Explicit session and content-reference contract | Story 1 | A trace proves repeated full responses dominate a material task. |
+| 2 | Explicit session and content-reference contract | Story 1 | Selected by the user; preserve the full-response fallback and bounded local state. |
 | 3 | Optional exact delta responses | Stories 1–2 | Canonical round-trip proof and a material repeated-read gain. |
 | 4 | Bounded task dossier composition | Story 1 | Existing tool composition cannot meet a documented task/budget. |
 | 5 | Privacy-safe efficiency report | Story 1 | A developer/operator decision current diagnostics cannot answer. |
@@ -88,6 +88,8 @@ captures. This validates the harness only; it does not yet establish that a
 stateful session feature has material user benefit.
 
 ## Story 2: Explicit session and content-reference contract
+
+**Status:** Active — execute through the [delivery checklist](../active/session-content-reference-contract-delivery-checklist.md).
 
 **Outcome:** A capable client may say which content-addressed responses it
 already has; Astrograph can decline safely and return the canonical full

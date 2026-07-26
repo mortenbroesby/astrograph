@@ -3,6 +3,8 @@
 import process from "node:process";
 import { randomUUID } from "node:crypto";
 
+import * as zod from "zod";
+
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import {
@@ -23,12 +25,19 @@ import { registerRuntimePresence } from "./runtime-presence.ts";
 import { executeDaemonCommand } from "./daemon-client.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
 import { disposeTokenizer } from "./tokenizer.ts";
+import { MCP_SESSION_CAPABILITY, mcpContentReferenceStore, parseMcpSession } from "./mcp-session.ts";
 
 const logger = getLogger({ component: "mcp" });
 
 type McpCommandExecutor = typeof executeDaemonCommand;
 
 let executeMcpCommand: McpCommandExecutor = executeDaemonCommand;
+
+const mcpSessionSchema = zod.object({
+  capability: zod.literal(MCP_SESSION_CAPABILITY),
+  id: zod.string().min(16).max(128).regex(/^[A-Za-z0-9_-]+$/),
+  knownContentIds: zod.array(zod.string().regex(/^sha256:[a-f0-9]{64}$/)).max(64).optional(),
+}).strict().optional();
 
 /** Test seam for strict MCP-envelope validation; production always uses local IPC. */
 export function setMcpCommandExecutorForTest(executor: McpCommandExecutor): () => void {
@@ -439,7 +448,10 @@ export async function dispatchTool(
   }
 
   try {
-    const result = await executeMcpCommand(name, args);
+    const session = parseMcpSession(args.session);
+    const commandArgs = { ...args };
+    delete commandArgs.session;
+    const result = await executeMcpCommand(name, commandArgs);
     validateToolOutput(name, result);
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,
@@ -450,6 +462,9 @@ export async function dispatchTool(
         dataFreshness: toMcpDataFreshness(result),
       },
     };
+    if (session) {
+      envelope.meta.contentReference = mcpContentReferenceStore.record(session, envelope);
+    }
     logger.debug({
       event: "tool_call_finish",
       toolName: name,
@@ -504,10 +519,12 @@ export function createMcpServer() {
   for (const tool of MCP_TOOL_DEFINITIONS) {
     server.registerTool(tool.name, {
       description: tool.description,
-      inputSchema: tool.inputSchema,
+      inputSchema: { ...tool.inputSchema, session: mcpSessionSchema },
     }, async (args: Record<string, unknown>) => {
       const envelope = await dispatchTool(tool.name, args);
-      const requestedFormat = args.format as McpOutputFormat | undefined;
+      const requestedFormat = parseMcpSession(args.session)
+        ? "json"
+        : args.format as McpOutputFormat | undefined;
       const formatted = formatMcpEnvelope(tool.name, requestedFormat, envelope);
       const repoRoot = typeof args.repoRoot === "string" ? args.repoRoot : undefined;
       if (repoRoot) {

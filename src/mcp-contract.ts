@@ -35,6 +35,11 @@ export interface McpResponseEnvelope<T> {
     tokenBudgetUsed: number | null;
     dataFreshness: McpDataFreshness;
     warnings?: string[];
+    contentReference?: {
+      id: string;
+      representation: "full";
+      reason: "new_content" | "known_content_no_delta_support";
+    };
   };
 }
 

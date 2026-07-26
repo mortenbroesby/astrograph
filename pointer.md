@@ -37,6 +37,10 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/session-aware-repeat-read-trace-delivery-checklist.md)
   — establish repeat-read benchmark evidence before designing a
   session-aware response feature.
+- [Session Content-Reference Contract Delivery
+  Checklist](./specs/implementation/active/session-content-reference-contract-delivery-checklist.md)
+  — add a bounded, capability-gated full-response contract before any delta
+  transport is considered.
 
 ## Keeping this useful
 
