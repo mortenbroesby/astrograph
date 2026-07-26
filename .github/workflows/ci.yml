@@ -4,7 +4,11 @@ on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
     paths:
+      - ".agents/**"
+      - ".codex/**"
+      - ".skills/**"
       - ".github/workflows/**"
+      - "AGENTS.md"
       - "bench/**"
       - "scripts/**"
       - "src/**"
@@ -18,7 +22,11 @@ on:
       - main
       - "release/**"
     paths:
+      - ".agents/**"
+      - ".codex/**"
+      - ".skills/**"
       - ".github/workflows/**"
+      - "AGENTS.md"
       - "bench/**"
       - "scripts/**"
       - "src/**"
@@ -69,6 +77,12 @@ jobs:
 
       - name: Install
         run: pnpm install --frozen-lockfile
+
+      - name: Agent contract
+        run: pnpm agents:check
+
+      - name: Agent contract smoke
+        run: pnpm exec vitest run tests/agent-contract.test.ts
 
       - name: Build
         run: pnpm build
