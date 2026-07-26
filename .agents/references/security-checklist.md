@@ -9,7 +9,7 @@
 
 ## Repo-specific checks
 
-- Respect `.agents/hooks/` protections for shell commands, file writes, and
+- Respect `.agents/hooks.mjs` protections for shell commands, file writes, and
   secret scanning.
 - Do not weaken `.codex/rules/` escalation policy from markdown docs.
 - When changing hooks or command policy, keep behavior deterministic and narrow.
