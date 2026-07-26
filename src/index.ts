@@ -92,6 +92,11 @@ export {
   restoreGlobalCache,
 } from "./cache-control.ts";
 export type { CacheMutationResult, CachePruneResult, CacheRestoreResult, CacheStatus } from "./cache-control.ts";
+export {
+  getRuntimePresenceSummary,
+  registerRuntimePresence,
+} from "./runtime-presence.ts";
+export type { RuntimePresenceSummary } from "./runtime-presence.ts";
 
 export type {
   AstrographVersionParts,

@@ -6,13 +6,13 @@ only authorized implementation queue; completed evidence belongs in
 
 ## Current Queue
 
-1. [Comforting Install Experience](./2_comforting-global-install-experience.md)
+1. [MCP Runtime Hygiene Delivery Checklist](./mcp-runtime-hygiene-delivery-checklist.md)
+   — selected by the user: make stdio-server process sprawl visible and ensure
+   normal shutdown releases process-lifetime resources.
+2. [Comforting Install Experience](./2_comforting-global-install-experience.md)
    — make package installation plus global and repository-local client setup
    understandable without hidden configuration writes.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Do not select work from those categories
 without updating this queue and `pointer.md` together.
-
-Do not start planned work from `../planned/` until it is explicitly selected.
-Closed records in `../closed/` are historical evidence, not execution queues.

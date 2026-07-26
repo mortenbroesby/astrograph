@@ -94,6 +94,7 @@ import {
   writeRepoMetaFiles,
 } from "./repo-meta.ts";
 import { getLogger } from "./logger.ts";
+import { getRuntimePresenceSummary } from "./runtime-presence.ts";
 import { SQLITE_INDEX_BACKEND } from "./sqlite-backend.ts";
 import {
   buildDoctorResult,
@@ -2642,6 +2643,7 @@ export async function diagnostics(input: DiagnosticsOptions): Promise<Diagnostic
       indexExclude: config.indexExclude,
       maxFilesDiscovered: config.maxFilesDiscovered,
       maxFileBytes: config.maxFileBytes,
+      runtime: await getRuntimePresenceSummary(),
     });
   } finally {
     db.close();

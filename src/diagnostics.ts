@@ -3,6 +3,7 @@ import { loadFilesystemSnapshot, snapshotHash } from "./filesystem-scan.ts";
 import type { SnapshotEntry } from "./filesystem-scan.ts";
 import { getLanguageRegistrySnapshot } from "./language-registry.ts";
 import { classifyRetrievalHealth } from "./retrieval-health.ts";
+import type { RuntimePresenceSummary } from "./runtime-presence.ts";
 import { createDefaultWatchDiagnostics } from "./repo-meta.ts";
 import { ENGINE_STORAGE_VERSION } from "./config.ts";
 import type { RepoMetaHealth, RepoMetaHealthStatus } from "./repo-meta.ts";
@@ -184,6 +185,7 @@ export interface DiagnosticsAssemblyInput {
   maxFilesDiscovered: number;
   maxFileBytes: number;
   readiness?: RepoMetaReadinessRecord | null;
+  runtime: RuntimePresenceSummary;
 }
 
 export async function buildDiagnosticsResult(
@@ -311,6 +313,7 @@ export async function buildDiagnosticsResult(
       byFallbackExtension: languageRegistry.byFallbackExtension,
     },
     watch: meta?.watch ?? createDefaultWatchDiagnostics(),
+    runtime: input.runtime,
   } satisfies Omit<DiagnosticsResult, "retrievalHealth">;
 
   return {
