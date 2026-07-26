@@ -33,6 +33,9 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
   — run one user-local, on-demand daemon that owns isolated repository runtime
   lifecycles for concurrent stdio MCP clients.
+- [Repository Structure Cleanup Epic](./specs/implementation/active/7_repository-structure-cleanup-epic.md)
+  — collate benchmark/profiling ownership and simplify repository automation
+  through small, behavior-preserving pull requests.
 - [Local Token-Savings Analytics Delivery
   Checklist](./specs/implementation/active/6_local-token-savings-analytics-delivery-checklist.md)
   — make already-proven token savings inspectable locally, without a tracking

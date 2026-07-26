@@ -15,13 +15,13 @@ import {
   indexFile,
   indexFolder,
   queryCode,
-} from "../src/index.ts";
-import { listSupportedFiles } from "../src/filesystem-scan.ts";
-import { parseSourceFile, supportedLanguageForFile } from "../src/parser.ts";
+} from "../../src/index.ts";
+import { listSupportedFiles } from "../../src/filesystem-scan.ts";
+import { parseSourceFile, supportedLanguageForFile } from "../../src/parser.ts";
 
 export const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
-  "..",
+  "../..",
 );
 
 const EXCLUDED_SEGMENTS = new Set([

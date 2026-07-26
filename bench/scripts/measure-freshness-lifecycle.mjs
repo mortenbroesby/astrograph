@@ -10,7 +10,7 @@ import {
   diagnostics,
   indexFolder,
   watchFolder,
-} from "../src/index.ts";
+} from "../../src/index.ts";
 
 const execFile = promisify(execFileCallback);
 
