@@ -54,6 +54,11 @@ Fix:
 npx astrograph cli watch --repo /absolute/path/to/repo
 ```
 
+### Problem: diagnostics reports too many live MCP processes
+
+Close unused editor or agent sessions, then rerun diagnostics. Astrograph only
+reports the count; it never kills another application's process automatically.
+
 ### Problem: metadata is corrupted or incomplete
 
 Fix:

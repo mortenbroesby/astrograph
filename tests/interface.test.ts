@@ -1,6 +1,7 @@
 import path from "node:path";
 import { execFile } from "node:child_process";
-import { realpath, writeFile } from "node:fs/promises";
+import { mkdtemp, readdir, realpath, rm, writeFile } from "node:fs/promises";
+import os from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
@@ -56,6 +57,7 @@ async function withMcpClient<T>(
     client: Client;
     stderr: () => string;
   }) => Promise<T>,
+  options: { env?: NodeJS.ProcessEnv } = {},
 ) {
   const transport = new StdioClientTransport({
     command: process.execPath,
@@ -65,6 +67,7 @@ async function withMcpClient<T>(
     env: {
       ...process.env,
       ASTROGRAPH_USE_SOURCE: "1",
+      ...options.env,
     },
   });
   let stderr = "";
@@ -166,7 +169,13 @@ describe("ai-context-engine interfaces", () => {
           }),
         ]),
       },
+      runtime: {
+        schemaVersion: 1,
+        liveProcessCount: expect.any(Number),
+      },
     });
+    const runtimeWarning = JSON.parse(diagnosticsStdout).runtime.warning;
+    expect(runtimeWarning === null || typeof runtimeWarning === "string").toBe(true);
 
     const filteredStdout = await handleCli([
       "search-symbols",
@@ -1088,6 +1097,22 @@ export class Greeter {
       "src/math.ts",
       "src/strings.ts",
     ]);
+  }, 15_000);
+
+  it("removes its runtime presence record when the stdio client closes", async () => {
+    const runtimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-runtime-"));
+    try {
+      await withMcpClient(async ({ client }) => {
+        await waitFor(async () => (await readdir(runtimeDir)).some((entry) => /^\d+\.json$/.test(entry)));
+        await client.listTools();
+      }, {
+        env: { ASTROGRAPH_RUNTIME_DIR: runtimeDir },
+      });
+
+      await waitFor(async () => (await readdir(runtimeDir)).length === 0);
+    } finally {
+      await rm(runtimeDir, { recursive: true, force: true });
+    }
   }, 15_000);
 
   it("rejects malformed MCP arguments instead of treating them as empty filters", async () => {

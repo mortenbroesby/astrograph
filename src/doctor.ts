@@ -217,6 +217,9 @@ export function buildDoctorWarnings(result: DoctorResult): string[] {
   if (result.watch.status !== "watching") {
     warnings.push("Watch mode is not currently running.");
   }
+  if (result.runtime.warning) {
+    warnings.push(result.runtime.warning);
+  }
 
   return warnings;
 }
@@ -367,6 +370,7 @@ export async function buildDoctorResult(
     observability,
     privacy,
     watch: input.diagnostics.watch,
+    runtime: input.diagnostics.runtime,
     retrievalHealth: input.diagnostics.retrievalHealth,
     warnings: [],
     suggestedActions: [],

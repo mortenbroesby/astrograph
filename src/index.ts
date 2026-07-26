@@ -67,6 +67,11 @@ export {
   emitEngineEvent,
   readRecentEngineEvents,
 } from "./event-sink.ts";
+export {
+  getRuntimePresenceSummary,
+  registerRuntimePresence,
+} from "./runtime-presence.ts";
+export type { RuntimePresenceSummary } from "./runtime-presence.ts";
 
 export type {
   AstrographVersionParts,
