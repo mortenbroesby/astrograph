@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.8.1-alpha.171",
+  "version": "0.8.1-alpha.172",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -72,6 +72,7 @@
     "bench:perf:query": "node --experimental-strip-types ./scripts/perf-query.mjs",
     "bench:freshness-lifecycle": "node --experimental-strip-types ./scripts/measure-freshness-lifecycle.mjs",
     "bench:mcp-envelopes": "node --experimental-strip-types ./scripts/measure-mcp-envelopes.mjs",
+    "bench:agc1-compact-output": "node --experimental-strip-types ./scripts/measure-agc1-compact-output-matrix.mjs",
     "profile:index:clinic": "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --experimental-strip-types ./scripts/perf-index.mjs",
     "profile:query:clinic": "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --experimental-strip-types ./scripts/perf-query.mjs",
     "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --experimental-strip-types ./scripts/perf-index.mjs",

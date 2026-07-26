@@ -27,6 +27,7 @@ pnpm --filter astrograph bench:perf:query -- --repo /abs/repo --runs 25
 pnpm --filter astrograph bench:perf:serialize -- --repo /abs/repo --runs 250
 pnpm --filter astrograph bench:freshness-lifecycle
 pnpm --filter astrograph bench:mcp-envelopes
+pnpm bench:agc1-compact-output -- --summary
 ```
 
 Those cover the main performance surfaces:
@@ -38,6 +39,8 @@ Those cover the main performance surfaces:
 - serialization gates
 - complete agent-visible MCP v1 envelope bytes, `cl100k_base` tokens, and
   compact-output round trips on a deterministic fixture
+- the four-fixture AGC1 compact-output baseline: real serving serialization,
+  exact `cl100k_base` counts, and public-decoder losslessness checks
 - the deterministic freshness lifecycle fixture: cold/no-op/edit/rename/delete,
   checkout change/restore, unavailable Git, and explicit polling fallback
 
