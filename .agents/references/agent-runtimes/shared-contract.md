@@ -29,7 +29,7 @@ Current adapters:
 
 Source of truth:
 
-- `.agents/hooks/`
+- `.agents/hooks.mjs`
 
 Contract:
 
@@ -69,13 +69,13 @@ Implementation rule:
 - if a hook must work across Codex, Claude, and Copilot CLI, design it against
   `session-start` or `user-prompt-submit`
 - if a hook depends on tool lifecycle, notifications, or stop events, treat it
-  as a runtime-specific adapter extension even when it calls a shared
-  `.agents/hooks/*.mjs` script
+  as a runtime-specific adapter extension even when it calls the shared
+  `.agents/hooks.mjs` script
 
 Current adapters:
 
-- Codex: `.codex/hooks.json` invokes shared `.agents/hooks/*.mjs`
-- Claude: `.claude/settings.json` invokes shared `.agents/hooks/*.mjs`
+- Codex: `.codex/hooks.json` invokes `.agents/hooks.mjs`
+- Claude: `.claude/settings.json` invokes `.agents/hooks.mjs`
 - Copilot CLI: supported via `.github/hooks/*.json`, but not yet wired in this
   repo
 

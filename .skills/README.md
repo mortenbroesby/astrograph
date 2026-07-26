@@ -8,11 +8,12 @@ Architecture intent:
 - keep `AGENTS.md` and `CLAUDE.md` thin
 - make skill discovery command-first and on-demand
 
-Target command surface:
+Command surface:
 
 - `pnpm skills:list`
 - `pnpm skills:search`
 - `pnpm skills:read <skill-name>`
+- `pnpm skills:route "<task>"`
 
 Current status:
 
@@ -20,6 +21,8 @@ Current status:
 - Astrograph-specific skills live here alongside the shared skill surface
 - legacy `.agents/skills/` content is retired from the tracked repo layout
 - vendored external references should be explicit and rare
+- use `skills:route` before reading a skill when the task shape is unclear;
+  load only the returned skill body that materially improves the task
 
 ## Astrograph-Specific Skills
 

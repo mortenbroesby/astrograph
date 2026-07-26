@@ -11,23 +11,20 @@
 
 - use `AGENTS.md` as the shared bootstrap
 - load shared repo policy from `.agents/rules/`
-- run shared hook logic from `.agents/hooks/` through `.codex/hooks.json`
+- run shared hook logic from `.agents/hooks.mjs` through `.codex/hooks.json`
 - keep Codex-specific execution policy in `.codex/rules/`
 - use repo-owned skills from `.skills/` through `pnpm skills:read`
 - do not depend on runtime-local mirrored skill directories
 
 ## Current Repo Setup
 
-- `multi_agent = true`
-- `codex_hooks = true`
 - MCP servers configured here:
   - `astrograph`
-  - `obsidian-memory`
 - hook adapter currently registered for:
   - `SessionStart`
   - `UserPromptSubmit`
   - `PreToolUse` for `Bash`
-  - `PostToolUse` for `Bash`
+  - `PreToolUse` and `PostToolUse` for `apply_patch`
   - `Stop`
 
 ## Behavior Notes
@@ -40,6 +37,8 @@
   even when they invoke shared `.agents/hooks/*.mjs` scripts
 - some Git and `gh stack` operations may need permission because they write
   under `.git/`
+- repository-local MCP configuration is intentionally Astrograph-only; configure
+  personal integrations such as GitHub in the user Codex layer
 - the official Codex guidance explicitly supports repository `AGENTS.md` files
   with hierarchical scope and precedence
 
