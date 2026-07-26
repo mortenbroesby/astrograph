@@ -59,3 +59,5 @@ Primary tests:
 repository-local storage reports the current repository and global storage
 aggregates existing Astrograph repository stores. `--reset --yes` requires
 `--repo` and clears only that repository's local report input.
+`savedTokens` includes only responses with a known canonical comparison;
+reference responses increment `unavailableSavingsSamples` instead.

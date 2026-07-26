@@ -48,7 +48,10 @@ function buildEfficiencyReport(events: EngineEventEnvelope[], scope: EfficiencyR
     if (event.data.responseRepresentation === "reference") referenceResponses += 1;
   }
   const deliveredTokens = formatted.reduce((total, event) => total + numberValue(event.data.tokens), 0);
-  const savedTokens = formatted.reduce((total, event) => total + numberValue(event.data.savedTokens), 0);
+  const formattedReferences = formatted.filter((event) => event.data.responseRepresentation === "reference");
+  const savedTokens = formatted
+    .filter((event) => event.data.responseRepresentation !== "reference")
+    .reduce((total, event) => total + numberValue(event.data.savedTokens), 0);
   return {
     schemaVersion: 2,
     collection: "local-observability-events",
@@ -61,7 +64,7 @@ function buildEfficiencyReport(events: EngineEventEnvelope[], scope: EfficiencyR
       tokenBudgetTotal,
       deliveredTokens,
       savedTokens,
-      unavailableSavingsSamples: Math.max(0, completed.length - formatted.length),
+      unavailableSavingsSamples: formattedReferences.length + Math.max(0, completed.length - formatted.length),
       fullResponses: completed.length - referenceResponses,
       referenceResponses,
       latencyBands,

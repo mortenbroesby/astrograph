@@ -77,8 +77,8 @@ responses without a known canonical comparison remain explicitly unavailable.
 **Verification (2026-07-26):** focused report/CLI tests, type-lint, build,
 package-bin smoke, version policy, and diff check passed. The small frontend
 trace retained 1,578 reference-saved tokens and four exact AGC1 recoveries;
-the implementation performs no new request-path formatting, tokenization, or
-persistence work.
+the implementation adds no new request-path event, tokenization, or persistence
+operation.
 
 ## Commit checkpoint
 

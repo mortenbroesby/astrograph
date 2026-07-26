@@ -34,10 +34,20 @@ describe("efficiency report", () => {
       source: "mcp",
       event: "mcp.tool.response_formatted",
       level: "debug",
-      data: { tokens: 10, savedTokens: 4 },
+      data: { tokens: 10, savedTokens: 4, responseRepresentation: "full" },
+    });
+    await appendEngineEvent({
+      repoRoot,
+      source: "mcp",
+      event: "mcp.tool.response_formatted",
+      level: "debug",
+      data: { tokens: 8, savedTokens: 99, responseRepresentation: "reference" },
     });
 
-    await expect(getEfficiencyReport(repoRoot)).resolves.toEqual({
+    const report = await getEfficiencyReport(repoRoot);
+    expect(JSON.stringify(report)).not.toContain(repoRoot);
+    expect(JSON.stringify(report)).not.toContain("search_symbols");
+    expect(report).toEqual({
       schemaVersion: 2,
       collection: "local-observability-events",
       scope: "repository",
@@ -47,7 +57,7 @@ describe("efficiency report", () => {
         operationClass: "mcp",
         calls: 2,
         tokenBudgetTotal: 92,
-        deliveredTokens: 10,
+        deliveredTokens: 18,
         savedTokens: 4,
         unavailableSavingsSamples: 1,
         fullResponses: 1,
