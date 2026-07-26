@@ -22,6 +22,10 @@ use its recorded evidence or selection gate instead.
 - [Comforting Install Experience](./specs/implementation/active/2_comforting-global-install-experience.md)
   — finish the remaining delivery/PR evidence for understandable global and
   repository-local setup.
+- [Git Ref Watch Reconciliation Delivery
+  Checklist](./specs/implementation/active/3_git-ref-watch-reconciliation-delivery-checklist.md)
+  — keep active watch sessions correct when Git checkout identity changes
+  without dependable filesystem events.
 
 ## Keeping this useful
 

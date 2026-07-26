@@ -30,6 +30,11 @@ turns those focuses into an exclusive execution gate.
 3. [Comforting Install Experience](./active/2_comforting-global-install-experience.md)
    - Goal: make global and repository-local setup understandable without
      hidden configuration writes.
+4. [Git Ref Watch Reconciliation](./active/3_git-ref-watch-reconciliation-delivery-checklist.md)
+   - Goal: reconcile an active watch session when its Git checkout identity
+     advances or changes without dependable filesystem events.
+   - Architecture: a session-bound 30-second checkout probe queues existing
+     folder reconciliation; no daemon, Git-diff planner, or cache migration.
 
 ## Ready — detailed, but not selected
 
