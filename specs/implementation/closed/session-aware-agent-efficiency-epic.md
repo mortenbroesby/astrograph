@@ -1,6 +1,7 @@
 # Session-Aware Agent Efficiency Epic
 
-> **Status:** Active — Stories 3–7 are consolidated in one user-selected PR.
+> **Status:** Closed — all selected Stories 1–7 merged in PR #99 on
+> 2026-07-26.
 >
 > **Inspiration:** CodeDrift's emphasis on session-aware reads, composed
 > context, observable agent efficiency, and privacy controls. This is a
@@ -215,8 +216,11 @@ unmarked lossy response. The normal source-retrieval contract remains intact.
 - A browser dashboard before the local JSON report has demonstrated demand.
 - Large local ML models or cryptography added only for speculative redaction.
 
-## Handoff
+## Closure evidence
 
-When this epic becomes active, create a child delivery checklist for Story 1
-only. Record the exact baseline and decide the next story from that evidence;
-do not pre-commit to all seven stories.
+PR #99 merged as `cc7ae6c`. The four-fixture trace benchmark measured 6,812
+of 24,614 canonical JSON `cl100k_base` tokens saved by exact references
+(27.7%), with all 16 eligible AGC1 round trips exact. The resulting local
+report, explicit bookmarks, and optional marked output redaction remain
+local-first and source-free. Future analytics work is separately tracked by
+the Local Token-Savings Analytics focus; it does not reopen this epic.

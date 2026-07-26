@@ -1,6 +1,7 @@
 # Session Exact-Reference Delta Delivery Checklist
 
-> **Status:** Active — Story 3 of the [Session-Aware Agent Efficiency Epic](../planned/8_session-aware-agent-efficiency-epic.md), selected by the user on 2026-07-26.
+> **Status:** Closed — exact references merged in PR #98 and measured through
+> completion in PR #99.
 
 **Goal:** Return a smaller, exactly reconstructable response when the caller
 proves it already holds the complete current canonical envelope.

@@ -33,20 +33,10 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
   — run one user-local, on-demand daemon that owns isolated repository runtime
   lifecycles for concurrent stdio MCP clients.
-- [Session-Aware Repeat-Read Trace Delivery
-  Checklist](./specs/implementation/active/session-aware-repeat-read-trace-delivery-checklist.md)
-  — establish repeat-read benchmark evidence before designing a
-  session-aware response feature.
-- [Session Content-Reference Contract Delivery
-  Checklist](./specs/implementation/active/session-content-reference-contract-delivery-checklist.md)
-  — add a bounded, capability-gated full-response contract before any delta
-  transport is considered.
-- [Session Exact-Reference Delta Delivery
-  Checklist](./specs/implementation/active/session-exact-reference-delta-delivery-checklist.md)
-  — prove exact reference reuse with full fallback before considering patches.
-- [Session-Aware Agent Efficiency Epic Completion
-  Checklist](./specs/implementation/active/session-aware-epic-completion-delivery-checklist.md)
-  — complete the remaining Stories 3–7 in one bounded, local-first PR.
+- [Local Token-Savings Analytics Delivery
+  Checklist](./specs/implementation/active/6_local-token-savings-analytics-delivery-checklist.md)
+  — make already-proven token savings inspectable locally, without a tracking
+  service or additional normal-request work.
 
 ## Keeping this useful
 
