@@ -865,7 +865,7 @@ describe("ai-context-engine contract", () => {
     expect(result.packageName).toBe("astrograph");
     expect(result.configPath).toContain(path.join(".codex", "config.toml"));
     expect(result.engineConfigPath).toContain("astrograph.config.ts");
-    expect(result.engineConfigPreview).toContain('from "astrograph"');
+    expect(result.engineConfigPreview).toContain('satisfies import("astrograph").RepoEngineConfig');
     expect(result.engineConfigPreview).toContain("performance:");
     expect(result.engineConfigPreview).toContain("node_modules/**");
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
@@ -1423,7 +1423,7 @@ describe("ai-context-engine contract", () => {
       execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
     });
     await setupForAllIdes(repoRoot, { agentsPolicy: true, gitHooks: true });
-    await writeFile(path.join(repoRoot, "astrograph.config.json"), JSON.stringify({ storageLocation: "repo-local" }));
+    await writeFile(path.join(repoRoot, "astrograph.config.ts"), 'export default { storageLocation: "repo-local" };\n');
 
     const result = await getSetupReadiness(repoRoot, {
       environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },

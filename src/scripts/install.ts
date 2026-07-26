@@ -880,13 +880,11 @@ function resolveManagedInvocation(): ManagedInvocation {
 
 function createMinimalTsConfig(): string {
   return [
-    'import { defineConfig } from "astrograph";',
-    "",
-    "export default defineConfig({",
+    "export default {",
     "  performance: {",
     '    exclude: ["node_modules/**", "dist/**", "coverage/**", ".git/**"],',
     "  },",
-    "});",
+    '} satisfies import("astrograph").RepoEngineConfig;',
     "",
   ].join("\n");
 }
