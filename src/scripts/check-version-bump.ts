@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -40,13 +41,17 @@ function readVersionFromPackageJson(contents: string, sourceLabel: string): stri
   return parsed.version;
 }
 
-function getHeadPackageVersion(): string | null {
+function getPackageVersionAtRef(ref: string): string | null {
   try {
-    const contents = git(["show", `HEAD:${path.relative(packageRoot, packageJsonPath)}`]);
-    return readVersionFromPackageJson(contents, "HEAD package.json");
+    const contents = git(["show", `${ref}:${path.relative(packageRoot, packageJsonPath)}`]);
+    return readVersionFromPackageJson(contents, `${ref} package.json`);
   } catch {
     return null;
   }
+}
+
+function getWorkingPackageVersion(): string {
+  return readVersionFromPackageJson(readFileSync(packageJsonPath, "utf8"), "package.json");
 }
 
 function getStagedPackageVersion(): string {
@@ -70,42 +75,45 @@ function getStagedPaths(): string[] {
   return output.split("\n").filter(Boolean);
 }
 
-function isSummaryMode(): boolean {
+function parseOptions(): { summary: boolean; base: string | null } {
   const args = process.argv.slice(2);
-  if (args.length === 0) return false;
-  if (args.length === 1 && args[0] === "--summary") return true;
-  throw new Error(`Unknown check-version-bump argument: ${args.join(" ")}`);
+  if (args.length === 0) return { summary: false, base: null };
+  if (args.length === 1 && args[0] === "--summary") return { summary: true, base: null };
+  if (args.length === 2 && args[0] === "--base" && args[1]) {
+    return { summary: false, base: args[1] };
+  }
+  throw new Error(`Usage: check-version-bump.ts [--summary|--base <git-ref>]`);
 }
 
 function main(): void {
-  const summaryMode = isSummaryMode();
-  const stagedPaths = getStagedPaths();
-  const astrographPaths = stagedPaths.filter((filePath) =>
-    /^(package\.json|src\/|scripts\/|tests\/|bench\/|tsconfig|vitest\.config\.ts)/.test(filePath),
-  );
-  if (astrographPaths.length === 0) {
-    if (summaryMode) console.log("Version bump check: not applicable (no staged Astrograph changes).");
+  const { summary, base } = parseOptions();
+  const changedPaths = base
+    ? git(["diff", "--name-only", `${base}...HEAD`]).split("\n").filter(Boolean)
+    : getStagedPaths();
+  const versionedPaths = changedPaths.filter((filePath) => !/\.(?:md|mdx)$/i.test(filePath));
+  if (versionedPaths.length === 0) {
+    if (summary) console.log("Version bump check: not applicable (documentation-only changes).");
     return;
   }
 
-  const nextVersion = getStagedPackageVersion();
+  const nextVersion = base ? getWorkingPackageVersion() : getStagedPackageVersion();
   const nextParts = parseAstrographVersion(nextVersion);
 
-  const previousVersion = getHeadPackageVersion();
+  const previousVersion = getPackageVersionAtRef(base ?? "HEAD");
   if (previousVersion === null) {
-    if (summaryMode) console.log("Version bump check: not applicable (no HEAD package version).");
+    if (summary) console.log("Version bump check: not applicable (no baseline package version).");
     return;
   }
 
   const previousParts = parseAstrographVersionFromCommitBaseline(previousVersion);
   const assessment = assessAstrographVersionBump(previousParts, nextParts);
   if (assessment.ok) {
-    if (summaryMode) console.log(`Version bump check: passed (${previousVersion} -> ${nextVersion}).`);
+    if (summary) console.log(`Version bump check: passed (${previousVersion} -> ${nextVersion}).`);
     return;
   }
 
   const detail = [
-    "Astrograph changes are staged, but its version policy is not satisfied.",
+    "Versioned repository changes are present, but the version policy is not satisfied.",
     `Previous version: ${previousVersion}`,
     `Next version: ${nextVersion}`,
     assessment.reason,
@@ -115,7 +123,7 @@ function main(): void {
     "Use patch for backward-compatible fixes/internal work, minor for backward-compatible features, and major for breaking changes.",
   ].join("\n");
 
-  throw new Error(summaryMode ? `Version bump check: failed — ${assessment.reason}` : detail);
+  throw new Error(summary ? `Version bump check: failed — ${assessment.reason}` : detail);
 }
 
 try {
