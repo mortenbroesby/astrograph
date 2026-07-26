@@ -70,12 +70,21 @@ function getStagedPaths(): string[] {
   return output.split("\n").filter(Boolean);
 }
 
+function isSummaryMode(): boolean {
+  const args = process.argv.slice(2);
+  if (args.length === 0) return false;
+  if (args.length === 1 && args[0] === "--summary") return true;
+  throw new Error(`Unknown check-version-bump argument: ${args.join(" ")}`);
+}
+
 function main(): void {
+  const summaryMode = isSummaryMode();
   const stagedPaths = getStagedPaths();
   const astrographPaths = stagedPaths.filter((filePath) =>
     /^(package\.json|src\/|scripts\/|tests\/|bench\/|tsconfig|vitest\.config\.ts)/.test(filePath),
   );
   if (astrographPaths.length === 0) {
+    if (summaryMode) console.log("Version bump check: not applicable (no staged Astrograph changes).");
     return;
   }
 
@@ -84,12 +93,14 @@ function main(): void {
 
   const previousVersion = getHeadPackageVersion();
   if (previousVersion === null) {
+    if (summaryMode) console.log("Version bump check: not applicable (no HEAD package version).");
     return;
   }
 
   const previousParts = parseAstrographVersionFromCommitBaseline(previousVersion);
   const assessment = assessAstrographVersionBump(previousParts, nextParts);
   if (assessment.ok) {
+    if (summaryMode) console.log(`Version bump check: passed (${previousVersion} -> ${nextVersion}).`);
     return;
   }
 
@@ -104,7 +115,7 @@ function main(): void {
     "Use patch for backward-compatible fixes/internal work, minor for backward-compatible features, and major for breaking changes.",
   ].join("\n");
 
-  throw new Error(detail);
+  throw new Error(summaryMode ? `Version bump check: failed — ${assessment.reason}` : detail);
 }
 
 try {

@@ -397,23 +397,18 @@ function maybeNotify(payload) {
   return {};
 }
 
-function summarizeHookFailure(result) {
-  const output = String(result.stderr || result.stdout || result.error?.message || "unknown error")
-    .trim()
-    .replace(/\s+/g, " ");
-  return output.length > 280 ? `${output.slice(0, 277)}...` : output;
-}
-
 function handleVersionBumpCheck() {
-  const result = spawnSync("pnpm", ["check:version-bump"], {
+  const result = spawnSync("node", [
+    "--experimental-strip-types",
+    "./src/scripts/check-version-bump.ts",
+    "--summary",
+  ], {
     cwd: path.resolve(process.cwd()),
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 10_000,
   });
-  const message = result.status === 0
-    ? "Version bump check: passed."
-    : `Version bump check: failed — ${summarizeHookFailure(result)}`;
+  const message = String(result.stdout || result.stderr || result.error?.message || "Version bump check: failed.").trim();
 
   return {
     stdout: buildJson({
