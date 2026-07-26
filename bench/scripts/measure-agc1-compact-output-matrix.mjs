@@ -4,6 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { decodeCompactMcpEnvelope, formatMcpEnvelope } from "../../src/compact-mcp.ts";
 import { dispatchTool } from "../../src/mcp.ts";
@@ -15,9 +16,6 @@ import { createCompactOutputQueryCases } from "../../tests/fixtures/compact-outp
 import { createCompactOutputTraceCases } from "../../tests/fixtures/compact-output/traces.ts";
 
 const names = ["small-frontend", "product-monorepo", "text-heavy-workspace", "dead-code-workspace"];
-const selected = process.argv.find((argument) => argument.startsWith("--fixture="));
-const fixtures = selected ? [selected.slice(10)] : names;
-if (fixtures.some((name) => !names.includes(name))) throw new Error(`Unknown fixture: ${selected}`);
 
 function json(envelope) {
   const encoded = JSON.stringify(envelope, null, 2);
@@ -44,14 +42,16 @@ function withoutContentReference(envelope) {
   return { ...envelope, meta };
 }
 
-const records = [];
+export async function runCompactOutputTraceBenchmark({ fixtures = names, dispatch = dispatchTool } = {}) {
+  if (fixtures.some((name) => !names.includes(name))) throw new Error(`Unknown fixture: ${fixtures.join(", ")}`);
+  const records = [];
 const previousRuntimeDir = process.env.ASTROGRAPH_RUNTIME_DIR;
 const runtimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-compact-runtime-"));
 process.env.ASTROGRAPH_RUNTIME_DIR = runtimeDir;
 try {
   for (const name of fixtures) {
     const fixture = await createCompactOutputFixture(name);
-    const indexed = await dispatchTool("index_folder", { repoRoot: fixture.repoRoot });
+    const indexed = await dispatch("index_folder", { repoRoot: fixture.repoRoot });
     if (!indexed.ok) throw new Error(`Could not index ${name}: ${indexed.error.message}`);
     const queries = createCompactOutputQueryCases(fixture);
     const queryById = new Map(queries.map((query) => [query.id, query]));
@@ -65,7 +65,7 @@ try {
         const session = trace.operationClass === "repeat-read"
           ? { capability: "content-references-v1", id: `benchmark_${name}_repeat`, knownContentIds: [...knownContentIds] }
           : undefined;
-        const rawEnvelope = await dispatchTool(query.toolName, { ...query.args, ...(session ? { session } : {}) });
+        const rawEnvelope = await dispatch(query.toolName, { ...query.args, ...(session ? { session } : {}) });
         const reference = rawEnvelope.ok ? rawEnvelope.meta.contentReference : undefined;
         if (reference) {
           knownContentIds.add(reference.id);
@@ -105,4 +105,13 @@ const traces = Object.values(Object.groupBy(records, (record) => record.trace)).
 const report = { schemaVersion: 3, corpus: "compact-output-repeat-read-traces-v1", tokenizer: BENCHMARK_TOKENIZER, records, traces, agc1Integrity: { eligibleSamples: compact.length, matchingSamples: compact.filter((record) => record.agc1.reason === null).length, failures: records.filter((record) => record.agc1.reason && record.agc1.reason !== "json_fallback" && record.agc1.reason !== "error_envelope").map((record) => ({ trace: record.trace, step: record.step, query: record.query, reason: record.agc1.reason })) }, aggregates: { deliveredJsonTokens: records.reduce((sum, record) => sum + record.delivered.tokens, 0), canonicalJsonTokens: records.reduce((sum, record) => sum + record.canonical.tokens, 0), referenceSavingsTokens: records.reduce((sum, record) => sum + record.canonical.tokens - record.delivered.tokens, 0), agc1Tokens: compact.reduce((sum, record) => sum + record.agc1.tokens, 0) } };
 const { records: reportRecords, ...summary } = report;
 summary.records = reportRecords.length;
-process.stdout.write(`${JSON.stringify(process.argv.includes("--summary") ? summary : report, null, 2)}\n`);
+return { report, summary };
+}
+
+const selected = process.argv.find((argument) => argument.startsWith("--fixture="));
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+  const { report, summary } = await runCompactOutputTraceBenchmark({
+    fixtures: selected ? [selected.slice(10)] : names,
+  });
+  process.stdout.write(`${JSON.stringify(process.argv.includes("--summary") ? summary : report, null, 2)}\n`);
+}

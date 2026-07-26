@@ -24,7 +24,7 @@ const clientModuleDir = path.dirname(clientModulePath);
 const builtDaemonEntrypoint = path.join(clientModuleDir, "daemon.js");
 const sourceDaemonEntrypoint = path.join(clientModuleDir, "daemon.ts");
 
-function startDaemonProcess(runtimeDir?: string): void {
+function startDaemonProcess(runtimeDir?: string) {
   const useBuiltEntrypoint = existsSync(builtDaemonEntrypoint) && !clientModulePath.endsWith(".ts");
   const child = spawn(process.execPath, useBuiltEntrypoint
     ? [builtDaemonEntrypoint]
@@ -34,6 +34,7 @@ function startDaemonProcess(runtimeDir?: string): void {
     env: runtimeDir ? { ...process.env, ASTROGRAPH_RUNTIME_DIR: runtimeDir } : process.env,
   });
   child.unref();
+  return child;
 }
 
 export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): Promise<DaemonState> {
@@ -52,7 +53,13 @@ export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): 
   }
 
   const staleToken = existingSummary.status === "stale" ? existing?.token : null;
-  startDaemonProcess(options.runtimeDir);
+  const child = startDaemonProcess(options.runtimeDir);
+  const startup = {
+    exit: null as { code: number | null; signal: NodeJS.Signals | null } | null,
+  };
+  child.once("exit", (code, signal) => {
+    startup.exit = { code, signal };
+  });
   const deadline = Date.now() + DAEMON_START_TIMEOUT_MS;
   while (Date.now() < deadline) {
     const state = await readDaemonRuntime(options);
@@ -61,6 +68,11 @@ export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): 
       && state.protocolVersion === 1
       && state.token !== staleToken) {
       return state;
+    }
+    const exited = startup.exit;
+    if (exited) {
+      const detail = exited.signal ? `signal ${exited.signal}` : `code ${exited.code ?? "unknown"}`;
+      throw new Error(`Astrograph daemon exited before it became ready (${detail})`);
     }
     await delay(DAEMON_START_RETRY_MS);
   }
