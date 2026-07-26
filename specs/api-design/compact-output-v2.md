@@ -10,6 +10,9 @@ weighted saving over AGC1 while avoiding every representative regression.
 The full evidence is in
 [the packed-rows baseline review](../../docs/reviews/agc2-packed-rows-baseline-2026-07-26.md)
 and `pnpm bench:compact-output-matrix -- --json`.
+The later [alias-symbol candidate](../../docs/reviews/agc2-alias-symbols-research-2026-07-26.md)
+showed strong savings on two broad symbol captures but did not cover the
+complete retained compact-tool contract, so it also remains non-serving.
 
 ## Serving contract
 

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
+  aliasSymbolsAgc2Codec,
   prefixLegendAgc2Codec,
   genericRowsAgc2Codec,
   typedRowsAgc2Codec,
@@ -126,12 +127,39 @@ describe("compact output benchmark candidates", () => {
     expect(measureCompactCandidate(genericRowsAgc2Codec, "find_files", heterogeneous).rejectionReason).toBe("unsupported_shape");
   });
 
+  it("aliases only provably duplicated symbol values and rejects malformed tables", () => {
+    const aliasable = {
+      ...symbol,
+      qualifiedName: "area",
+      summary: "function area()",
+      summarySource: "signature",
+    };
+    const aliasEnvelope: McpEnvelope<unknown> = {
+      ok: true,
+      data: {
+        items: [aliasable, { ...aliasable, id: "symbol-2", name: "volume", qualifiedName: "volume", signature: "function volume()", summary: "function volume()", filePath: "src/shapes/volume.ts" }],
+        truncated: false,
+        refinementHints: [],
+        tokenSavings: { unit: "tokens", tokenizer: "cl100k_base", baseline: "all_ranked_symbol_items", baselineTokens: 20, returnedTokens: 10, savedTokens: 10, savedPercent: 50 },
+      },
+      meta: { toolVersion: "1", tokenBudgetUsed: 10, dataFreshness: "fresh" },
+    };
+    const measurement = measureCompactCandidate(aliasSymbolsAgc2Codec, "search_symbols", aliasEnvelope);
+    expect(measurement.rejectionReason).toBeNull();
+    expect(measurement.decoded).toEqual(aliasEnvelope);
+    expect(() => aliasSymbolsAgc2Codec.decode(["agc2a", 1, "src/", ["function"], ["signature"], [["id", "name", 9, "a.ts", "fn", 0, 1, 1, 0, 1, true]], false, [], {}, ["1", 1, "fresh"]])).toThrow("Invalid alias-symbol row");
+
+    const incompatible = { ...aliasEnvelope, data: { ...(aliasEnvelope.data as Record<string, unknown>), items: [aliasable, { ...aliasable, id: "symbol-2", qualifiedName: null }] } };
+    expect(measureCompactCandidate(aliasSymbolsAgc2Codec, "search_symbols", incompatible).rejectionReason).toBe("unsupported_shape");
+  });
+
   it("rejects malformed headers, legends, rows, tags, and generic producer shapes", () => {
     const malformed: Array<() => unknown> = [
       () => schemaRowsAgc2Codec.decode(["agc2s", "missing/9", [], ["1", 0, "fresh"]]),
       () => prefixLegendAgc2Codec.decode(["agc2p", "tree/3", "src/", [["only-path"]], ["1", 0, "fresh"]]),
       () => typedRowsAgc2Codec.decode(["agc2t", "text/3", ["squoted \\\"value\\\"\tbad-tag\tsline\\nnext"], ["1", 0, "fresh"]]),
       () => genericRowsAgc2Codec.decode(["agc2g", "find_files", ["path"], [["src/a.ts", "unexpected"]], ["1", 0, "fresh"]]),
+      () => aliasSymbolsAgc2Codec.decode(["agc2a", 1, "src/", ["function"], ["signature"], [["id"]], false, [], {}, ["1", 0, "fresh"]]),
     ];
     for (const decode of malformed) expect(decode).toThrow();
   });

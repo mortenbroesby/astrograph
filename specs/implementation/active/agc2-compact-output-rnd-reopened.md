@@ -72,7 +72,7 @@ git diff --check
 Expected: all tests and checks exit `0`; full output documents exactly which
 captures are AGC1-comparable and confirms serving/reference equality.
 
-- [ ] **Step 5: Commit checkpoint**
+- [x] **Step 5: Commit checkpoint**
 
 Run:
 
@@ -92,25 +92,58 @@ tracks the harness change; it does not select or release AGC2.
 - Modify: `tests/compact-output-benchmark.test.ts`
 - Modify: `specs/architecture/adrs.md` only if the selection rule changes
 
-- [ ] **Step 1: State one falsifiable candidate hypothesis**
+- [x] **Step 1: State one falsifiable candidate hypothesis**
 
 Describe a new lossless textual candidate and why it might beat measured AGC1
 on an identified subset without regressing the remaining representative
 captures. Do not relabel it as AGC3: AGC2 has not been adopted.
 
-- [ ] **Step 2: Implement in the non-serving lab**
+Candidate F is `agc2-alias-symbols`: remove only provably duplicated symbol
+fields, intern the shared path prefix and small enums, and emit nothing unless
+it beats AGC1 by exact tokens. Its focused evidence is in
+[`agc2-alias-symbols-research-2026-07-26.md`](../../../docs/reviews/agc2-alias-symbols-research-2026-07-26.md).
+
+- [x] **Step 2: Implement in the non-serving lab**
 
 Add its codec, decoder, adversarial cases, and matrix entry. It must refuse
 unsupported shapes explicitly and preserve all values exactly.
 
-- [ ] **Step 3: Select strictly by ADR-010**
+- [x] **Step 3: Select strictly by ADR-010**
 
 Keep the candidate non-serving unless complete-corpus evidence proves at least
 15% weighted exact-token savings versus serving AGC1, no representative
 regression, and the existing per-response auto threshold.
 
-- [ ] **Step 4: Verify and checkpoint**
+Result: retain AGC1. Candidate F saves 30.39% across its two accepted broad
+symbol captures, but refuses six of eight successful symbol captures and does
+not encode file trees or outlines. It is not representative replacement
+evidence.
+
+- [x] **Step 4: Verify and checkpoint**
 
 Run the Task 1 verification commands plus candidate-specific round-trip tests,
 then `pnpm build` and `pnpm test:package-bin` before any production-selection
 commit. If the gate fails, retain AGC1 and record the rejection.
+
+## Task 3: Expand Beyond a Narrow Symbol-Only Result
+
+**Files:**
+- Modify: `src/compact-mcp-candidates.ts`
+- Modify: `tests/compact-output-benchmark.test.ts`
+- Modify: `scripts/measure-compact-output-matrix.mjs`
+- Modify: `docs/reviews/agc2-*.md`
+
+- [ ] **Step 1: Establish representative coverage before selection**
+
+Design the next candidate to cover the complete retained compact-tool contract
+(`search_symbols`, `get_file_tree`, and `get_file_outline`) or write a new,
+explicitly approved mixed-format contract with its own gate. Do not use
+data-dependent refusal to turn only two unusually repetitive responses into a
+production-selection claim.
+
+- [ ] **Step 2: Prove or reject it on the full corpus**
+
+Require lossless decoding, malformed-input coverage, an AGC1 serving baseline
+match, at least 15% weighted exact-token savings, and no representative
+regression. Update the research decision with the full coverage count and
+leave serving output untouched unless every gate passes.

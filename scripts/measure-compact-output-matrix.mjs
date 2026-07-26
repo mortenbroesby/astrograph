@@ -4,6 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import {
   measureCompactCandidate,
   measureFrozenAgc1Reference,
+  aliasSymbolsAgc2Codec,
   prefixLegendAgc2Codec,
   genericRowsAgc2Codec,
   schemaRowsAgc2Codec,
@@ -188,6 +189,7 @@ try {
       const prefixLegend = measureCompactCandidate(prefixLegendAgc2Codec, queryCase.toolName, envelope);
       const typedRows = measureCompactCandidate(typedRowsAgc2Codec, queryCase.toolName, envelope);
       const genericRows = measureCompactCandidate(genericRowsAgc2Codec, queryCase.toolName, envelope);
+      const aliasSymbols = measureCompactCandidate(aliasSymbolsAgc2Codec, queryCase.toolName, envelope);
       records.push({
         fixture: fixtureName,
         query: queryCase.id,
@@ -202,6 +204,7 @@ try {
         agc2PrefixLegend: prefixLegend,
         agc2TypedRows: typedRows,
         agc2GenericRows: genericRows,
+        agc2AliasSymbols: aliasSymbols,
         selectedOutcome: "research_only_no_serving_selection",
       });
     }
@@ -223,12 +226,14 @@ const report = {
     agc2PrefixLegend: summarize(records, "agc2PrefixLegend"),
     agc2TypedRows: summarize(records, "agc2TypedRows"),
     agc2GenericRows: summarize(records, "agc2GenericRows"),
+    agc2AliasSymbols: summarize(records, "agc2AliasSymbols"),
     agc1ServingBaselineIntegrity: summarizeServingAgc1Integrity(records),
     agc2PackedRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2PackedRows"),
     agc2SchemaRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2SchemaRows"),
     agc2PrefixLegendVsAgc1: compareMeasurements(records, "agc1Serving", "agc2PrefixLegend"),
     agc2TypedRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2TypedRows"),
     agc2GenericRowsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2GenericRows"),
+    agc2AliasSymbolsVsAgc1: compareMeasurements(records, "agc1Serving", "agc2AliasSymbols"),
   },
   selection: "No production codec is selected by the Story 3 harness.",
 };

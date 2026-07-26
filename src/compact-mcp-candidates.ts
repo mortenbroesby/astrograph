@@ -261,6 +261,148 @@ export const genericRowsAgc2Codec: CompactCandidateCodec = {
   decode: decodeGenericRowsAgc2,
 };
 
+const ALIAS_SYMBOLS_VERSION = "agc2a";
+
+/** Candidate F: lossless symbol aliases plus a shared path prefix and enum tables. */
+export function encodeAliasSymbolsAgc2(
+  toolName: CompactCandidateToolName,
+  envelope: McpResponseEnvelope<unknown>,
+): unknown[] | null {
+  if (toolName !== "search_symbols" || !envelope.data || typeof envelope.data !== "object") return null;
+  const result = envelope.data as Record<string, unknown>;
+  if (!Array.isArray(result.items)) return null;
+  const symbols = result.items as Array<Record<string, unknown>>;
+  const meta = [envelope.meta.toolVersion, envelope.meta.tokenBudgetUsed, envelope.meta.dataFreshness];
+  const fallback: unknown[] = [
+    ALIAS_SYMBOLS_VERSION,
+    0,
+    [symbols.map(compactSymbol), result.truncated, result.refinementHints, result.tokenSavings],
+    meta,
+  ];
+  const agc1 = encodeFrozenAgc1Reference(toolName, envelope);
+  if (!agc1) return null;
+  const agc1Tokens = countTokens(JSON.stringify(agc1));
+  if (symbols.length < 2 || !symbols.every((symbol) => (
+    typeof symbol.id === "string"
+    && typeof symbol.name === "string"
+    && symbol.qualifiedName === symbol.name
+    && typeof symbol.kind === "string"
+    && typeof symbol.filePath === "string"
+    && typeof symbol.signature === "string"
+    && symbol.summary === symbol.signature
+    && typeof symbol.summarySource === "string"
+    && typeof symbol.startLine === "number"
+    && typeof symbol.endLine === "number"
+    && typeof symbol.startByte === "number"
+    && typeof symbol.endByte === "number"
+    && typeof symbol.exported === "boolean"
+  ))) return countTokens(JSON.stringify(fallback)) < agc1Tokens ? fallback : null;
+  const prefix = commonPathPrefix(symbols.map((symbol) => symbol.filePath as string));
+  if (!prefix) return countTokens(JSON.stringify(fallback)) < agc1Tokens ? fallback : null;
+  const kinds = [...new Set(symbols.map((symbol) => symbol.kind as string))];
+  const summarySources = [...new Set(symbols.map((symbol) => symbol.summarySource as string))];
+  const aliases: unknown[] = [
+    ALIAS_SYMBOLS_VERSION,
+    1,
+    prefix,
+    kinds,
+    summarySources,
+    symbols.map((symbol) => [
+      symbol.id,
+      symbol.name,
+      kinds.indexOf(symbol.kind as string),
+      pathReference(symbol.filePath, prefix),
+      symbol.signature,
+      summarySources.indexOf(symbol.summarySource as string),
+      symbol.startLine,
+      symbol.endLine,
+      symbol.startByte,
+      symbol.endByte,
+      symbol.exported,
+    ]),
+    result.truncated,
+    result.refinementHints,
+    result.tokenSavings,
+    meta,
+  ];
+  const selected = countTokens(JSON.stringify(aliases)) < countTokens(JSON.stringify(fallback)) ? aliases : fallback;
+  return countTokens(JSON.stringify(selected)) < agc1Tokens ? selected : null;
+}
+
+export function decodeAliasSymbolsAgc2(value: unknown): McpResponseEnvelope<unknown> {
+  if (!Array.isArray(value) || value[0] !== ALIAS_SYMBOLS_VERSION || (value[1] !== 0 && value[1] !== 1)) {
+    throw new Error("Invalid alias-symbol header");
+  }
+  const [, schema, ...payload] = value;
+  if (schema === 0) {
+    if (payload.length !== 2 || !Array.isArray(payload[0]) || !Array.isArray(payload[1]) || payload[1].length !== 3) {
+      throw new Error("Invalid alias-symbol fallback");
+    }
+    const [rows, truncated, refinementHints, tokenSavings] = payload[0];
+    const [toolVersion, tokenBudgetUsed, dataFreshness] = payload[1];
+    if (!Array.isArray(rows) || toolVersion !== "1" || (tokenBudgetUsed !== null && (typeof tokenBudgetUsed !== "number" || !Number.isFinite(tokenBudgetUsed))) || (dataFreshness !== "fresh" && dataFreshness !== "stale" && dataFreshness !== "unknown")) {
+      throw new Error("Invalid alias-symbol fallback");
+    }
+    return {
+      ok: true,
+      data: { items: rows.map(expandSymbol), truncated, refinementHints, tokenSavings },
+      meta: { toolVersion, tokenBudgetUsed, dataFreshness },
+    };
+  }
+  if (payload.length !== 8) throw new Error("Invalid alias-symbol header");
+  const [prefix, kinds, summarySources, rows, truncated, refinementHints, tokenSavings, meta] = payload;
+  if (
+    typeof prefix !== "string" || prefix.length === 0
+    || !Array.isArray(kinds) || !kinds.every((kind) => typeof kind === "string")
+    || !Array.isArray(summarySources) || !summarySources.every((source) => typeof source === "string")
+    || !Array.isArray(rows) || !Array.isArray(meta) || meta.length !== 3
+  ) throw new Error("Invalid alias-symbol schema");
+  const [toolVersion, tokenBudgetUsed, dataFreshness] = meta;
+  if (
+    toolVersion !== "1"
+    || (tokenBudgetUsed !== null && (typeof tokenBudgetUsed !== "number" || !Number.isFinite(tokenBudgetUsed)))
+    || (dataFreshness !== "fresh" && dataFreshness !== "stale" && dataFreshness !== "unknown")
+  ) throw new Error("Invalid alias-symbol metadata");
+  const items = rows.map((row) => {
+    if (!Array.isArray(row) || row.length !== 11) throw new Error("Invalid alias-symbol row");
+    const [id, name, kindIndex, path, signature, summarySourceIndex, startLine, endLine, startByte, endByte, exported] = row;
+    if (
+      typeof id !== "string" || typeof name !== "string"
+      || !Number.isInteger(kindIndex) || kindIndex < 0 || kindIndex >= kinds.length
+      || typeof path !== "string" || typeof signature !== "string"
+      || !Number.isInteger(summarySourceIndex) || summarySourceIndex < 0 || summarySourceIndex >= summarySources.length
+      || ![startLine, endLine, startByte, endByte].every((item) => typeof item === "number" && Number.isFinite(item))
+      || typeof exported !== "boolean"
+    ) throw new Error("Invalid alias-symbol row");
+    return {
+      id,
+      name,
+      qualifiedName: name,
+      kind: kinds[kindIndex],
+      filePath: `${prefix}${path}`,
+      signature,
+      summary: signature,
+      summarySource: summarySources[summarySourceIndex],
+      startLine,
+      endLine,
+      startByte,
+      endByte,
+      exported,
+    };
+  });
+  return {
+    ok: true,
+    data: { items, truncated, refinementHints, tokenSavings },
+    meta: { toolVersion, tokenBudgetUsed, dataFreshness },
+  };
+}
+
+export const aliasSymbolsAgc2Codec: CompactCandidateCodec = {
+  id: "agc2-alias-symbols",
+  encode: encodeAliasSymbolsAgc2,
+  decode: decodeAliasSymbolsAgc2,
+};
+
 function sameColumns(row: Record<string, unknown>, columns: string[]): boolean {
   const keys = Object.keys(row).sort();
   return keys.length === columns.length && keys.every((key, index) => key === columns[index]);

@@ -20,10 +20,12 @@ requirement for any auto-selected response.
 | Prefix legend | 108 / 1,808 tokens saved (5.97%) across 5 eligible captures; small fixture tied | Fail |
 | Typed rows | Regressed comparable captures | Fail |
 | Generic homogeneous rows | Regressed comparable captures | Fail |
+| Alias-symbol table | 455 / 1,497 tokens saved (30.39%) across 2 broad symbol captures; deliberately refused every other shape | Not a full replacement |
 
 All candidates round-trip their declared shapes and reject malformed input in
 the decoder matrix. Losslessness alone is insufficient: none proves the
 required materially better token outcome on the complete representative corpus.
+The alias-symbol result is preserved in its [focused research review](./agc2-alias-symbols-research-2026-07-26.md).
 
 ## Reproduction
 
