@@ -30,9 +30,9 @@ config.
 Useful explicit targets:
 
 ```bash
+npx astrograph install --ide copilot-cli
 npx astrograph install --ide codex
 npx astrograph install --ide copilot
-npx astrograph install --ide copilot-cli
 npx astrograph install --ide all
 ```
 

@@ -18,6 +18,8 @@ The practical outcome is simple:
 - token usage drops because retrieval is narrower
 - long sessions stay cleaner because less irrelevant context accumulates
 
+![Workflow diagram showing an AI coding agent question flowing through Astrograph's local retrieval surfaces to a source-grounded answer with lower token waste.](../../assets/diagrams/readme-workflow.svg)
+
 ## What Astrograph Is
 
 Astrograph is:

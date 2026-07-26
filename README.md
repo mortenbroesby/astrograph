@@ -70,7 +70,7 @@ every repository on this device.
 Use the explicit version for automation:
 
 ```bash
-npx astrograph install --yes --ide codex --repo /absolute/path/to/repo
+npx astrograph install --yes --ide copilot-cli --repo /absolute/path/to/repo
 ```
 
 New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
@@ -81,6 +81,13 @@ New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-s
 Astrograph gives coding agents a local-first, structured way to navigate a
 codebase without dumping full-repository context. It returns focused,
 source-linked answers so the agent can retrieve less and understand more.
+
+The result is straightforward:
+
+- more reliable answers grounded in source
+- less token waste from broad file reads
+- less context bloat in long-running agent sessions
+- a better default than guessing from partial snippets
 
 <a id="key-features"></a>
 ## ✨ Key Features
@@ -108,16 +115,16 @@ outline, a symbol, verified source, or a bounded task-context bundle.
 
 ## 🌍 Use It Everywhere (Recommended)
 
-Install once for Codex or Copilot CLI across repositories:
+Install once for Copilot CLI or Codex across repositories:
 
 ```bash
 npm install --global astrograph@latest
-astrograph install --global --ide codex
+astrograph install --global --ide copilot-cli
 ```
 
 This adds one user-level MCP registration and keeps a separate private cache
-for each repository. It does not modify repositories. For Copilot CLI, replace
-`codex` with `copilot-cli`.
+for each repository. It does not modify repositories. For Codex, replace
+`copilot-cli` with `codex`.
 
 ## 🧪 Evidence, Not Promises
 
