@@ -24,13 +24,33 @@ describe("MCP content references", () => {
     });
   });
 
-  it("keeps the full response when the client already knows the content id", async () => {
+  it("returns a reference-only response when the client already knows the exact content id", async () => {
     const store = new McpContentReferenceStore();
     const envelope = { ok: true as const, data: response, meta: { toolVersion: "1" as const, tokenBudgetUsed: null, dataFreshness: "fresh" as const } };
     const first = store.record(parseMcpSession(session)!, envelope, 0);
     const second = store.record(parseMcpSession({ ...session, knownContentIds: [first.id] })!, envelope, 1);
 
-    expect(second).toMatchObject({ id: first.id, representation: "full", reason: "known_content_no_delta_support" });
+    expect(second).toMatchObject({ id: first.id, representation: "reference", reason: "known_exact_content" });
+  });
+
+  it("uses the full fallback when current content differs from the known id", async () => {
+    restores.push(setMcpCommandExecutorForTest(async () => response));
+    const first = await dispatchTool("get_file_tree", { repoRoot: "/fixture", session });
+    const firstId = first.ok ? first.meta.contentReference?.id : undefined;
+    restores.splice(0).forEach((restore) => restore());
+    restores.push(setMcpCommandExecutorForTest(async () => [...response, { path: "src/next.ts", language: "ts", symbolCount: 1 }]));
+
+    const changed = await dispatchTool("get_file_tree", { repoRoot: "/fixture", session: { ...session, knownContentIds: [firstId!] } });
+    expect(changed).toMatchObject({ ok: true, data: expect.any(Array), meta: { contentReference: { representation: "full", reason: "new_content" } } });
+  });
+
+  it("omits data only after the client supplies the exact current id", async () => {
+    restores.push(setMcpCommandExecutorForTest(async () => response));
+    const first = await dispatchTool("get_file_tree", { repoRoot: "/fixture", session });
+    const id = first.ok ? first.meta.contentReference?.id : undefined;
+
+    const repeated = await dispatchTool("get_file_tree", { repoRoot: "/fixture", session: { ...session, knownContentIds: [id!] } });
+    expect(repeated).toMatchObject({ ok: true, data: null, meta: { contentReference: { id, representation: "reference", reason: "known_exact_content" } } });
   });
 
   it("rejects malformed capabilities before command execution", async () => {

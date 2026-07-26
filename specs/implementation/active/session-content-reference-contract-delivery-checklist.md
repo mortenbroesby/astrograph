@@ -1,6 +1,6 @@
 # Session Content-Reference Contract Delivery Checklist
 
-> **Status:** Active — Story 2 of the [Session-Aware Agent Efficiency Epic](../planned/8_session-aware-agent-efficiency-epic.md), selected by the user on 2026-07-26.
+> **Status:** Complete — merged in PR #97 as `0.9.0-alpha.180`.
 
 **Goal:** Let a capable MCP client identify a bounded local session and learn a
 content-addressed reference for a canonical response, while every call still
