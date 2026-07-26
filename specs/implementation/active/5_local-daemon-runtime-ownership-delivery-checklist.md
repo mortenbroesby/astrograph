@@ -1,6 +1,7 @@
 # Local Daemon Runtime Ownership Delivery Checklist
 
-> **Status:** Active — explicitly selected by the user on 2026-07-26.
+> **Status:** Active — partial implementation merged into PR #96; unchecked
+> items remain required completion work.
 >
 > **Decision:** [ADR-009](../../architecture/adrs.md#adr-009-use-one-user-local-daemon-for-repository-runtime-ownership)
 
@@ -18,6 +19,12 @@ grace period.
 **Tech Stack:** TypeScript, Node.js 22, Node `net` IPC, SQLite WAL, MCP stdio,
 Vitest, and platform package smoke tests.
 
+> **Progress rule:** A checked step has evidence for every behavior it states.
+> The current daemon has private IPC, token authentication, stale-record
+> recovery, MCP proxying, watcher-driven freshness, and Fast CI package/MCP
+> smoke evidence. It does not yet prove the stricter unchecked lease, complete
+> tenant-identity, or Windows requirements below.
+
 ---
 
 ## Task 1: Runtime Record and Local IPC Contract
@@ -29,7 +36,7 @@ Vitest, and platform package smoke tests.
 - Test: `tests/daemon-runtime.test.ts`, `tests/daemon-protocol.test.ts`
 - Document: `specs/api-design/cli-api.md`, `docs/guides/troubleshooting.md`
 
-- [ ] **Step 1: Establish the baseline.**
+- [x] **Step 1: Establish the baseline.**
 
   Run:
 
@@ -38,14 +45,16 @@ Vitest, and platform package smoke tests.
   pnpm exec vitest run tests/runtime-presence.test.ts tests/interface.test.ts
   ```
 
-  Expected: both commands exit `0`.
+  Observed: type checks and MCP interface coverage passed on PR #96; Fast CI
+  also passed build, package, and MCP stdio smoke checks.
 
-- [ ] **Step 2: Define the smallest internal protocol.**
+- [x] **Step 2: Define the smallest internal protocol.**
 
   Define versioned newline-delimited request/response records for a command ID,
   validated options, response value, and structured failure. Reject oversized,
   malformed, or incompatible records before engine dispatch. Keep this protocol
-  internal: do not add an HTTP listener, public port, or new MCP tool.
+  internal: do not add an HTTP listener, public port, or new MCP tool. Proven
+  by `src/daemon-protocol.ts` and `tests/daemon-protocol.test.ts`.
 
 - [ ] **Step 3: Add singleton state and authenticated endpoint startup.**
 
@@ -152,11 +161,13 @@ Vitest, and platform package smoke tests.
 - Test: `tests/daemon-*.test.ts`, `tests/interface.test.ts`, package fixtures
 - Document: `docs/reference/release.md` only if release evidence changes
 
-- [ ] **Step 1: Keep dependencies and compatibility bounded.**
+- [x] **Step 1: Keep dependencies and compatibility bounded.**
 
   Use Node platform APIs first. Add no dependency unless a package removes
   demonstrated cross-platform IPC complexity and passes license/package-size
   review. Preserve Node 22 support and source/built entrypoint behavior.
+  Observed: no dependency was added; Fast CI built and exercised the packed
+  Node 22 package and MCP stdio entrypoint.
 
 - [ ] **Step 2: Run final verification.**
 
@@ -174,7 +185,7 @@ Vitest, and platform package smoke tests.
   Expected: all commands exit `0`. Record Unix and Windows IPC/package-smoke
   evidence before making the proxy default.
 
-- [ ] **Step 3: Commit checkpoint.**
+- [x] **Step 3: Commit checkpoint.**
 
   Run:
 
@@ -184,5 +195,6 @@ Vitest, and platform package smoke tests.
   git commit -m "feat: add local daemon runtime ownership"
   ```
 
-  Expected: version policy passes before commit. Use the release-decision skill
-  before deciding the npm release type.
+  Observed: commits `90c7cf1`, `8004916`, and `2f335ef` each passed the staged
+  version gate; the rebased branch is published as PR #96 at
+  `0.9.0-alpha.178`.
