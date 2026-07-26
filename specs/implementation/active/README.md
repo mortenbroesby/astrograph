@@ -30,18 +30,9 @@ new work complements rather than duplicates existing plans.
 6. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
    — selected by the user: one user-local daemon owns isolated repository
    runtimes, watches, workers, and SQLite lifecycles for MCP stdio clients.
-7. [Session-Aware Repeat-Read Trace Delivery Checklist](./session-aware-repeat-read-trace-delivery-checklist.md)
-   — selected by the user: establish the measured baseline before deciding
-   whether any session-aware agent-efficiency feature should exist.
-8. [Session Content-Reference Contract Delivery Checklist](./session-content-reference-contract-delivery-checklist.md)
-   — selected by the user: add bounded, capability-gated full-response content
-   references before considering any delta transport.
-9. [Session Exact-Reference Delta Delivery Checklist](./session-exact-reference-delta-delivery-checklist.md)
-   — selected by the user: prove exact reference reuse before considering a
-   general patch representation.
-10. [Session-Aware Agent Efficiency Epic Completion Checklist](./session-aware-epic-completion-delivery-checklist.md)
-    — selected by the user: deliver the remaining Stories 3–7 in one PR while
-    retaining each story's safety and measurement gates.
+7. [Local Token-Savings Analytics Delivery Checklist](./6_local-token-savings-analytics-delivery-checklist.md)
+   — selected by the user: make existing local efficiency evidence useful as a
+   source-free, negligible-overhead report without adding tracking infrastructure.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

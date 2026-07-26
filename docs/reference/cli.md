@@ -101,6 +101,20 @@ incompatible storage marker causes Astrograph to archive the managed cache and
 rebuild it on the next operation. If a cache needs recovery, inspect status and
 use the scoped archive commands below.
 
+## Local Astrograph Report
+
+```bash
+astrograph report
+astrograph report --repo /repo
+astrograph report --repo /repo --reset --yes
+```
+
+The report is local, source-free JSON. Without `--repo`, it reports the current
+repository when Astrograph uses repository-local storage, or aggregates the
+existing Astrograph stores for all local repositories when global storage is
+selected. `--repo` always selects one repository. Reset is deliberately more
+strict: it requires both `--repo` and `--yes`.
+
 ## Cache Archive and Recovery Commands
 
 Cache archive and recovery commands emit stable JSON envelopes with

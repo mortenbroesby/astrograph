@@ -1,6 +1,7 @@
 # Session-Aware Repeat-Read Trace Delivery Checklist
 
-> **Status:** Active — Story 1 of the [Session-Aware Agent Efficiency Epic](../planned/8_session-aware-agent-efficiency-epic.md), selected by the user on 2026-07-26.
+> **Status:** Closed — baseline merged in PR #95 and superseded by the
+> completed parent epic in PR #99.
 
 **Goal:** Produce a deterministic, privacy-safe repeat-read benchmark that
 decides whether any session-aware response feature is worth designing.
@@ -56,15 +57,14 @@ must be recorded with its commit before a candidate is evaluated.
 **Files:**
 
 - Modify: `docs/guides/performance.md`,
-  `specs/implementation/planned/8_session-aware-agent-efficiency-epic.md`
+  `specs/implementation/closed/session-aware-agent-efficiency-epic.md`
 
 - [x] Document the command, its offline fixture boundary, and the difference
   between one-shot and repeated-read measurements.
 - [x] Run the full corpus on a clean checkout and record command,
   tokenizer, aggregate counts, and known environment warnings in the epic.
-- [ ] Decide only whether Story 2 has evidence to begin. Do not implement
-  session references, deltas, dossiers, reporting, bookmarks, or privacy
-  policy in this checklist.
+- [x] Decide whether Story 2 has evidence to begin. The completed parent epic
+  records the later, independently verified implementation decisions.
 
 ## Verification
 

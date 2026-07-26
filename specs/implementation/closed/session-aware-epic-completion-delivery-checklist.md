@@ -1,7 +1,7 @@
 # Session-Aware Agent Efficiency Epic Completion Checklist
 
-> **Status:** Active — one consolidated PR for the remaining Stories 3–7,
-> explicitly selected by the user on 2026-07-26.
+> **Status:** Closed — completed and merged in PR #99 as `cc7ae6c` on
+> 2026-07-26.
 
 **Goal:** Complete the remaining agent-efficiency outcomes in one reviewable
 branch while preserving local-first behavior, explicit consent, and exact
@@ -22,7 +22,7 @@ unless a concrete implementation step proves native facilities insufficient.
 
 **Files:** `scripts/measure-agc1-compact-output-matrix.mjs`,
 `tests/compact-output-traces.test.ts`, `docs/guides/performance.md`,
-`specs/implementation/planned/8_session-aware-agent-efficiency-epic.md`
+`specs/implementation/closed/session-aware-agent-efficiency-epic.md`
 
 - [x] Measure full versus reference-only repeated reads on all four fixtures.
 - [x] Prove exact reconstruction plus full fallback for changed, malformed,
@@ -57,7 +57,7 @@ source provenance. `tests/engine-behavior.test.ts` pins those four intent
 paths, source attribution, relation selection, and budget behavior. Adding a
 second composition API would only duplicate the existing contract.
 
-## Task 3: Story 5 opt-in local efficiency report
+## Task 3: Story 5 opt-in local Astrograph report
 
 **Files:** existing event/token telemetry seam, CLI surface, focused tests,
 `docs/guides/performance.md`
@@ -67,7 +67,7 @@ second composition API would only duplicate the existing contract.
 - [x] Guarantee no source, prompt, path, raw query, or session ID is emitted.
 - [x] Document retention/reset; do not build a dashboard.
 
-**Delivered (2026-07-26):** `astrograph efficiency-report --repo /abs/repo`
+**Delivered (2026-07-26; renamed):** `astrograph report --repo /abs/repo`
 is an explicit JSON-only read of retained local MCP completion aggregates.
 `--reset --yes` is the explicit repository-local reset. The report has no
 source, prompt, path, query, or session fields.

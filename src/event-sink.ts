@@ -149,16 +149,9 @@ export function emitEngineEvent(input: EngineEventInput): void {
   });
 }
 
-export async function readRecentEngineEvents(input: {
-  repoRoot: string;
-  limit?: number;
-}): Promise<EngineEventEnvelope[]> {
-  const repoConfig = await loadRepoEngineConfig(input.repoRoot);
-  const paths = resolveEnginePaths(repoConfig.repoRoot, {
-    storageLocation: repoConfig.storageLocation,
-  });
-  const limit = Math.max(1, input.limit ?? 100);
-  const contents = await readFile(paths.eventsPath, "utf8").catch(() => "");
+export async function readEngineEventsFile(eventsPath: string, limit = 100): Promise<EngineEventEnvelope[]> {
+  const boundedLimit = Math.max(1, limit);
+  const contents = await readFile(eventsPath, "utf8").catch(() => "");
 
   if (contents.trim() === "") {
     return [];
@@ -169,5 +162,16 @@ export async function readRecentEngineEvents(input: {
     .split("\n")
     .map(parseEngineEventLine)
     .filter((event): event is EngineEventEnvelope => event !== null)
-    .slice(-limit);
+    .slice(-boundedLimit);
+}
+
+export async function readRecentEngineEvents(input: {
+  repoRoot: string;
+  limit?: number;
+}): Promise<EngineEventEnvelope[]> {
+  const repoConfig = await loadRepoEngineConfig(input.repoRoot);
+  const paths = resolveEnginePaths(repoConfig.repoRoot, {
+    storageLocation: repoConfig.storageLocation,
+  });
+  return readEngineEventsFile(paths.eventsPath, input.limit);
 }

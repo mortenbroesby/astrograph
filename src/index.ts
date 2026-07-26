@@ -64,10 +64,11 @@ export {
 export {
   appendEngineEvent,
   emitEngineEvent,
+  readEngineEventsFile,
   readRecentEngineEvents,
 } from "./event-sink.ts";
-export { getEfficiencyReport, resetEfficiencyReport } from "./efficiency-report.ts";
-export type { EfficiencyReport } from "./efficiency-report.ts";
+export { getGlobalReport, getReport, resetReport } from "./report.ts";
+export type { AstrographReport } from "./report.ts";
 export { createBookmark, deleteBookmark, listBookmarks, resolveBookmark } from "./bookmarks.ts";
 export type { Bookmark } from "./bookmarks.ts";
 export {

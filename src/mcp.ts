@@ -549,7 +549,11 @@ export function createMcpServer() {
           event: "mcp.tool.response_formatted",
           level: "debug",
           correlationId: randomUUID(),
-          data: { toolName: tool.name, ...formatted.metrics },
+          data: {
+            toolName: tool.name,
+            responseRepresentation: envelope.ok ? envelope.meta.contentReference?.representation ?? "full" : "full",
+            ...formatted.metrics,
+          },
         });
       }
       return asTextResult(formatted.serialized);

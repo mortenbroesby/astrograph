@@ -6,6 +6,13 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Session-Aware Agent Efficiency Epic](./session-aware-agent-efficiency-epic.md)
+  and its [repeat-read baseline](./session-aware-repeat-read-trace-delivery-checklist.md),
+  [content-reference contract](./session-content-reference-contract-delivery-checklist.md),
+  [exact-reference delivery](./session-exact-reference-delta-delivery-checklist.md),
+  and [completion checklist](./session-aware-epic-completion-delivery-checklist.md)
+  — closed after PR #99 merged as `cc7ae6c`.
+
 - [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) and its
   [delivery checklist](./astro-feedback-delivery-checklist.md)
 - [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md),

@@ -1,6 +1,7 @@
 # Session-Aware Agent Efficiency Epic
 
-> **Status:** Active — Stories 3–7 are consolidated in one user-selected PR.
+> **Status:** Closed — all selected Stories 1–7 merged in PR #99 on
+> 2026-07-26.
 >
 > **Inspiration:** CodeDrift's emphasis on session-aware reads, composed
 > context, observable agent efficiency, and privacy controls. This is a
@@ -54,7 +55,7 @@ because its design is attractive.
 | 2 | Explicit session and content-reference contract | Story 1 | Selected by the user; preserve the full-response fallback and bounded local state. |
 | 3 | Optional exact delta responses | Stories 1–2 | Selected by the user; exact-reference reuse first, with full fallback. |
 | 4 | Bounded task dossier composition | Story 1 | Consolidated by explicit user selection; audit existing composition first. |
-| 5 | Privacy-safe efficiency report | Story 1 | Consolidated by explicit user selection; opt-in JSON only. |
+| 5 | Privacy-safe Astrograph report | Story 1 | Consolidated by explicit user selection; opt-in JSON only. |
 | 6 | Explicit cross-session bookmarks | Stories 1, 4 | Consolidated by explicit user selection; explicit repository-local records only. |
 | 7 | Configurable privacy-output policy | Story 5 | Consolidated by explicit user selection; deterministic policy only. |
 
@@ -157,7 +158,7 @@ ordering, a token budget, exclusions, and source provenance. The existing
 engine behavior suite pins all four intents plus bounded, attributed selection.
 It is therefore the minimum composition surface.
 
-## Story 5: Privacy-safe efficiency report
+## Story 5: Privacy-safe Astrograph report
 
 **Status:** Complete — explicit local JSON aggregate report only.
 
@@ -215,8 +216,11 @@ unmarked lossy response. The normal source-retrieval contract remains intact.
 - A browser dashboard before the local JSON report has demonstrated demand.
 - Large local ML models or cryptography added only for speculative redaction.
 
-## Handoff
+## Closure evidence
 
-When this epic becomes active, create a child delivery checklist for Story 1
-only. Record the exact baseline and decide the next story from that evidence;
-do not pre-commit to all seven stories.
+PR #99 merged as `cc7ae6c`. The four-fixture trace benchmark measured 6,812
+of 24,614 canonical JSON `cl100k_base` tokens saved by exact references
+(27.7%), with all 16 eligible AGC1 round trips exact. The resulting local
+report, explicit bookmarks, and optional marked output redaction remain
+local-first and source-free. Future analytics work is separately tracked by
+the Local Token-Savings Analytics focus; it does not reopen this epic.

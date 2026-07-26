@@ -41,16 +41,11 @@ turns those focuses into an exclusive execution gate.
    - Architecture: on-demand local IPC proxying with authenticated singleton
      ownership and a five-minute idle exit; no network listener, source upload,
      or shared mutable repository index.
-6. [Session-Aware Repeat-Read Trace Delivery](./active/session-aware-repeat-read-trace-delivery-checklist.md)
-   - Goal: establish the deterministic repeat-read baseline before selecting
-     any session-aware response behavior.
-   - Architecture: extend the existing compact-output fixture corpus and
-     source-free JSON report; no serving contract, session state, daemon, or
-     output-format change.
-7. [Session Content-Reference Contract Delivery](./active/session-content-reference-contract-delivery-checklist.md)
-   - Goal: add a bounded, capability-gated reference for full JSON responses.
-   - Architecture: process-local opaque IDs and SHA-256 metadata only; no
-     source persistence, delta transport, new MCP tool, or daemon migration.
+6. [Local Token-Savings Analytics](./active/6_local-token-savings-analytics-delivery-checklist.md)
+   - Goal: make exact local token savings inspectable through the existing
+     report command without noticeable normal-request overhead.
+   - Architecture: reuse existing event and response-format metadata; no
+     network client, exporter, second event store, token recount, or daemon.
 
 ## Ready — detailed, but not selected
 
@@ -62,10 +57,6 @@ turns those focuses into an exclusive execution gate.
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
-4. [Session-Aware Agent Efficiency Epic](./planned/8_session-aware-agent-efficiency-epic.md)
-   has Story 1 active. Session state, deltas, dossiers, privacy reporting, and
-   bookmarks remain independently gated by measured benefit and local-first
-   safety boundaries.
 
 ## Parked — revisit only with new evidence
 
@@ -166,6 +157,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Precision Retrieval and Agent Experience Epic](./closed/precision-retrieval-agent-experience-epic.md)
   — closed after Story 4 completed the measured agent-visible token-efficiency
   end-cap in PR #79.
+- [Session-Aware Agent Efficiency Epic](./closed/session-aware-agent-efficiency-epic.md)
+  — closed after PR #99 merged exact references and local Astrograph reporting,
+  explicit bookmarks, and optional marked output redaction.
 
 ## Maintaining this roadmap
 
