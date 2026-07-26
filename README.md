@@ -31,6 +31,22 @@
 
 ---
 
+## 🗺️ A Map for Your Codebase, Not Another Agent
+
+### What is Astrograph?
+
+Astrograph gives AI coding agents a local, structured map of your codebase.
+Instead of reading whole repositories into context, an agent can ask for file
+outlines, symbols, source, and targeted task context.
+
+### What it is not
+
+Astrograph is not another coding agent, a hosted code service, or a replacement
+for your editor, Git, or tests. Your code stays local. It is also not a generic
+vector database or RAG service: it builds a structured code index for precise
+retrieval. Read [the concepts guide](./docs/getting-started/concepts.md#what-astrograph-is-not)
+when you want the deeper model.
+
 <a id="start-here"></a>
 ## 🚀 Start Here
 

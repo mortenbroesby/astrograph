@@ -35,8 +35,11 @@ Astrograph is not:
 - a generic agent shell
 - a remote indexing service
 - a brute-force repo-to-prompt pipeline
+- a vector database or generic RAG service
 
 Those categories can complement Astrograph, but they are not the same job.
+Astrograph uses a local, structured code index so an AI coding agent can ask
+for exact repository facts rather than retrieve broad text fragments.
 
 ## Why It Saves Tokens
 
