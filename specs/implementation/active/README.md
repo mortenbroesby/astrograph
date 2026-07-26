@@ -42,6 +42,9 @@ new work complements rather than duplicates existing plans.
 10. [VoidZero Toolchain Epic](./8_voidzero-toolchain-epic.md)
     — migrate package builds to tsdown first; add runtime loaders, aliases, and
     Oxc only through separate proof-gated stories.
+11. [Runtime Acceleration Epic](./10_runtime-acceleration-epic.md)
+    — urgent one-PR delivery: retain daemon-owned index resources, serialize
+    mutable repository work, and establish honest warm-runtime evidence.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

@@ -35,6 +35,13 @@ const EXCLUDED_SEGMENTS = new Set([
   "dist",
   "node_modules",
 ]);
+const EXCLUDED_ROOT_CONFIG_FILENAMES = new Set([
+  "astrograph.config.js",
+  "astrograph.config.cjs",
+  "astrograph.config.mjs",
+  "astrograph.config.ts",
+  "astrograph.config.json",
+]);
 
 function round(value) {
   return Math.round(value * 10) / 10;
@@ -98,7 +105,9 @@ export async function copyCleanRepo(sourceRoot) {
     recursive: true,
     filter(sourcePath) {
       const segment = path.basename(sourcePath);
-      return !EXCLUDED_SEGMENTS.has(segment) && segment !== "tsconfig.tsbuildinfo";
+      return !EXCLUDED_SEGMENTS.has(segment)
+        && segment !== "tsconfig.tsbuildinfo"
+        && !(path.dirname(sourcePath) === sourceRoot && EXCLUDED_ROOT_CONFIG_FILENAMES.has(segment));
     },
   });
 
@@ -115,6 +124,17 @@ export async function copyCleanRepo(sourceRoot) {
 
 export async function cleanupBenchRoot(benchRoot) {
   await rm(benchRoot, { recursive: true, force: true });
+}
+
+async function withIsolatedBenchmarkStorage(task) {
+  const previous = process.env.ASTROGRAPH_STORAGE_LOCATION;
+  process.env.ASTROGRAPH_STORAGE_LOCATION = "repo-local";
+  try {
+    return await task();
+  } finally {
+    if (previous === undefined) delete process.env.ASTROGRAPH_STORAGE_LOCATION;
+    else process.env.ASTROGRAPH_STORAGE_LOCATION = previous;
+  }
 }
 
 export async function listSupportedSourceFiles(rootDir, currentDir = rootDir) {
@@ -269,10 +289,13 @@ export async function collectIndexPerfMetrics(sourceRepoRoot) {
   const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
 
   try {
-    const discovery = await measureFileDiscovery(targetRoot);
-    const hashingMs = await measureHashing(targetRoot, discovery.files);
-    const parsing = await measureParsing(targetRoot, discovery.files);
-    const indexing = await measureColdAndWarmIndex(targetRoot);
+    const { discovery, hashingMs, parsing, indexing } = await withIsolatedBenchmarkStorage(async () => {
+      const discovery = await measureFileDiscovery(targetRoot);
+      const hashingMs = await measureHashing(targetRoot, discovery.files);
+      const parsing = await measureParsing(targetRoot, discovery.files);
+      const indexing = await measureColdAndWarmIndex(targetRoot);
+      return { discovery, hashingMs, parsing, indexing };
+    });
 
     return {
       schemaVersion: "1.0",
@@ -312,7 +335,7 @@ export async function collectQueryPerfMetrics(sourceRepoRoot, runs) {
   const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
 
   try {
-    const queryMetrics = await measureQueryLatency(targetRoot, runs);
+    const queryMetrics = await withIsolatedBenchmarkStorage(() => measureQueryLatency(targetRoot, runs));
     return {
       schemaVersion: "1.0",
       sourceRepoRoot,
