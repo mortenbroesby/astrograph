@@ -5,7 +5,7 @@ import { loadRepoEngineConfig, resolveEnginePaths, resolveGlobalCacheRoot } from
 import { readEngineEventsFile, readRecentEngineEvents } from "./event-sink.ts";
 import type { EngineEventEnvelope, StoragePathEnvironment } from "./types.ts";
 
-export interface EfficiencyReport {
+export interface AstrographReport {
   schemaVersion: 2;
   collection: "local-observability-events";
   scope: "repository" | "global";
@@ -33,7 +33,7 @@ function numberValue(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function buildEfficiencyReport(events: EngineEventEnvelope[], scope: EfficiencyReport["scope"], repositoryCount: number): EfficiencyReport {
+function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["scope"], repositoryCount: number): AstrographReport {
   const completed = events.filter((event) => event.event === "mcp.tool.finished");
   const formatted = events.filter((event) => event.event === "mcp.tool.response_formatted");
   const latencyBands = { under100ms: 0, under1000ms: 0, over1000ms: 0 };
@@ -73,20 +73,20 @@ function buildEfficiencyReport(events: EngineEventEnvelope[], scope: EfficiencyR
   };
 }
 
-export async function getEfficiencyReport(repoRoot: string): Promise<EfficiencyReport> {
-  return buildEfficiencyReport(await readRecentEngineEvents({ repoRoot, limit: 10_000 }), "repository", 1);
+export async function getReport(repoRoot: string): Promise<AstrographReport> {
+  return buildReport(await readRecentEngineEvents({ repoRoot, limit: 10_000 }), "repository", 1);
 }
 
-export async function getGlobalEfficiencyReport(environment: StoragePathEnvironment = {}): Promise<EfficiencyReport> {
+export async function getGlobalReport(environment: StoragePathEnvironment = {}): Promise<AstrographReport> {
   const reposRoot = path.join(resolveGlobalCacheRoot(environment), "repos");
   const entries = await readdir(reposRoot, { withFileTypes: true }).catch(() => []);
   const eventGroups = await Promise.all(entries
     .filter((entry) => entry.isDirectory() && /^[a-f0-9]{64}$/.test(entry.name))
     .map((entry) => readEngineEventsFile(path.join(reposRoot, entry.name, "events.jsonl"), 10_000)));
-  return buildEfficiencyReport(eventGroups.flat(), "global", eventGroups.length);
+  return buildReport(eventGroups.flat(), "global", eventGroups.length);
 }
 
-export async function resetEfficiencyReport(repoRoot: string): Promise<{ reset: true }> {
+export async function resetReport(repoRoot: string): Promise<{ reset: true }> {
   const config = await loadRepoEngineConfig(repoRoot);
   const paths = resolveEnginePaths(config.repoRoot, { storageLocation: config.storageLocation });
   await mkdir(paths.storageDir, { recursive: true });

@@ -25,8 +25,8 @@ Vitest, and the current compact-output benchmark.
 
 ## Task 1: Establish the exact-data baseline
 
-**Files:** `src/event-sink.ts`, `src/mcp.ts`, `src/efficiency-report.ts`,
-`tests/efficiency-report.test.ts`, `docs/guides/performance.md`
+**Files:** `src/event-sink.ts`, `src/mcp.ts`, `src/report.ts`,
+`tests/report.test.ts`, `docs/guides/performance.md`
 
 - [x] Run the current report against repo-local and global-storage fixtures;
   map every field to its event source, marking it exact, heuristic, or
@@ -46,8 +46,8 @@ responses without a known canonical comparison remain explicitly unavailable.
 
 ## Task 2: Add only exact, source-free aggregates
 
-**Files:** `src/mcp.ts`, `src/efficiency-report.ts`, `src/cli.ts`,
-`tests/efficiency-report.test.ts`, `tests/interface.test.ts`
+**Files:** `src/mcp.ts`, `src/report.ts`, `src/cli.ts`,
+`tests/report.test.ts`, `tests/interface.test.ts`
 
 - [x] Aggregate existing formatted-response metadata directly; no correlation
   join or additional request event is required.

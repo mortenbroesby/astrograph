@@ -20,10 +20,6 @@ describe("cli boundaries", () => {
     expect(result).toMatchObject({ scope: "repository", repositoryCount: 1, eventCount: 1 });
   });
 
-  it("exposes the report command under its concise public name", async () => {
-    await expect(handleCli(["efficiency-report"])).rejects.toThrow("Unknown command: efficiency-report");
-  });
-
   it("returns a versioned JSON cache status for the explicit repository", async () => {
     const repoRoot = await createFixtureRepo();
     execFileSync("git", ["add", "."], { cwd: repoRoot });

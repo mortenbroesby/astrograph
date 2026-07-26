@@ -4,14 +4,14 @@ import path from "node:path";
 
 import { describe, expect, it, afterEach } from "vitest";
 
-import { appendEngineEvent, getEfficiencyReport, getGlobalEfficiencyReport, resetEfficiencyReport, resolveGlobalCacheRoot } from "../src/index.ts";
+import { appendEngineEvent, getGlobalReport, getReport, resetReport, resolveGlobalCacheRoot } from "../src/index.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 afterEach(async () => {
   await cleanupFixtureRepos();
 });
 
-describe("efficiency report", () => {
+describe("Astrograph report", () => {
   it("aggregates local MCP completion metadata without source, query, path, or session data", async () => {
     const repoRoot = await createFixtureRepo();
     await appendEngineEvent({
@@ -44,7 +44,7 @@ describe("efficiency report", () => {
       data: { tokens: 8, savedTokens: 99, responseRepresentation: "reference" },
     });
 
-    const report = await getEfficiencyReport(repoRoot);
+    const report = await getReport(repoRoot);
     expect(JSON.stringify(report)).not.toContain(repoRoot);
     expect(JSON.stringify(report)).not.toContain("search_symbols");
     expect(report).toEqual({
@@ -71,8 +71,8 @@ describe("efficiency report", () => {
   it("resets only the repository-local aggregate input after explicit invocation", async () => {
     const repoRoot = await createFixtureRepo();
     await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });
-    await expect(resetEfficiencyReport(repoRoot)).resolves.toEqual({ reset: true });
-    await expect(getEfficiencyReport(repoRoot)).resolves.toMatchObject({ eventCount: 0 });
+    await expect(resetReport(repoRoot)).resolves.toEqual({ reset: true });
+    await expect(getReport(repoRoot)).resolves.toMatchObject({ eventCount: 0 });
   });
 
   it("aggregates only registered global repository storage directories", async () => {
@@ -83,7 +83,7 @@ describe("efficiency report", () => {
     const storageDir = path.join(reposRoot, "a".repeat(64));
     await mkdir(storageDir, { recursive: true });
     await writeFile(path.join(storageDir, "events.jsonl"), `${JSON.stringify(event)}\n`);
-    await expect(getGlobalEfficiencyReport(environment)).resolves.toMatchObject({
+    await expect(getGlobalReport(environment)).resolves.toMatchObject({
       schemaVersion: 2,
       scope: "global",
       repositoryCount: 1,
