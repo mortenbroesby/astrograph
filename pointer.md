@@ -46,6 +46,9 @@ use its recorded evidence or selection gate instead.
 - [Publishable Workflow Benchmark](./specs/implementation/active/9_publishable-workflow-benchmark.md)
   — establish a small, honest, snapshot-locked comparison between broad file
   reading and Astrograph retrieval before making workflow-level claims.
+- [Runtime Acceleration Epic](./specs/implementation/active/10_runtime-acceleration-epic.md)
+  — most urgent current focus: make repeated local MCP work faster by retaining
+  daemon-owned index resources and prove it with representative measurements.
 
 ## Keeping this useful
 

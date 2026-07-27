@@ -61,6 +61,12 @@ turns those focuses into an exclusive execution gate.
      remaining compiled JavaScript and subsequent tool adoption proof-gated.
    - First action: replace tsup plus the separate declaration emitter with a
      package-safe tsdown build.
+10. [Runtime Acceleration Epic](./active/10_runtime-acceleration-epic.md)
+   - Goal: urgently make repeated local MCP work faster by retaining daemon
+     SQLite and worker resources through direct in-process indexing.
+   - Architecture: one authenticated local daemon serializes mutable work per
+     canonical repository; retain existing child isolation for ordinary CLI
+     indexing and only select parser/native experiments from profiles.
 
 ## Ready — detailed, but not selected
 

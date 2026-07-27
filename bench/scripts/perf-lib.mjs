@@ -6,6 +6,8 @@ import { cp, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
+import process from "node:process";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 import {
@@ -16,6 +18,8 @@ import {
   indexFolder,
   queryCode,
 } from "../../src/index.ts";
+import { executeDaemonCommand } from "../../src/daemon-client.ts";
+import { readDaemonRuntime } from "../../src/daemon-runtime.ts";
 import { listSupportedFiles } from "../../src/filesystem-scan.ts";
 import { parseSourceFile, supportedLanguageForFile } from "../../src/parser.ts";
 
@@ -34,6 +38,13 @@ const EXCLUDED_SEGMENTS = new Set([
   "coverage",
   "dist",
   "node_modules",
+]);
+const EXCLUDED_ROOT_CONFIG_FILENAMES = new Set([
+  "astrograph.config.js",
+  "astrograph.config.cjs",
+  "astrograph.config.mjs",
+  "astrograph.config.ts",
+  "astrograph.config.json",
 ]);
 
 function round(value) {
@@ -98,7 +109,9 @@ export async function copyCleanRepo(sourceRoot) {
     recursive: true,
     filter(sourcePath) {
       const segment = path.basename(sourcePath);
-      return !EXCLUDED_SEGMENTS.has(segment) && segment !== "tsconfig.tsbuildinfo";
+      return !EXCLUDED_SEGMENTS.has(segment)
+        && segment !== "tsconfig.tsbuildinfo"
+        && !(path.dirname(sourcePath) === sourceRoot && EXCLUDED_ROOT_CONFIG_FILENAMES.has(segment));
     },
   });
 
@@ -115,6 +128,17 @@ export async function copyCleanRepo(sourceRoot) {
 
 export async function cleanupBenchRoot(benchRoot) {
   await rm(benchRoot, { recursive: true, force: true });
+}
+
+async function withIsolatedBenchmarkStorage(task) {
+  const previous = process.env.ASTROGRAPH_STORAGE_LOCATION;
+  process.env.ASTROGRAPH_STORAGE_LOCATION = "repo-local";
+  try {
+    return await task();
+  } finally {
+    if (previous === undefined) delete process.env.ASTROGRAPH_STORAGE_LOCATION;
+    else process.env.ASTROGRAPH_STORAGE_LOCATION = previous;
+  }
 }
 
 export async function listSupportedSourceFiles(rootDir, currentDir = rootDir) {
@@ -265,14 +289,76 @@ export async function measureQueryLatency(repoRoot, runs) {
   };
 }
 
+async function stopBenchmarkDaemon(runtimeDir) {
+  const state = await readDaemonRuntime({ runtimeDir });
+  if (!state || state.pid === process.pid) return;
+  try {
+    process.kill(state.pid, "SIGTERM");
+  } catch {
+    return;
+  }
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    if (!await readDaemonRuntime({ runtimeDir })) return;
+    await delay(20);
+  }
+  throw new Error("Benchmark daemon did not remove its runtime record after SIGTERM.");
+}
+
+export async function collectDaemonPerfMetrics(sourceRepoRoot, runs) {
+  const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
+  const runtimeDir = path.join(benchRoot, "daemon-runtime");
+  const requestOptions = { runtimeDir, timeoutMs: 60_000 };
+
+  try {
+    return await withIsolatedBenchmarkStorage(async () => {
+      const coldStartedAt = performance.now();
+      await executeDaemonCommand("index_folder", { repoRoot: targetRoot }, requestOptions);
+      const coldIndexMs = round(performance.now() - coldStartedAt);
+
+      const warmIndexSamples = [];
+      const outlineSamples = [];
+      for (let run = 0; run < runs; run += 1) {
+        const indexStartedAt = performance.now();
+        await executeDaemonCommand("index_folder", { repoRoot: targetRoot }, requestOptions);
+        warmIndexSamples.push(performance.now() - indexStartedAt);
+
+        const outlineStartedAt = performance.now();
+        await executeDaemonCommand("get_repo_outline", { repoRoot: targetRoot }, requestOptions);
+        outlineSamples.push(performance.now() - outlineStartedAt);
+      }
+
+      return {
+        schemaVersion: "1.0",
+        sourceRepoRoot,
+        commit: getGitCommit(sourceRepoRoot),
+        measuredAt: new Date().toISOString(),
+        runs,
+        metrics: {
+          coldDaemonIndexMs: coldIndexMs,
+          warmDaemonIndexP50Ms: round(percentile(warmIndexSamples, 0.5)),
+          warmDaemonIndexP95Ms: round(percentile(warmIndexSamples, 0.95)),
+          warmDaemonOutlineP50Ms: round(percentile(outlineSamples, 0.5)),
+          warmDaemonOutlineP95Ms: round(percentile(outlineSamples, 0.95)),
+        },
+      };
+    });
+  } finally {
+    await stopBenchmarkDaemon(runtimeDir);
+    await cleanupBenchRoot(benchRoot);
+  }
+}
+
 export async function collectIndexPerfMetrics(sourceRepoRoot) {
   const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
 
   try {
-    const discovery = await measureFileDiscovery(targetRoot);
-    const hashingMs = await measureHashing(targetRoot, discovery.files);
-    const parsing = await measureParsing(targetRoot, discovery.files);
-    const indexing = await measureColdAndWarmIndex(targetRoot);
+    const { discovery, hashingMs, parsing, indexing } = await withIsolatedBenchmarkStorage(async () => {
+      const discovery = await measureFileDiscovery(targetRoot);
+      const hashingMs = await measureHashing(targetRoot, discovery.files);
+      const parsing = await measureParsing(targetRoot, discovery.files);
+      const indexing = await measureColdAndWarmIndex(targetRoot);
+      return { discovery, hashingMs, parsing, indexing };
+    });
 
     return {
       schemaVersion: "1.0",
@@ -312,7 +398,7 @@ export async function collectQueryPerfMetrics(sourceRepoRoot, runs) {
   const { benchRoot, targetRoot } = await copyCleanRepo(sourceRepoRoot);
 
   try {
-    const queryMetrics = await measureQueryLatency(targetRoot, runs);
+    const queryMetrics = await withIsolatedBenchmarkStorage(() => measureQueryLatency(targetRoot, runs));
     return {
       schemaVersion: "1.0",
       sourceRepoRoot,

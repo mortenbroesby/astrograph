@@ -203,6 +203,7 @@ const repoRootResolutionCache = new Map<string, Promise<string>>();
 const ensuredStorageRoots = new Map<string, true>();
 const databaseConnectionCache = new Map<string, CachedDatabaseConnection>();
 const INDEX_WORKER_CHILD_ENV = "AI_CONTEXT_ENGINE_INDEX_WORKER_CHILD";
+const DAEMON_PROCESS_ENV = "ASTROGRAPH_DAEMON_PROCESS";
 const storageLogger = getLogger({ component: "storage" });
 const STORAGE_VERSION_FILENAME = "storage-version.json";
 
@@ -372,8 +373,9 @@ function clearDatabaseConnectionCache(databasePath?: string) {
   databaseConnectionCache.clear();
 }
 
-function shouldUseIndexWorker() {
-  return process.env[INDEX_WORKER_CHILD_ENV] !== "1";
+export function shouldUseIndexWorker(environment: NodeJS.ProcessEnv = process.env) {
+  return environment[INDEX_WORKER_CHILD_ENV] !== "1"
+    && environment[DAEMON_PROCESS_ENV] !== "1";
 }
 
 async function runIndexCommandInChild(
