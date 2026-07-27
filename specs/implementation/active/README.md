@@ -45,6 +45,9 @@ new work complements rather than duplicates existing plans.
 11. [Runtime Acceleration Epic](./10_runtime-acceleration-epic.md)
     — urgent one-PR delivery: retain daemon-owned index resources, serialize
     mutable repository work, and establish honest warm-runtime evidence.
+12. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
+    — selected by the user: remove the native Tree-sitter install boundary and
+    prove packed global installs on Node 20, 22, and 24.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

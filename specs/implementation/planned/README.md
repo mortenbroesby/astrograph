@@ -11,8 +11,9 @@ The numeric prefix is the priority order. A child prefix such as `4_1` is a
 dependency-ordered part of its parent epic, not a competing top-level priority.
 
 1. [Node 20–24 Runtime Compatibility](./1_node-20-to-24-runtime-compatibility-epic.md)
-   — high-priority separate follow-up to prove and repair the published
-   Node 20/22/24 contract without expanding the current runtime PR.
+   — parser-boundary remediation is active as the
+   [WASM Parser Runtime Migration](../active/11_wasm-parser-runtime-migration.md);
+   retain this record for broader compatibility evidence and non-parser follow-ups.
 2. [Reduce Astrograph Boilerplate with Proven npm Modules](./2_npm-module-adoption-epic.md)
    — Stories 1–3 are complete. The package-confidence CI-cost review is parked
    until it regains product priority and its temporary CLI evaluation is
