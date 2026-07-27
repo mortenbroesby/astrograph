@@ -55,6 +55,7 @@ async function run(
 }
 
 async function main(): Promise<void> {
+  const prebuiltPackage = process.argv.includes("--prebuilt");
   const packageManifest = JSON.parse(
     await readFile(path.join(packageRoot, "package.json"), "utf8"),
   ) as { packageManager?: string };
@@ -123,7 +124,12 @@ async function main(): Promise<void> {
       secondFixtureRepo,
     );
 
-    await run("pnpm", ["pack", "--pack-destination", packDir], packageRoot);
+    await run(
+      "pnpm",
+      ["pack", "--pack-destination", packDir],
+      packageRoot,
+      prebuiltPackage ? { npm_config_ignore_scripts: "true" } : {},
+    );
     const tarballs = (await readdir(packDir)).filter((entry) => entry.endsWith(".tgz"));
     const tarball = tarballs[0];
 

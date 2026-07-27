@@ -164,7 +164,9 @@ already usable today.
 
 ## 📦 Install Details
 
-- Node target: `>=22.12.0` (Node 22 LTS or newer; Node 24 is supported)
+- Package runtime: Node `^20.19.0 || >=22.12.0` (Node 20.19+, 22, and 24)
+- Repository build tooling: Node 22.18+ or 24.11+; the checked-in ASDF toolchain
+  remains Node `22.23.1`.
 - Repository tooling: [`.tool-versions`](./.tool-versions) pins Node `22.23.1`
   and pnpm `9.15.9` for ASDF users.
 - Entry command: `astrograph`

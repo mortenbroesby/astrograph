@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.10.3-alpha.199",
+  "version": "0.10.3-alpha.200",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -25,7 +25,7 @@
     "url": "https://github.com/mortenbroesby/astrograph/issues"
   },
   "engines": {
-    "node": ">=22.12.0"
+    "node": "^20.19.0 || >=22.12.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -80,6 +80,7 @@
     "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --import=tsx ./bench/scripts/perf-index.mjs",
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --import=tsx ./bench/scripts/perf-query.mjs",
     "test:package-bin": "node --import=tsx ./src/scripts/smoke-package-bin.ts",
+    "test:package-bin:prebuilt": "node --import=tsx ./src/scripts/smoke-package-bin.ts --prebuilt",
     "check:version-bump": "node --import=tsx ./src/scripts/check-version-bump.ts",
     "release": "pnpm release:apply && pnpm test",
     "release:plan": "node ./dist/scripts/release-agent.js",
@@ -125,9 +126,9 @@
     "@node-rs/xxhash": "^1.7.6",
     "@parcel/watcher": "^2.5.6",
     "@vscode/ripgrep": "^1.17.1",
-    "better-sqlite3": "^13.0.1",
+    "better-sqlite3": "^12.11.1",
     "commander": "^14.0.3",
-    "execa": "10.0.0",
+    "execa": "9.6.1",
     "fdir": "^6.5.0",
     "jiti": "2.7.0",
     "p-map": "^7.0.4",

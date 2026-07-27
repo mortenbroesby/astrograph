@@ -14,7 +14,7 @@ export default defineConfig({
     "workers/analyze-file-worker": "src/workers/analyze-file-worker.ts",
   },
   format: "esm",
-  target: "node22",
+  target: "node20",
   outDir: "dist",
   outExtensions: () => ({ js: ".js", dts: ".d.ts" }),
   sourcemap: true,
