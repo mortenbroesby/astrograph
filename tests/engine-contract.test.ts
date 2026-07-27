@@ -411,6 +411,7 @@ describe("ai-context-engine contract", () => {
       engines: {
         node: string;
       };
+      dependencies: Record<string, string>;
     };
 
     expect(packageJson.description).toBe(
@@ -437,6 +438,10 @@ describe("ai-context-engine contract", () => {
     expect(packageJson.engines).toEqual({
       node: "^20.19.0 || >=22.12.0",
     });
+    expect(packageJson.dependencies).toMatchObject({
+      "@astrograph/tree-sitter": "npm:tree-sitter@0.25.0",
+    });
+    expect(packageJson.dependencies).not.toHaveProperty("tree-sitter");
   });
 
   it("advertises profiling scripts and ignores generated profiling artifacts", async () => {

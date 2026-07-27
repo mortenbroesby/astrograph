@@ -67,12 +67,16 @@ async function main(): Promise<void> {
   const globalHome = path.join(tempRoot, "global-home");
   const globalCopilotHome = path.join(tempRoot, "global-copilot-home");
   const globalCacheHome = path.join(tempRoot, "global-cache");
+  const npmGlobalPrefix = path.join(tempRoot, "npm-global");
+  const npmCache = path.join(tempRoot, "npm-cache");
 
   try {
     await mkdir(packDir, { recursive: true });
     await mkdir(installDir, { recursive: true });
     await mkdir(globalHome, { recursive: true });
     await mkdir(globalCopilotHome, { recursive: true });
+    await mkdir(npmGlobalPrefix, { recursive: true });
+    await mkdir(npmCache, { recursive: true });
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
     await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
@@ -135,6 +139,15 @@ async function main(): Promise<void> {
 
     if (!tarball) {
       throw new Error("Expected pnpm pack to produce a tarball");
+    }
+
+    const npmGlobalInstall = await run(
+      "npm",
+      ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
+      installDir,
+    );
+    if (/npm warn ERESOLVE/u.test(npmGlobalInstall.stderr)) {
+      throw new Error(`Unexpected npm peer-resolution warning: ${npmGlobalInstall.stderr}`);
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);

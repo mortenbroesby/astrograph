@@ -37,6 +37,11 @@ platform-specific.
 
 ## Repaired Boundaries
 
+- The Tree-sitter core is installed as `@astrograph/tree-sitter` (an npm alias
+  for `tree-sitter@0.25.0`). This keeps every grammar while preventing npm from
+  applying their stale optional peer ranges to Astrograph's core binding. The
+  package smoke performs an isolated `npm install --global` and fails if npm
+  emits `ERESOLVE`.
 - `better-sqlite3@13.0.1` declares Node `>=22` and segfaulted on a Node 20
   database open. `better-sqlite3@12.11.1` supports Node 20–26 and passed the
   same database/indexing workflow after its normal native build fallback.
