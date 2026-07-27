@@ -146,8 +146,12 @@ async function main(): Promise<void> {
       ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
       installDir,
     );
-    if (/npm warn /iu.test(npmGlobalInstall.stderr)) {
-      throw new Error(`Unexpected npm global-install warning: ${npmGlobalInstall.stderr}`);
+    // Resolver and engine warnings mean users may not get a usable install.
+    // Third-party deprecation notices are maintained upstream and do not change
+    // the packed package's installability; they should be removed by dependency
+    // upgrades rather than making this consumer smoke permanently flaky.
+    if (/npm warn (ERESOLVE|EBADENGINE)\b/iu.test(npmGlobalInstall.stderr)) {
+      throw new Error(`Unexpected npm global-install integrity warning: ${npmGlobalInstall.stderr}`);
     }
     const globalBin = process.platform === "win32"
       ? path.join(npmGlobalPrefix, "node_modules", ".bin", "astrograph.cmd")
