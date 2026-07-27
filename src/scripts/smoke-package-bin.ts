@@ -58,7 +58,7 @@ async function main(): Promise<void> {
   const prebuiltPackage = process.argv.includes("--prebuilt");
   const packageManifest = JSON.parse(
     await readFile(path.join(packageRoot, "package.json"), "utf8"),
-  ) as { packageManager?: string };
+  ) as { packageManager?: string; version?: string };
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-pack-"));
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
@@ -146,8 +146,15 @@ async function main(): Promise<void> {
       ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
       installDir,
     );
-    if (/npm warn ERESOLVE/u.test(npmGlobalInstall.stderr)) {
-      throw new Error(`Unexpected npm peer-resolution warning: ${npmGlobalInstall.stderr}`);
+    if (/npm warn /iu.test(npmGlobalInstall.stderr)) {
+      throw new Error(`Unexpected npm global-install warning: ${npmGlobalInstall.stderr}`);
+    }
+    const globalBin = process.platform === "win32"
+      ? path.join(npmGlobalPrefix, "node_modules", ".bin", "astrograph.cmd")
+      : path.join(npmGlobalPrefix, "bin", "astrograph");
+    const { stdout: globalVersion } = await run(globalBin, ["--version"], installDir);
+    if (!packageManifest.version || globalVersion.trim() !== packageManifest.version) {
+      throw new Error(`Unexpected globally installed package version: ${globalVersion}`);
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
