@@ -16,7 +16,7 @@
   <a href="https://www.npmjs.com/package/astrograph"><img alt="npm" src="https://img.shields.io/npm/v/astrograph?color=0f172a&label=npm"></a>
   <a href="https://github.com/mortenbroesby/astrograph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mortenbroesby/astrograph/ci.yml?branch=main&label=ci"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-14b8a6"></a>
-  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D22.12.0-6366f1">
+  <img alt="Node" src="https://img.shields.io/badge/node-20.19%2B%20%7C%2022.12%2B-6366f1">
 </p>
 
 <p align="center">
@@ -164,7 +164,9 @@ already usable today.
 
 ## 📦 Install Details
 
-- Node target: `>=22.12.0` (Node 22 LTS or newer; Node 24 is supported)
+- Package runtime: Node `^20.19.0 || >=22.12.0` (Node 20.19+, 22, and 24)
+- Repository build tooling: Node 22.18+ or 24.11+; the checked-in ASDF toolchain
+  remains Node `22.23.1`.
 - Repository tooling: [`.tool-versions`](./.tool-versions) pins Node `22.23.1`
   and pnpm `9.15.9` for ASDF users.
 - Entry command: `astrograph`

@@ -1,4 +1,4 @@
-import Parser from "tree-sitter";
+import Parser from "@astrograph/tree-sitter";
 
 import type { SummarySource, SummaryStrategy, SymbolKind } from "../types.ts";
 import { LANGUAGE_ADAPTERS } from "./language-adapters.ts";

@@ -1,4 +1,4 @@
-import Parser from "tree-sitter";
+import Parser from "@astrograph/tree-sitter";
 import bash from "tree-sitter-bash";
 import c from "tree-sitter-c";
 import csharp from "tree-sitter-c-sharp";

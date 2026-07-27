@@ -411,6 +411,7 @@ describe("ai-context-engine contract", () => {
       engines: {
         node: string;
       };
+      dependencies: Record<string, string>;
     };
 
     expect(packageJson.description).toBe(
@@ -435,8 +436,12 @@ describe("ai-context-engine contract", () => {
       url: "https://github.com/mortenbroesby/astrograph/issues",
     });
     expect(packageJson.engines).toEqual({
-      node: ">=22.12.0",
+      node: "^20.19.0 || >=22.12.0",
     });
+    expect(packageJson.dependencies).toMatchObject({
+      "@astrograph/tree-sitter": "npm:tree-sitter@0.25.0",
+    });
+    expect(packageJson.dependencies).not.toHaveProperty("tree-sitter");
   });
 
   it("advertises profiling scripts and ignores generated profiling artifacts", async () => {
@@ -1230,7 +1235,20 @@ describe("ai-context-engine contract", () => {
     const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir };
 
     await expect(setupGlobalForCodex({ environment, nodeVersion: "20.11.0", executableAvailable: true }))
-      .rejects.toThrow(/requires Node\.js >=22\.12\.0.*Install a supported Node/i);
+      .rejects.toThrow(/requires Node\.js 20\.19\+ or >=22\.12\.0.*Install a supported Node/i);
+    const compatibleHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-compatible-"));
+    const compatibleConfigHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-compatible-config-"));
+    tempDirs.push(compatibleHome, compatibleConfigHome);
+    await expect(setupGlobalForCodex({
+      environment: {
+        platform: "linux",
+        env: { XDG_CONFIG_HOME: compatibleConfigHome },
+        homeDir: () => compatibleHome,
+      },
+      nodeVersion: "20.19.0",
+      executableAvailable: true,
+    }))
+      .resolves.toMatchObject({ ide: "codex" });
     await expect(setupGlobalForCodex({ environment, executableAvailable: false }))
       .rejects.toThrow(/Cannot find `astrograph` on PATH.*npm install --global astrograph/i);
     await expect(readFile(path.join(homeDir, ".codex", "config.toml"))).rejects.toMatchObject({ code: "ENOENT" });

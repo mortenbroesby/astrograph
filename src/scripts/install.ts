@@ -354,7 +354,7 @@ function nodeVersionSupported(nodeVersion: string): boolean {
   const match = nodeVersion.replace(/^v/, "").match(/^(\d+)\.(\d+)\./);
   const major = Number(match?.[1] ?? 0);
   const minor = Number(match?.[2] ?? 0);
-  return major > 22 || (major === 22 && minor >= 12);
+  return (major === 20 && minor >= 19) || major > 22 || (major === 22 && minor >= 12);
 }
 
 export async function getGlobalInstallationDiagnostics(
@@ -376,7 +376,7 @@ export async function getGlobalInstallationDiagnostics(
     package: { name: PACKAGE_NAME, version: PACKAGE_VERSION },
     runtime: {
       nodeVersion: process.versions.node,
-      minimumNodeVersion: "22.12.0",
+      minimumNodeVersion: "20.19.0",
       supported: nodeVersionSupported(process.versions.node),
     },
     defaultGlobalIde: DEFAULT_GLOBAL_INSTALL_IDE,
@@ -972,11 +972,8 @@ function assertGlobalInstallPrerequisites(
   ide: "codex" | "copilot-cli",
 ): void {
   const nodeVersion = options.nodeVersion ?? process.versions.node;
-  const match = nodeVersion.match(/^(\d+)\.(\d+)\./);
-  const major = Number(match?.[1] ?? 0);
-  const minor = Number(match?.[2] ?? 0);
-  if (major < 22 || (major === 22 && minor < 12)) {
-    throw new Error(`Astrograph global install requires Node.js >=22.12.0; found ${nodeVersion}. Install a supported Node release and retry.`);
+  if (!nodeVersionSupported(nodeVersion)) {
+    throw new Error(`Astrograph global install requires Node.js 20.19+ or >=22.12.0; found ${nodeVersion}. Install a supported Node release and retry.`);
   }
   const executableAvailable = options.executableAvailable ?? globalExecutableIsAvailable(options.environment ?? {});
   if (!executableAvailable) {
