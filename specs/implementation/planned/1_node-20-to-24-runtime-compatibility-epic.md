@@ -1,6 +1,6 @@
 # Node 20–24 Runtime Compatibility Epic
 
-> **Status:** In progress. This is deliberately separate
+> **Status:** Ready to merge — post-merge manual evidence remains. This is deliberately separate
 > from the Runtime Acceleration Epic and must be delivered in its own branch
 > and pull request.
 
@@ -97,9 +97,9 @@ relevant test scripts.
 - [x] Measure the existing Node 22 CI cost and propose the least-expensive
   Node 20/24 coverage (for example, path-scoped package smoke or an opt-in
   release gate) before editing workflows.
-- [ ] Keep Node 22 as the required fast baseline; test Node 20 and 24 with the
+- [x] Keep Node 22 as the required fast baseline; test Node 20 and 24 with the
   same packed-package/native-load contract selected in Story 1.
-- [ ] Preserve cache keys, scoped triggers, concurrency cancellation, and the
+- [x] Preserve cache keys, scoped triggers, concurrency cancellation, and the
   fast-versus-expensive workflow split.
 - [ ] Record exact CI evidence for all claimed Node versions.
 
@@ -129,11 +129,20 @@ same version promise and direct unsupported users to a single remedy.
 
 ## Final Verification and Release Checkpoint
 
-- [ ] Run the selected Node 20, 22, and 24 packaged smoke suite from clean
+- [x] Run the selected Node 20, 22, and 24 packaged smoke suite from clean
   installs, plus focused regression tests.
-- [ ] Run `pnpm type-lint`, `pnpm check:version-bump`, `pnpm agents:check`, and
+- [x] Run `pnpm type-lint`, `pnpm check:version-bump`, `pnpm agents:check`, and
   `git diff --check` under the repository toolchain.
-- [ ] Run the release-decision skill before the final source or package-metadata
+- [x] Run the release-decision skill before the final source or package-metadata
   commit; compatibility fixes require the appropriate pre-release version bump.
 - [ ] Link the exact CI runs and baseline review in the delivery checklist, then
   update the roadmap status only after the public contract is proven.
+
+## Post-Merge Manual Gate
+
+The Node 20 and Node 24 package jobs are intentionally not available until
+`.github/workflows/node-compatibility.yml` reaches the default branch. After
+merge, dispatch **Node package compatibility** once with `20` and once with
+`24`, add both run links to the baseline review, then check the remaining
+Story 3 and final-verification items and update the roadmap. PR CI run 372
+already proves the required Node 22 baseline.

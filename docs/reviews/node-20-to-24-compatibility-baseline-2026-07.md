@@ -68,3 +68,11 @@ platform-specific.
   compatibility** workflow is the approved zero-baseline-cost gate: build on
   Node 22, then dispatch it once for Node 20 and once for Node 24 before a
   compatibility release.
+
+## Automation Evidence
+
+[PR CI run 372](https://github.com/mortenbroesby/astrograph/actions/runs/30267841879)
+passed the required Node 22 package gate. The two manual package runs cannot
+be dispatched until this workflow exists on the default branch; after merge,
+record the Node 20 and Node 24 run links here before declaring continuous
+cross-runtime evidence complete.
