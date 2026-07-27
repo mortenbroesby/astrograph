@@ -1,8 +1,12 @@
 # Node 20–24 Runtime Compatibility Epic
 
-> **Status:** Ready to merge — post-merge manual evidence remains. This is deliberately separate
-> from the Runtime Acceleration Epic and must be delivered in its own branch
-> and pull request.
+> **Superseded for the parser boundary:** The Native Tree-sitter remediation is
+> now the active [WASM Parser Runtime Migration](../active/11_wasm-parser-runtime-migration.md).
+> Its installation and Linux CI evidence are authoritative for this failure.
+
+> **Status:** Partially superseded — retain this record for broader Node
+> compatibility evidence; the active WASM migration owns the proven native
+> Tree-sitter package-install failure.
 
 **Goal:** Make the published Astrograph package reliably install and run on
 supported Node.js 20, 22, and 24 releases, or narrow the public contract only

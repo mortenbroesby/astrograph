@@ -67,14 +67,15 @@ turns those focuses into an exclusive execution gate.
    - Architecture: one authenticated local daemon serializes mutable work per
      canonical repository; retain existing child isolation for ordinary CLI
      indexing and only select parser/native experiments from profiles.
+11. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
+   - Goal: replace native Tree-sitter installation with a packaged WASM parser
+     and grammar assets, then prove Linux packaged installs on Node 20 and 24.
 
 ## Ready — detailed, but not selected
 
 1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
-   is a high-priority follow-up, deliberately separate from Runtime
-   Acceleration. It must reproduce the reported Node 24 failure, prove clean
-   package behavior on Node 20/22/24, and only then widen the current
-   `>=22.12.0` package contract.
+   retains non-parser evidence; the active WASM migration owns the proven
+   native Tree-sitter Linux installation failure.
 2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
    1–3 complete; Stories 4–6 remain parked behind their CI-cost and
    third-party-command evidence gates. Preserve product-specific behavior;
