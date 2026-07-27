@@ -22,6 +22,21 @@ is wrong and what command it wants you to run next.
 
 ## Common Problems
 
+### Problem: Node.js is unsupported or a native dependency will not load
+
+Astrograph's published package supports Node 20.19+, 22, and 24. Check the
+runtime that starts Astrograph:
+
+```bash
+node --version
+```
+
+Upgrade to Node 20.19+ or a current Node 22/24 release, then reinstall the
+package. If the error happens during installation, keep the full error output:
+native prebuild availability depends on your operating system and architecture.
+The repository build itself uses Node 22.18+ or 24.11+ because its build tool
+does not support Node 20; package users do not need to run that build.
+
 ### Problem: the repo is not indexed yet
 
 Fix:

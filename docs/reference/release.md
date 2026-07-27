@@ -7,11 +7,12 @@ to dry-run that decision, and how the actual publish flow works.
 
 ## Supported Release Environments
 
-Local development and package verification support Node 22 LTS or newer on
-macOS, Linux, and Windows. On Windows, use PowerShell, `cmd.exe`, or Git Bash;
-the packed-package smoke validates the published CLI and MCP entrypoints on a
-native Windows runner. Git is optional for normal indexing and retrieval: when
-Git is unavailable or a folder is not a checkout, Astrograph safely uses its
+The published package supports Node 20.19+, 22, and 24. Local contributor
+builds require Node 22.18+ or 24.11+ because tsdown does not support Node 20.
+The manual **Node package compatibility** workflow builds under Node 22, then
+tests the packed artifact under Node 20 or 24; it adds no automatic Actions
+usage. Git is optional for normal indexing and retrieval: when Git is
+unavailable or a folder is not a checkout, Astrograph safely uses its
 filesystem fallback. Release automation itself runs on GitHub-hosted Linux.
 
 ## Release Model

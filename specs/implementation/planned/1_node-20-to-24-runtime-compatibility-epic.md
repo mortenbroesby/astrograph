@@ -1,6 +1,6 @@
 # Node 20–24 Runtime Compatibility Epic
 
-> **Status:** Ready — high-priority follow-up. This is deliberately separate
+> **Status:** In progress. This is deliberately separate
 > from the Runtime Acceleration Epic and must be delivered in its own branch
 > and pull request.
 
@@ -47,17 +47,17 @@ with exact, repeatable package-level evidence.
 **Expected files:** `docs/reviews/node-20-to-24-compatibility-baseline-YYYY-MM.md`,
 targeted tests or fixture scripts only if a missing proof is identified.
 
-- [ ] Run the contributor build/type-lint proof under the tsdown-supported Node
+- [x] Run the contributor build/type-lint proof under the tsdown-supported Node
   22/24 toolchain. Under Node 20, test the already-built tarball with the
   prebuilt package smoke; do not require consumers to run `prepack`.
-- [ ] Exercise the packed CLI and MCP process against a disposable fixture;
+- [x] Exercise the packed CLI and MCP process against a disposable fixture;
   record runtime version, OS/architecture, package-manager version, exact
   command, stdout/stderr, and whether a native prebuild or local compilation
   was used.
-- [ ] Reproduce the reported Node 24 failure on the work laptop or gather its
+- [x] Reproduce the reported Node 24 failure on the work laptop or gather its
   exact error. Classify it as source/runtime API, native ABI/install, toolchain,
   configuration, or environment-specific.
-- [ ] Inventory every package with an engine or native-binary boundary and name
+- [x] Inventory every package with an engine or native-binary boundary and name
   its compatible version range and fallback path.
 
 **Acceptance criteria:** A review record contains a pass/fail table for each
@@ -71,14 +71,14 @@ contract.
 **Expected files:** `package.json`, lockfile, build/runtime source, targeted
 tests, and installation documentation identified by Story 1.
 
-- [ ] Replace or configure only APIs, build flags, and dependencies proven
+- [x] Replace or configure only APIs, build flags, and dependencies proven
   incompatible by Story 1; prefer supported dependency versions and portable
   Node APIs over version checks or parallel implementations.
-- [ ] Add one focused regression proof for every repaired shared boundary,
+- [x] Add one focused regression proof for every repaired shared boundary,
   including native load/rebuild behavior when relevant.
-- [ ] Keep generated `dist/` behavior and package-bin smoke parity with source
+- [x] Keep generated `dist/` behavior and package-bin smoke parity with source
   behavior. Do not use development loaders as a production workaround.
-- [ ] Change `engines.node` only after every requested version passes the
+- [x] Change `engines.node` only after every requested version passes the
   package-level gate. If Node 20 cannot be supported, document the exact
   blocker, upstream issue/selection gate, and an honest narrower range.
 
@@ -94,7 +94,7 @@ the existing fast CI contract.
 workflow, `.agents/rules/github-actions-cost.md` only if policy changes, and
 relevant test scripts.
 
-- [ ] Measure the existing Node 22 CI cost and propose the least-expensive
+- [x] Measure the existing Node 22 CI cost and propose the least-expensive
   Node 20/24 coverage (for example, path-scoped package smoke or an opt-in
   release gate) before editing workflows.
 - [ ] Keep Node 22 as the required fast baseline; test Node 20 and 24 with the
@@ -115,12 +115,12 @@ actionable when an environment is outside it.
 `docs/guides/troubleshooting.md`, and release notes as selected by prior
 stories.
 
-- [ ] Align `engines.node`, installer diagnostics, README, and troubleshooting
+- [x] Align `engines.node`, installer diagnostics, README, and troubleshooting
   guidance to the proven Node range.
-- [ ] Explain Node 20/22/24 support in terms users can act on: version check,
+- [x] Explain Node 20/22/24 support in terms users can act on: version check,
   supported package-manager path, and the native-build prerequisites only when
   they are genuinely needed.
-- [ ] Add a concise failure message for an unsupported Node version if the
+- [x] Add a concise failure message for an unsupported Node version if the
   current experience is cryptic; do not add an installer wizard or duplicate
   version policy.
 

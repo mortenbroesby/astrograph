@@ -16,7 +16,7 @@
   <a href="https://www.npmjs.com/package/astrograph"><img alt="npm" src="https://img.shields.io/npm/v/astrograph?color=0f172a&label=npm"></a>
   <a href="https://github.com/mortenbroesby/astrograph/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/mortenbroesby/astrograph/ci.yml?branch=main&label=ci"></a>
   <a href="./LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-14b8a6"></a>
-  <img alt="Node" src="https://img.shields.io/badge/node-%3E%3D22.12.0-6366f1">
+  <img alt="Node" src="https://img.shields.io/badge/node-20.19%2B%20%7C%2022.12%2B-6366f1">
 </p>
 
 <p align="center">
