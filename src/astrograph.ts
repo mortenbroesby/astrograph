@@ -27,16 +27,21 @@ function usage() {
     "  astrograph mcp",
     "  astrograph --version",
     "  astrograph --diagnostics",
+    "  astrograph report-issue --diagnostics-consent --message <sanitized-summary>",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
     "  astrograph install [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--agents] [--git-hooks] [--dry-run] [--json]",
     "  astrograph install --global [--ide copilot-cli|codex] [--dry-run] [--json]",
+    "  astrograph status [--repo /abs/repo] [--json]",
     "  astrograph doctor [--repo /abs/repo] [--json]",
+    "  astrograph update|repair|reconfigure --yes --scope global|repository --ide codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run] [--json]",
+    "  astrograph uninstall --yes --scope global|repository --ide codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run] [--json]",
     "  astrograph install --ide codex",
   ].join("\n") + "\n",
 );
 }
 
-const [mode, ...args] = process.argv.slice(2);
+const [providedMode, ...args] = process.argv.slice(2);
+const mode = providedMode || "install";
 
 if (mode === "--version" || mode === "-v") {
   process.stdout.write(`${packageVersion}\n`);
@@ -50,7 +55,7 @@ const sourceTarget =
       ? path.join(packageRoot, "src", "mcp.ts")
       : mode === "git-refresh"
         ? path.join(packageRoot, "src", "scripts", "git-smart-refresh.ts")
-        : mode === "install" || mode === "doctor" || mode === "--diagnostics"
+        : mode === "install" || mode === "doctor" || mode === "status" || mode === "update" || mode === "repair" || mode === "reconfigure" || mode === "uninstall" || mode === "report-issue" || mode === "--diagnostics"
           ? path.join(packageRoot, "src", "scripts", "install.ts")
           : null;
 const distTarget =
@@ -60,7 +65,7 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
         ? path.join(packageRoot, "dist", "scripts", "git-smart-refresh.js")
-        : mode === "install" || mode === "doctor" || mode === "--diagnostics"
+        : mode === "install" || mode === "doctor" || mode === "status" || mode === "update" || mode === "repair" || mode === "reconfigure" || mode === "uninstall" || mode === "report-issue" || mode === "--diagnostics"
           ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 
@@ -78,8 +83,14 @@ const commandArgs = mode === "cache"
   ? [`cache-${args[0] ?? ""}`, ...args.slice(1)]
   : mode === "--diagnostics"
     ? ["--diagnostics"]
-    : mode === "doctor"
-      ? ["--doctor", ...args]
+  : mode === "doctor"
+    ? ["--doctor", ...args]
+    : mode === "status"
+      ? ["--status", ...args]
+      : mode === "update" || mode === "repair" || mode === "reconfigure" || mode === "uninstall"
+        ? ["--lifecycle", mode, ...args]
+      : mode === "report-issue"
+        ? ["--report-issue", ...args]
     : args;
 if (mode === "cache" && !["status", "remove", "prune", "restore"].includes(args[0] ?? "")) {
   usage();

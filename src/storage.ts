@@ -203,6 +203,7 @@ const repoRootResolutionCache = new Map<string, Promise<string>>();
 const ensuredStorageRoots = new Map<string, true>();
 const databaseConnectionCache = new Map<string, CachedDatabaseConnection>();
 const INDEX_WORKER_CHILD_ENV = "AI_CONTEXT_ENGINE_INDEX_WORKER_CHILD";
+const DAEMON_PROCESS_ENV = "ASTROGRAPH_DAEMON_PROCESS";
 const storageLogger = getLogger({ component: "storage" });
 const STORAGE_VERSION_FILENAME = "storage-version.json";
 
@@ -372,8 +373,9 @@ function clearDatabaseConnectionCache(databasePath?: string) {
   databaseConnectionCache.clear();
 }
 
-function shouldUseIndexWorker() {
-  return process.env[INDEX_WORKER_CHILD_ENV] !== "1";
+export function shouldUseIndexWorker(environment: NodeJS.ProcessEnv = process.env) {
+  return environment[INDEX_WORKER_CHILD_ENV] !== "1"
+    && environment[DAEMON_PROCESS_ENV] !== "1";
 }
 
 async function runIndexCommandInChild(
@@ -580,7 +582,7 @@ async function resolveRepoRoot(repoRoot: string): Promise<string> {
   return cachedResolution;
 }
 
-async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy) {
+async function resolveStorageConfig(repoRoot: string, summaryStrategy?: SummaryStrategy) {
   const resolvedRepoRoot = await resolveRepoRoot(repoRoot);
   const repoConfig = await loadRepoEngineConfig(resolvedRepoRoot, {
     repoRootResolved: true,
@@ -605,6 +607,11 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     maxChildProcessOutputBytes: repoConfig.limits.maxChildProcessOutputBytes,
     maxLiveSearchMatches: repoConfig.limits.maxLiveSearchMatches,
   });
+  return config;
+}
+
+async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy) {
+  const config = await resolveStorageConfig(repoRoot, summaryStrategy);
   if (!getLruEntry(ensuredStorageRoots, config.paths.storageDir)) {
     await mkdir(config.paths.storageDir, { recursive: true });
     await ensureStorageVersion(config);
@@ -999,7 +1006,7 @@ async function analyzeFileIndexResult(input: {
         content: file.content,
         summaryStrategy: input.summaryStrategy,
       })
-    : analyzeFileContent({
+    : await analyzeFileContent({
         relativePath: file.relativePath,
         language: file.language,
         content: file.content,
@@ -2631,7 +2638,9 @@ export async function getSymbolSource(input: {
 }
 
 export async function diagnostics(input: DiagnosticsOptions): Promise<DiagnosticsResult> {
-  const config = await ensureStorage(input.repoRoot);
+  const config = input.readOnly
+    ? await resolveStorageConfig(input.repoRoot)
+    : await ensureStorage(input.repoRoot);
   const db = openDatabase(config.paths.databasePath);
   const repoRoot = config.repoRoot;
 

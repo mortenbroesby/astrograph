@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile, mkdir, readFile } from "node:fs/promises";
+import { access, mkdtemp, readdir, rm, writeFile, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -55,9 +55,10 @@ async function run(
 }
 
 async function main(): Promise<void> {
+  const prebuiltPackage = process.argv.includes("--prebuilt");
   const packageManifest = JSON.parse(
     await readFile(path.join(packageRoot, "package.json"), "utf8"),
-  ) as { packageManager?: string };
+  ) as { packageManager?: string; version?: string };
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-pack-"));
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
@@ -66,12 +67,16 @@ async function main(): Promise<void> {
   const globalHome = path.join(tempRoot, "global-home");
   const globalCopilotHome = path.join(tempRoot, "global-copilot-home");
   const globalCacheHome = path.join(tempRoot, "global-cache");
+  const npmGlobalPrefix = path.join(tempRoot, "npm-global");
+  const npmCache = path.join(tempRoot, "npm-cache");
 
   try {
     await mkdir(packDir, { recursive: true });
     await mkdir(installDir, { recursive: true });
     await mkdir(globalHome, { recursive: true });
     await mkdir(globalCopilotHome, { recursive: true });
+    await mkdir(npmGlobalPrefix, { recursive: true });
+    await mkdir(npmCache, { recursive: true });
     await mkdir(path.join(fixtureRepo, "src"), { recursive: true });
     await mkdir(path.join(secondFixtureRepo, "src"), { recursive: true });
 
@@ -123,12 +128,37 @@ async function main(): Promise<void> {
       secondFixtureRepo,
     );
 
-    await run("pnpm", ["pack", "--pack-destination", packDir], packageRoot);
+    await run(
+      "pnpm",
+      ["pack", "--pack-destination", packDir],
+      packageRoot,
+      prebuiltPackage ? { npm_config_ignore_scripts: "true" } : {},
+    );
     const tarballs = (await readdir(packDir)).filter((entry) => entry.endsWith(".tgz"));
     const tarball = tarballs[0];
 
     if (!tarball) {
       throw new Error("Expected pnpm pack to produce a tarball");
+    }
+
+    const npmGlobalInstall = await run(
+      "npm",
+      ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
+      installDir,
+    );
+    // Resolver and engine warnings mean users may not get a usable install.
+    // Third-party deprecation notices are maintained upstream and do not change
+    // the packed package's installability; they should be removed by dependency
+    // upgrades rather than making this consumer smoke permanently flaky.
+    if (/npm warn (ERESOLVE|EBADENGINE)\b/iu.test(npmGlobalInstall.stderr)) {
+      throw new Error(`Unexpected npm global-install integrity warning: ${npmGlobalInstall.stderr}`);
+    }
+    const globalBin = process.platform === "win32"
+      ? path.join(npmGlobalPrefix, "node_modules", ".bin", "astrograph.cmd")
+      : path.join(npmGlobalPrefix, "bin", "astrograph");
+    const { stdout: globalVersion } = await run(globalBin, ["--version"], installDir);
+    if (!packageManifest.version || globalVersion.trim() !== packageManifest.version) {
+      throw new Error(`Unexpected globally installed package version: ${globalVersion}`);
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
@@ -208,6 +238,10 @@ async function main(): Promise<void> {
         "astrograph",
         "install",
         "--yes",
+        "--scope",
+        "repository",
+        "--ide",
+        "codex",
         "--agents",
         "--json",
         "--repo",
@@ -231,6 +265,15 @@ async function main(): Promise<void> {
     }
     if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
       throw new Error(`Expected astrograph install --agents to write code exploration policy: ${installResult.stdout}`);
+    }
+
+    const rerun = await run(
+      "pnpm",
+      ["exec", "astrograph", "repair", "--yes", "--scope", "repository", "--ide", "codex", "--repo", fixtureRepo, "--json"],
+      installDir,
+    );
+    if (JSON.parse(rerun.stdout).action !== "repair") {
+      throw new Error(`Expected packaged repair to be explicit and idempotent: ${rerun.stdout}`);
     }
 
     const { stdout: doctorOutput } = await run(
@@ -321,10 +364,24 @@ async function main(): Promise<void> {
       await readFile(path.join(globalCopilotHome, "mcp-config.json"), "utf8"),
     ) as { mcpServers?: Record<string, { command?: string; args?: string[] }> };
     if (
-      installedCopilotConfig.mcpServers?.astrograph?.command !== "astrograph"
-      || installedCopilotConfig.mcpServers.astrograph.args?.join(" ") !== "mcp"
+      installedCopilotConfig.mcpServers?.astrograph?.command !== "npx"
+      || installedCopilotConfig.mcpServers.astrograph.args?.join(" ") !== `-y --package astrograph@${packageManifest.version} astrograph mcp`
     ) {
       throw new Error("Expected packaged global install to persist the Copilot CLI Astrograph server");
+    }
+    await access(path.join(secondFixtureRepo, ".codex", "config.toml"))
+      .then(() => { throw new Error("Global setup must not write repository configuration without an index opt-in"); })
+      .catch((error) => {
+        if (error instanceof Error && error.message.includes("Global setup must")) throw error;
+      });
+
+    const { stdout: issueUrl } = await run(
+      "pnpm",
+      ["exec", "astrograph", "report-issue", "--diagnostics-consent", "--message", "token=ghp_ABCdef123 /Users/example/project"],
+      installDir,
+    );
+    if (!issueUrl.includes("issues/new") || !issueUrl.includes("%5Bredacted%5D") || issueUrl.includes("ghp_ABCdef123")) {
+      throw new Error(`Expected packaged issue URL to redact local diagnostics: ${issueUrl}`);
     }
 
     const globalEnvironment = {

@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, readFile, stat, symlink, utimes, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 
@@ -56,6 +57,11 @@ import {
   setupGitRefreshHooks,
   getSetupReadiness,
   formatSetupReadiness,
+  uninstallManagedRegistration,
+  createSanitizedIssueUrl,
+  classifyInstallerFailure,
+  setLocalMcpStartupVerifierForTest,
+  installOptionalGlobalCli,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -63,6 +69,7 @@ import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
 const tempDirs: string[] = [];
 
 afterEach(async () => {
+  setLocalMcpStartupVerifierForTest(null);
   await Promise.all(
     tempDirs.splice(0).map(async (dir) => {
       await import("node:fs/promises").then((fs) =>
@@ -73,6 +80,87 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
+  it("refuses a bare non-TTY install without writing a repository", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-non-tty-"));
+    tempDirs.push(repoRoot);
+    const entry = path.join(process.cwd(), "dist", "astrograph.js");
+    const result = spawnSync(
+      process.execPath,
+      [entry],
+      { cwd: repoRoot, encoding: "utf8", env: process.env },
+    );
+    expect(result.status).toBe(1);
+    expect(`${result.stderr}${result.stdout}`).toContain("Guided install requires a TTY");
+    await expect(stat(path.join(repoRoot, ".codex", "config.toml"))).rejects.toThrow();
+  });
+
+  it("requires explicit scope and IDE for non-interactive setup", () => {
+    const entry = path.join(process.cwd(), "src", "astrograph.ts");
+    const result = spawnSync(process.execPath, ["--import=tsx", entry, "install", "--yes"], {
+      encoding: "utf8",
+      env: { ...process.env, ASTROGRAPH_USE_SOURCE: "1" },
+    });
+    expect(result.status).toBe(1);
+    expect(`${result.stderr}${result.stdout}`).toContain("Non-interactive setup requires --yes --scope");
+  });
+
+  it("keeps the fast setup dashboard read-only when no index exists", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-status-read-only-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    const result = await getSetupReadiness(repoRoot, { scanFreshness: false });
+    expect(result.index.status).toBe("unavailable");
+    await expect(stat(path.join(repoRoot, ".astrograph"))).rejects.toThrow();
+  });
+  it("builds an explicitly reviewable issue URL without secrets or local paths", () => {
+    const url = decodeURIComponent(createSanitizedIssueUrl("token=ghp_ABCdef123 /Users/alice/project password: nope"));
+    expect(url).toContain("github.com/mortenbroesby/astrograph/issues/new");
+    expect(url).toContain("[redacted]");
+    expect(url).toContain("[local-path]");
+    expect(url).not.toContain("ghp_ABCdef123");
+    expect(url).not.toContain("/Users/alice/project");
+  });
+
+  it("keeps user and environment setup errors out of the issue-reporting path", () => {
+    expect(classifyInstallerFailure(new Error("Non-interactive setup requires --yes --scope global")).kind)
+      .toBe("user-or-environment");
+    expect(classifyInstallerFailure(new Error("EACCES: permission denied")).nextStep)
+      .toContain("astrograph doctor");
+    const fatal = classifyInstallerFailure(new Error("Managed registration verification failed unexpectedly"));
+    expect(fatal.kind).toBe("astrograph");
+    expect(fatal.nextStep).toContain("--diagnostics-consent");
+  });
+
+  it("does not make a valid registration depend on the optional global CLI", async () => {
+    const warning = installOptionalGlobalCli(() => {
+      throw new Error("simulated npm prefix failure");
+    });
+    expect(warning).toContain("registration is still usable");
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-config-"));
+    tempDirs.push(homeDir, configHome);
+    const registration = await setupGlobalForCodex({
+      environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
+    });
+    await expect(readFile(registration.configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+  });
+
+  it("makes the optional global command install verbose and time-bounded on request", () => {
+    let invocation: { command: string; args: readonly string[]; options: unknown } | null = null;
+    const runner = ((command: string, args: readonly string[], options: unknown) => {
+      invocation = { command, args, options };
+      return undefined as never;
+    }) as typeof import("../src/lib/process.ts").runProcess;
+
+    expect(installOptionalGlobalCli(runner, { verbose: true })).toBeNull();
+    expect(invocation).toEqual({
+      command: "npm",
+      args: ["--loglevel", "verbose", "install", "--global", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`],
+      options: { stdio: "inherit", timeout: 60_000 },
+    });
+  });
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
 
@@ -411,6 +499,7 @@ describe("ai-context-engine contract", () => {
       engines: {
         node: string;
       };
+      dependencies: Record<string, string>;
     };
 
     expect(packageJson.description).toBe(
@@ -435,8 +524,14 @@ describe("ai-context-engine contract", () => {
       url: "https://github.com/mortenbroesby/astrograph/issues",
     });
     expect(packageJson.engines).toEqual({
-      node: ">=22.12.0",
+      node: "^20.19.0 || >=22.12.0",
     });
+    expect(packageJson.dependencies).toMatchObject({
+      "tree-sitter-wasm": "1.0.7",
+      "web-tree-sitter": "0.25.10",
+    });
+    expect(packageJson.dependencies).not.toHaveProperty("@astrograph/tree-sitter");
+    expect(packageJson.dependencies).not.toHaveProperty("tree-sitter");
   });
 
   it("advertises profiling scripts and ignores generated profiling artifacts", async () => {
@@ -871,7 +966,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
+      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
     );
   });
 
@@ -888,13 +983,15 @@ describe("ai-context-engine contract", () => {
     await mkdir(path.dirname(codexConfigPath), { recursive: true });
     await writeFile(codexConfigPath, "[mcp_servers.unrelated]\ncommand = \"keep\"\n");
 
-    const first = await setupGlobalForCodex({ environment, executableAvailable: true });
-    const second = await setupGlobalForCodex({ environment, executableAvailable: true });
+    const first = await setupGlobalForCodex({ environment });
+    const second = await setupGlobalForCodex({ environment });
 
     expect(first.configPath).toBe(codexConfigPath);
     expect(second.configPreview).toBe(first.configPreview);
-    expect(first.configPreview).toContain('command = "astrograph"');
-    expect(first.configPreview).toContain('args = ["mcp"]');
+    expect(first.configPreview).toContain('command = "npx"');
+    expect(first.configPreview).toContain(
+      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
+    );
     expect(first.configPreview).toContain('"get_project_status"');
     expect(first.configPreview).toContain('"find_files"');
     expect(first.configPreview).toContain('"search_text"');
@@ -935,8 +1032,8 @@ describe("ai-context-engine contract", () => {
         unrelated: { command: "keep" },
         astrograph: {
           type: "local",
-          command: "astrograph",
-          args: ["mcp"],
+          command: "npx",
+          args: ["-y", "--package", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`, "astrograph", "mcp"],
           env: {},
           tools: expect.arrayContaining([
             "get_project_status",
@@ -950,6 +1047,8 @@ describe("ai-context-engine contract", () => {
     expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
       storageLocation: "global",
     });
+    expect(first.backups).toHaveLength(1);
+    await expect(readFile(first.backups[0]!, "utf8")).resolves.toContain("unrelated");
   });
 
   it("explains global setup without exposing managed configuration contents", async () => {
@@ -1230,10 +1329,22 @@ describe("ai-context-engine contract", () => {
     const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir };
 
     await expect(setupGlobalForCodex({ environment, nodeVersion: "20.11.0", executableAvailable: true }))
-      .rejects.toThrow(/requires Node\.js >=22\.12\.0.*Install a supported Node/i);
+      .rejects.toThrow(/requires Node\.js 20\.19\+ or >=22\.12\.0.*Install a supported Node/i);
+    const compatibleHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-compatible-"));
+    const compatibleConfigHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-compatible-config-"));
+    tempDirs.push(compatibleHome, compatibleConfigHome);
+    await expect(setupGlobalForCodex({
+      environment: {
+        platform: "linux",
+        env: { XDG_CONFIG_HOME: compatibleConfigHome },
+        homeDir: () => compatibleHome,
+      },
+      nodeVersion: "20.19.0",
+      executableAvailable: true,
+    }))
+      .resolves.toMatchObject({ ide: "codex" });
     await expect(setupGlobalForCodex({ environment, executableAvailable: false }))
-      .rejects.toThrow(/Cannot find `astrograph` on PATH.*npm install --global astrograph/i);
-    await expect(readFile(path.join(homeDir, ".codex", "config.toml"))).rejects.toMatchObject({ code: "ENOENT" });
+      .resolves.toMatchObject({ ide: "codex" });
   });
 
   it("reports an unwritable global configuration location before registration is written", async () => {
@@ -1281,11 +1392,14 @@ describe("ai-context-engine contract", () => {
       ].join("\n"),
     );
 
-    const result = await setupForCodex(repoRoot, { dryRun: true });
+    await expect(setupForCodex(repoRoot, { dryRun: true }))
+      .rejects.toThrow(/unmarked legacy Astrograph Codex registration/i);
+
+    const result = await setupForIde(repoRoot, { ide: "codex", dryRun: true, migrateLegacy: true });
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
+      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
     );
     expect(result.configPreview.match(/\[mcp_servers\.astrograph\]/g)).toHaveLength(1);
     expect(result.configPreview).toContain("# END ASTROGRAPH\n\n[features]");
@@ -1402,6 +1516,47 @@ describe("ai-context-engine contract", () => {
     const postCommit = result.find((hook) => hook.hook === "post-commit");
     expect(postCommit).toMatchObject({ updated: false, reason: "not installed because another tool owns this hook" });
     await expect(readFile(hookPath, "utf8")).resolves.toContain("owned-by-another-tool");
+  });
+
+  it("removes only the selected managed registration and leaves other config intact", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-uninstall-registration-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    const configPath = path.join(repoRoot, ".codex", "config.toml");
+    await writeFile(configPath, "[features]\nkeep = true\n");
+    await setupForCodex(repoRoot);
+
+    const result = await uninstallManagedRegistration(repoRoot, {
+      scope: "repository",
+      ide: "codex",
+    });
+
+    expect(result.changed).toBe(true);
+    expect(result.backups).toHaveLength(1);
+    await expect(readFile(configPath, "utf8")).resolves.toContain("[features]");
+    await expect(readFile(configPath, "utf8")).resolves.not.toContain("BEGIN ASTROGRAPH");
+    await expect(readFile(result.backups[0]!, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+    await expect(readFile(path.join(repoRoot, "astrograph.config.ts"), "utf8")).resolves.toContain("performance");
+  });
+
+  it("restores changed files when local MCP startup verification fails", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-rollback-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    const configPath = path.join(repoRoot, ".codex", "config.toml");
+    const original = "[features]\nkeep = true\n";
+    await writeFile(configPath, original);
+    setLocalMcpStartupVerifierForTest(async () => { throw new Error("simulated MCP startup failure"); });
+
+    await expect(setupForCodex(repoRoot)).rejects.toThrow("simulated MCP startup failure");
+    await expect(readFile(configPath, "utf8")).resolves.toBe(original);
+    await expect(stat(path.join(repoRoot, "astrograph.config.ts"))).rejects.toThrow();
   });
 
   it("includes opted-in Git hook outcomes in the repository setup summary", async () => {

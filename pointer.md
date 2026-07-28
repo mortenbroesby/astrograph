@@ -15,6 +15,9 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
   — expand parser coverage through the documented compatibility and evidence
   gates.
+- [Interactive Install Lifecycle Epic](./specs/implementation/active/11_interactive-install-lifecycle-epic.md)
+  — make setup, update, repair, diagnostics, and removal one safe,
+  understandable lifecycle with explicit opt-ins.
 - [Local Daemon Runtime Ownership Delivery
   Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
   — run one user-local, on-demand daemon that owns isolated repository runtime
@@ -25,6 +28,12 @@ use its recorded evidence or selection gate instead.
 - [Publishable Workflow Benchmark](./specs/implementation/active/9_publishable-workflow-benchmark.md)
   — establish a small, honest, snapshot-locked comparison between broad file
   reading and Astrograph retrieval before making workflow-level claims.
+- [Runtime Acceleration Epic](./specs/implementation/active/10_runtime-acceleration-epic.md)
+  — retain daemon-owned index resources, serialize mutable repository work,
+  and preserve honest warm-runtime evidence.
+- [WASM Parser Runtime Migration](./specs/implementation/active/11_wasm-parser-runtime-migration.md)
+  — remove the native Tree-sitter install boundary and prove packed global
+  installs on Node 20, 22, and 24.
 
 ## Keeping this useful
 

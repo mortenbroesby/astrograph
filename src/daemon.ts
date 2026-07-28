@@ -9,6 +9,8 @@ import { startDaemonServer } from "./daemon-server.ts";
 import { createDaemonTenantManager } from "./daemon-tenants.ts";
 import { disposeTokenizer } from "./tokenizer.ts";
 
+process.env.ASTROGRAPH_DAEMON_PROCESS = "1";
+
 type EngineModule = typeof import("./index.ts");
 
 const DAEMON_IDLE_TIMEOUT_MS = 5 * 60_000;
@@ -32,16 +34,21 @@ async function main(): Promise<void> {
         if (!registryEntry) {
           throw new Error(`Unsupported daemon command: ${command}`);
         }
-        const result = await registryEntry.execute(await loadEngineModule(), input as never);
-        if (command === "index_folder" && typeof input.repoRoot === "string") {
-          await tenants.watchIndexedRepository({
-            repoRoot: input.repoRoot,
-            summaryStrategy: typeof input.summaryStrategy === "string"
-              ? input.summaryStrategy as never
-              : undefined,
-          }, result as never);
-        }
-        return result;
+        const execute = async () => {
+          const result = await registryEntry.execute(await loadEngineModule(), input as never);
+          if (command === "index_folder" && typeof input.repoRoot === "string") {
+            await tenants.watchIndexedRepository({
+              repoRoot: input.repoRoot,
+              summaryStrategy: typeof input.summaryStrategy === "string"
+                ? input.summaryStrategy as never
+                : undefined,
+            }, result as never);
+          }
+          return result;
+        };
+        return typeof input.repoRoot === "string"
+          ? tenants.runForRepository(input.repoRoot, execute)
+          : execute();
       } finally {
         lastActivityAt = Date.now();
       }

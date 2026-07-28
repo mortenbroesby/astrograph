@@ -19,6 +19,8 @@ import type { RuntimePresenceSummary } from "../runtime-presence.ts";
 export interface DiagnosticsOptions {
   repoRoot: string;
   scanFreshness?: boolean;
+  /** Inspect existing state only; do not create storage directories or metadata. */
+  readOnly?: boolean;
 }
 
 export type ReadinessStage =

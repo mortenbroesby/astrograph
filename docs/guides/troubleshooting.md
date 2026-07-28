@@ -17,10 +17,31 @@ Get a more direct recovery report:
 npx astrograph cli doctor --repo /absolute/path/to/repo
 ```
 
+For a fast read-only view of configured clients and index state, use:
+
+```bash
+npx --yes astrograph status --repo /absolute/path/to/repo
+```
+
 In practice, `doctor` is the fastest way to understand what Astrograph thinks
 is wrong and what command it wants you to run next.
 
 ## Common Problems
+
+### Problem: Node.js is unsupported or a native dependency will not load
+
+Astrograph's published package supports Node 20.19+, 22, and 24. Check the
+runtime that starts Astrograph:
+
+```bash
+node --version
+```
+
+Upgrade to Node 20.19+ or a current Node 22/24 release, then reinstall the
+package. If the error happens during installation, keep the full error output:
+native prebuild availability depends on your operating system and architecture.
+The repository build itself uses Node 22.18+ or 24.11+ because its build tool
+does not support Node 20; package users do not need to run that build.
 
 ### Problem: the repo is not indexed yet
 
@@ -93,9 +114,23 @@ The first removal command is a dry-run. It only targets the selected
 repository’s user-private global cache; no MCP tool can remove cache data.
 Global Codex and Copilot CLI setup is user-level: do not create repo-local
 `astrograph.config.*`, `.codex`, or `.mcp.json` files merely to repair a
-globally installed setup. Re-run `astrograph install --global --ide codex` or
-`astrograph install --global --ide copilot-cli` for the harness you use, then
+globally installed setup. Run `astrograph repair --yes --scope global --ide codex`
+or `astrograph repair --yes --scope global --ide copilot-cli` for the harness you use, then
 use `cache status` or `doctor` for the repository you opened.
+
+### Problem: installation changed a client configuration unexpectedly
+
+Astrograph only changes its marker-owned Codex block or its `astrograph` JSON
+server entry. Before a change, it saves a timestamped copy beside the affected
+config under `.astrograph-backups`. To remove only a registration without
+deleting index data, run:
+
+```bash
+npx --yes astrograph uninstall --yes --scope global --ide codex
+```
+
+Use `--scope repository --repo /absolute/path/to/repo` for a project-owned
+registration. Cache/index deletion is deliberately a separate operation.
 
 ### Problem: parser health is incomplete on older indexed files
 
@@ -129,6 +164,27 @@ If setup succeeded but retrieval still feels empty, the next command to try is:
 ```bash
 npx astrograph cli index-folder --repo /absolute/path/to/repo
 ```
+
+## Reporting an Astrograph Installer Defect
+
+Most setup errors are local conditions: an unsupported Node version, a missing
+client, an invalid configuration file, or a permission problem. Astrograph
+prints an actionable next step for those errors; do not file an issue that
+contains configuration contents or credentials.
+
+For a reproducible Astrograph-owned installer failure, you can explicitly
+generate a browser-only, copyable issue link:
+
+```bash
+astrograph report-issue --diagnostics-consent --message "short failure summary"
+```
+
+The command does not open a browser or create an issue. It prints a URL that
+you can inspect, copy, or discard. The generated text includes only the
+Astrograph and Node versions, platform, and a redacted failure summary; it
+removes common token/password forms and local paths before building the URL.
+It rejects messages that identify an ordinary local setup, input, or permission
+problem, so that path remains for Astrograph-owned failures only.
 
 ## If You Installed Astrograph Locally
 

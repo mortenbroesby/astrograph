@@ -16,6 +16,18 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph doctor --repo <path>` verifies the current repository’s local
   and global client registration, managed agent guidance, Git refresh-hook
   state, and index readiness without writing configuration.
+- `astrograph status --repo <path>` is the read-only lifecycle status surface;
+  it returns the same setup readiness in human or `--json` form without a
+  freshness scan or configuration write.
+- `astrograph update`, `repair`, and `reconfigure` require `--yes`, `--scope`,
+  and `--ide`; they deliberately rewrite only Astrograph-managed registration.
+- `astrograph uninstall` has the same explicit selectors and removes only the
+  selected MCP registration. It leaves package installation and index/cache
+  data untouched.
+- `astrograph report-issue --diagnostics-consent --message <summary>` returns
+  a sanitized GitHub issue URL only after affirmative consent. It cannot open a
+  browser or create an issue and excludes paths, config contents, and common
+  credential forms.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
   status, including the persisted checkout identity that last populated the
   selected cache (or `checkout: null` before indexing). `astrograph cache

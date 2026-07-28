@@ -1,0 +1,47 @@
+name: Node package compatibility
+
+on:
+  workflow_dispatch:
+    inputs:
+      node-version:
+        description: Runtime used for the packed-package smoke test.
+        required: true
+        type: choice
+        options:
+          - "20"
+          - "24"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: node-compatibility-${{ github.ref }}-${{ inputs.node-version }}
+  cancel-in-progress: true
+
+jobs:
+  package-smoke:
+    name: Node ${{ inputs.node-version }} packed package smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      # tsdown supports Node 22/24, so build once with the repository toolchain.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+      # The published tarball must run without asking package consumers to build it.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - run: pnpm test:package-bin:prebuilt

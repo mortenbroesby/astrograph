@@ -82,16 +82,16 @@ export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): 
 export async function executeDaemonCommand(
   command: string,
   input: Record<string, unknown>,
-  options: { runtimeDir?: string } = {},
+  options: { runtimeDir?: string; timeoutMs?: number } = {},
 ): Promise<unknown> {
   const state = await ensureLocalDaemon(options);
   try {
-    return await requestDaemon(state, command, input);
+    return await requestDaemon(state, command, input, { timeoutMs: options.timeoutMs });
   } catch (error) {
     if ((await getDaemonRuntimeSummary(options)).status !== "stale") {
       throw error;
     }
-    return requestDaemon(await ensureLocalDaemon(options), command, input);
+    return requestDaemon(await ensureLocalDaemon(options), command, input, { timeoutMs: options.timeoutMs });
   }
 }
 

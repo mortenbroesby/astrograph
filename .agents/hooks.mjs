@@ -404,7 +404,7 @@ function maybeNotify(payload) {
   return {};
 }
 
-function handleVersionBumpCheck() {
+function handleStop() {
   const result = spawnSync("node", [
     "--experimental-strip-types",
     "./src/scripts/check-version-bump.ts",
@@ -415,13 +415,14 @@ function handleVersionBumpCheck() {
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 10_000,
   });
-  const message = String(result.stdout || result.stderr || result.error?.message || "Version bump check: failed.").trim();
+  const versionBumpMessage = String(result.stdout || result.stderr || result.error?.message || "Version bump check: failed.").trim();
+  const retrospectivePrompt = "Before finishing, add a 1-2 sentence Astrograph session retrospective: say whether you used Astrograph; if not, why; if yes, what it helped with and the reported token savings. Say 'not measured' when no exact savings figure is available.";
 
   return {
     stdout: buildJson({
       hookSpecificOutput: {
         hookEventName: "Stop",
-        additionalContext: message,
+        additionalContext: `${versionBumpMessage}\n${retrospectivePrompt}`,
       },
     }),
   };
@@ -442,7 +443,7 @@ async function handle(payload) {
     }
   }
   if (eventName === 'PostToolUse' && EDIT_TOOLS.has(toolName)) return handleAudit(payload);
-  if (eventName === 'Stop') return handleVersionBumpCheck();
+  if (eventName === 'Stop') return handleStop();
   if (eventName === 'Notification' || eventName === 'notify' || eventName === 'notify-error') return maybeNotify(payload);
   if (eventName === 'CodeNav' || eventName === 'Read') return handleCodeNav(payload);
 

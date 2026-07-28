@@ -15,15 +15,24 @@ new work complements rather than duplicates existing plans.
 1. [Tree-Sitter Polyglot Language Support Delivery Checklist](./1_tree-sitter-polyglot-language-support-delivery-checklist.md)
    — expand parser coverage through the documented compatibility and evidence
    gates.
-2. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
+2. [Interactive Install Lifecycle Epic](./11_interactive-install-lifecycle-epic.md)
+   — selected by the user: make setup, update, repair, diagnostics, and
+   removal one safe, understandable lifecycle with explicit opt-ins.
+3. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
    — selected by the user: one user-local daemon owns isolated repository
    runtimes, watches, workers, and SQLite lifecycles for MCP stdio clients.
-3. [Repository Structure Cleanup Epic](./7_repository-structure-cleanup-epic.md)
+4. [Repository Structure Cleanup Epic](./7_repository-structure-cleanup-epic.md)
    — selected by the user: collate benchmark ownership, remove unsupported
    script surfaces, and simplify repository automation one focused PR at a time.
-4. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
+5. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
    — selected by the user: publish a small, snapshot-locked comparison between
    broad file reading and Astrograph retrieval, with auditable evidence.
+6. [Runtime Acceleration Epic](./10_runtime-acceleration-epic.md)
+   — retain daemon-owned index resources, serialize mutable repository work,
+   and establish honest warm-runtime evidence.
+7. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
+   — remove the native Tree-sitter install boundary and prove packed global
+   installs on Node 20, 22, and 24.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

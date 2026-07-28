@@ -24,30 +24,46 @@ turns those focuses into an exclusive execution gate.
      current four-language baseline before adding a grammar dependency.
    - Architecture: adapters and explicit `structured`/`graph` support tiers;
      do not claim the open-ended community grammar ecosystem.
-2. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+2. [Interactive Install Lifecycle Epic](./active/11_interactive-install-lifecycle-epic.md)
+   - Goal: make setup, update, repair, diagnostics, and removal one
+     understandable lifecycle with explicit opt-ins and reversible writes.
+   - Architecture: exact pinned `npx` MCP registrations, optional global CLI,
+     no background network work, and verified managed-block edits.
+3. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
    - Goal: one user-local daemon owns independent repository runtimes, watches,
      SQLite connections, and workers for concurrent stdio MCP clients.
    - Architecture: on-demand local IPC proxying with authenticated singleton
      ownership and a five-minute idle exit; no network listener, source upload,
      or shared mutable repository index.
-3. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
+4. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
    - Goal: make benchmark, workflow, and repository automation ownership
      obvious without changing runtime behavior or increasing CI cost.
    - First action: move benchmark/profiling entrypoints under `bench/` while
      preserving all existing package commands and output shapes.
-4. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
+5. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
    - Goal: publish one small, auditable comparison between broad file reading
      and Astrograph retrieval.
    - Architecture: reuse the existing corpus and Markdown renderer; require a
      matching snapshot and successful selected workflows before publishing.
+6. [Runtime Acceleration Epic](./active/10_runtime-acceleration-epic.md)
+   - Goal: make repeated local MCP work faster by retaining daemon SQLite and
+     worker resources through direct in-process indexing.
+   - Architecture: one authenticated local daemon serializes mutable work per
+     canonical repository; retain ordinary CLI child-process isolation.
+7. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
+   - Goal: replace native Tree-sitter installation with a packaged WASM parser
+     and grammar assets, then prove Linux packaged installs on Node 20 and 24.
 
 ## Ready — detailed, but not selected
 
-1. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
+1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
+   retains non-parser evidence; the active WASM migration owns the proven
+   native Tree-sitter Linux installation failure.
+2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
    1–3 complete; Stories 4–6 remain parked behind their CI-cost and
    third-party-command evidence gates. Preserve product-specific behavior;
    package-quality gates require an explicit renewed selection.
-2. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
+3. [Windows delivery](./planned/3_remaining-delivery-epic.md) is parked while
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.

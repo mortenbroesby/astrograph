@@ -1,61 +1,55 @@
-import Parser from "tree-sitter";
-import bash from "tree-sitter-bash";
-import c from "tree-sitter-c";
-import csharp from "tree-sitter-c-sharp";
-import cpp from "tree-sitter-cpp";
-import css from "tree-sitter-css";
-import go from "tree-sitter-go";
-import html from "tree-sitter-html";
-import javascript from "tree-sitter-javascript";
-import java from "tree-sitter-java";
-import json from "tree-sitter-json";
-import phpBundle from "tree-sitter-php";
-import powershell from "tree-sitter-powershell";
-import python from "tree-sitter-python";
-import ruby from "tree-sitter-ruby";
-import rust from "tree-sitter-rust";
-import scala from "tree-sitter-scala";
-import template from "tree-sitter-embedded-template";
-import tsLanguages from "tree-sitter-typescript";
+import { Language, Parser } from "web-tree-sitter";
+import { getWasmPath } from "tree-sitter-wasm";
 
 import type { SupportedLanguage } from "../types.ts";
 
 export type AdapterTraversal = "javascript" | "structured";
 
 export interface LanguageAdapter {
-  grammar: Parser.Language;
+  grammar: Language;
   traversal: AdapterTraversal;
 }
 
-const structured = (grammar: unknown): LanguageAdapter => ({
-  grammar: grammar as Parser.Language,
-  traversal: "structured",
-});
+type GrammarName = Parameters<typeof getWasmPath>[0];
 
-const javascriptFamily = (grammar: unknown): LanguageAdapter => ({
-  grammar: grammar as Parser.Language,
-  traversal: "javascript",
-});
-
-export const LANGUAGE_ADAPTERS: Record<SupportedLanguage, LanguageAdapter> = {
-  ts: javascriptFamily(tsLanguages.typescript),
-  tsx: javascriptFamily(tsLanguages.tsx),
-  js: javascriptFamily(javascript),
-  jsx: javascriptFamily(javascript),
-  python: structured(python),
-  bash: structured(bash),
-  powershell: structured(powershell),
-  csharp: structured(csharp),
-  java: structured(java),
-  go: structured(go),
-  rust: structured(rust),
-  json: structured(json),
-  html: structured(html),
-  css: structured(css),
-  c: structured(c),
-  cpp: structured(cpp),
-  php: structured(phpBundle.php),
-  ruby: structured(ruby),
-  template: structured(template),
-  scala: structured(scala),
+export const LANGUAGE_ADAPTERS: Record<
+  SupportedLanguage,
+  { grammar: GrammarName; traversal: AdapterTraversal }
+> = {
+  ts: { grammar: "typescript", traversal: "javascript" },
+  tsx: { grammar: "tsx", traversal: "javascript" },
+  js: { grammar: "javascript", traversal: "javascript" },
+  jsx: { grammar: "javascript", traversal: "javascript" },
+  python: { grammar: "python", traversal: "structured" },
+  bash: { grammar: "bash", traversal: "structured" },
+  powershell: { grammar: "powershell", traversal: "structured" },
+  csharp: { grammar: "c_sharp", traversal: "structured" },
+  java: { grammar: "java", traversal: "structured" },
+  go: { grammar: "go", traversal: "structured" },
+  rust: { grammar: "rust", traversal: "structured" },
+  json: { grammar: "json", traversal: "structured" },
+  html: { grammar: "html", traversal: "structured" },
+  css: { grammar: "css", traversal: "structured" },
+  c: { grammar: "c", traversal: "structured" },
+  cpp: { grammar: "cpp", traversal: "structured" },
+  php: { grammar: "php", traversal: "structured" },
+  ruby: { grammar: "ruby", traversal: "structured" },
+  template: { grammar: "embedded_template", traversal: "structured" },
+  scala: { grammar: "scala", traversal: "structured" },
 };
+
+const runtime = Parser.init();
+const adapters = new Map<SupportedLanguage, Promise<LanguageAdapter>>();
+
+export function getLanguageAdapter(language: SupportedLanguage): Promise<LanguageAdapter> {
+  const cached = adapters.get(language);
+  if (cached) return cached;
+
+  const definition = LANGUAGE_ADAPTERS[language];
+  const adapter = runtime.then(async () => ({
+    grammar: await Language.load(getWasmPath(definition.grammar)),
+    traversal: definition.traversal,
+  }));
+  adapters.set(language, adapter);
+  return adapter;
+}
