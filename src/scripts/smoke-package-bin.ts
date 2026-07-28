@@ -241,8 +241,10 @@ async function main(): Promise<void> {
         "--scope",
         "repository",
         "--ide",
-        "codex",
+        "codex,copilot-cli",
         "--agents",
+        "--git-hooks",
+        "--verbose",
         "--json",
         "--repo",
         fixtureRepo,
@@ -250,21 +252,44 @@ async function main(): Promise<void> {
       installDir,
     );
 
-    const installed = JSON.parse(installResult.stdout);
-    if (!String(installed.configPreview).includes("[mcp_servers.astrograph]")) {
+    const installed = JSON.parse(installResult.stdout) as Array<{
+      ide?: string;
+      configPreview?: string;
+      engineConfigPath?: string;
+      agentsPolicyPath?: string;
+      agentsPolicyPreview?: string;
+      gitHooks?: Array<{ reason?: string }>;
+    }>;
+    if (!installResult.stderr.includes("Astrograph: Writing repository setup for codex, copilot-cli…")) {
+      throw new Error(`Expected astrograph install --verbose to report its active setup phase: ${installResult.stderr}`);
+    }
+    if (!Array.isArray(installed) || !installed.some((result) => result.ide === "codex" && result.configPreview?.includes("[mcp_servers.astrograph]"))) {
       throw new Error(`Expected astrograph install to write a Codex MCP block: ${installResult.stdout}`);
     }
-    if (!String(installed.engineConfigPath).endsWith("astrograph.config.ts")) {
+    if (!installed.every((result) => result.engineConfigPath?.endsWith("astrograph.config.ts"))) {
       throw new Error(`Expected astrograph install to report astrograph.config.ts: ${installResult.stdout}`);
     }
-    if (installed.mode !== undefined || installed.ide !== "codex") {
-      throw new Error(`Expected astrograph install defaults to use codex without a profile mode: ${installResult.stdout}`);
+    if (!installed.some((result) => result.ide === "copilot-cli")) {
+      throw new Error(`Expected astrograph install to support Codex and Copilot CLI together: ${installResult.stdout}`);
     }
-    if (!String(installed.agentsPolicyPath).endsWith("AGENTS.md")) {
+    if (!installed.every((result) => result.agentsPolicyPath?.endsWith("AGENTS.md"))) {
       throw new Error(`Expected astrograph install to report AGENTS.md policy path: ${installResult.stdout}`);
     }
-    if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
+    if (!installed.every((result) => result.agentsPolicyPreview?.includes("## Code Exploration with Astrograph"))) {
       throw new Error(`Expected astrograph install --agents to write code exploration policy: ${installResult.stdout}`);
+    }
+    if (!installed.every((result) => result.gitHooks?.length === 3)) {
+      throw new Error(`Expected astrograph install --git-hooks to install all refresh hooks: ${installResult.stdout}`);
+    }
+
+    const repeatedInstall = await run(
+      "pnpm",
+      ["exec", "astrograph", "install", "--yes", "--scope", "repository", "--ide", "codex,copilot-cli", "--agents", "--git-hooks", "--json", "--repo", fixtureRepo],
+      installDir,
+    );
+    const repeated = JSON.parse(repeatedInstall.stdout) as Array<{ gitHooks?: Array<{ reason?: string }> }>;
+    if (!repeated.every((result) => result.gitHooks?.every((hook) => hook.reason === "already installed"))) {
+      throw new Error(`Expected a repeated packaged install to preserve existing hooks: ${repeatedInstall.stdout}`);
     }
 
     const rerun = await run(
@@ -284,8 +309,9 @@ async function main(): Promise<void> {
     const doctor = JSON.parse(doctorOutput) as {
       local?: { clients?: Array<{ ide?: string; configured?: boolean }> };
     };
-    if (!doctor.local?.clients?.some((client) => client.ide === "codex" && client.configured)) {
-      throw new Error(`Expected astrograph doctor to verify the Codex setup: ${doctorOutput}`);
+    if (!doctor.local?.clients?.some((client) => client.ide === "codex" && client.configured)
+      || !doctor.local?.clients?.some((client) => client.ide === "copilot-cli" && client.configured)) {
+      throw new Error(`Expected astrograph doctor to verify the selected setup: ${doctorOutput}`);
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);

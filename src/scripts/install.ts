@@ -10,6 +10,7 @@ import {
   outro,
   spinner,
   select,
+  multiselect,
   confirm,
 } from "@clack/prompts";
 import { Command, Option } from "commander";
@@ -235,7 +236,7 @@ export function createSanitizedIssueUrl(
     .replace(/\s+/g, " ")
     .slice(0, 500);
   const body = [
-    "<!-- Generated locally after explicit diagnostics consent. Review before submitting. -->",
+    "<!-- Generated locally. Review before submitting. -->",
     `Astrograph: ${PACKAGE_VERSION}`,
     `Node: ${process.versions.node}`,
     `Platform: ${process.platform} ${process.arch}`,
@@ -273,7 +274,7 @@ export function classifyInstallerFailure(error: unknown): InstallerFailure {
     : {
       kind: "astrograph",
       summary,
-      nextStep: "If this persists, explicitly opt in to a browser-only issue draft with `astrograph report-issue --diagnostics-consent --message <copied diagnostic summary>`.",
+      nextStep: "If this persists, use the pre-filled GitHub issue link below and review it before submitting.",
     };
 }
 
@@ -484,6 +485,10 @@ function isInstallIde(value: string): boolean {
   return value === "codex" || value === "copilot" || value === "copilot-cli";
 }
 
+function verboseLine(enabled: boolean | undefined, message: string): void {
+  if (enabled) process.stderr.write(`Astrograph: ${message}\n`);
+}
+
 function parseArgs(argv: string[]): ParsedArgs {
   if (argv.includes("--help") || argv.includes("-h")) {
     return {
@@ -610,8 +615,6 @@ function parseArgs(argv: string[]): ParsedArgs {
     verbose: Boolean(options.verbose),
     hasExplicitArgs:
       hasFlag("yes") ||
-      hasFlag("agents") ||
-      hasFlag("git-hooks") ||
       hasFlag("dry-run") ||
       hasFlag("json") ||
       hasFlag("repo") ||
@@ -651,7 +654,7 @@ function parseIdeSelections(raw: string | undefined): RequestedIde[] {
   return deduped as RequestedIde[];
 }
 
-async function promptForSetupArgs(): Promise<{
+async function promptForSetupArgs(defaults: { agentsPolicy?: boolean; gitHooks?: boolean } = {}): Promise<{
   ides: RequestedIde[];
   repo: string;
   dryRun: boolean;
@@ -679,23 +682,23 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
-  const ide = await select({
+  const ides = await multiselect({
     message: "Where should Astrograph be added?",
     options: [
       { value: "codex", label: "Codex", hint: "Writes .codex/config.toml" },
       { value: "copilot", label: "GitHub Copilot", hint: "Writes .vscode/mcp.json" },
       { value: "copilot-cli", label: "GitHub Copilot CLI", hint: "Writes .mcp.json" },
-      { value: "all", label: "All supported clients", hint: "Codex, Copilot, and Copilot CLI" },
     ],
-    initialValue: "codex",
+    initialValues: ["codex"],
+    required: true,
   });
 
-  if (isCancel(ide) || typeof ide !== "string") {
+  if (isCancel(ides) || !Array.isArray(ides) || ides.some((ide) => !isInstallIde(ide))) {
     outro("Setup cancelled.");
     process.exit(0);
   }
 
-  const selectedIdes = validateIdes({ ides: [ide as RequestedIde] }).ides;
+  const selectedIdes = validateIdes({ ides: ides as RequestedIde[] }).ides;
   const resetReason = await findResetRequirement(resolvedRepo, selectedIdes);
   const reset = resetReason
     ? await confirm({
@@ -708,13 +711,13 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
-  const policyFileHint = ide === "copilot"
+  const policyFileHint = ides.length === 1 && ides[0] === "copilot"
     ? ".github/copilot-instructions.md"
     : "AGENTS.md";
 
   const agentsPolicy = await confirm({
     message: `Add Astrograph code exploration policy to ${policyFileHint}?`,
-    initialValue: false,
+    initialValue: defaults.agentsPolicy ?? false,
   });
 
   if (isCancel(agentsPolicy)) {
@@ -724,7 +727,7 @@ async function promptForSetupArgs(): Promise<{
 
   const gitHooks = await confirm({
     message: "Keep the index fresh after commits, branch switches, and merges?",
-    initialValue: false,
+    initialValue: defaults.gitHooks ?? false,
   });
 
   if (isCancel(gitHooks)) {
@@ -733,7 +736,7 @@ async function promptForSetupArgs(): Promise<{
   }
 
   const preview = await setupForAllIdes(resolvedRepo, {
-    ides: [ide as RequestedIde],
+    ides: ides as RequestedIde[],
     dryRun: true,
     agentsPolicy: Boolean(agentsPolicy),
     gitHooks: Boolean(gitHooks),
@@ -743,7 +746,7 @@ async function promptForSetupArgs(): Promise<{
   process.stdout.write(`\nReview (no files changed):\n${previewResults.map((result) => `- ${result.configPath}\n- ${result.engineConfigPath}`).join("\n")}\n`);
 
   const confirmWrite = await confirm({
-    message: `Review complete. Write the managed ${String(ide)} setup to ${resolvedRepo}?`,
+    message: `Review complete. Write the managed ${ides.join(", ")} setup to ${resolvedRepo}?`,
     initialValue: true,
   });
   if (isCancel(confirmWrite) || confirmWrite === false) {
@@ -752,7 +755,7 @@ async function promptForSetupArgs(): Promise<{
   }
 
   return {
-    ides: [ide as RequestedIde],
+    ides: ides as RequestedIde[],
     repo: resolvedRepo,
     dryRun: false,
     json: false,
@@ -797,7 +800,7 @@ async function findGlobalResetRequirement(ide: "codex" | "copilot-cli"): Promise
   }
 }
 
-async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<void> {
+async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boolean; gitHooks?: boolean } = {}): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
       "Guided install requires a TTY. Use `astrograph install --yes --scope repository --ide codex` for repository setup or `astrograph install --yes --scope global --ide codex|copilot-cli` for global setup.",
@@ -805,6 +808,7 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
   }
 
   intro("Astrograph setup");
+  verboseLine(options.verbose, "Inspecting the current setup…");
   const readiness = await getSetupReadiness(process.cwd(), { scanFreshness: false });
   const configuredClients = [
     ...readiness.local.clients
@@ -911,7 +915,8 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
   }
 
   if (scope === "repository") {
-    const args = await promptForSetupArgs();
+    const args = await promptForSetupArgs(options);
+    verboseLine(options.verbose, `Preparing repository setup for ${args.ides.join(", ")}…`);
     const result = await setupForAllIdes(args.repo, {
       ides: args.ides,
       dryRun: args.dryRun,
@@ -929,15 +934,16 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
     return;
   }
 
-  const ide = await select({
-    message: "Which global client should Astrograph connect to?",
+  const ides = await multiselect({
+    message: "Which global clients should Astrograph connect to?",
     options: [
       { value: "codex", label: "Codex", hint: "Writes only ~/.codex/config.toml" },
       { value: "copilot-cli", label: "GitHub Copilot CLI", hint: "Writes only ~/.copilot/mcp-config.json" },
     ],
-    initialValue: DEFAULT_GLOBAL_INSTALL_IDE,
+    initialValues: [DEFAULT_GLOBAL_INSTALL_IDE],
+    required: true,
   });
-  if (isCancel(ide) || (ide !== "codex" && ide !== "copilot-cli")) {
+  if (isCancel(ides) || !Array.isArray(ides) || ides.some((ide) => ide !== "codex" && ide !== "copilot-cli")) {
     outro("Setup cancelled.");
     return;
   }
@@ -950,32 +956,35 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
     return;
   }
 
-  let globalReset = false;
-  let globalPreview: GlobalSetupResult;
-  try {
-    globalPreview = ide === "codex"
-      ? await setupGlobalForCodex({ dryRun: true })
-      : await setupGlobalForCopilotCli({ dryRun: true });
-  } catch (error) {
-    const resetReason = resetRequirementFromError(error);
-    if (!resetReason) throw error;
-    const confirmedReset = await confirm({
-      message: `Astrograph needs a clean reset because ${resetReason}. It cannot migrate pre-1.0 setup. Replace Astrograph-owned configuration/state now?`,
-      initialValue: false,
-    });
-    if (isCancel(confirmedReset) || confirmedReset === false) {
-      outro("Setup cancelled. No client configuration was changed.");
-      return;
+  const globalPreviews = [] as GlobalSetupResult[];
+  const resetIdes = new Set<"codex" | "copilot-cli">();
+  verboseLine(options.verbose, `Previewing global setup for ${ides.join(", ")}…`);
+  for (const ide of ides) {
+    try {
+      globalPreviews.push(ide === "codex"
+        ? await setupGlobalForCodex({ dryRun: true })
+        : await setupGlobalForCopilotCli({ dryRun: true }));
+    } catch (error) {
+      const resetReason = resetRequirementFromError(error);
+      if (!resetReason) throw error;
+      const confirmedReset = await confirm({
+        message: `Astrograph needs a clean reset because ${resetReason}. It cannot migrate pre-1.0 setup. Replace Astrograph-owned configuration/state now?`,
+        initialValue: false,
+      });
+      if (isCancel(confirmedReset) || confirmedReset === false) {
+        outro("Setup cancelled. No client configuration was changed.");
+        return;
+      }
+      resetIdes.add(ide);
+      globalPreviews.push(ide === "codex"
+        ? await setupGlobalForCodex({ dryRun: true, reset: true })
+        : await setupGlobalForCopilotCli({ dryRun: true, reset: true }));
     }
-    globalReset = true;
-    globalPreview = ide === "codex"
-      ? await setupGlobalForCodex({ dryRun: true, reset: true })
-      : await setupGlobalForCopilotCli({ dryRun: true, reset: true });
   }
-  process.stdout.write(`\nReview (no files changed):\n- ${globalPreview.configPath}\n- ${globalPreview.engineConfigPath}\n`);
+  process.stdout.write(`\nReview (no files changed):\n${globalPreviews.map((result) => `- ${result.configPath}\n- ${result.engineConfigPath}`).join("\n")}\n`);
 
   const confirmWrite = await confirm({
-    message: `Review complete. Write the managed ${String(ide)} registration?`,
+    message: `Review complete. Write the managed ${ides.join(", ")} registration?`,
     initialValue: true,
   });
   if (isCancel(confirmWrite) || confirmWrite === false) {
@@ -1016,18 +1025,23 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
   } else {
     process.stdout.write(`${formatInstallPhase(2, totalPhases, "Updating Astrograph configuration")}\n`);
   }
-  const result = ide === "codex"
-    ? await setupGlobalForCodex({ reset: globalReset })
-    : await setupGlobalForCopilotCli({ reset: globalReset });
+  const results = [] as GlobalSetupResult[];
+  verboseLine(options.verbose, `Writing global registrations for ${ides.join(", ")}…`);
+  for (const ide of ides) {
+    results.push(ide === "codex"
+      ? await setupGlobalForCodex({ reset: resetIdes.has(ide) })
+      : await setupGlobalForCopilotCli({ reset: resetIdes.has(ide) }));
+  }
+  const output = results.map((result) => formatGlobalInstallation(result)).join("\n\n");
   progress.stop("Global setup ready");
   process.stdout.write(`${formatInstallPhase(totalPhases, totalPhases, "Verifying the registration")}\n`);
   const shouldIndex = await confirm({ message: "Also create an index for this repository now?", initialValue: false });
   if (isCancel(shouldIndex)) {
-    outro([formatGlobalInstallation(result), optionalCliWarning].filter(Boolean).join("\n\n"));
+    outro([output, optionalCliWarning].filter(Boolean).join("\n\n"));
     return;
   }
   if (shouldIndex) await indexFolder({ repoRoot: resolveRepoRoot(process.cwd()) });
-  outro([formatGlobalInstallation(result), optionalCliWarning].filter(Boolean).join("\n\n"));
+  outro([output, optionalCliWarning].filter(Boolean).join("\n\n"));
 }
 
 function parseJsonFromString(raw: string, configPath: string): InstalledObject {
@@ -2251,11 +2265,12 @@ async function main(): Promise<void> {
     }
     return;
   }
-  if (
-    process.env.ASTROGRAPH_ENTRY_MODE === "install"
-    && (argv.length === 0 || (argv.length === 1 && argv[0] === "--verbose"))
-  ) {
-    await runGuidedInstall({ verbose: argv.includes("--verbose") });
+  if (process.env.ASTROGRAPH_ENTRY_MODE === "install" && argv.every((arg) => ["--verbose", "--agents", "--git-hooks"].includes(arg))) {
+    await runGuidedInstall({
+      verbose: argv.includes("--verbose"),
+      agentsPolicy: argv.includes("--agents"),
+      gitHooks: argv.includes("--git-hooks"),
+    });
     return;
   }
   if (argv.includes("--global")) {
@@ -2307,7 +2322,10 @@ async function main(): Promise<void> {
       gitHooks: normalizedArgs.gitHooks,
       reset: normalizedArgs.reset,
     }
-    : await promptForSetupArgs();
+    : await promptForSetupArgs({
+      agentsPolicy: parsed.agentsPolicy,
+      gitHooks: parsed.gitHooks,
+    });
 
   const interactive = !args.json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const progress = interactive ? spinner() : null;
@@ -2315,6 +2333,7 @@ async function main(): Promise<void> {
     process.stdout.write(`\n${formatInstallPhase(1, 2, args.dryRun ? "Validating the setup preview" : "Updating Astrograph configuration")}\n`);
     progress.start(args.dryRun ? "Previewing repository setup…" : "Setting up Astrograph…");
   }
+  verboseLine(parsed.verbose, `${args.dryRun ? "Previewing" : "Writing"} repository setup for ${args.ides.join(", ")}…`);
   const result = await setupForAllIdes(args.repo, {
     ides: args.ides,
     dryRun: args.dryRun,
@@ -2322,6 +2341,7 @@ async function main(): Promise<void> {
     gitHooks: args.gitHooks,
     reset: args.reset,
   });
+  verboseLine(parsed.verbose, `${args.dryRun ? "Preview" : "Setup"} complete for ${args.ides.join(", ")}.`);
 
   if (progress) {
     progress.stop(args.dryRun ? "Preview ready" : "Repository ready");
@@ -2340,7 +2360,9 @@ if (isMainModule(import.meta.url)) {
     usage();
     process.stderr.write(`${failure.kind === "astrograph" ? "Astrograph installer failure" : "Setup could not be completed"}: ${failure.summary}\n`);
     process.stderr.write(`${failure.nextStep}\n`);
-    process.stderr.write(`Copyable diagnostic summary: ${failure.summary}\n`);
+    if (failure.kind === "astrograph") {
+      process.stderr.write(`Pre-filled GitHub issue: ${createSanitizedIssueUrl(failure.summary)}\n`);
+    }
     process.exit(1);
   });
 }

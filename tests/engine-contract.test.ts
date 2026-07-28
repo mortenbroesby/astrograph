@@ -137,7 +137,7 @@ describe("ai-context-engine contract", () => {
       .toContain("astrograph doctor");
     const fatal = classifyInstallerFailure(new Error("Managed registration verification failed unexpectedly"));
     expect(fatal.kind).toBe("astrograph");
-    expect(fatal.nextStep).toContain("--diagnostics-consent");
+    expect(fatal.nextStep).toContain("pre-filled GitHub issue");
   });
 
   it("does not make a valid registration depend on the optional global CLI", async () => {
