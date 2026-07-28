@@ -991,7 +991,7 @@ interface ManagedConfigWrite {
   mode?: number;
 }
 
-async function writeManagedConfigs(entries: ManagedConfigWrite[]): Promise<string[]> {
+async function writeManagedConfigs(entries: ManagedConfigWrite[], verify?: () => Promise<void>): Promise<string[]> {
   const changedEntries = entries.filter((entry) => entry.current !== entry.next);
   const backups = await backupChangedConfigs(changedEntries);
   const written: ManagedConfigWrite[] = [];
@@ -1002,6 +1002,7 @@ async function writeManagedConfigs(entries: ManagedConfigWrite[]): Promise<strin
         : { encoding: "utf8", mode: entry.mode });
       written.push(entry);
     }
+    await verify?.();
     return backups;
   } catch (error) {
     await Promise.all(written.reverse().map(async (entry) => {
@@ -1014,6 +1015,21 @@ async function writeManagedConfigs(entries: ManagedConfigWrite[]): Promise<strin
       }
     }));
     throw error;
+  }
+}
+
+async function verifyManagedRegistration(configPath: string, ide: "codex" | "copilot" | "copilot-cli"): Promise<void> {
+  const contents = await readFile(configPath, "utf8");
+  if (ide === "codex") {
+    if (!contents.includes(MARKER_BEGIN) || !contents.includes(MARKER_END)) {
+      throw new Error(`Managed Codex registration verification failed for ${configPath}`);
+    }
+    return;
+  }
+  const parsed = parseJsonConfig(contents, configPath);
+  const servers = parsed[ide === "copilot" ? "servers" : "mcpServers"];
+  if (!servers || typeof servers !== "object" || Array.isArray(servers) || !(MCP_SERVER_NAME in servers)) {
+    throw new Error(`Managed ${ide} registration verification failed for ${configPath}`);
   }
 }
 
@@ -1043,7 +1059,10 @@ export async function setupGlobalForCodex(
       const backups = await writeManagedConfigs([
         { path: engineConfigPath, current: currentEngineConfig, next: engineConfigPreview, mode: 0o600 },
         { path: configPath, current: currentCodexConfig, next: configPreview, mode: 0o600 },
-      ]);
+      ], async () => {
+        parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
+        await verifyManagedRegistration(configPath, "codex");
+      });
       return {
         ide: "codex",
         configPath,
@@ -1124,7 +1143,10 @@ export async function setupGlobalForCopilotCli(
       const backups = await writeManagedConfigs([
         { path: engineConfigPath, current: currentEngineConfig, next: engineConfigPreview, mode: 0o600 },
         { path: configPath, current: currentCopilotConfig, next: configPreview, mode: 0o600 },
-      ]);
+      ], async () => {
+        parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
+        await verifyManagedRegistration(configPath, "copilot-cli");
+      });
       return {
         ide: "copilot-cli",
         configPath,
@@ -1622,7 +1644,11 @@ export async function setupForIde(
     const backups = await writeManagedConfigs([
       { path: finalConfigPath, current: currentContents, next: nextContents },
       { path: engineConfigPath, current: currentEngineConfig, next: engineConfigPreview },
-    ]);
+    ], async () => {
+      await verifyManagedRegistration(finalConfigPath, ide);
+      const verifiedEngine = await readFile(engineConfigPath, "utf8");
+      if (verifiedEngine !== engineConfigPreview) throw new Error(`Astrograph config verification failed for ${engineConfigPath}`);
+    });
     return {
       ide,
       repoRoot: resolvedRepoRoot,
