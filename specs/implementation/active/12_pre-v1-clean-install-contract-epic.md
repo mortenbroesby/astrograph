@@ -87,13 +87,13 @@ compatibility mechanism to revive.
 - [ ] Establish the current installer, storage-version, MCP, and daemon
   startup baseline. Identify every legacy registration, migration option,
   compatibility alias, or old-format reader on these paths.
-- [ ] Remove `--migrate-legacy`, legacy-registration migration prompts, and
+- [x] Remove `--migrate-legacy`, legacy-registration migration prompts, and
   their tests/docs. Replace them with current-format validation and the reset
   contract; do not add an adapter for an old Astrograph format.
-- [ ] Retain only safeguards that protect unrelated settings, symlink/path
+- [x] Retain only safeguards that protect unrelated settings, symlink/path
   boundaries, active databases, backups, and rollback. These are safety checks,
   not backward compatibility.
-- [ ] Add focused proofs that obsolete formats are never parsed or migrated and
+- [x] Add focused proofs that obsolete formats are never parsed or migrated and
   that no removed compatibility command remains in help or docs.
 
 **Baseline verification:**
@@ -118,18 +118,18 @@ pnpm type-lint
   daemon, and MCP startup. It detects runtime/configuration/state disagreement
   without a network lookup and gives the caller a structured reset-required
   result.
-- [ ] In a TTY, display the mismatch, why reset is necessary, the exact
+- [x] In a TTY, display the mismatch, why reset is necessary, the exact
   Astrograph-owned config/state that will be replaced, and a single default-no
   confirmation before any write.
-- [ ] In non-interactive mode, reject mismatches unless both `--yes` and
+- [x] In non-interactive mode, reject mismatches unless both `--yes` and
   `--reset` are supplied. The failure and README use the same copyable recovery
   command.
-- [ ] Reuse managed-block/JSON-entry writers for valid files. For a parseable
+- [x] Reuse managed-block/JSON-entry writers for valid files. For a parseable
   invalid Astrograph entry, regenerate only that entry after confirmation.
-- [ ] For a wholly malformed client file, back it up then write a fresh
+- [x] For a wholly malformed client file, back it up then write a fresh
   Astrograph-only client config after confirmation; prove unrelated valid files
   are never whole-file replaced.
-- [ ] Remove only canonical Astrograph-owned state through existing safe path,
+- [x] Remove only canonical Astrograph-owned state through existing safe path,
   lock, and symlink checks; rebuild it after configuration validation succeeds.
 - [ ] Prove cancellation, non-interactive refusal, `--yes --reset` success,
   backup/rollback, malformed-file recovery, unrelated-setting preservation,
@@ -141,7 +141,7 @@ pnpm type-lint
 - Modify: `src/scripts/install.ts`
 - Test: `tests/engine-contract.test.ts` and package/bin smoke coverage
 
-- [ ] Introduce one small phase renderer used by guided install, update,
+- [x] Introduce one small phase renderer used by guided install and direct
   repair, and reset. It owns `Step N of M`, phase title, completion, and bounded
   failure wording; do not add a second progress framework.
 - [ ] Show validation, confirmation, configuration, state rebuild, and finish
@@ -163,15 +163,15 @@ pnpm type-lint
 - Modify: `specs/implementation/roadmap.md`
 - Modify: `pointer.md`
 
-- [ ] State plainly that pre-1.0 updates have no backwards-compatibility or
+- [x] State plainly that pre-1.0 updates have no backwards-compatibility or
   migration promise: Astrograph validates and, with confirmation, recreates its
   configuration/state from scratch.
-- [ ] Give one interactive and one non-interactive reset example, each
+- [x] Give one interactive and one non-interactive reset example, each
   explaining why the reset is required and exactly what Astrograph does and
   does not remove.
-- [ ] Document malformed-client-config recovery: warning, troubleshooting link,
+- [x] Document malformed-client-config recovery: warning, troubleshooting link,
   timestamped backup, fresh Astrograph-only replacement, and restoration path.
-- [ ] Document visible phase output and `--verbose`; distinguish expected local
+- [x] Document visible phase output and `--verbose`; distinguish expected local
   prerequisite failures from Astrograph defects and retain the browser-only
   issue-draft policy for the latter.
 
