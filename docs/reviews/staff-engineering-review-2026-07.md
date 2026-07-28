@@ -37,7 +37,7 @@ only in the tag-triggered publish workflow.
 smoke, package smoke, one MCP test, and version policy in
 [CI](../../.github/workflows/ci.yml#L82-L107). The publish workflow runs
 `pnpm test` after a tag has already triggered it in
-[Release](../../.github/workflows/release.yml#L39-L51). The current full suite
+[CI](../../.github/workflows/ci.yml). The current full suite
 passed locally in this review.
 
 **Why it matters:** A behavior regression can create a public release tag before

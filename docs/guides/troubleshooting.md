@@ -1,242 +1,105 @@
 # Troubleshooting
 
-This page is for the common cases where Astrograph is installed but not yet
-useful, or where the local repo state has drifted.
-
-## Start With These Commands
-
-Check current health:
+Start with the read-only health check. It reports the relevant setup, index, or
+retrieval problem and the next safe command.
 
 ```bash
-npx astrograph cli diagnostics --repo /absolute/path/to/repo --scan-freshness
+npx --yes astrograph doctor --repo /absolute/path/to/repo
 ```
 
-Get a more direct recovery report:
+For detailed state, use:
 
 ```bash
-npx astrograph cli doctor --repo /absolute/path/to/repo
+npx --yes astrograph cli diagnostics --repo /absolute/path/to/repo --scan-freshness
 ```
 
-For a fast read-only view of configured clients and index state, use:
+## Node.js or Native Dependency Errors
 
-```bash
-npx --yes astrograph status --repo /absolute/path/to/repo
-```
-
-In practice, `doctor` is the fastest way to understand what Astrograph thinks
-is wrong and what command it wants you to run next.
-
-## Common Problems
-
-### Problem: Node.js is unsupported or a native dependency will not load
-
-Astrograph's published package supports Node 20.19+, 22, and 24. Check the
-runtime that starts Astrograph:
+The published package supports Node 20.19+, 22, and 24. Check the runtime that
+starts Astrograph:
 
 ```bash
 node --version
 ```
 
-Upgrade to Node 20.19+ or a current Node 22/24 release, then reinstall the
-package. If the error happens during installation, keep the full error output:
-native prebuild availability depends on your operating system and architecture.
-The repository build itself uses Node 22.18+ or 24.11+ because its build tool
-does not support Node 20; package users do not need to run that build.
+Upgrade to a supported version and reinstall. If installation still fails, keep
+the complete error: native prebuild availability depends on your operating
+system and architecture.
 
-### Problem: `astrograph: command not found` after changing Node versions
+## `astrograph: command not found`
 
-The optional global command is installed by npm under the currently selected
-Node runtime. It does not move when a runtime manager switches Node versions.
-Your MCP registration still works because it uses a pinned `npx` invocation.
+The global command is optional. Your MCP registration continues to work through
+its pinned `npx` invocation.
 
-Fix the convenience command with the Node version you intend to use:
+If you want the convenience command after switching Node versions, install it
+under the active runtime:
 
 ```bash
 npm install --global astrograph@latest
-```
-
-If your runtime manager generates command shims, follow its documented refresh
-step after that install, then verify the command:
-
-```bash
 astrograph --version
 ```
 
-Do not add an Astrograph-specific directory to `.zshrc`. Your runtime manager
-or npm setup owns shell integration. If the command is still unavailable,
-inspect npm's selected prefix with `npm prefix --global` and repair the runtime
-manager or PATH, not Astrograph's MCP configuration.
+If it is still unavailable, follow your runtime manager's documented refresh
+step or inspect `npm prefix --global`. Do not add an Astrograph-specific path
+to your shell profile.
 
-### Problem: the repo is not indexed yet
+## No Results or a Stale Index
 
-Fix:
-
-```bash
-npx astrograph cli index-folder --repo /absolute/path/to/repo
-```
-
-This is the required first indexing step for a fresh repository.
-
-### Problem: the index is stale
-
-Fix:
+Create or refresh the index:
 
 ```bash
-npx astrograph cli index-folder --repo /absolute/path/to/repo
+npx --yes astrograph cli index-folder --repo /absolute/path/to/repo
 ```
 
-If you want automatic refresh while editing:
+For automatic refresh while editing:
 
 ```bash
-npx astrograph cli watch --repo /absolute/path/to/repo
+npx --yes astrograph cli watch --repo /absolute/path/to/repo
 ```
 
-### Problem: watch mode is not running
+## Setup Needs Repair or Reset
 
-Fix:
+Use guided setup to inspect the current state, or repair one managed
+registration explicitly:
 
 ```bash
-npx astrograph cli watch --repo /absolute/path/to/repo
+npx --yes astrograph
+npx --yes astrograph repair --yes --scope global --ide codex
 ```
 
-### Problem: diagnostics reports too many live MCP processes
-
-Close unused editor or agent sessions, then rerun diagnostics. Astrograph only
-reports the count; it never kills another application's process automatically.
-
-### Problem: metadata is corrupted or incomplete
-
-Fix:
-
-Run the reset command for your terminal, then run `astrograph install --yes`:
-
-```bash
-# Git Bash
-rm -rf .astrograph
-```
-
-```powershell
-# PowerShell
-Remove-Item -Recurse -Force .astrograph
-```
-
-```bat
-:: cmd.exe
-rmdir /s /q .astrograph
-```
-
-For an opted-in global cache, inspect it first instead of deleting a directory
-manually:
-
-```bash
-astrograph cache status --repo /absolute/path/to/repo
-astrograph cache remove --repo /absolute/path/to/repo
-astrograph cache remove --repo /absolute/path/to/repo --yes
-```
-
-The first removal command is a dry-run. It only targets the selected
-repository’s user-private global cache; no MCP tool can remove cache data.
-Global Codex and Copilot CLI setup is user-level: do not create repo-local
-`astrograph.config.*`, `.codex`, or `.mcp.json` files merely to repair a
-globally installed setup. Run `astrograph repair --yes --scope global --ide codex`
-or `astrograph repair --yes --scope global --ide copilot-cli` for the harness you use, then
-use `cache status` or `doctor` for the repository you opened.
-
-### Problem: installation changed a client configuration unexpectedly
-
-Astrograph only changes its marker-owned Codex block or its `astrograph` JSON
-server entry. Before a change, it saves a timestamped copy beside the affected
-config under `.astrograph-backups`. To remove only a registration without
-deleting index data, run:
-
-```bash
-npx --yes astrograph uninstall --yes --scope global --ide codex
-```
-
-Use `--scope repository --repo /absolute/path/to/repo` for a project-owned
-registration. Cache/index deletion is deliberately a separate operation.
-
-### Problem: setup says an Astrograph version mismatch needs reset
-
-Before 1.0, Astrograph keeps one current installation format and does not
-migrate old registrations, indexes, caches, or databases. In the guided flow,
-read the explanation and confirm reset only if the named Astrograph-owned
-configuration/state is safe to replace. Astrograph preserves unrelated valid
-client settings and never deletes your repository or client executable.
-
-Automation fails rather than resetting silently. Re-run with `--reset` only
-after reviewing the reported mismatch:
+Before 1.0, Astrograph does not migrate obsolete setup or index formats.
+Interactive setup explains a mismatch and asks before replacing only
+Astrograph-managed state. Automation stops until you explicitly add `--reset`:
 
 ```bash
 npx --yes astrograph install --yes --reset --scope repository --ide codex --repo /absolute/path/to/repo
 ```
 
-If the entire client config cannot be parsed, Astrograph backs it up and writes
-a fresh Astrograph-only client file after confirmation. Keep the printed backup
-path; restore it manually if you need its unrelated content. Normal setup shows
-numbered phases; add `--verbose` for detailed optional npm command output.
+Valid client configuration is changed only in Astrograph's managed block or
+server entry. Malformed whole-client configuration is backed up before a fresh
+Astrograph-only configuration is written.
 
-### Problem: parser health is incomplete on older indexed files
+## Cache Recovery
 
-Fix:
-
-```bash
-npx astrograph cli index-folder --repo /absolute/path/to/repo
-```
-
-### Problem: unresolved relative imports or symbol imports
-
-Fix the broken importer path or missing exported symbol in the repo, then
-reindex:
+Do not delete cache directories manually. Inspect and archive the selected
+global cache instead:
 
 ```bash
-npx astrograph cli index-folder --repo /absolute/path/to/repo
+npx --yes astrograph cache status --repo /absolute/path/to/repo
+npx --yes astrograph cache remove --repo /absolute/path/to/repo
+npx --yes astrograph cache remove --repo /absolute/path/to/repo --yes
 ```
 
-### Problem: secret-like content appears in health output
+The first removal is a preview. Cache operations are scoped to the selected
+repository and never remove repository source or another MCP server.
 
-Review the listed files, remove or rotate real secrets that should not be in
-source, then reindex.
+## Report an Installer Defect
 
-## If Setup Works but Commands Do Not
-
-Remember that `astrograph install` writes MCP configuration. It does not create
-the initial index by itself.
-
-If setup succeeded but retrieval still feels empty, the next command to try is:
+For a reproducible Astrograph-owned installer failure, generate a copyable,
+redacted issue URL:
 
 ```bash
-npx astrograph cli index-folder --repo /absolute/path/to/repo
+npx --yes astrograph report-issue --diagnostics-consent --message "short failure summary"
 ```
 
-## Reporting an Astrograph Installer Defect
-
-Most setup errors are local conditions: an unsupported Node version, a missing
-client, an invalid configuration file, or a permission problem. Astrograph
-prints an actionable next step for those errors; do not file an issue that
-contains configuration contents or credentials.
-
-For a reproducible Astrograph-owned installer failure, you can explicitly
-generate a browser-only, copyable issue link:
-
-```bash
-astrograph report-issue --diagnostics-consent --message "short failure summary"
-```
-
-The command does not open a browser or create an issue. It prints a URL that
-you can inspect, copy, or discard. The generated text includes only the
-Astrograph and Node versions, platform, and a redacted failure summary; it
-removes common token/password forms and local paths before building the URL.
-It rejects messages that identify an ordinary local setup, input, or permission
-problem, so that path remains for Astrograph-owned failures only.
-
-## If You Installed Astrograph Locally
-
-If `astrograph` is not on your shell `PATH`, prefer `npx astrograph ...`
-rather than bare `astrograph ...`.
-
-## Where To Go Next
-
-- For first-use flow: [First Steps](../getting-started/first-steps.md)
-- For config controls: [Config Reference](../reference/config.md)
-- For retrieval habits: [Retrieval Workflows](./retrieval-workflows.md)
+The command does not open a browser, send diagnostics, or create an issue.

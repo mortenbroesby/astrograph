@@ -1,106 +1,39 @@
 # Astrograph Concepts
 
-Astrograph is a local code-intelligence layer for AI agents.
+Astrograph is local code intelligence for AI agents. It helps an agent ask
+smaller, source-grounded questions about the repository on disk instead of
+defaulting to broad search and repeated file dumps.
 
-It helps an agent ask smaller, better questions about a real repository instead
-of defaulting to broad search, repeated file dumps, and oversized context
-windows.
+## The Retrieval Model
 
-## The Core Idea
+Astrograph indexes code locally and exposes outlines, symbols, source slices,
+and bounded task context through MCP and the CLI. The usual path is:
 
-Astrograph indexes a codebase locally and exposes structured retrieval tools.
-That lets an agent work from outlines, symbols, source slices, and targeted
-context instead of treating the repository like undifferentiated text.
-
-The practical outcome is simple:
-
-- answers stay closer to source
-- token usage drops because retrieval is narrower
-- long sessions stay cleaner because less irrelevant context accumulates
+1. inspect structure
+2. find the relevant symbol or file
+3. retrieve the source you need
+4. ask for broader context only when necessary
 
 ![Workflow diagram showing an AI coding agent question flowing through Astrograph's local retrieval surfaces to a source-grounded answer with lower token waste.](../../assets/diagrams/readme-workflow.svg)
 
-## What Astrograph Is
+This keeps answers closer to source and avoids accumulating irrelevant context
+in long sessions.
 
-Astrograph is:
+## What It Is—and Is Not
 
-- local-first code intelligence
-- deterministic retrieval over indexed code structure
-- an MCP and CLI surface for agent-facing code exploration
-- a better default for symbol lookup, source inspection, and targeted context
+Astrograph is a local, deterministic MCP and CLI surface for code exploration.
+It complements your editor, Git, tests, and coding agent.
 
-## What Astrograph Is Not
+It is not a hosted indexing service, a generic vector database, a session-memory
+system, or another agent shell. It indexes the working tree you are actually
+using; no remote sync is required.
 
-Astrograph is not:
+## When It Helps
 
-- a memory system for prior sessions
-- a generic agent shell
-- a remote indexing service
-- a brute-force repo-to-prompt pipeline
-- a vector database or generic RAG service
+Use Astrograph to find an implementation, trace a code path, inspect an
+unfamiliar repository, or gather focused context for planning, debugging, and
+refactoring.
 
-Those categories can complement Astrograph, but they are not the same job.
-Astrograph uses a local, structured code index so an AI coding agent can ask
-for exact repository facts rather than retrieve broad text fragments.
-
-## When Astrograph Helps
-
-Reach for Astrograph when an agent needs to:
-
-- jump from a symbol name to its real implementation
-- trace a code path before making an edit
-- answer a repository question without loading whole files into context
-- gather precise context for planning, debugging, or refactoring
-
-## Why It Saves Tokens
-
-Token savings are not the product by themselves. They are the consequence of a
-better retrieval model.
-
-If an agent can ask for the outline of a file, the implementation of a symbol,
-or a ranked context bundle around one question, it does not need to read five
-files just to get oriented.
-
-Less blind reading means less waste.
-
-## Why Not Just Grep and File Reads?
-
-Broad search, repeated full-file reads, and oversized context windows are useful
-fallbacks, but they are blunt tools for code understanding. They can add noise,
-miss the relevant implementation, and make a long agent session harder to
-follow.
-
-Astrograph gives an agent structure first, then exact symbols and source, and
-only then broader task context when it is actually needed.
-
-## Local-First Matters
-
-Astrograph runs against the repository on disk. That keeps retrieval tied to
-the working tree the agent is actually operating in, and it avoids turning code
-exploration into a remote sync problem.
-
-## File Support Tiers
-
-Astrograph distinguishes between graph-capable source files and files that are
-useful for discovery. This prevents a filename extension from implying symbol
-or dependency-graph support that Astrograph has not actually parsed.
-
-| Files | Tier | What you can use |
-| --- | --- | --- |
-| `.ts`, `.tsx`, `.js`, `.cjs`, `.mjs`, `.jsx` | Graph | Indexing, repository and file outlines, symbol search/source, task context, plus discovery and summaries. |
-| `.md`, `.mdx`, `.json`, `.yaml`, `.yml`, `.sql`, `.sh`, `.txt` | Discovery-only | `find_files`, literal `search_text`, deterministic `get_file_summary`, project status, and diagnostics. |
-| Other files | Generic discovery | File discovery and literal text search when applicable; no language or graph claim. |
-
-For discovery-only files, summaries are based on their content shape: Markdown
-headings, JSON or YAML top-level keys, SQL schema objects, shell functions, or
-non-empty text lines. They are intentionally not accepted by the `language`
-filter and do not appear in symbol or dependency-graph results.
-
-Use `get_project_status` or `diagnostics` to inspect the exact language registry
-and tool availability in the version of Astrograph you are running.
-
-## Where To Go Next
-
-- Read [First Steps](./first-steps.md) to get Astrograph running.
-- Use the [CLI Reference](../reference/cli.md) when you want the exact command
-  surface.
+For the supported languages and retrieval tiers, see
+[Language Support](../reference/language-support.md). For exact commands, see
+the [CLI Reference](../reference/cli.md).

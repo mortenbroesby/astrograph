@@ -5,11 +5,7 @@
 </p>
 
 <p align="center">
-  Reliable, source-grounded code answers for AI agents.
-</p>
-
-<p align="center">
-  Local, deterministic code intelligence with less context bloat and lower token waste.
+  Local, source-grounded code intelligence for AI agents.
 </p>
 
 <p align="center">
@@ -22,9 +18,7 @@
 <p align="center">
   <a href="#start-here">Start here</a>
   <span> | </span>
-  <a href="#why-astrograph">Why Astrograph</a>
-  <span> | </span>
-  <a href="#key-features">Features</a>
+  <a href="#key-features">What you get</a>
   <span> | </span>
   <a href="#documentation">Documentation</a>
 </p>
@@ -36,8 +30,8 @@
 ### ✨ What is Astrograph?
 
 Astrograph gives AI coding agents a local, structured map of your codebase.
-Instead of reading whole repositories into context, an agent can ask for file
-outlines, symbols, source, and targeted task context.
+Instead of reading whole repositories into context, they can ask for outlines,
+symbols, source, and targeted task context.
 
 ### 🚫 What it is not
 
@@ -56,61 +50,20 @@ In the repository you want to explore:
 npx --yes astrograph
 ```
 
-Choose your AI client when prompted, restart it, then let it ask Astrograph for
-file outlines, symbols, source, and targeted task context. The guided installer
-recommends **global setup**: it installs Astrograph for your device, connects
-your selected client, and keeps one private index per repository. Choose
-**this repository** instead when you want project-owned configuration that
-collaborators can review.
+Choose your AI client and setup scope, then restart the client.
 
-Before it writes anything, Astrograph asks which scope and client you want, then
-shows the next step. Repository setup offers initial indexing by default;
-device-wide setup offers it only as an opt-in, so it leaves the current
-repository untouched unless you choose otherwise.
+- **This device** connects your client once and keeps a private index for each
+  repository. It does not change repositories unless you opt into indexing one.
+- **This repository** creates project-owned configuration that collaborators
+  can review.
 
-For deterministic automation, name the scope and client explicitly:
-
-```bash
-npx --yes astrograph install --yes --scope repository --ide copilot-cli --repo /absolute/path/to/repo
-```
-
-### Pre-1.0 updates reset Astrograph state
-
-Until Astrograph publishes a post-1.0 compatibility policy, it supports one
-current setup format rather than migrating old registrations or index data. If
-setup detects a version mismatch, the guided installer explains why and asks
-before replacing only Astrograph-managed configuration and rebuilding
-Astrograph-owned state. It leaves repositories, other MCP servers, and client
-executables alone.
-
-Automation never resets silently. Use the explicit recovery command when the
-installer asks for it:
-
-```bash
-npx --yes astrograph install --yes --reset --scope repository --ide copilot-cli --repo /absolute/path/to/repo
-```
-
-Normal interactive output names each installation phase. Add `--verbose` to
-see detailed optional npm command output.
+The installer explains every write before it makes it. For automation and
+recovery commands, use the [CLI reference](./docs/reference/cli.md).
 
 New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
 
-<a id="why-astrograph"></a>
-## 🔭 Why Astrograph
-
-Astrograph gives coding agents a local-first, structured way to navigate a
-codebase without dumping full-repository context. It returns focused,
-source-linked answers so the agent can retrieve less and understand more.
-
-The result is straightforward:
-
-- more reliable answers grounded in source
-- less token waste from broad file reads
-- less context bloat in long-running agent sessions
-- a better default than guessing from partial snippets
-
 <a id="key-features"></a>
-## ✨ Key Features
+## ✨ What You Get
 
 - 🧠 **Persistent local context** — an index per repository, stored on your machine
 - 🔍 **Progressive retrieval** — outlines, symbols, source, then bounded context when needed
@@ -118,104 +71,33 @@ The result is straightforward:
 - 🧹 **Health and refresh tools** — inspect stale indexes instead of guessing
 - 🧪 **Measured output efficiency** — source-grounded results with explicit evidence
 
-## 🧭 When To Use It
-
-Reach for Astrograph when an agent needs to:
-
-- jump from a symbol name to its real implementation
-- trace a code path before making an edit
-- answer a repository question without loading whole files into context
-- gather precise context for planning, debugging, or refactoring
-
-## ⚙️ How It Works
-
-Astrograph indexes code locally and exposes structured retrieval through MCP and
-the CLI. Instead of treating your repository as raw text, agents can ask for an
-outline, a symbol, verified source, or a bounded task-context bundle.
-
-## 🌍 Use It Everywhere (Recommended)
-
-Install once for Copilot CLI or Codex across repositories:
-
-```bash
-npx --yes astrograph
-```
-
-This adds one user-level MCP registration and keeps a separate private cache
-for each repository. It does not modify repositories unless you explicitly opt
-into indexing the current one. Installing `astrograph` globally is an optional
-convenience offered by the guide; the MCP registration itself uses a pinned
-package invocation and does not depend on your PATH.
-
-### Optional global command and runtime managers
-
-The guided setup works through `npx`, so it does not need a global shell
-command. If you want the convenience command, npm owns its installation:
-
-```bash
-npm install --global astrograph@latest
-astrograph install
-```
-
-Global npm packages belong to the active Node runtime. After changing Node
-versions, reinstall Astrograph with that runtime. Runtime managers own shell
-integration. If yours uses generated command shims, follow its documented
-refresh step after installing a global package, then verify the command:
-
-```bash
-astrograph --version
-```
-
-Astrograph never edits `.zshrc`, `.tool-versions`, Node, npm, or your PATH.
-
 ## 🧪 Evidence, Not Promises
 
-Astrograph ships reproducible benchmark commands. The current deterministic
-MCP-envelope baseline measured **55.6%–66.7% fewer `cl100k_base` tokens** for
-supported compact responses; ordinary JSON remains the default. This is a
-response-size measurement, not an end-to-end productivity claim.
-
-For the method, limits, and the workflow benchmark that compares a broad
-read-all baseline with Astrograph retrieval, see [Benchmark evidence](./docs/guides/benchmarks.md).
-
-## 📈 npm Downloads
-
-<p align="center">
-  <a href="https://www.npmjs.com/package/astrograph"><img alt="Astrograph npm downloads in the last month" src="https://img.shields.io/npm/dm/astrograph?label=npm%20downloads%20%2F%20month&color=0f172a"></a>
-</p>
+Astrograph ships reproducible benchmarks. The current compact-response baseline
+uses 55.6%–66.7% fewer `cl100k_base` tokens on its fixture; it is a
+response-size measurement, not a productivity claim. See [benchmark
+evidence](./docs/guides/benchmarks.md) for the method and limits.
 
 <a id="documentation"></a>
 ## 📚 Documentation
 
-The README is the guided introduction. Use the docs when you need more detail:
+Start with the [five-minute setup](./docs/getting-started/first-steps.md), then
+choose the document that matches your task:
 
 - [Docs compendium](./docs/README.md)
 - [Concepts](./docs/getting-started/concepts.md)
 - [First steps](./docs/getting-started/first-steps.md)
 - [Retrieval workflows](./docs/guides/retrieval-workflows.md)
 - [Troubleshooting](./docs/guides/troubleshooting.md)
-- [Performance and benchmark evidence](./docs/guides/performance.md)
+- [Performance](./docs/guides/performance.md) and [benchmark evidence](./docs/guides/benchmarks.md)
 - [CLI reference](./docs/reference/cli.md) and [config reference](./docs/reference/config.md)
 - [Language support](./docs/reference/language-support.md)
 - [Release reference](./docs/reference/release.md)
 
-## 🧪 Project Status
+## Requirements
 
-Astrograph is still early. Expect rough edges, but the core value proposition is
-already usable today.
-
-## 📦 Install Details
-
-- Package runtime: Node `^20.19.0 || >=22.12.0` (Node 20.19+, 22, and 24)
-- Repository build tooling: Node 22.18+ or 24.11+; the checked-in toolchain
-  remains Node `22.23.1`.
-- Repository tooling: [`.tool-versions`](./.tool-versions) pins Node `22.23.1`
-  and pnpm `9.15.9` for compatible runtime managers.
-- Entry command: `astrograph`
-- Supported terminals on Windows: PowerShell, `cmd.exe`, and Git Bash.
-- Git is optional for ordinary indexing and retrieval. When Git is unavailable
-  or the folder is not a Git checkout, Astrograph uses a safe filesystem
-  fallback; Git metadata only enriches checkout identity and refresh behavior.
+Astrograph supports Node 20.19+, 22, and 24. Git is optional: without it,
+Astrograph uses a safe filesystem fallback.
 
 ## ⚖️ License
 
