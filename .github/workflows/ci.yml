@@ -3,20 +3,6 @@ name: CI
 on:
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, labeled, unlabeled]
-    paths:
-      - ".agents/**"
-      - ".codex/**"
-      - ".skills/**"
-      - ".github/workflows/**"
-      - "AGENTS.md"
-      - "bench/**"
-      - "scripts/**"
-      - "src/**"
-      - "tests/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - "tsconfig*.json"
-      - "vitest.config.ts"
   push:
     branches:
       - main
@@ -52,60 +38,96 @@ concurrency:
 
 jobs:
   fast:
-    name: Fast required checks
+    name: Required CI
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: >-
       github.event_name != 'workflow_dispatch' &&
       (github.event_name != 'pull_request' || github.event.pull_request.draft == false)
     steps:
+      - name: Classify changed files
+        id: changes
+        if: github.event_name == 'pull_request'
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            fast:
+              - ".agents/**"
+              - ".codex/**"
+              - ".skills/**"
+              - ".github/workflows/**"
+              - "AGENTS.md"
+              - "bench/**"
+              - "scripts/**"
+              - "src/**"
+              - "tests/**"
+              - "package.json"
+              - "pnpm-lock.yaml"
+              - "tsconfig*.json"
+              - "vitest.config.ts"
+
       - name: Checkout
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
       - name: Setup pnpm
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         uses: pnpm/action-setup@v4
         with:
           version: 9.15.9
 
       - name: Setup Node
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: 22
           cache: pnpm
 
       - name: Install
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm install --frozen-lockfile
 
       - name: Agent contract
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm agents:check
 
       - name: Agent contract smoke
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm exec vitest run tests/agent-contract.test.ts
 
       - name: Build
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm build
 
       - name: Type lint
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm type-lint
 
       - name: Node runtime script smoke
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: node ./dist/scripts/release-agent.js --base HEAD
 
       - name: Node package smoke
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm test:package-bin
 
       - name: MCP stdio smoke
+        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm exec vitest run tests/interface.test.ts -t "boots the SDK-backed MCP stdio server"
 
       - name: Version policy
-        if: github.event_name == 'pull_request'
+        if: github.event_name == 'pull_request' && steps.changes.outputs.fast == 'true'
         run: pnpm check:version-bump --base "origin/${{ github.base_ref }}"
 
       - name: Version policy on main
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: pnpm check:version-bump --base "${{ github.event.before }}"
+
+      - name: Record skipped validation
+        if: github.event_name == 'pull_request' && steps.changes.outputs.fast != 'true'
+        run: echo "Fast checks skipped because this pull request does not change code, configuration, tests, package metadata, or CI." >> "$GITHUB_STEP_SUMMARY"
 
   # Kept intact for a future re-enable. Set this back to the original draft
   # condition and add `windows` back to `release_agent.needs` when hosted
