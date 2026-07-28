@@ -308,7 +308,7 @@ async function main(): Promise<void> {
 
     const globalInstall = await run(
       "pnpm",
-      ["exec", "astrograph", "install", "--global", "--ide", "codex", "--json"],
+      ["exec", "astrograph", "install", "--yes", "--scope", "global", "--ide", "codex", "--json"],
       installDir,
       {
         HOME: globalHome,
@@ -335,7 +335,7 @@ async function main(): Promise<void> {
 
     const globalCopilotInstall = await run(
       "pnpm",
-      ["exec", "astrograph", "install", "--global", "--ide", "copilot-cli", "--json"],
+      ["exec", "astrograph", "install", "--yes", "--scope", "global", "--ide", "copilot-cli", "--json"],
       installDir,
       {
         HOME: globalHome,
@@ -445,12 +445,12 @@ async function main(): Promise<void> {
     const firstCache = JSON.parse(firstCacheStatus) as { storageLocation?: string; storageDir?: string };
     const secondCache = JSON.parse(secondCacheStatus) as { storageLocation?: string; storageDir?: string };
     if (
-      firstCache.storageLocation !== "global"
+      firstCache.storageLocation !== "repo-local"
       || secondCache.storageLocation !== "global"
       || !firstCache.storageDir
       || firstCache.storageDir === secondCache.storageDir
     ) {
-      throw new Error(`Expected isolated global cache directories: ${firstCacheStatus} ${secondCacheStatus}`);
+      throw new Error(`Expected repository storage to override the global default and keep stores isolated: ${firstCacheStatus} ${secondCacheStatus}`);
     }
     const { stdout: isolatedSearch } = await run(
       "pnpm",

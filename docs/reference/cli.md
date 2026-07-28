@@ -69,7 +69,9 @@ invocation path in your environment.
 - `astrograph update|repair|reconfigure --yes --scope global|repository --ide ...`
   Rewrites only Astrograph-managed registration. These are deliberate actions;
   none performs an automatic update check. Each changed configuration gets a
-  local timestamped backup first.
+  local timestamped backup first. Before 1.0, a detected setup-version mismatch
+  is not migrated: interactive setup asks before a clean reset; automation must
+  add `--reset` alongside `--yes`.
 - `astrograph uninstall --yes --scope global|repository --ide ...`
   Removes only the selected Astrograph MCP registration. It leaves the optional
   global CLI and all index/cache data untouched.
@@ -123,6 +125,20 @@ npx --yes astrograph install --yes --scope repository --ide codex,copilot-cli --
 Setup never changes `package.json`, installs dependencies, or checks npm for an
 update. This keeps ordinary setup deterministic and reviewable.
 
+When current-package validation finds obsolete Astrograph setup, it does not
+use a compatibility path. Interactive setup explains why, prints numbered
+phases, and asks before reset. Non-interactive setup fails without writes until
+`--reset` is supplied with `--yes`:
+
+```bash
+npx --yes astrograph install --yes --reset --scope repository --ide codex --repo /repo
+```
+
+Valid client configuration is changed only in Astrograph's marked block or
+named server entry. If a whole client config is malformed, Astrograph reports
+the issue, saves a timestamped backup, and writes a fresh Astrograph-only file
+only after reset confirmation. Use `--verbose` for detailed optional npm output.
+
 In the guided flow, repository setup offers first indexing by default. Global
 setup offers current-repository indexing separately and defaults to no.
 
@@ -158,7 +174,7 @@ branch/head/worktree identity, diagnostic, and indexed time.
 For a globally installed Codex or Copilot CLI client, use these recovery
 commands before editing or deleting cache files manually. They operate on the
 selected repository's isolated global cache, not a shared cross-repository
-index. Re-run the matching `astrograph install --global --ide ...` command to
+index. Re-run the matching `astrograph install --yes --scope global --ide ...` command to
 repair a managed client entry without changing unrelated user configuration.
 
 ```bash

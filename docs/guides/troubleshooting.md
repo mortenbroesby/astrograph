@@ -156,6 +156,26 @@ npx --yes astrograph uninstall --yes --scope global --ide codex
 Use `--scope repository --repo /absolute/path/to/repo` for a project-owned
 registration. Cache/index deletion is deliberately a separate operation.
 
+### Problem: setup says an Astrograph version mismatch needs reset
+
+Before 1.0, Astrograph keeps one current installation format and does not
+migrate old registrations, indexes, caches, or databases. In the guided flow,
+read the explanation and confirm reset only if the named Astrograph-owned
+configuration/state is safe to replace. Astrograph preserves unrelated valid
+client settings and never deletes your repository or client executable.
+
+Automation fails rather than resetting silently. Re-run with `--reset` only
+after reviewing the reported mismatch:
+
+```bash
+npx --yes astrograph install --yes --reset --scope repository --ide codex --repo /absolute/path/to/repo
+```
+
+If the entire client config cannot be parsed, Astrograph backs it up and writes
+a fresh Astrograph-only client file after confirmation. Keep the printed backup
+path; restore it manually if you need its unrelated content. Normal setup shows
+numbered phases; add `--verbose` for detailed optional npm command output.
+
 ### Problem: parser health is incomplete on older indexed files
 
 Fix:

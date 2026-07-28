@@ -53,6 +53,13 @@ turns those focuses into an exclusive execution gate.
 7. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
    - Goal: replace native Tree-sitter installation with a packaged WASM parser
      and grammar assets, then prove Linux packaged installs on Node 20 and 24.
+12. [Pre-v1 Clean Install Contract](./active/12_pre-v1-clean-install-contract-epic.md)
+   - Goal: replace obsolete Astrograph installation/configuration/state formats
+     through one confirmed clean-reset flow, with no migration or compatibility
+     promise before 1.0.
+   - Architecture: granular managed-block updates for valid files; backup plus
+     fresh Astrograph-only replacement only for malformed client files; no
+     startup network version check and clear normal-mode phase output.
 
 ## Ready — detailed, but not selected
 
@@ -111,6 +118,8 @@ turns those focuses into an exclusive execution gate.
 - Hidden tool routing, generic MCP router, compatibility aliases, or destructive
   MCP cache controls.
 - Backward compatibility solely to preserve obsolete pre-v1 cache data.
+- Installation/configuration migrations or compatibility paths for obsolete
+  pre-v1 Astrograph formats.
 
 These boundaries come from the [high-impact follow-up epic](./planned/4_high-impact-followups-epic.md),
 the [global-cache handoff](./planned/6_global-install-and-cache-deferred-stories.md),

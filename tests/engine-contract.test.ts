@@ -60,6 +60,7 @@ import {
   uninstallManagedRegistration,
   createSanitizedIssueUrl,
   classifyInstallerFailure,
+  formatInstallPhase,
   setLocalMcpStartupVerifierForTest,
   installOptionalGlobalCli,
   formatOptionalGlobalCliRecovery,
@@ -81,6 +82,11 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
+  it("renders stable visible installer phase headers", () => {
+    expect(formatInstallPhase(2, 4, "Updating Astrograph configuration"))
+      .toBe("Step 2 of 4 — Updating Astrograph configuration");
+  });
+
   it("refuses a bare non-TTY install without writing a repository", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-non-tty-"));
     tempDirs.push(repoRoot);
@@ -1081,7 +1087,7 @@ describe("ai-context-engine contract", () => {
     expect(output).toContain("Preview complete — no files were changed.");
     expect(output).toContain(`Astrograph ${ASTROGRAPH_PACKAGE_VERSION} is connected to Codex.`);
     expect(output).toContain("One private, isolated index per repository");
-    expect(output).toContain("astrograph install --global --ide codex");
+    expect(output).toContain("astrograph install --yes --scope global --ide codex");
     expect(output).not.toContain(result.configPreview);
   });
 
@@ -1370,7 +1376,7 @@ describe("ai-context-engine contract", () => {
     await expect(readFile(path.join(homeDir, ".codex", "config.toml"))).rejects.toMatchObject({ code: "ENOENT" });
   });
 
-  it("replaces a legacy repo-local astrograph block with the portable package command", async () => {
+  it("requires an explicit reset before replacing obsolete repo-local Astrograph setup", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-workspace-"));
     tempDirs.push(repoRoot);
 
@@ -1404,9 +1410,9 @@ describe("ai-context-engine contract", () => {
     );
 
     await expect(setupForCodex(repoRoot, { dryRun: true }))
-      .rejects.toThrow(/unmarked legacy Astrograph Codex registration/i);
+      .rejects.toThrow(/obsolete unmarked Astrograph setup.*--reset/i);
 
-    const result = await setupForIde(repoRoot, { ide: "codex", dryRun: true, migrateLegacy: true });
+    const result = await setupForIde(repoRoot, { ide: "codex", dryRun: true, reset: true });
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
@@ -1414,6 +1420,75 @@ describe("ai-context-engine contract", () => {
     );
     expect(result.configPreview.match(/\[mcp_servers\.astrograph\]/g)).toHaveLength(1);
     expect(result.configPreview).toContain("# END ASTROGRAPH\n\n[features]");
+  });
+
+  it("requires reset before replacing a version-mismatched managed registration", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-version-mismatch-"));
+    tempDirs.push(repoRoot);
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, ".codex", "config.toml"),
+      [
+        "# BEGIN ASTROGRAPH",
+        "[mcp_servers.astrograph]",
+        'command = "npx"',
+        'args = ["-y", "--package", "astrograph@0.0.0-alpha.1", "astrograph", "mcp"]',
+        "# END ASTROGRAPH",
+        "",
+      ].join("\n"),
+    );
+
+    await expect(setupForIde(repoRoot, { ide: "codex", dryRun: true }))
+      .rejects.toThrow(/version does not match.*--reset/i);
+    await expect(setupForIde(repoRoot, { ide: "codex", dryRun: true, reset: true }))
+      .resolves.toMatchObject({ packageVersion: ASTROGRAPH_PACKAGE_VERSION });
+  });
+
+  it("archives Astrograph-owned state during an explicit setup reset", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-state-reset-"));
+    tempDirs.push(repoRoot);
+    const staleFile = path.join(repoRoot, ".astrograph", "stale.txt");
+    await mkdir(path.dirname(staleFile), { recursive: true });
+    await writeFile(staleFile, "obsolete");
+    setLocalMcpStartupVerifierForTest(async () => {});
+
+    const result = await setupForIde(repoRoot, { ide: "codex", reset: true });
+
+    expect(result.stateReset).toBe(true);
+    await expect(readFile(staleFile)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("replaces malformed Codex TOML only with an explicit reset and keeps a backup", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-malformed-toml-"));
+    tempDirs.push(repoRoot);
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    const configPath = path.join(repoRoot, ".codex", "config.toml");
+    await writeFile(configPath, '[features]\nkeep = ["unterminated"\n');
+    setLocalMcpStartupVerifierForTest(async () => {});
+
+    await expect(setupForIde(repoRoot, { ide: "codex" }))
+      .rejects.toThrow(/Invalid Codex config.*troubleshooting/i);
+
+    const result = await setupForIde(repoRoot, { ide: "codex", reset: true });
+    expect(result.backups).toHaveLength(1);
+    await expect(readFile(configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+    await expect(readFile(configPath, "utf8")).resolves.not.toContain("[features]");
+    await expect(readFile(result.backups[0]!, "utf8")).resolves.toContain("unterminated");
+  });
+
+  it("replaces malformed Astrograph JSON config only with an explicit reset", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-malformed-json-"));
+    tempDirs.push(repoRoot);
+    await mkdir(path.join(repoRoot, ".vscode"), { recursive: true });
+    await writeFile(path.join(repoRoot, ".vscode", "mcp.json"), "{ invalid json");
+
+    await expect(setupForIde(repoRoot, { ide: "copilot", dryRun: true }))
+      .rejects.toThrow(/Invalid JSON config file/i);
+
+    const result = await setupForIde(repoRoot, { ide: "copilot", dryRun: true, reset: true });
+    expect(JSON.parse(result.configPreview)).toMatchObject({
+      servers: { astrograph: { type: "stdio" } },
+    });
   });
 
   it("renders a managed Copilot MCP block for workspace installs", async () => {

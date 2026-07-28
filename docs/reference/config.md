@@ -78,7 +78,7 @@ Current supported value:
 Controls where the repository’s persistent index, metadata, integrity marker,
 storage version, and events live. Supported values are `repo-local` (the
 default) and `global`. A repository setting overrides the user-level default
-written by `astrograph install --global`.
+written by `astrograph install --yes --scope global --ide codex`.
 
 Global mode still uses one SQLite database per canonical repository root. It
 does not share mutable index rows or source data between repositories.
@@ -92,7 +92,7 @@ astrograph cli diagnostics --repo /repo --storage-location repo-local
 ```
 
 Precedence is explicit CLI selection, repository configuration, then the
-user-level default written by `astrograph install --global`.
+user-level default written by `astrograph install --yes --scope global --ide codex`.
 
 ### `observability`
 

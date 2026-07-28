@@ -74,6 +74,25 @@ For deterministic automation, name the scope and client explicitly:
 npx --yes astrograph install --yes --scope repository --ide copilot-cli --repo /absolute/path/to/repo
 ```
 
+### Pre-1.0 updates reset Astrograph state
+
+Until Astrograph publishes a post-1.0 compatibility policy, it supports one
+current setup format rather than migrating old registrations or index data. If
+setup detects a version mismatch, the guided installer explains why and asks
+before replacing only Astrograph-managed configuration and rebuilding
+Astrograph-owned state. It leaves repositories, other MCP servers, and client
+executables alone.
+
+Automation never resets silently. Use the explicit recovery command when the
+installer asks for it:
+
+```bash
+npx --yes astrograph install --yes --reset --scope repository --ide copilot-cli --repo /absolute/path/to/repo
+```
+
+Normal interactive output names each installation phase. Add `--verbose` to
+see detailed optional npm command output.
+
 New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
 
 <a id="why-astrograph"></a>

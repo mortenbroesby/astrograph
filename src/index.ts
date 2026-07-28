@@ -52,6 +52,7 @@ export {
   getFileTree,
   getRepoOutline,
   queryCode,
+  resetAstrographStorage,
   getTaskContext,
   getSymbolSource,
   indexFile,

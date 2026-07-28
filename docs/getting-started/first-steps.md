@@ -72,6 +72,24 @@ For non-interactive setup:
 npx --yes astrograph install --yes --scope repository --ide codex --repo /absolute/path/to/repo
 ```
 
+### When setup asks to reset
+
+Pre-1.0 Astrograph does not migrate old registrations or index/database
+formats. The guided installer explains the mismatch and asks before replacing
+Astrograph-owned configuration and state. Valid client files keep unrelated
+settings; a malformed whole client config is backed up before Astrograph writes
+a fresh Astrograph-only configuration.
+
+Automation stops rather than resetting silently. Re-run with `--reset` only
+after reviewing the reported mismatch:
+
+```bash
+npx --yes astrograph install --yes --reset --scope repository --ide codex --repo /absolute/path/to/repo
+```
+
+The normal interactive view prints numbered phases. Use `--verbose` when you
+need detailed optional npm-installation output.
+
 ## 3. Create the Initial Index
 
 On a fresh repository, setup writes config but does not build the local index.
