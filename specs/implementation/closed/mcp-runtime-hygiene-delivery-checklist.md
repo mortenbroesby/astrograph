@@ -1,6 +1,6 @@
 # MCP Runtime Hygiene Delivery Checklist
 
-> **Status:** Active — explicitly prioritized by the user on 2026-07-26.
+> **Status:** Done — merged in PR #90 (`10396a1`).
 >
 > **Inspiration:** jCodeMunch v1.108.172 made abandoned MCP processes visible
 > after process sprawl retained substantial in-memory indexes. Astrograph adopts

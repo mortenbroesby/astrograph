@@ -1,6 +1,6 @@
 # Git Ref Watch Reconciliation Delivery Checklist
 
-> **Status:** Active — explicitly selected by the user on 2026-07-26.
+> **Status:** Done — merged in PR #94 (`9f45bfd`).
 >
 > **Inspiration:** Code-Index-MCP combines file watching with Git ref polling.
 > Astrograph adopts only a session-bound Git-ref reconciliation path; it does

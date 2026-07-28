@@ -24,52 +24,33 @@ turns those focuses into an exclusive execution gate.
      current four-language baseline before adding a grammar dependency.
    - Architecture: adapters and explicit `structured`/`graph` support tiers;
      do not claim the open-ended community grammar ecosystem.
-2. [MCP Runtime Hygiene Delivery Checklist](./active/mcp-runtime-hygiene-delivery-checklist.md)
-   - Goal: make abandoned stdio MCP processes visible and release
-     process-lifetime resources during normal shutdown.
-3. [Interactive Install Lifecycle Epic](./active/11_interactive-install-lifecycle-epic.md)
+2. [Interactive Install Lifecycle Epic](./active/11_interactive-install-lifecycle-epic.md)
    - Goal: make setup, update, repair, diagnostics, and removal one
      understandable lifecycle with explicit opt-ins and reversible writes.
    - Architecture: exact pinned `npx` MCP registrations, optional global CLI,
      no background network work, and verified managed-block edits.
-4. [Git Ref Watch Reconciliation](./active/3_git-ref-watch-reconciliation-delivery-checklist.md)
-   - Goal: reconcile an active watch session when its Git checkout identity
-     advances or changes without dependable filesystem events.
-   - Architecture: a session-bound 30-second checkout probe queues existing
-     folder reconciliation; no daemon, Git-diff planner, or cache migration.
-5. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+3. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
    - Goal: one user-local daemon owns independent repository runtimes, watches,
      SQLite connections, and workers for concurrent stdio MCP clients.
    - Architecture: on-demand local IPC proxying with authenticated singleton
      ownership and a five-minute idle exit; no network listener, source upload,
      or shared mutable repository index.
-6. [Local Token-Savings Analytics](./active/6_local-token-savings-analytics-delivery-checklist.md)
-   - Goal: make exact local token savings inspectable through the existing
-     report command without noticeable normal-request overhead.
-   - Architecture: reuse existing event and response-format metadata; no
-     network client, exporter, second event store, token recount, or daemon.
-7. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
+4. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
    - Goal: make benchmark, workflow, and repository automation ownership
      obvious without changing runtime behavior or increasing CI cost.
    - First action: move benchmark/profiling entrypoints under `bench/` while
      preserving all existing package commands and output shapes.
-8. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
+5. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
    - Goal: publish one small, auditable comparison between broad file reading
      and Astrograph retrieval.
    - Architecture: reuse the existing corpus and Markdown renderer; require a
      matching snapshot and successful selected workflows before publishing.
-9. [VoidZero Toolchain](./active/8_voidzero-toolchain-epic.md)
-   - Goal: migrate Astrograph's package build to tsdown, with production
-     remaining compiled JavaScript and subsequent tool adoption proof-gated.
-   - First action: replace tsup plus the separate declaration emitter with a
-     package-safe tsdown build.
-10. [Runtime Acceleration Epic](./active/10_runtime-acceleration-epic.md)
-   - Goal: urgently make repeated local MCP work faster by retaining daemon
-     SQLite and worker resources through direct in-process indexing.
+6. [Runtime Acceleration Epic](./active/10_runtime-acceleration-epic.md)
+   - Goal: make repeated local MCP work faster by retaining daemon SQLite and
+     worker resources through direct in-process indexing.
    - Architecture: one authenticated local daemon serializes mutable work per
-     canonical repository; retain existing child isolation for ordinary CLI
-     indexing and only select parser/native experiments from profiles.
-11. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
+     canonical repository; retain ordinary CLI child-process isolation.
+7. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
    - Goal: replace native Tree-sitter installation with a packaged WASM parser
      and grammar assets, then prove Linux packaged installs on Node 20 and 24.
 12. [Pre-v1 Clean Install Contract](./active/12_pre-v1-clean-install-contract-epic.md)
@@ -198,6 +179,23 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Session-Aware Agent Efficiency Epic](./closed/session-aware-agent-efficiency-epic.md)
   — closed after PR #99 merged exact references and local Astrograph reporting,
   explicit bookmarks, and optional marked output redaction.
+- [Comforting Install Experience](./closed/comforting-global-install-experience.md)
+  — closed after PR #82 made package, global, and repository setup legible
+  without automatic configuration writes.
+- [Guided Install and Refresh Hooks](./closed/guided-install-and-refresh-hooks.md)
+  — closed after PR #92 delivered unified onboarding, opt-in guidance/hooks,
+  and harness readiness checks.
+- [MCP Runtime Hygiene](./closed/mcp-runtime-hygiene-delivery-checklist.md)
+  — closed after PR #90 added source-free process presence and idempotent
+  resource cleanup.
+- [Git Ref Watch Reconciliation](./closed/git-ref-watch-reconciliation-delivery-checklist.md)
+  — closed after PR #94 added session-bound checkout-change reconciliation.
+- [Local Token-Savings Analytics](./closed/local-token-savings-analytics-delivery-checklist.md)
+  — closed after PR #101 exposed exact local savings without request-path
+  tracking overhead.
+- [VoidZero Toolchain](./closed/voidzero-toolchain-epic.md)
+  — closed after PR #105 migrated the package build to tsdown and completed
+  the scoped runtime, alias, and Oxlint evidence gates.
 
 ## Maintaining this roadmap
 

@@ -15,37 +15,25 @@ new work complements rather than duplicates existing plans.
 1. [Tree-Sitter Polyglot Language Support Delivery Checklist](./1_tree-sitter-polyglot-language-support-delivery-checklist.md)
    — expand parser coverage through the documented compatibility and evidence
    gates.
-2. [MCP Runtime Hygiene Delivery Checklist](./mcp-runtime-hygiene-delivery-checklist.md)
-   — selected by the user: make stdio-server process sprawl visible and ensure
-   normal shutdown releases process-lifetime resources.
-3. [Interactive Install Lifecycle Epic](./11_interactive-install-lifecycle-epic.md)
+2. [Interactive Install Lifecycle Epic](./11_interactive-install-lifecycle-epic.md)
    — selected by the user: make setup, update, repair, diagnostics, and
    removal one safe, understandable lifecycle with explicit opt-ins.
-4. [Git Ref Watch Reconciliation Delivery Checklist](./3_git-ref-watch-reconciliation-delivery-checklist.md)
-   — selected by the user: reconcile active watch sessions after a Git checkout
-   identity changes, without adding a daemon or another cache.
-6. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
+3. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
    — selected by the user: one user-local daemon owns isolated repository
    runtimes, watches, workers, and SQLite lifecycles for MCP stdio clients.
-7. [Local Token-Savings Analytics Delivery Checklist](./6_local-token-savings-analytics-delivery-checklist.md)
-   — selected by the user: make existing local efficiency evidence useful as a
-   source-free, negligible-overhead report without adding tracking infrastructure.
-8. [Repository Structure Cleanup Epic](./7_repository-structure-cleanup-epic.md)
+4. [Repository Structure Cleanup Epic](./7_repository-structure-cleanup-epic.md)
    — selected by the user: collate benchmark ownership, remove unsupported
    script surfaces, and simplify repository automation one focused PR at a time.
-9. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
+5. [Publishable Workflow Benchmark](./9_publishable-workflow-benchmark.md)
    — selected by the user: publish a small, snapshot-locked comparison between
    broad file reading and Astrograph retrieval, with auditable evidence.
-10. [VoidZero Toolchain Epic](./8_voidzero-toolchain-epic.md)
-    — migrate package builds to tsdown first; add runtime loaders, aliases, and
-    Oxc only through separate proof-gated stories.
-11. [Runtime Acceleration Epic](./10_runtime-acceleration-epic.md)
-    — urgent one-PR delivery: retain daemon-owned index resources, serialize
-    mutable repository work, and establish honest warm-runtime evidence.
-12. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
-    — selected by the user: remove the native Tree-sitter install boundary and
-    prove packed global installs on Node 20, 22, and 24.
-13. [Pre-v1 Clean Install Contract Epic](./12_pre-v1-clean-install-contract-epic.md)
+6. [Runtime Acceleration Epic](./10_runtime-acceleration-epic.md)
+   — retain daemon-owned index resources, serialize mutable repository work,
+   and establish honest warm-runtime evidence.
+7. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
+   — remove the native Tree-sitter install boundary and prove packed global
+   installs on Node 20, 22, and 24.
+8. [Pre-v1 Clean Install Contract Epic](./12_pre-v1-clean-install-contract-epic.md)
    — selected by the user: remove setup migrations and compatibility paths;
    require a confirmed clean reset with visible installer phases whenever local
    Astrograph configuration or state is mismatched.

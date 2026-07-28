@@ -1,5 +1,8 @@
 # Global Install and Cache Deferred Story Handoffs
 
+> **Status:** Superseded — the maintained deferred handoff is
+> [`../planned/6_global-install-and-cache-deferred-stories.md`](../planned/6_global-install-and-cache-deferred-stories.md).
+
 > **Epic:** [Global Install and Cache Epic](./global-install-and-cache-epic.md)
 >
 > **Status:** Deferred — this document prepares Stories 2–7 for selection. It

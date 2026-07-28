@@ -1,6 +1,6 @@
 # Local Token-Savings Analytics Delivery Checklist
 
-> **Status:** Active — selected by the user on 2026-07-26.
+> **Status:** Done — merged in PR #101 (`0f51932`).
 
 **Goal:** Deliver the smallest credible local token-savings report by extending
 the existing `report` command, without noticeable request-path

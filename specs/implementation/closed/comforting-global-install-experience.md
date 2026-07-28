@@ -1,5 +1,7 @@
 # Comforting Install Experience Implementation Plan
 
+> **Status:** Done — merged in PR #82 (`d99fe59`).
+
 **Goal:** Make global and repository-local Astrograph setup understandable and
 reassuring, while preserving existing idempotent configuration behavior.
 
@@ -63,8 +65,8 @@ pnpm, and Vitest.
   runtime feature set as minor. The post-merge release transaction currently
   targets `0.8.0-alpha.169`; this branch's second feature commit uses the
   required intermediate `0.8.0-alpha.168` increment.
-- [ ] Commit, push, open a draft PR, and record CI evidence before closing this
-  plan.
+- [x] Commit, push, open a draft PR, and record CI evidence. Merged as PR #82
+  (`d99fe59`).
 
 ## Follow-up: Make the guided default match the recommended setup
 

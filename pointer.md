@@ -15,17 +15,9 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
   — expand parser coverage through the documented compatibility and evidence
   gates.
-- [MCP Runtime Hygiene Delivery
-  Checklist](./specs/implementation/active/mcp-runtime-hygiene-delivery-checklist.md)
-  — finish review/merge evidence for visible stdio MCP processes and clean
-  process-lifetime shutdown.
 - [Interactive Install Lifecycle Epic](./specs/implementation/active/11_interactive-install-lifecycle-epic.md)
-  — selected by the user: deliver one explicit, reversible lifecycle for setup,
-  update, repair, diagnostics, and removal.
-- [Git Ref Watch Reconciliation Delivery
-  Checklist](./specs/implementation/active/3_git-ref-watch-reconciliation-delivery-checklist.md)
-  — keep active watch sessions correct when Git checkout identity changes
-  without dependable filesystem events.
+  — make setup, update, repair, diagnostics, and removal one safe,
+  understandable lifecycle with explicit opt-ins.
 - [Local Daemon Runtime Ownership Delivery
   Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
   — run one user-local, on-demand daemon that owns isolated repository runtime
@@ -33,22 +25,15 @@ use its recorded evidence or selection gate instead.
 - [Repository Structure Cleanup Epic](./specs/implementation/active/7_repository-structure-cleanup-epic.md)
   — collate benchmark/profiling ownership and simplify repository automation
   through small, behavior-preserving pull requests.
-- [VoidZero Toolchain Epic](./specs/implementation/active/8_voidzero-toolchain-epic.md)
-  — migrate package builds to tsdown first, then prove any runtime-loader,
-  alias, or Oxc adoption independently.
-- [Local Token-Savings Analytics Delivery
-  Checklist](./specs/implementation/active/6_local-token-savings-analytics-delivery-checklist.md)
-  — make already-proven token savings inspectable locally, without a tracking
-  service or additional normal-request work.
 - [Publishable Workflow Benchmark](./specs/implementation/active/9_publishable-workflow-benchmark.md)
   — establish a small, honest, snapshot-locked comparison between broad file
   reading and Astrograph retrieval before making workflow-level claims.
 - [Runtime Acceleration Epic](./specs/implementation/active/10_runtime-acceleration-epic.md)
-  — most urgent current focus: make repeated local MCP work faster by retaining
-  daemon-owned index resources and prove it with representative measurements.
+  — retain daemon-owned index resources, serialize mutable repository work,
+  and preserve honest warm-runtime evidence.
 - [WASM Parser Runtime Migration](./specs/implementation/active/11_wasm-parser-runtime-migration.md)
-  — replace the native Tree-sitter installation boundary and prove Node 20–24
-  packaged installs without consumer compiler requirements.
+  — remove the native Tree-sitter install boundary and prove packed global
+  installs on Node 20, 22, and 24.
 - [Pre-v1 Clean Install Contract Epic](./specs/implementation/active/12_pre-v1-clean-install-contract-epic.md)
   — remove setup migration/compatibility paths and use a confirmed clean reset
   with visible phases whenever Astrograph installation state is mismatched.
