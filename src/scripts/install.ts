@@ -601,6 +601,15 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
+  const confirmWrite = await confirm({
+    message: `Review complete. Write the managed ${String(ide)} setup to ${resolvedRepo}?`,
+    initialValue: true,
+  });
+  if (isCancel(confirmWrite) || confirmWrite === false) {
+    outro("Setup cancelled. No files were changed.");
+    process.exit(0);
+  }
+
   return {
     ides: [ide as RequestedIde],
     repo: resolvedRepo,
@@ -669,6 +678,15 @@ async function runGuidedInstall(): Promise<void> {
     initialValue: false,
   });
   if (isCancel(shouldInstallGlobalCli)) {
+    outro("Setup cancelled. No client configuration was changed.");
+    return;
+  }
+
+  const confirmWrite = await confirm({
+    message: `Review complete. Write the managed ${String(ide)} registration?`,
+    initialValue: true,
+  });
+  if (isCancel(confirmWrite) || confirmWrite === false) {
     outro("Setup cancelled. No client configuration was changed.");
     return;
   }
