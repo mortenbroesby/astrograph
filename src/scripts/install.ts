@@ -199,6 +199,36 @@ export function createSanitizedIssueUrl(
   return `${ISSUE_URL}?${new URLSearchParams({ title: "Installer failure", body }).toString()}`;
 }
 
+export interface InstallerFailure {
+  kind: "user-or-environment" | "astrograph";
+  summary: string;
+  nextStep: string;
+}
+
+/** Separates recoverable local setup problems from defects in Astrograph itself. */
+export function classifyInstallerFailure(error: unknown): InstallerFailure {
+  const message = error instanceof Error ? error.message : String(error);
+  const summary = message
+    .replace(/(?:ghp|github_pat|npm)_[A-Za-z0-9_\-]+/g, "[redacted]")
+    .replace(/(?:token|password|secret|authorization)\s*[=:]\s*\S+/gi, "$1=[redacted]")
+    .replace(/(?:\/Users\/[^\s:]+|\/home\/[^\s:]+|[A-Z]:\\\\[^\s:]+)/g, "[local-path]")
+    .replace(/\s+/g, " ")
+    .slice(0, 500);
+  const userOrEnvironment = /(?:requires|unsupported|unknown|invalid|not found|not a git repository|TTY|permission|EACCES|ENOENT|legacy unmarked)/i.test(message);
+
+  return userOrEnvironment
+    ? {
+      kind: "user-or-environment",
+      summary,
+      nextStep: "Review the command and local prerequisites, then run `astrograph doctor` for a read-only diagnosis.",
+    }
+    : {
+      kind: "astrograph",
+      summary,
+      nextStep: "If this persists, explicitly opt in to a browser-only issue draft with `astrograph report-issue --diagnostics-consent --message <copied diagnostic summary>`.",
+    };
+}
+
 type SetupClient = "codex" | "copilot" | "copilot-cli";
 
 export interface SetupReadinessResult {
@@ -676,15 +706,26 @@ async function runGuidedInstall(): Promise<void> {
 
   intro("Astrograph setup");
   const readiness = await getSetupReadiness(process.cwd(), { scanFreshness: false });
-  if (readiness.ready) {
+  const configuredClients = [
+    ...readiness.local.clients
+      .filter((client) => client.configured)
+      .map((client) => ({ scope: "repository" as const, ide: client.ide as InstallIde, label: `${client.ide} in this repository` })),
+    ...readiness.global.clients
+      .filter((client) => client.configured)
+      .map((client) => ({ scope: "global" as const, ide: client.ide as "codex" | "copilot-cli", label: `${client.ide} for this device` })),
+  ];
+  if (configuredClients.length > 0) {
     const action = await select({
       message: formatSetupReadiness(readiness),
       options: [
         { value: "index", label: "Refresh this repository's index" },
+        { value: "update", label: "Reapply the installed registration" },
+        { value: "repair", label: "Repair the installed registration" },
         { value: "setup", label: "Review or change setup" },
+        { value: "uninstall", label: "Remove one Astrograph registration" },
         { value: "exit", label: "Exit" },
       ],
-      initialValue: "exit",
+      initialValue: readiness.ready ? "exit" : "setup",
     });
     if (isCancel(action) || action === "exit") {
       outro("No changes made.");
@@ -693,6 +734,45 @@ async function runGuidedInstall(): Promise<void> {
     if (action === "index") {
       await indexFolder({ repoRoot: readiness.repoRoot });
       outro("Index refreshed.");
+      return;
+    }
+    if (action === "update" || action === "repair" || action === "uninstall") {
+      const target = await select({
+        message: "Which managed registration should change?",
+        options: configuredClients.map((client) => ({
+          value: `${client.scope}:${client.ide}`,
+          label: client.label,
+        })),
+      });
+      if (isCancel(target) || typeof target !== "string") {
+        outro("No changes made.");
+        return;
+      }
+      const [targetScope, targetIde] = target.split(":") as ["global" | "repository", InstallIde];
+      const confirmed = await confirm({
+        message: action === "uninstall"
+          ? `Remove only Astrograph's ${targetIde} registration? Index and cache data will stay untouched.`
+          : `${action[0]!.toUpperCase()}${action.slice(1)} Astrograph's ${targetIde} registration?`,
+        initialValue: false,
+      });
+      if (isCancel(confirmed) || confirmed === false) {
+        outro("No changes made.");
+        return;
+      }
+      if (action === "uninstall") {
+        const result = await uninstallManagedRegistration(readiness.repoRoot, {
+          scope: targetScope,
+          ide: targetIde,
+        });
+        outro(result.changed ? "Registration removed. Index and cache data were left untouched." : "No managed registration was found.");
+        return;
+      }
+      const result = targetScope === "global"
+        ? targetIde === "codex" ? await setupGlobalForCodex() : await setupGlobalForCopilotCli()
+        : await setupForAllIdes(readiness.repoRoot, { ides: [targetIde] });
+      outro(targetScope === "global"
+        ? formatGlobalInstallation(result as GlobalSetupResult)
+        : formatRepositoryInstallation(result as SetupResult | SetupResult[]));
       return;
     }
   }
@@ -1980,8 +2060,11 @@ async function main(): Promise<void> {
 
 if (isMainModule(import.meta.url)) {
   main().catch((error) => {
+    const failure = classifyInstallerFailure(error);
     usage();
-    process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
+    process.stderr.write(`${failure.kind === "astrograph" ? "Astrograph installer failure" : "Setup could not be completed"}: ${failure.summary}\n`);
+    process.stderr.write(`${failure.nextStep}\n`);
+    process.stderr.write(`Copyable diagnostic summary: ${failure.summary}\n`);
     process.exit(1);
   });
 }

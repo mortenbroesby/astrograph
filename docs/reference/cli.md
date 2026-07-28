@@ -48,7 +48,9 @@ invocation path in your environment.
   the harness seems unavailable.
 - `astrograph status [--repo /abs/repo] [--json]`
   Is the fast, read-only setup dashboard. It skips the more expensive freshness
-  scan used by `doctor`.
+  scan used by `doctor`. Running the bare guided command in a TTY presents the
+  same state before offering explicit index, reapply, repair, reconfigure, or
+  single-registration removal actions.
 - `astrograph update|repair|reconfigure --yes --scope global|repository --ide ...`
   Rewrites only Astrograph-managed registration. These are deliberate actions;
   none performs an automatic update check. Each changed configuration gets a
@@ -59,6 +61,9 @@ invocation path in your environment.
 - `astrograph report-issue --diagnostics-consent --message <summary>`
   Prints a sanitized, prefilled browser issue URL after explicit consent. It
   never opens a browser, sends diagnostics, or creates a GitHub issue.
+  Expected input, permission, client, and environment failures instead print a
+  local next step and a copyable redacted summary; only an Astrograph-owned
+  failure suggests this reporting path.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`

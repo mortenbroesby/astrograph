@@ -58,6 +58,7 @@ import {
   formatSetupReadiness,
   uninstallManagedRegistration,
   createSanitizedIssueUrl,
+  classifyInstallerFailure,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -82,6 +83,16 @@ describe("ai-context-engine contract", () => {
     expect(url).toContain("[local-path]");
     expect(url).not.toContain("ghp_ABCdef123");
     expect(url).not.toContain("/Users/alice/project");
+  });
+
+  it("keeps user and environment setup errors out of the issue-reporting path", () => {
+    expect(classifyInstallerFailure(new Error("Non-interactive setup requires --yes --scope global")).kind)
+      .toBe("user-or-environment");
+    expect(classifyInstallerFailure(new Error("EACCES: permission denied")).nextStep)
+      .toContain("astrograph doctor");
+    const fatal = classifyInstallerFailure(new Error("Managed registration verification failed unexpectedly"));
+    expect(fatal.kind).toBe("astrograph");
+    expect(fatal.nextStep).toContain("--diagnostics-consent");
   });
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
