@@ -51,10 +51,10 @@ function hashImports(
   );
 }
 
-export function analyzeFileContent(
+export async function analyzeFileContent(
   input: FileAnalysisTaskInput,
-): FileAnalysisTaskOutput {
-  const parsed = parseSourceFile({
+): Promise<FileAnalysisTaskOutput> {
+  const parsed = await parseSourceFile({
     relativePath: input.relativePath,
     content: input.content,
     language: input.language,

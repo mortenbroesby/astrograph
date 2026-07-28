@@ -7,7 +7,7 @@ import type { SupportedLanguage } from "./types.ts";
 
 export type { ParsedFile } from "./parser/shared.ts";
 
-export function parseSourceFile(input: ParseSourceInput): ParsedFile {
+export async function parseSourceFile(input: ParseSourceInput): Promise<ParsedFile> {
   return parseWithTreeSitter(input);
 }
 

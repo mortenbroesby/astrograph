@@ -81,6 +81,7 @@ const isCriticalFile = (file) =>
 
 run('git', ['fetch', '--quiet', 'origin', 'main'], 'Could not refresh origin/main before checking the required version bump.');
 run('pnpm', ['check:version-bump', '--base', 'origin/main'], 'Version bump is required before pushing versioned changes.');
+run('pnpm', ['agents:check'], 'Agent contract check failed; update tracked agent configuration before pushing.');
 
 if (!changedFiles.some(isDocFile)) {
   run('pnpm', ['type-lint'], 'Type check failed during pre-push hook.');

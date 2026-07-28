@@ -4,8 +4,8 @@ import { parseSourceFile } from "../src/parser.ts";
 import { parseWithTreeSitter } from "../src/parser/tree-sitter.ts";
 
 describe("astrograph parser golden coverage", () => {
-  it("extracts the accepted tree-sitter-only parser baseline", () => {
-    const parsed = parseSourceFile({
+  it("extracts the accepted tree-sitter-only parser baseline", async () => {
+    const parsed = await parseSourceFile({
       relativePath: "src/parser-fixture.ts",
       language: "ts",
       content: `
@@ -97,7 +97,7 @@ export namespace Shapes {
     ]);
   });
 
-  it("keeps tree-sitter parser output deterministic across ts/js/tsx/jsx fixtures", () => {
+  it("keeps tree-sitter parser output deterministic across ts/js/tsx/jsx fixtures", async () => {
     const fixtures = [
       {
         language: "ts",
@@ -169,12 +169,12 @@ export const render = () => <button>run</button>;
     ] as const;
 
     for (const fixture of fixtures) {
-      const first = parseSourceFile({
+      const first = await parseSourceFile({
         relativePath: fixture.relativePath,
         language: fixture.language,
         content: fixture.content,
       });
-      const second = parseSourceFile({
+      const second = await parseSourceFile({
         relativePath: fixture.relativePath,
         language: fixture.language,
         content: fixture.content,
@@ -200,7 +200,7 @@ export const render = () => <button>run</button>;
     }
   });
 
-  it("extracts deterministic structured symbols for polyglot language batches", () => {
+  it("extracts deterministic structured symbols for polyglot language batches", async () => {
     const fixtures = [
       {
         language: "python",
@@ -301,8 +301,8 @@ export const render = () => <button>run</button>;
     ] as const;
 
     for (const fixture of fixtures) {
-      const first = parseSourceFile(fixture);
-      const second = parseSourceFile(fixture);
+      const first = await parseSourceFile(fixture);
+      const second = await parseSourceFile(fixture);
 
       expect(first.fallbackUsed).toBe(false);
       expect(first.imports).toEqual([]);
@@ -313,13 +313,13 @@ export const render = () => <button>run</button>;
     }
   });
 
-  it("keeps structured parsing bounded and deterministic for Unicode, CRLF, and syntax errors", () => {
-    const unicode = parseSourceFile({
+  it("keeps structured parsing bounded and deterministic for Unicode, CRLF, and syntax errors", async () => {
+    const unicode = await parseSourceFile({
       relativePath: "services/hej.py",
       language: "python",
       content: "def héj():\r\n  return 1\r\n",
     });
-    const malformed = parseSourceFile({
+    const malformed = await parseSourceFile({
       relativePath: "config/broken.json",
       language: "json",
       content: '{"näme": }\n',
@@ -338,12 +338,12 @@ export const render = () => <button>run</button>;
     expect(malformed.symbols.map((symbol) => symbol.name)).toEqual(["näme"]);
   });
 
-  it("does not report chunk recovery when the parser handles a large file directly", () => {
+  it("does not report chunk recovery when the parser handles a large file directly", async () => {
     const content = Array.from({ length: 900 }, (_, index) =>
       `export function helper${index}(value: number): number { return value + ${index}; }`,
     ).join("\n");
 
-    const parsed = parseWithTreeSitter({
+    const parsed = await parseWithTreeSitter({
       relativePath: "src/large.ts",
       language: "ts",
       content: `${content}\n`,

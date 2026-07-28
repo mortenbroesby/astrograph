@@ -46,6 +46,9 @@ use its recorded evidence or selection gate instead.
 - [Runtime Acceleration Epic](./specs/implementation/active/10_runtime-acceleration-epic.md)
   — most urgent current focus: make repeated local MCP work faster by retaining
   daemon-owned index resources and prove it with representative measurements.
+- [WASM Parser Runtime Migration](./specs/implementation/active/11_wasm-parser-runtime-migration.md)
+  — replace the native Tree-sitter installation boundary and prove Node 20–24
+  packaged installs without consumer compiler requirements.
 
 ## Keeping this useful
 

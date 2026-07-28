@@ -1,7 +1,7 @@
-import Parser from "@astrograph/tree-sitter";
+import { Parser, type Node } from "web-tree-sitter";
 
 import type { SummarySource, SummaryStrategy, SymbolKind } from "../types.ts";
-import { LANGUAGE_ADAPTERS } from "./language-adapters.ts";
+import { getLanguageAdapter } from "./language-adapters.ts";
 import {
   buildParsedFile,
   buildSymbolId,
@@ -18,15 +18,18 @@ import {
   splitSourceIntoChunks,
 } from "./shared.ts";
 
-const parser = new Parser();
 const CHUNK_RECOVERY_FALLBACK_REASON = "tree-sitter-chunk-recovery";
+
+function isNode(node: Node | null): node is Node {
+  return node !== null;
+}
 
 function isRecoverableParseFailure(error: unknown): boolean {
   return error instanceof Error && error.message === "Invalid argument";
 }
 
 function extractLeadingCommentSummary(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
 ): string | null {
   const prefix = sourceText.slice(0, node.startIndex);
@@ -56,7 +59,7 @@ function utf8ByteOffset(sourceText: string, stringOffset: number): number {
 }
 
 function resolveSummary(input: {
-  node: Parser.SyntaxNode;
+  node: Node;
   sourceText: string;
   signature: string;
   summaryStrategy: SummaryStrategy;
@@ -94,8 +97,8 @@ const NAME_NODE_TYPES = new Set([
   "variable",
 ]);
 
-function findIdentifierDescendant(node: Parser.SyntaxNode): Parser.SyntaxNode | null {
-  for (const child of node.namedChildren) {
+function findIdentifierDescendant(node: Node): Node | null {
+  for (const child of node.namedChildren.filter(isNode)) {
     if (NAME_NODE_TYPES.has(child.type)) return child;
     const nested = findIdentifierDescendant(child);
     if (nested) return nested;
@@ -103,7 +106,7 @@ function findIdentifierDescendant(node: Parser.SyntaxNode): Parser.SyntaxNode | 
   return null;
 }
 
-function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): string | null {
+function extractIdentifierName(node: Node, sourceText: string): string | null {
   if (NAME_NODE_TYPES.has(node.type)) {
     const name = nodeText(sourceText, node.startIndex, node.endIndex);
     return node.type === "string" ? name.replace(/^"|"$/g, "") : name;
@@ -111,7 +114,7 @@ function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): str
 
   const nameNode =
     node.childForFieldName("name") ??
-    node.namedChildren.find((child) =>
+    node.namedChildren.filter(isNode).find((child) =>
       NAME_NODE_TYPES.has(child.type),
     ) ??
     null;
@@ -126,14 +129,14 @@ function extractIdentifierName(node: Parser.SyntaxNode, sourceText: string): str
 }
 
 function createSymbol(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
   relativePath: string,
   kind: SymbolKind,
   exported: boolean,
   summaryStrategy: SummaryStrategy,
   parentName?: string,
-  rangeNode: Parser.SyntaxNode = node,
+  rangeNode: Node = node,
   offset: ParseOffset = { byte: 0, line: 0 },
 ): ParsedSymbol | null {
   const name = extractIdentifierName(node, sourceText);
@@ -172,7 +175,7 @@ function createSymbol(
 }
 
 function parseImport(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
 ): ParsedImport | null {
   const sourceNode = node.childForFieldName("source");
@@ -197,7 +200,7 @@ function parseImport(
 }
 
 function ownsNode(
-  node: Parser.SyntaxNode,
+  node: Node,
   offset: ParseOffset,
   ownedLines?: OwnedLineRange,
 ): boolean {
@@ -210,17 +213,17 @@ function ownsNode(
 }
 
 function pushVariableSymbols(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
   relativePath: string,
   exported: boolean,
   summaryStrategy: SummaryStrategy,
   symbols: ParsedSymbol[],
-  rangeNode: Parser.SyntaxNode = node,
+  rangeNode: Node = node,
   offset: ParseOffset = { byte: 0, line: 0 },
   ownedLines?: OwnedLineRange,
 ) {
-  for (const declarator of node.namedChildren.filter(
+  for (const declarator of node.namedChildren.filter(isNode).filter(
     (child) => child.type === "variable_declarator",
   )) {
     if (!ownsNode(declarator, offset, ownedLines)) {
@@ -244,7 +247,7 @@ function pushVariableSymbols(
 }
 
 function pushClassMembers(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
   relativePath: string,
   className: string,
@@ -255,7 +258,7 @@ function pushClassMembers(
 ) {
   const body = node.childForFieldName("body") ?? node;
 
-  for (const child of body.namedChildren) {
+  for (const child of body.namedChildren.filter(isNode)) {
     if (
       [
         "method_definition",
@@ -287,14 +290,14 @@ function pushClassMembers(
 }
 
 function visitDeclarationNode(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
   relativePath: string,
   exported: boolean,
   summaryStrategy: SummaryStrategy,
   symbols: ParsedSymbol[],
   imports: ParsedImport[],
-  rangeNode: Parser.SyntaxNode = node,
+  rangeNode: Node = node,
   offset: ParseOffset = { byte: 0, line: 0 },
   ownedLines?: OwnedLineRange,
 ) {
@@ -507,7 +510,7 @@ function visitDeclarationNode(
 }
 
 function visitNode(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
   relativePath: string,
   exported: boolean,
@@ -523,7 +526,7 @@ function visitNode(
       if (parsedImport) {
         imports.push(parsedImport);
       }
-      for (const child of node.namedChildren) {
+      for (const child of node.namedChildren.filter(isNode)) {
         visitDeclarationNode(
           child,
           sourceText,
@@ -580,7 +583,7 @@ const STRUCTURED_DECLARATION_NODE_TYPES = new Set([
 ]);
 
 function visitStructuredNode(
-  node: Parser.SyntaxNode,
+  node: Node,
   sourceText: string,
   relativePath: string,
   summaryStrategy: SummaryStrategy,
@@ -600,13 +603,14 @@ function visitStructuredNode(
     return;
   }
 
-  for (const child of node.namedChildren) {
+  for (const child of node.namedChildren.filter(isNode)) {
     visitStructuredNode(child, sourceText, relativePath, summaryStrategy, symbols, imports);
   }
 }
 
-export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
-  const adapter = LANGUAGE_ADAPTERS[input.language];
+export async function parseWithTreeSitter(input: ParseSourceInput): Promise<ParsedFile> {
+  const adapter = await getLanguageAdapter(input.language);
+  const parser = new Parser();
   parser.setLanguage(adapter.grammar);
   const symbols: ParsedSymbol[] = [];
   const imports: ParsedImport[] = [];
@@ -614,72 +618,86 @@ export function parseWithTreeSitter(input: ParseSourceInput): ParsedFile {
   let chunkRecoveryUsed = false;
 
   try {
-    const tree = parser.parse(input.content);
-    for (const child of tree.rootNode.namedChildren) {
-      if (adapter.traversal === "javascript") {
-        visitNode(
-          child,
-          input.content,
-          input.relativePath,
-          false,
-          summaryStrategy,
-          symbols,
-          imports,
-        );
-      } else {
-        visitStructuredNode(
-          child,
-          input.content,
-          input.relativePath,
-          summaryStrategy,
-          symbols,
-          imports,
-        );
-      }
-    }
-  } catch (error) {
-    if (!isRecoverableParseFailure(error)) {
-      throw error;
-    }
-
-    chunkRecoveryUsed = true;
-    for (const chunk of splitSourceIntoChunks(input.content)) {
+    try {
+      const tree = parser.parse(input.content);
+      if (!tree) throw new Error("Tree-sitter did not produce a parse tree");
       try {
-        const tree = parser.parse(chunk.content);
-        for (const child of tree.rootNode.namedChildren) {
-          visitNode(
-            child,
-            chunk.content,
-            input.relativePath,
-            false,
-            summaryStrategy,
-            symbols,
-            imports,
-            {
-              byte: chunk.byte,
-              line: chunk.line,
-            },
-            {
-              start: chunk.start,
-              end: chunk.end,
-            },
-          );
+        for (const child of tree.rootNode.namedChildren.filter(isNode)) {
+          if (adapter.traversal === "javascript") {
+            visitNode(
+              child,
+              input.content,
+              input.relativePath,
+              false,
+              summaryStrategy,
+              symbols,
+              imports,
+            );
+          } else {
+            visitStructuredNode(
+              child,
+              input.content,
+              input.relativePath,
+              summaryStrategy,
+              symbols,
+              imports,
+            );
+          }
         }
-      } catch (chunkError) {
-        if (!isRecoverableParseFailure(chunkError)) {
-          throw chunkError;
+      } finally {
+        tree.delete();
+      }
+    } catch (error) {
+      if (!isRecoverableParseFailure(error)) {
+        throw error;
+      }
+
+      chunkRecoveryUsed = true;
+      for (const chunk of splitSourceIntoChunks(input.content)) {
+        try {
+          const tree = parser.parse(chunk.content);
+          if (!tree) throw new Error("Tree-sitter did not produce a parse tree");
+          try {
+            for (const child of tree.rootNode.namedChildren.filter(isNode)) {
+              visitNode(
+                child,
+                chunk.content,
+                input.relativePath,
+                false,
+                summaryStrategy,
+                symbols,
+                imports,
+                {
+                  byte: chunk.byte,
+                  line: chunk.line,
+                },
+                {
+                  start: chunk.start,
+                  end: chunk.end,
+                },
+              );
+            }
+          } finally {
+            tree.delete();
+          }
+        } catch (chunkError) {
+          if (!isRecoverableParseFailure(chunkError)) {
+            throw chunkError;
+          }
         }
       }
     }
-  }
 
-  return buildParsedFile({
-    language: input.language,
-    content: input.content,
-    symbols,
-    imports,
-    backend: "tree-sitter",
-    fallbackUsed: chunkRecoveryUsed,
-    fallbackReason: chunkRecoveryUsed ? CHUNK_RECOVERY_FALLBACK_REASON : null,
-  });
+    return buildParsedFile({
+      language: input.language,
+      content: input.content,
+      symbols,
+      imports,
+      backend: "tree-sitter",
+      fallbackUsed: chunkRecoveryUsed,
+      fallbackReason: chunkRecoveryUsed ? CHUNK_RECOVERY_FALLBACK_REASON : null,
+    });
+  } finally {
+    parser.delete();
+  }
 }
