@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { randomUUID } from "node:crypto";
+import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import {
@@ -1152,6 +1153,49 @@ async function verifyManagedRegistration(configPath: string, ide: "codex" | "cop
   }
 }
 
+async function verifyLocalMcpStartup(): Promise<void> {
+  const builtEntry = path.join(packageRoot, "dist", "mcp.js");
+  const sourceEntry = path.join(packageRoot, "src", "mcp.ts");
+  const child = spawn(
+    process.execPath,
+    existsSync(builtEntry)
+      ? ["--no-warnings", builtEntry]
+      : ["--no-warnings", "--import=tsx", sourceEntry],
+    { stdio: ["pipe", "pipe", "pipe"] },
+  );
+  const result = await new Promise<void>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error("Astrograph MCP startup verification timed out after 2 seconds")), 2_000);
+    const finish = (error?: Error) => {
+      clearTimeout(timer);
+      child.kill();
+      error ? reject(error) : resolve();
+    };
+    let stdout = "";
+    child.stdout.on("data", (chunk: Buffer) => {
+      stdout += chunk.toString();
+      for (const line of stdout.split("\n")) {
+        try {
+          const message = JSON.parse(line) as { id?: number; result?: unknown };
+          if (message.id === 1 && message.result) finish();
+        } catch {
+          // Wait for a complete JSON-RPC line.
+        }
+      }
+    });
+    child.once("error", (error) => finish(new Error(`Astrograph MCP startup verification failed: ${error.message}`)));
+    child.once("exit", (code) => {
+      if (code !== null) finish(new Error(`Astrograph MCP exited during startup verification (code ${code})`));
+    });
+    child.stdin.write(`${JSON.stringify({
+      jsonrpc: "2.0",
+      id: 1,
+      method: "initialize",
+      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "astrograph-installer", version: PACKAGE_VERSION } },
+    })}\n`);
+  });
+  await result;
+}
+
 export async function setupGlobalForCodex(
   options: SetupGlobalClientOptions = {},
 ): Promise<GlobalSetupResult> {
@@ -1181,6 +1225,7 @@ export async function setupGlobalForCodex(
       ], async () => {
         parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
         await verifyManagedRegistration(configPath, "codex");
+        await verifyLocalMcpStartup();
       });
       return {
         ide: "codex",
@@ -1265,6 +1310,7 @@ export async function setupGlobalForCopilotCli(
       ], async () => {
         parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
         await verifyManagedRegistration(configPath, "copilot-cli");
+        await verifyLocalMcpStartup();
       });
       return {
         ide: "copilot-cli",
@@ -1765,6 +1811,7 @@ export async function setupForIde(
       { path: engineConfigPath, current: currentEngineConfig, next: engineConfigPreview },
     ], async () => {
       await verifyManagedRegistration(finalConfigPath, ide);
+      await verifyLocalMcpStartup();
       const verifiedEngine = await readFile(engineConfigPath, "utf8");
       if (verifiedEngine !== engineConfigPreview) throw new Error(`Astrograph config verification failed for ${engineConfigPath}`);
     });
