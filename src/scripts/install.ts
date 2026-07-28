@@ -1196,6 +1196,13 @@ async function verifyLocalMcpStartup(): Promise<void> {
   await result;
 }
 
+let localMcpStartupVerifier: () => Promise<void> = verifyLocalMcpStartup;
+
+/** Test seam for proving managed writes roll back when the local server cannot start. */
+export function setLocalMcpStartupVerifierForTest(verifier: (() => Promise<void>) | null): void {
+  localMcpStartupVerifier = verifier ?? verifyLocalMcpStartup;
+}
+
 export async function setupGlobalForCodex(
   options: SetupGlobalClientOptions = {},
 ): Promise<GlobalSetupResult> {
@@ -1225,7 +1232,7 @@ export async function setupGlobalForCodex(
       ], async () => {
         parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
         await verifyManagedRegistration(configPath, "codex");
-        await verifyLocalMcpStartup();
+        await localMcpStartupVerifier();
       });
       return {
         ide: "codex",
@@ -1310,7 +1317,7 @@ export async function setupGlobalForCopilotCli(
       ], async () => {
         parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
         await verifyManagedRegistration(configPath, "copilot-cli");
-        await verifyLocalMcpStartup();
+        await localMcpStartupVerifier();
       });
       return {
         ide: "copilot-cli",
@@ -1811,7 +1818,7 @@ export async function setupForIde(
       { path: engineConfigPath, current: currentEngineConfig, next: engineConfigPreview },
     ], async () => {
       await verifyManagedRegistration(finalConfigPath, ide);
-      await verifyLocalMcpStartup();
+      await localMcpStartupVerifier();
       const verifiedEngine = await readFile(engineConfigPath, "utf8");
       if (verifiedEngine !== engineConfigPreview) throw new Error(`Astrograph config verification failed for ${engineConfigPath}`);
     });

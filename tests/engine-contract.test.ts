@@ -1,4 +1,5 @@
 import { mkdir, mkdtemp, readFile, stat, symlink, utimes, writeFile } from "node:fs/promises";
+import { spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 
@@ -59,6 +60,7 @@ import {
   uninstallManagedRegistration,
   createSanitizedIssueUrl,
   classifyInstallerFailure,
+  setLocalMcpStartupVerifierForTest,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -66,6 +68,7 @@ import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
 const tempDirs: string[] = [];
 
 afterEach(async () => {
+  setLocalMcpStartupVerifierForTest(null);
   await Promise.all(
     tempDirs.splice(0).map(async (dir) => {
       await import("node:fs/promises").then((fs) =>
@@ -76,6 +79,29 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
+  it("refuses a bare non-TTY install without writing a repository", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-non-tty-"));
+    tempDirs.push(repoRoot);
+    const entry = path.join(process.cwd(), "dist", "astrograph.js");
+    const result = spawnSync(
+      process.execPath,
+      [entry],
+      { cwd: repoRoot, encoding: "utf8", env: process.env },
+    );
+    expect(result.status).toBe(1);
+    expect(`${result.stderr}${result.stdout}`).toContain("Guided install requires a TTY");
+    await expect(stat(path.join(repoRoot, ".codex", "config.toml"))).rejects.toThrow();
+  });
+
+  it("requires explicit scope and IDE for non-interactive setup", () => {
+    const entry = path.join(process.cwd(), "src", "astrograph.ts");
+    const result = spawnSync(process.execPath, ["--import=tsx", entry, "install", "--yes"], {
+      encoding: "utf8",
+      env: { ...process.env, ASTROGRAPH_USE_SOURCE: "1" },
+    });
+    expect(result.status).toBe(1);
+    expect(`${result.stderr}${result.stdout}`).toContain("Non-interactive setup requires --yes --scope");
+  });
   it("builds an explicitly reviewable issue URL without secrets or local paths", () => {
     const url = decodeURIComponent(createSanitizedIssueUrl("token=ghp_ABCdef123 /Users/alice/project password: nope"));
     expect(url).toContain("github.com/mortenbroesby/astrograph/issues/new");
@@ -1471,6 +1497,23 @@ describe("ai-context-engine contract", () => {
     await expect(readFile(configPath, "utf8")).resolves.not.toContain("BEGIN ASTROGRAPH");
     await expect(readFile(result.backups[0]!, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
     await expect(readFile(path.join(repoRoot, "astrograph.config.ts"), "utf8")).resolves.toContain("performance");
+  });
+
+  it("restores changed files when local MCP startup verification fails", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-rollback-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    const configPath = path.join(repoRoot, ".codex", "config.toml");
+    const original = "[features]\nkeep = true\n";
+    await writeFile(configPath, original);
+    setLocalMcpStartupVerifierForTest(async () => { throw new Error("simulated MCP startup failure"); });
+
+    await expect(setupForCodex(repoRoot)).rejects.toThrow("simulated MCP startup failure");
+    await expect(readFile(configPath, "utf8")).resolves.toBe(original);
+    await expect(stat(path.join(repoRoot, "astrograph.config.ts"))).rejects.toThrow();
   });
 
   it("includes opted-in Git hook outcomes in the repository setup summary", async () => {
