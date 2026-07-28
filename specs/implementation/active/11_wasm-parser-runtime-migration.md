@@ -6,8 +6,9 @@
 **Goal:** Remove the native `tree-sitter` installation boundary while retaining
 Astrograph's existing supported-language and symbol-extraction behavior.
 
-**Architecture:** Replace the Node C++ binding with `web-tree-sitter` and
-package precompiled grammar WASM assets. Keep language adapters and symbol
+**Architecture:** Replace the Node C++ binding with `web-tree-sitter@0.25.10`
+and `tree-sitter-wasm@1.0.7`, which packages precompiled grammar WASM assets.
+Keep language adapters and symbol
 walkers as Astrograph-owned logic behind one asynchronous parser boundary;
 neither the CLI nor MCP contracts change. A grammar asset source is accepted
 only when it covers every currently supported language, has compatible
@@ -38,13 +39,21 @@ does not repair the published Linux consumer path.
 **Files:** `package.json`, `pnpm-lock.yaml`, a focused parser-fixture test,
 and this checklist.
 
-- [ ] Inventory every current adapter (Bash, C, C#, C++, CSS, embedded
+- [x] Inventory every current adapter (Bash, C, C#, C++, CSS, embedded
   templates, Go, HTML, Java, JavaScript, JSON, PHP, PowerShell, Python, Ruby,
   Rust, Scala, TypeScript, and TSX) against the candidate asset package.
 - [ ] Verify the asset licenses and package contents; the installed package
   must contain a loadable `.wasm` for every adapter with no postinstall build.
-- [ ] Add a failing focused proof that initializes the WASM runtime and parses
+- [x] Add a focused proof that initializes the WASM runtime and parses
   JavaScript plus one non-JavaScript fixture from package assets.
+
+**Implementation note (2026-07-28):** `tree-sitter-wasm@1.0.7` loads all 19
+Astrograph grammar variants (including PowerShell) through
+`web-tree-sitter@0.25.10`. The loader caches only the grammar requested by an
+indexed file. The complete asset pack is approximately 144 MB upstream, while
+Astrograph uses approximately 23 MB of its assets; extracting a smaller
+Astrograph-owned asset package is a size optimization, not a reason to retain
+the native install boundary.
 
 **Acceptance criteria:** One version-pinned asset source proves all existing
 adapters, or the migration stops and records the missing-grammar blocker rather
@@ -56,12 +65,12 @@ than silently dropping support.
 `src/tree-sitter-grammar-shims.d.ts`, callers requiring asynchronous parsing,
 and focused parser tests.
 
-- [ ] Create the smallest lazy, process-local WASM runtime initializer and
+- [x] Create the smallest lazy, process-local WASM runtime initializer and
   grammar loader; cache only initialized runtime/language values.
-- [ ] Convert the shared parser call chain to await that boundary while
+- [x] Convert the shared parser call chain to await that boundary while
   preserving adapter names, emitted symbols, imports, ranges, and fallback
   reasons.
-- [ ] Delete the native `@astrograph/tree-sitter` alias and all native grammar
+- [x] Delete the native `@astrograph/tree-sitter` alias and all native grammar
   dependencies only after the replacement parses every existing fixture.
 
 **Acceptance criteria:** Existing parser fixtures produce the same observable
@@ -72,6 +81,9 @@ symbol/import output with no Node native addon loaded.
 **Files:** package smoke script, package files/build configuration only where
 needed, Node compatibility workflow evidence, README/troubleshooting text.
 
+- [x] Assert the packed tarball contains no native Tree-sitter dependency.
+  The package manifest is checked after `pnpm pack`; runtime/grammar loading is
+  covered by the focused parser fixture suite.
 - [ ] Assert the packed tarball includes the runtime and every selected grammar
   asset, and contains no native Tree-sitter dependency.
 - [ ] Run the packed global-install smoke locally under ASDF Node 20.19 and

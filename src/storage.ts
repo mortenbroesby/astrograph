@@ -1006,7 +1006,7 @@ async function analyzeFileIndexResult(input: {
         content: file.content,
         summaryStrategy: input.summaryStrategy,
       })
-    : analyzeFileContent({
+    : await analyzeFileContent({
         relativePath: file.relativePath,
         language: file.language,
         content: file.content,

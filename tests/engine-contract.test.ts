@@ -512,8 +512,10 @@ describe("ai-context-engine contract", () => {
       node: "^20.19.0 || >=22.12.0",
     });
     expect(packageJson.dependencies).toMatchObject({
-      "@astrograph/tree-sitter": "npm:tree-sitter@0.25.0",
+      "tree-sitter-wasm": "1.0.7",
+      "web-tree-sitter": "0.25.10",
     });
+    expect(packageJson.dependencies).not.toHaveProperty("@astrograph/tree-sitter");
     expect(packageJson.dependencies).not.toHaveProperty("tree-sitter");
   });
 

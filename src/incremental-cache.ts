@@ -40,7 +40,7 @@ export interface SerializedAnalysisArtifactPayload {
   import_facts_json: string;
 }
 
-export const ANALYSIS_PARSER_VERSION = "tree-sitter-v1";
+export const ANALYSIS_PARSER_VERSION = "tree-sitter-wasm-v2";
 export const ANALYSIS_DEPENDENCY_VERSION = "dependency-edges-v1";
 
 interface StoredAnalysisArtifactRow {
