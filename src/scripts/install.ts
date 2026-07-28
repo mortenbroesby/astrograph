@@ -675,6 +675,27 @@ async function runGuidedInstall(): Promise<void> {
   }
 
   intro("Astrograph setup");
+  const readiness = await getSetupReadiness(process.cwd(), { scanFreshness: false });
+  if (readiness.ready) {
+    const action = await select({
+      message: formatSetupReadiness(readiness),
+      options: [
+        { value: "index", label: "Refresh this repository's index" },
+        { value: "setup", label: "Review or change setup" },
+        { value: "exit", label: "Exit" },
+      ],
+      initialValue: "exit",
+    });
+    if (isCancel(action) || action === "exit") {
+      outro("No changes made.");
+      return;
+    }
+    if (action === "index") {
+      await indexFolder({ repoRoot: readiness.repoRoot });
+      outro("Index refreshed.");
+      return;
+    }
+  }
   const scope = await select({
     message: "Where should Astrograph be available?",
     options: [
