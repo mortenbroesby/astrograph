@@ -100,12 +100,12 @@ dependency, background service, telemetry, or startup network request.
 - Modify: `specs/api-design/cli-api.md`
 - Test: `tests/engine-contract.test.ts`
 
-- [ ] Add `install`, bare-command, `status`, `update`, `repair`, `reconfigure`,
+- [x] Add `install`, bare-command, `status`, `update`, `repair`, `reconfigure`,
   and `uninstall` command routing with one shared option parser.
-- [ ] Define `--scope global|repository`, explicit non-interactive validation,
+- [x] Define `--scope global|repository`, explicit non-interactive validation,
   JSON result schemas, dry-run behavior, and compatibility handling for the
   existing `install --global` command.
-- [ ] Keep bare non-TTY execution read-only and concise.
+- [x] Keep bare non-TTY execution read-only and concise.
 - [ ] Add contract tests for entry-point parity, TTY refusal, explicit
   non-interactive inputs, cancellation, and JSON output.
 
@@ -130,12 +130,12 @@ accepts the source change.
 
 - [ ] Route both setup scopes through a preview/confirm model with detected
   clients presented as choices, never implicit writes.
-- [ ] Make global registration independent of the optional CLI and emit exact
+- [x] Make global registration independent of the optional CLI and emit exact
   package-version-pinned `npx` MCP commands for supported global clients.
 - [ ] Offer npm global CLI installation only after confirmation, using the
   installer version; warn—but do not fail—when another package manager is in
   use or npm's global prefix requires intervention.
-- [ ] Offer immediate indexing with repository=yes and global=no defaults.
+- [x] Offer immediate indexing with repository=yes and global=no defaults.
 - [ ] Verify no repository writes occur for device-wide setup without an index
   opt-in, and prove package smoke from a clean temporary home.
 
@@ -147,9 +147,9 @@ accepts the source change.
 - Modify: `src/scripts/smoke-package-bin.ts`
 
 - [ ] Build the read-only dashboard from existing readiness/diagnostic data.
-- [ ] Add explicit update, repair, and reconfigure actions; no automatic update
+- [x] Add explicit update, repair, and reconfigure actions; no automatic update
   check or network request occurs on ordinary launch.
-- [ ] Back up each affected user config before a managed-block edit, preserve
+- [x] Back up each affected user config before a managed-block edit, preserve
   unrelated text, and require an explicit migration for a legacy unmarked
   Astrograph entry.
 - [ ] Verify config parse plus a bounded local MCP startup before reporting
@@ -169,9 +169,9 @@ accepts the source change.
   has no preselected destructive option and uses existing safe cache controls.
 - [ ] Classify expected user/environment failures separately from Astrograph
   failures; every category has a copyable sanitized diagnostic summary.
-- [ ] Offer an explicitly consented browser issue URL only for Astrograph
+- [x] Offer an explicitly consented browser issue URL only for Astrograph
   failures. Test redaction for tokens, config values, source, and local paths.
-- [ ] Keep all recovery actions local and deterministic; never create a GitHub
+- [x] Keep all recovery actions local and deterministic; never create a GitHub
   issue or run a browser automatically.
 
 ## Task 5: Publish the user-facing path and evidence
@@ -185,7 +185,7 @@ accepts the source change.
 - Modify: `specs/implementation/roadmap.md`
 - Modify: `pointer.md`
 
-- [ ] Make `npx --yes astrograph` the one-command interactive quick start and
+- [x] Make `npx --yes astrograph` the one-command interactive quick start and
   distinguish it from the optional global CLI package.
 - [ ] Document global versus repository behavior, opt-ins, update/repair,
   uninstall scopes, diagnostics consent, privacy boundaries, and deterministic
