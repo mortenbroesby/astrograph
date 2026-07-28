@@ -42,9 +42,6 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    remains deferred and it is not authorized for implementation.
 7. [Spec System Backlog](./7_spec-system-backlog.md) — lower-impact durable
    architecture/API coverage and authoring consistency.
-8. [Local Token-Savings Analytics Epic](./9_local-token-savings-analytics-epic.md)
-   — active, deliberately local-only work to make exact savings inspectable
-   without creating tracking infrastructure.
 - [Complexity Cleanup Epic](./complexity-cleanup-epic.md) — completed
   non-pointer cleanup evidence retained outside the active delivery queue.
 

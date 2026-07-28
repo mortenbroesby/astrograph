@@ -60,10 +60,12 @@ repository structure.
 to `bench/`; root `scripts/` contains no benchmark or profiler implementation;
 representative commands preserve their exit status and JSON shape.
 
-**Known baseline exclusions:** On 2026-07-26, the aggregate perf script failed
-before and after relocation because it requests removed `query_code` intent
-`assemble`. The compact-output trace also timed out starting its isolated
-daemon in this workstation session. Neither is caused or fixed by Story 1.
+**Known baseline exclusions:** On 2026-07-27, the aggregate perf contract
+fails because `bench/scripts/perf-lib.mjs` still returns `queryCodeAssemble*`
+metrics while its callers and test expect `queryCodeSource*`; repair that
+schema mismatch in Story 6. The compact-output trace also timed out starting
+its isolated daemon in this workstation session. Neither is caused or fixed by
+Story 1.
 
 ## Story 2: Put Workflow-Only Helpers Beside Their Workflow
 

@@ -13,6 +13,24 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   and [completion checklist](./session-aware-epic-completion-delivery-checklist.md)
   — closed after PR #99 merged as `cc7ae6c`.
 
+- [Comforting Install Experience](./comforting-global-install-experience.md)
+  — closed after PR #82 made global and repository-local installation clear
+  without automatic client configuration.
+- [Guided Install and Refresh Hooks](./guided-install-and-refresh-hooks.md)
+  — closed after PR #92 added unified setup, opt-in hooks/guidance, and doctor.
+- [MCP Runtime Hygiene](./mcp-runtime-hygiene-delivery-checklist.md)
+  — closed after PR #90 added source-free process presence and shutdown cleanup.
+- [Git Ref Watch Reconciliation](./git-ref-watch-reconciliation-delivery-checklist.md)
+  — closed after PR #94 added session-bound checkout reconciliation.
+- [Local Token-Savings Analytics Epic](./local-token-savings-analytics-epic.md)
+  and [delivery checklist](./local-token-savings-analytics-delivery-checklist.md)
+  — closed after PR #101 delivered exact, local-only savings reporting.
+- [VoidZero Toolchain Epic](./voidzero-toolchain-epic.md)
+  — closed after PR #105 migrated package builds to tsdown and completed the
+  scoped runtime, alias, and Oxlint work.
+- [Legacy Global Install and Cache Deferred Handoffs](./global-install-and-cache-deferred-stories-legacy.md)
+  — superseded by the maintained planned handoff record.
+
 - [Astrograph Feedback Consolidation Epic](./astro-feedback-epic.md) and its
   [delivery checklist](./astro-feedback-delivery-checklist.md)
 - [Branch-Aware Incremental Index Epic](./branch-aware-incremental-index-epic.md),

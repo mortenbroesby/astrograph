@@ -1,5 +1,7 @@
 # Guided Install and Refresh Hooks Implementation Plan
 
+> **Status:** Done — merged in PR #92 (`f16d63b`).
+
 **Goal:** Provide one comforting interactive Astrograph onboarding flow that
 lets people choose repository-local or user-global setup, and explicitly opt
 into agent guidance and safe Git-triggered index refresh.
@@ -64,7 +66,7 @@ execa, pnpm, and Vitest.
 - [x] Apply the release policy: this backward-compatible CLI feature receives
   a minor alpha increment.
 - [x] Commit, push, and open [draft PR #92](https://github.com/mortenbroesby/astrograph/pull/92).
-- [ ] Record CI evidence before changing the active pointer again.
+- [x] Record CI evidence. Merged as PR #92 (`f16d63b`).
 
 ## Task 4: Verify the installed harness
 

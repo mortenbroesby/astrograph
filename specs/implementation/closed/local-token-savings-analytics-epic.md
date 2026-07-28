@@ -1,6 +1,6 @@
 # Local Token-Savings Analytics Epic
 
-> **Status:** Active — selected by the user on 2026-07-26.
+> **Status:** Done — delivered in PR #101 (`0f51932`).
 
 **Goal:** Let a user inspect the token savings Astrograph can prove locally,
 across all local repositories by default for global storage or for the current
@@ -59,4 +59,4 @@ storage, `cl100k_base` metrics already used by serving paths, and Vitest.
 - The report schema is documented as an offline handoff format, not an active
   telemetry service.
 
-**Delivery:** See the [active checklist](../active/6_local-token-savings-analytics-delivery-checklist.md).
+**Delivery:** See the [closed checklist](./local-token-savings-analytics-delivery-checklist.md).
