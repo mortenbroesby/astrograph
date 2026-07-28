@@ -1303,7 +1303,10 @@ describe("ai-context-engine contract", () => {
       ].join("\n"),
     );
 
-    const result = await setupForCodex(repoRoot, { dryRun: true });
+    await expect(setupForCodex(repoRoot, { dryRun: true }))
+      .rejects.toThrow(/unmarked legacy Astrograph Codex registration/i);
+
+    const result = await setupForIde(repoRoot, { ide: "codex", dryRun: true, migrateLegacy: true });
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(

@@ -60,6 +60,7 @@ interface ParsedArgs {
   nonInteractive: boolean;
   agentsPolicy: boolean;
   gitHooks: boolean;
+  migrateLegacy: boolean;
   hasExplicitArgs: boolean;
   showHelp: boolean;
 }
@@ -107,6 +108,7 @@ interface CliOptions {
   yes?: boolean;
   agents?: boolean;
   gitHooks?: boolean;
+  migrateLegacy?: boolean;
   help?: boolean;
 }
 
@@ -123,6 +125,7 @@ interface ManagedConfig {
 interface SetupForIdeOptions {
   ide?: InstallIde;
   dryRun?: boolean;
+  migrateLegacy?: boolean;
 }
 
 interface SetupForAllOptions {
@@ -130,6 +133,7 @@ interface SetupForAllOptions {
   dryRun?: boolean;
   agentsPolicy?: boolean;
   gitHooks?: boolean;
+  migrateLegacy?: boolean;
 }
 
 export interface GitHookResult {
@@ -388,6 +392,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       nonInteractive: false,
       agentsPolicy: false,
       gitHooks: false,
+      migrateLegacy: false,
       hasExplicitArgs: false,
       showHelp: true,
     };
@@ -402,6 +407,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--repo",
     "--ide",
     "--scope",
+    "--migrate-legacy",
     "--help",
     "-h",
   ]);
@@ -438,7 +444,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--json", "Print the machine-readable setup result."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined))
-    .addOption(new Option("--scope <scope>", "Setup scope: global or repository.").choices(["global", "repository"]));
+    .addOption(new Option("--scope <scope>", "Setup scope: global or repository.").choices(["global", "repository"]))
+    .addOption(new Option("--migrate-legacy", "Confirm replacement of an unmarked legacy Codex registration."));
 
   let options: CliOptions;
   try {
@@ -456,6 +463,7 @@ function parseArgs(argv: string[]): ParsedArgs {
         nonInteractive: false,
         agentsPolicy: false,
         gitHooks: false,
+        migrateLegacy: false,
         hasExplicitArgs: false,
         showHelp: true,
       };
@@ -473,6 +481,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       nonInteractive: false,
       agentsPolicy: false,
       gitHooks: false,
+      migrateLegacy: false,
       hasExplicitArgs: false,
       showHelp: true,
     };
@@ -492,6 +501,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     nonInteractive: Boolean(options.yes),
     agentsPolicy: Boolean(options.agents),
     gitHooks: Boolean(argv.includes("--git-hooks")),
+    migrateLegacy: Boolean(argv.includes("--migrate-legacy")),
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("agents") ||
@@ -541,6 +551,7 @@ async function promptForSetupArgs(): Promise<{
   json: boolean;
   agentsPolicy: boolean;
   gitHooks: boolean;
+  migrateLegacy: boolean;
 }> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
@@ -574,6 +585,17 @@ async function promptForSetupArgs(): Promise<{
 
   if (isCancel(ide) || typeof ide !== "string") {
     outro("Setup cancelled.");
+    process.exit(0);
+  }
+
+  const codexConfig = path.join(resolvedRepo, ".codex", "config.toml");
+  const legacyCodex = (ide === "codex" || ide === "all")
+    && /^\[mcp_servers\.astrograph\][\s\S]*?(?=^\[(?!mcp_servers\.astrograph\b).+\]|\Z)/m.test(await readFile(codexConfig, "utf8").catch(() => ""));
+  const migrateLegacy = legacyCodex
+    ? await confirm({ message: "A legacy unmarked Astrograph Codex registration was found. Replace that registration and save a backup?", initialValue: false })
+    : false;
+  if (isCancel(migrateLegacy) || migrateLegacy === false && legacyCodex) {
+    outro("Setup cancelled. No files were changed.");
     process.exit(0);
   }
 
@@ -617,6 +639,7 @@ async function promptForSetupArgs(): Promise<{
     json: false,
     agentsPolicy: Boolean(agentsPolicy),
     gitHooks: Boolean(gitHooks),
+    migrateLegacy: Boolean(migrateLegacy),
   };
 }
 
@@ -656,6 +679,7 @@ async function runGuidedInstall(): Promise<void> {
       dryRun: args.dryRun,
       agentsPolicy: args.agentsPolicy,
       gitHooks: args.gitHooks,
+      migrateLegacy: args.migrateLegacy,
     });
     outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));
     return;
@@ -1100,7 +1124,7 @@ export async function setupGlobalForCopilotCli(
   };
 }
 
-function replaceManagedBlock(contents: string, block: string): string {
+function replaceManagedBlock(contents: string, block: string, migrateLegacy = false): string {
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     return contents.replace(
       new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"),
@@ -1112,6 +1136,9 @@ function replaceManagedBlock(contents: string, block: string): string {
     /^\[mcp_servers\.astrograph\][\s\S]*?(?=^\[(?!mcp_servers\.astrograph\b).+\]|\Z)/m;
 
   if (legacyBlockPattern.test(contents)) {
+    if (!migrateLegacy) {
+      throw new Error("Found an unmarked legacy Astrograph Codex registration. Review it, then re-run with --migrate-legacy to replace only that registration.");
+    }
     return contents.replace(legacyBlockPattern, `${block}\n\n`);
   }
 
@@ -1478,11 +1505,12 @@ function resolveManagedConfig(
   ide: InstallIde,
   repoRoot: string,
   currentContents: string,
+  migrateLegacy = false,
 ): ManagedConfig {
   if (ide === "codex") {
     return {
       configPath: path.join(repoRoot, ".codex", "config.toml"),
-      nextContents: replaceManagedBlock(currentContents, astrographConfigBlock()),
+      nextContents: replaceManagedBlock(currentContents, astrographConfigBlock(), migrateLegacy),
     };
   }
 
@@ -1550,7 +1578,7 @@ export async function uninstallManagedRegistration(
 
 export async function setupForIde(
   repoRoot: string,
-  { ide = "codex", dryRun = false }: SetupForIdeOptions = {},
+  { ide = "codex", dryRun = false, migrateLegacy = false }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
   const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "");
@@ -1562,6 +1590,7 @@ export async function setupForIde(
     ide,
     resolvedRepoRoot,
     currentContents,
+    migrateLegacy,
   );
 
   if (!dryRun) {
@@ -1624,6 +1653,7 @@ export async function setupForAllIdes(
     dryRun = false,
     agentsPolicy = false,
     gitHooks = false,
+    migrateLegacy = false,
   }: SetupForAllOptions = {},
 ): Promise<SetupResult | SetupResult[]> {
   const normalizedIdes = validateIdes({ ides }).ides;
@@ -1638,7 +1668,7 @@ export async function setupForAllIdes(
 
   const results: SetupResult[] = [];
   for (const ide of normalizedIdes) {
-    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun });
+    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun, migrateLegacy });
     const agentsPolicyResult = await writeAgentsPolicy(
       resolvedRepoRoot,
       dryRun,
@@ -1693,6 +1723,7 @@ async function runLifecycle(action: "update" | "repair" | "reconfigure" | "unins
       dryRun: parsed.dryRun,
       agentsPolicy: parsed.agentsPolicy,
       gitHooks: parsed.gitHooks,
+      migrateLegacy: parsed.migrateLegacy,
     });
   process.stdout.write(parsed.json
     ? `${JSON.stringify({ action, result }, null, 2)}\n`
@@ -1827,6 +1858,7 @@ async function main(): Promise<void> {
       json: normalizedArgs.json,
       agentsPolicy: normalizedArgs.agentsPolicy,
       gitHooks: normalizedArgs.gitHooks,
+      migrateLegacy: normalizedArgs.migrateLegacy,
     }
     : await promptForSetupArgs();
 
@@ -1840,6 +1872,7 @@ async function main(): Promise<void> {
     dryRun: args.dryRun,
     agentsPolicy: args.agentsPolicy,
     gitHooks: args.gitHooks,
+    migrateLegacy: args.migrateLegacy,
   });
 
   if (progress) {
