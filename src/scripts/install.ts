@@ -46,6 +46,7 @@ const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
+const ISSUE_URL = "https://github.com/mortenbroesby/astrograph/issues/new";
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
@@ -173,6 +174,29 @@ export interface GlobalInstallationDiagnostics {
   };
   clients: Array<{ ide: "copilot-cli" | "codex"; configPath: string; configured: boolean }>;
   nextStep: string;
+}
+
+export function createSanitizedIssueUrl(
+  message: string,
+  context: { action?: string; ide?: string; scope?: string } = {},
+): string {
+  const sanitized = message
+    .replace(/(?:ghp|github_pat|npm)_[A-Za-z0-9_\-]+/g, "[redacted]")
+    .replace(/(?:token|password|secret|authorization)\s*[=:]\s*\S+/gi, "$1=[redacted]")
+    .replace(/(?:\/Users\/[^\s:]+|\/home\/[^\s:]+|[A-Z]:\\[^\s:]+)/g, "[local-path]")
+    .replace(/\s+/g, " ")
+    .slice(0, 500);
+  const body = [
+    "<!-- Generated locally after explicit diagnostics consent. Review before submitting. -->",
+    `Astrograph: ${PACKAGE_VERSION}`,
+    `Node: ${process.versions.node}`,
+    `Platform: ${process.platform} ${process.arch}`,
+    `Action: ${context.action ?? "install"}`,
+    `Scope: ${context.scope ?? "unknown"}`,
+    `Client: ${context.ide ?? "unknown"}`,
+    `Failure: ${sanitized}`,
+  ].join("\n");
+  return `${ISSUE_URL}?${new URLSearchParams({ title: "Installer failure", body }).toString()}`;
 }
 
 type SetupClient = "codex" | "copilot" | "copilot-cli";
@@ -1732,6 +1756,16 @@ async function runLifecycle(action: "update" | "repair" | "reconfigure" | "unins
 
 async function main(): Promise<void> {
   const argv = process.argv.slice(2);
+  if (argv[0] === "--report-issue") {
+    if (!argv.includes("--diagnostics-consent")) {
+      throw new Error("Issue reporting requires explicit --diagnostics-consent. Astrograph never opens a browser or creates an issue automatically.");
+    }
+    const messageIndex = argv.indexOf("--message");
+    const message = messageIndex >= 0 ? argv[messageIndex + 1] : "Unexpected installer failure";
+    if (!message) throw new Error("--report-issue requires a value after --message.");
+    process.stdout.write(`${createSanitizedIssueUrl(message)}\n`);
+    return;
+  }
   if (argv[0] === "--lifecycle") {
     const action = argv[1];
     if (action !== "update" && action !== "repair" && action !== "reconfigure" && action !== "uninstall") {

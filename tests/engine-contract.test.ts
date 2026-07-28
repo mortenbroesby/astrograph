@@ -57,6 +57,7 @@ import {
   getSetupReadiness,
   formatSetupReadiness,
   uninstallManagedRegistration,
+  createSanitizedIssueUrl,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -74,6 +75,14 @@ afterEach(async () => {
 });
 
 describe("ai-context-engine contract", () => {
+  it("builds an explicitly reviewable issue URL without secrets or local paths", () => {
+    const url = decodeURIComponent(createSanitizedIssueUrl("token=ghp_ABCdef123 /Users/alice/project password: nope"));
+    expect(url).toContain("github.com/mortenbroesby/astrograph/issues/new");
+    expect(url).toContain("[redacted]");
+    expect(url).toContain("[local-path]");
+    expect(url).not.toContain("ghp_ABCdef123");
+    expect(url).not.toContain("/Users/alice/project");
+  });
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
 
