@@ -829,7 +829,7 @@ async function runGuidedInstall(): Promise<void> {
     return;
   }
   const shouldInstallGlobalCli = await confirm({
-    message: "Also install the optional `astrograph` command globally?",
+    message: "Also install the optional `astrograph` command globally with npm? This may need npm prefix/PATH attention if you use another package manager.",
     initialValue: false,
   });
   if (isCancel(shouldInstallGlobalCli)) {
@@ -848,9 +848,15 @@ async function runGuidedInstall(): Promise<void> {
 
   const progress = spinner();
   progress.start("Connecting your selected client…");
+  let optionalCliWarning = "";
   if (shouldInstallGlobalCli) {
     progress.message("Installing the optional global Astrograph command…");
-    runProcess("npm", ["install", "--global", `${PACKAGE_NAME}@${PACKAGE_VERSION}`], { stdio: "inherit" });
+    try {
+      runProcess("npm", ["install", "--global", `${PACKAGE_NAME}@${PACKAGE_VERSION}`], { stdio: "inherit" });
+    } catch {
+      // ponytail: package-manager-specific repair belongs in npm; the MCP registration remains usable without a global shell command.
+      optionalCliWarning = "The optional npm global command could not be installed. Your MCP registration is still usable; check npm's global prefix or PATH if you want the `astrograph` shell command.";
+    }
   }
   const result = ide === "codex"
     ? await setupGlobalForCodex()
@@ -858,11 +864,11 @@ async function runGuidedInstall(): Promise<void> {
   progress.stop("Global setup ready");
   const shouldIndex = await confirm({ message: "Also create an index for this repository now?", initialValue: false });
   if (isCancel(shouldIndex)) {
-    outro(formatGlobalInstallation(result));
+    outro([formatGlobalInstallation(result), optionalCliWarning].filter(Boolean).join("\n\n"));
     return;
   }
   if (shouldIndex) await indexFolder({ repoRoot: resolveRepoRoot(process.cwd()) });
-  outro(formatGlobalInstallation(result));
+  outro([formatGlobalInstallation(result), optionalCliWarning].filter(Boolean).join("\n\n"));
 }
 
 function parseJsonFromString(raw: string, configPath: string): InstalledObject {

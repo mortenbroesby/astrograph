@@ -21,6 +21,12 @@ during setup. It does not check for updates at startup and does not depend on a
 global executable. Use the explicit `update` command when you choose to refresh
 the registration.
 
+The guided global flow can also install the optional shell command with npm. It
+asks first and never makes the MCP registration depend on that step: if npm's
+global prefix or PATH needs attention, setup warns and leaves the registration
+usable. This is especially relevant when the repository uses pnpm, Yarn, or
+another package manager.
+
 On macOS, global setup stores `config.json` under `~/.astrograph` and creates
 `~/.astrograph/cache` when a repository is first indexed. Pre-v1 releases do
 not retain or migrate the former Library cache/config locations.
