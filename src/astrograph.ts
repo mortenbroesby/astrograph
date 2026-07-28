@@ -32,6 +32,8 @@ function usage() {
     "  astrograph install --global [--ide copilot-cli|codex] [--dry-run] [--json]",
     "  astrograph status [--repo /abs/repo] [--json]",
     "  astrograph doctor [--repo /abs/repo] [--json]",
+    "  astrograph update|repair|reconfigure --yes --scope global|repository --ide codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run] [--json]",
+    "  astrograph uninstall --yes --scope global|repository --ide codex|copilot|copilot-cli [--repo /abs/repo] [--dry-run] [--json]",
     "  astrograph install --ide codex",
   ].join("\n") + "\n",
 );
@@ -52,7 +54,7 @@ const sourceTarget =
       ? path.join(packageRoot, "src", "mcp.ts")
       : mode === "git-refresh"
         ? path.join(packageRoot, "src", "scripts", "git-smart-refresh.ts")
-        : mode === "install" || mode === "doctor" || mode === "status" || mode === "--diagnostics"
+        : mode === "install" || mode === "doctor" || mode === "status" || mode === "update" || mode === "repair" || mode === "reconfigure" || mode === "uninstall" || mode === "--diagnostics"
           ? path.join(packageRoot, "src", "scripts", "install.ts")
           : null;
 const distTarget =
@@ -62,7 +64,7 @@ const distTarget =
       ? path.join(packageRoot, "dist", "mcp.js")
       : mode === "git-refresh"
         ? path.join(packageRoot, "dist", "scripts", "git-smart-refresh.js")
-        : mode === "install" || mode === "doctor" || mode === "status" || mode === "--diagnostics"
+        : mode === "install" || mode === "doctor" || mode === "status" || mode === "update" || mode === "repair" || mode === "reconfigure" || mode === "uninstall" || mode === "--diagnostics"
           ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 
@@ -84,6 +86,8 @@ const commandArgs = mode === "cache"
     ? ["--doctor", ...args]
     : mode === "status"
       ? ["--status", ...args]
+      : mode === "update" || mode === "repair" || mode === "reconfigure" || mode === "uninstall"
+        ? ["--lifecycle", mode, ...args]
     : args;
 if (mode === "cache" && !["status", "remove", "prune", "restore"].includes(args[0] ?? "")) {
   usage();

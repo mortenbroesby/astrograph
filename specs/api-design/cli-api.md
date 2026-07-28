@@ -19,6 +19,11 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph status --repo <path>` is the read-only lifecycle status surface;
   it returns the same setup readiness in human or `--json` form without a
   freshness scan or configuration write.
+- `astrograph update`, `repair`, and `reconfigure` require `--yes`, `--scope`,
+  and `--ide`; they deliberately rewrite only Astrograph-managed registration.
+- `astrograph uninstall` has the same explicit selectors and removes only the
+  selected MCP registration. It leaves package installation and index/cache
+  data untouched.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
   status, including the persisted checkout identity that last populated the
   selected cache (or `checkout: null` before indexing). `astrograph cache

@@ -17,6 +17,12 @@ Get a more direct recovery report:
 npx astrograph cli doctor --repo /absolute/path/to/repo
 ```
 
+For a fast read-only view of configured clients and index state, use:
+
+```bash
+npx --yes astrograph status --repo /absolute/path/to/repo
+```
+
 In practice, `doctor` is the fastest way to understand what Astrograph thinks
 is wrong and what command it wants you to run next.
 
@@ -108,9 +114,23 @@ The first removal command is a dry-run. It only targets the selected
 repository’s user-private global cache; no MCP tool can remove cache data.
 Global Codex and Copilot CLI setup is user-level: do not create repo-local
 `astrograph.config.*`, `.codex`, or `.mcp.json` files merely to repair a
-globally installed setup. Re-run `astrograph install --global --ide codex` or
-`astrograph install --global --ide copilot-cli` for the harness you use, then
+globally installed setup. Run `astrograph repair --yes --scope global --ide codex`
+or `astrograph repair --yes --scope global --ide copilot-cli` for the harness you use, then
 use `cache status` or `doctor` for the repository you opened.
+
+### Problem: installation changed a client configuration unexpectedly
+
+Astrograph only changes its marker-owned Codex block or its `astrograph` JSON
+server entry. Before a change, it saves a timestamped copy beside the affected
+config under `.astrograph-backups`. To remove only a registration without
+deleting index data, run:
+
+```bash
+npx --yes astrograph uninstall --yes --scope global --ide codex
+```
+
+Use `--scope repository --repo /absolute/path/to/repo` for a project-owned
+registration. Cache/index deletion is deliberately a separate operation.
 
 ### Problem: parser health is incomplete on older indexed files
 

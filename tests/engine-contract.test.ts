@@ -56,6 +56,7 @@ import {
   setupGitRefreshHooks,
   getSetupReadiness,
   formatSetupReadiness,
+  uninstallManagedRegistration,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -942,8 +943,8 @@ describe("ai-context-engine contract", () => {
         unrelated: { command: "keep" },
         astrograph: {
           type: "local",
-          command: "astrograph",
-          args: ["mcp"],
+          command: "npx",
+          args: ["-y", "--package", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`, "astrograph", "mcp"],
           env: {},
           tools: expect.arrayContaining([
             "get_project_status",
@@ -957,6 +958,8 @@ describe("ai-context-engine contract", () => {
     expect(JSON.parse(await readFile(first.engineConfigPath, "utf8"))).toEqual({
       storageLocation: "global",
     });
+    expect(first.backups).toHaveLength(1);
+    await expect(readFile(first.backups[0]!, "utf8")).resolves.toContain("unrelated");
   });
 
   it("explains global setup without exposing managed configuration contents", async () => {
@@ -1421,6 +1424,30 @@ describe("ai-context-engine contract", () => {
     const postCommit = result.find((hook) => hook.hook === "post-commit");
     expect(postCommit).toMatchObject({ updated: false, reason: "not installed because another tool owns this hook" });
     await expect(readFile(hookPath, "utf8")).resolves.toContain("owned-by-another-tool");
+  });
+
+  it("removes only the selected managed registration and leaves other config intact", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-uninstall-registration-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    const configPath = path.join(repoRoot, ".codex", "config.toml");
+    await writeFile(configPath, "[features]\nkeep = true\n");
+    await setupForCodex(repoRoot);
+
+    const result = await uninstallManagedRegistration(repoRoot, {
+      scope: "repository",
+      ide: "codex",
+    });
+
+    expect(result.changed).toBe(true);
+    expect(result.backups).toHaveLength(1);
+    await expect(readFile(configPath, "utf8")).resolves.toContain("[features]");
+    await expect(readFile(configPath, "utf8")).resolves.not.toContain("BEGIN ASTROGRAPH");
+    await expect(readFile(result.backups[0]!, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+    await expect(readFile(path.join(repoRoot, "astrograph.config.ts"), "utf8")).resolves.toContain("performance");
   });
 
   it("includes opted-in Git hook outcomes in the repository setup summary", async () => {

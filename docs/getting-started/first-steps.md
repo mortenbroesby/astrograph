@@ -35,16 +35,16 @@ you want project-owned configuration that collaborators can review.
 Useful explicit targets:
 
 ```bash
-npx astrograph install --ide copilot-cli
-npx astrograph install --ide codex
-npx astrograph install --ide copilot
-npx astrograph install --ide all
+npx --yes astrograph install --yes --scope global --ide copilot-cli
+npx --yes astrograph install --yes --scope global --ide codex
+npx --yes astrograph install --yes --scope repository --ide copilot
+npx --yes astrograph install --yes --scope repository --ide all
 ```
 
 For non-interactive setup:
 
 ```bash
-npx astrograph install --yes --repo /absolute/path/to/repo
+npx --yes astrograph install --yes --scope repository --ide codex --repo /absolute/path/to/repo
 ```
 
 ## 3. Create the Initial Index
