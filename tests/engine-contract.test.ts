@@ -1076,7 +1076,7 @@ describe("ai-context-engine contract", () => {
     expect(output).toContain("Preview complete — no files were changed.");
     expect(output).toContain(`Astrograph ${ASTROGRAPH_PACKAGE_VERSION} is connected to Codex.`);
     expect(output).toContain("One private, isolated index per repository");
-    expect(output).toContain("astrograph install --global --ide codex");
+    expect(output).toContain("astrograph install --yes --scope global --ide codex");
     expect(output).not.toContain(result.configPreview);
   });
 
@@ -1445,6 +1445,24 @@ describe("ai-context-engine contract", () => {
 
     expect(result.stateReset).toBe(true);
     await expect(readFile(staleFile)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("replaces malformed Codex TOML only with an explicit reset and keeps a backup", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-malformed-toml-"));
+    tempDirs.push(repoRoot);
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    const configPath = path.join(repoRoot, ".codex", "config.toml");
+    await writeFile(configPath, '[features]\nkeep = ["unterminated"\n');
+    setLocalMcpStartupVerifierForTest(async () => {});
+
+    await expect(setupForIde(repoRoot, { ide: "codex" }))
+      .rejects.toThrow(/Invalid Codex config.*troubleshooting/i);
+
+    const result = await setupForIde(repoRoot, { ide: "codex", reset: true });
+    expect(result.backups).toHaveLength(1);
+    await expect(readFile(configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+    await expect(readFile(configPath, "utf8")).resolves.not.toContain("[features]");
+    await expect(readFile(result.backups[0]!, "utf8")).resolves.toContain("unterminated");
   });
 
   it("replaces malformed Astrograph JSON config only with an explicit reset", async () => {

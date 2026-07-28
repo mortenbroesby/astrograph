@@ -19,8 +19,8 @@ describe("global package installation message", () => {
     const output = runPostInstall({ npm_config_global: "true", npm_config_location: undefined });
 
     expect(output).toMatch(/Astrograph v\d+\.\d+\.\d+-alpha\.\d+ installed globally\./);
-    expect(output).toContain("astrograph install --global --ide codex");
-    expect(output).toContain("astrograph install --global --ide copilot-cli");
+    expect(output).toContain("astrograph install --yes --scope global --ide codex");
+    expect(output).toContain("astrograph install --yes --scope global --ide copilot-cli");
   });
 
   it("stays silent for local dependency installation", () => {

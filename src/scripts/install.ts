@@ -49,6 +49,7 @@ const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
 const ISSUE_URL = "https://github.com/mortenbroesby/astrograph/issues/new";
+const TROUBLESHOOTING_URL = "https://github.com/mortenbroesby/astrograph/blob/main/docs/guides/troubleshooting.md";
 
 type InstallIde = (typeof ALL_INSTALL_IDES)[number];
 type RequestedIde = InstallIde | "all";
@@ -132,6 +133,8 @@ interface SetupForIdeOptions {
   ide?: InstallIde;
   dryRun?: boolean;
   reset?: boolean;
+  /** Internal coordination so an all-client reset archives state exactly once. */
+  resetState?: boolean;
 }
 
 interface SetupForAllOptions {
@@ -288,7 +291,7 @@ export function formatGlobalInstallation(
   options: { dryRun?: boolean } = {},
 ): string {
   const client = result.ide === "codex" ? "Codex" : "GitHub Copilot CLI";
-  const command = `astrograph install --global --ide ${result.ide}`;
+  const command = `astrograph install --yes --scope global --ide ${result.ide}`;
   const heading = options.dryRun
     ? "Preview complete — no files were changed."
     : "Astrograph is ready.";
@@ -460,7 +463,7 @@ export async function getGlobalInstallationDiagnostics(
     ],
     nextStep: storageLocation === "global" && await managedJsonServerExists(copilotConfigPath, "mcpServers")
       ? "Open Copilot CLI in a repository and use Astrograph normally; run index_folder when that repository has no index."
-      : "Run astrograph install --global to register Astrograph for Copilot CLI and enable isolated global cache storage.",
+      : "Run astrograph install --yes --scope global --ide copilot-cli to register Astrograph and enable isolated global cache storage.",
   };
 }
 
@@ -679,13 +682,15 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
-  const codexConfig = path.join(resolvedRepo, ".codex", "config.toml");
-  const legacyCodex = (ide === "codex" || ide === "all")
-    && /^\[mcp_servers\.astrograph\][\s\S]*?(?=^\[(?!mcp_servers\.astrograph\b).+\]|\Z)/m.test(await readFile(codexConfig, "utf8").catch(() => ""));
-  const reset = legacyCodex
-    ? await confirm({ message: "Astrograph found obsolete setup that cannot be migrated. Replace Astrograph's registration, back up the config, and rebuild Astrograph state?", initialValue: false })
+  const selectedIdes = validateIdes({ ides: [ide as RequestedIde] }).ides;
+  const resetReason = await findResetRequirement(resolvedRepo, selectedIdes);
+  const reset = resetReason
+    ? await confirm({
+      message: `Astrograph needs a clean reset because ${resetReason}. It cannot migrate pre-1.0 setup. Back up changed config, replace only Astrograph's registration where safe, and rebuild Astrograph state?`,
+      initialValue: false,
+    })
     : false;
-  if (isCancel(reset) || reset === false && legacyCodex) {
+  if (isCancel(reset) || reset === false && resetReason) {
     outro("Setup cancelled. No files were changed.");
     process.exit(0);
   }
@@ -744,10 +749,45 @@ async function promptForSetupArgs(): Promise<{
   };
 }
 
+async function findResetRequirement(repoRoot: string, ides: InstallIde[]): Promise<string | null> {
+  for (const ide of ides) {
+    const { configPath } = resolveManagedConfig(ide, repoRoot, "");
+    const currentContents = await readFile(configPath, "utf8").catch(() => "");
+    try {
+      resolveManagedConfig(ide, repoRoot, currentContents, false);
+    } catch (error) {
+      return error instanceof Error ? error.message.replace(/\s*See https:\/\/\S+$/, "") : "the existing setup is invalid";
+    }
+  }
+  return null;
+}
+
+function resetRequirementFromError(error: unknown): string | null {
+  const message = error instanceof Error ? error.message : String(error);
+  return /(?:version does not match|obsolete unmarked|Invalid (?:JSON|Codex) config)/i.test(message)
+    ? message.replace(/\s*See https:\/\/\S+$/, "")
+    : null;
+}
+
+async function findGlobalResetRequirement(ide: "codex" | "copilot-cli"): Promise<string | null> {
+  try {
+    if (ide === "codex") {
+      await setupGlobalForCodex({ dryRun: true });
+    } else {
+      await setupGlobalForCopilotCli({ dryRun: true });
+    }
+    return null;
+  } catch (error) {
+    const resetReason = resetRequirementFromError(error);
+    if (resetReason) return resetReason;
+    throw error;
+  }
+}
+
 async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
-      "Guided install requires a TTY. Use `astrograph install --yes` for repository setup or `astrograph install --global --ide codex|copilot-cli` for global setup.",
+      "Guided install requires a TTY. Use `astrograph install --yes --scope repository --ide codex` for repository setup or `astrograph install --yes --scope global --ide codex|copilot-cli` for global setup.",
     );
   }
 
@@ -814,9 +854,22 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
         outro(result.changed ? "Registration removed. Index and cache data were left untouched." : "No managed registration was found.");
         return;
       }
+      const resetReason = targetScope === "global"
+        ? await findGlobalResetRequirement(targetIde as "codex" | "copilot-cli")
+        : await findResetRequirement(readiness.repoRoot, [targetIde]);
+      const reset = resetReason
+        ? await confirm({
+          message: `Astrograph needs a clean reset because ${resetReason}. It cannot migrate pre-1.0 setup. Replace Astrograph-owned configuration/state now?`,
+          initialValue: false,
+        })
+        : false;
+      if (isCancel(reset) || reset === false && resetReason) {
+        outro("No changes made.");
+        return;
+      }
       const result = targetScope === "global"
-        ? targetIde === "codex" ? await setupGlobalForCodex() : await setupGlobalForCopilotCli()
-        : await setupForAllIdes(readiness.repoRoot, { ides: [targetIde] });
+        ? targetIde === "codex" ? await setupGlobalForCodex({ reset: Boolean(reset) }) : await setupGlobalForCopilotCli({ reset: Boolean(reset) })
+        : await setupForAllIdes(readiness.repoRoot, { ides: [targetIde], reset: Boolean(reset) });
       outro(targetScope === "global"
         ? formatGlobalInstallation(result as GlobalSetupResult)
         : formatRepositoryInstallation(result as SetupResult | SetupResult[]));
@@ -884,9 +937,28 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
     return;
   }
 
-  const globalPreview = ide === "codex"
-    ? await setupGlobalForCodex({ dryRun: true })
-    : await setupGlobalForCopilotCli({ dryRun: true });
+  let globalReset = false;
+  let globalPreview: GlobalSetupResult;
+  try {
+    globalPreview = ide === "codex"
+      ? await setupGlobalForCodex({ dryRun: true })
+      : await setupGlobalForCopilotCli({ dryRun: true });
+  } catch (error) {
+    const resetReason = resetRequirementFromError(error);
+    if (!resetReason) throw error;
+    const confirmedReset = await confirm({
+      message: `Astrograph needs a clean reset because ${resetReason}. It cannot migrate pre-1.0 setup. Replace Astrograph-owned configuration/state now?`,
+      initialValue: false,
+    });
+    if (isCancel(confirmedReset) || confirmedReset === false) {
+      outro("Setup cancelled. No client configuration was changed.");
+      return;
+    }
+    globalReset = true;
+    globalPreview = ide === "codex"
+      ? await setupGlobalForCodex({ dryRun: true, reset: true })
+      : await setupGlobalForCopilotCli({ dryRun: true, reset: true });
+  }
   process.stdout.write(`\nReview (no files changed):\n- ${globalPreview.configPath}\n- ${globalPreview.engineConfigPath}\n`);
 
   const confirmWrite = await confirm({
@@ -932,8 +1004,8 @@ async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<vo
     process.stdout.write(`${formatInstallPhase(2, totalPhases, "Updating Astrograph configuration")}\n`);
   }
   const result = ide === "codex"
-    ? await setupGlobalForCodex()
-    : await setupGlobalForCopilotCli();
+    ? await setupGlobalForCodex({ reset: globalReset })
+    : await setupGlobalForCopilotCli({ reset: globalReset });
   progress.stop("Global setup ready");
   process.stdout.write(`${formatInstallPhase(totalPhases, totalPhases, "Verifying the registration")}\n`);
   const shouldIndex = await confirm({ message: "Also create an index for this repository now?", initialValue: false });
@@ -1215,6 +1287,7 @@ async function writeManagedConfigs(entries: ManagedConfigWrite[], verify?: () =>
 async function verifyManagedRegistration(configPath: string, ide: "codex" | "copilot" | "copilot-cli"): Promise<void> {
   const contents = await readFile(configPath, "utf8");
   if (ide === "codex") {
+    assertTomlStructurallyValid(contents, configPath);
     if (!contents.includes(MARKER_BEGIN) || !contents.includes(MARKER_END)) {
       throw new Error(`Managed Codex registration verification failed for ${configPath}`);
     }
@@ -1224,6 +1297,42 @@ async function verifyManagedRegistration(configPath: string, ide: "codex" | "cop
   const servers = parsed[ide === "copilot" ? "servers" : "mcpServers"];
   if (!servers || typeof servers !== "object" || Array.isArray(servers) || !(MCP_SERVER_NAME in servers)) {
     throw new Error(`Managed ${ide} registration verification failed for ${configPath}`);
+  }
+}
+
+/**
+ * Detect the structural TOML failures that make it unsafe to append a managed
+ * block. This deliberately is not a permissive legacy parser: an uncertain
+ * file is reset only after the caller has explicitly confirmed replacement.
+ */
+function assertTomlStructurallyValid(contents: string, configPath: string): void {
+  let quote: '"' | "'" | null = null;
+  let escaped = false;
+  const delimiters: string[] = [];
+  for (const character of contents) {
+    if (quote) {
+      if (quote === '"' && escaped) {
+        escaped = false;
+      } else if (quote === '"' && character === "\\") {
+        escaped = true;
+      } else if (character === quote) {
+        quote = null;
+      }
+      continue;
+    }
+    if (character === '"' || character === "'") {
+      quote = character;
+    } else if (character === "[" || character === "{") {
+      delimiters.push(character);
+    } else if (character === "]" || character === "}") {
+      const opening = delimiters.pop();
+      if ((character === "]" && opening !== "[") || (character === "}" && opening !== "{")) {
+        throw new Error(`Invalid Codex config ${path.basename(configPath)}: unmatched ${character}. See ${TROUBLESHOOTING_URL}`);
+      }
+    }
+  }
+  if (quote || delimiters.length > 0) {
+    throw new Error(`Invalid Codex config ${path.basename(configPath)}: unterminated string or value. See ${TROUBLESHOOTING_URL}`);
   }
 }
 
@@ -1418,6 +1527,12 @@ export async function setupGlobalForCopilotCli(
 }
 
 function replaceManagedBlock(contents: string, block: string, reset = false): string {
+  try {
+    assertTomlStructurallyValid(contents, "config.toml");
+  } catch (error) {
+    if (!reset) throw error;
+    return `${block}\n`;
+  }
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     const currentBlock = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0] ?? "";
     if (!currentBlock.includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
@@ -1895,7 +2010,7 @@ export async function uninstallManagedRegistration(
 
 export async function setupForIde(
   repoRoot: string,
-  { ide = "codex", dryRun = false, reset = false }: SetupForIdeOptions = {},
+  { ide = "codex", dryRun = false, reset = false, resetState = true }: SetupForIdeOptions = {},
 ): Promise<SetupResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
   const { configPath } = resolveManagedConfig(ide, resolvedRepoRoot, "");
@@ -1921,7 +2036,7 @@ export async function setupForIde(
       const verifiedEngine = await readFile(engineConfigPath, "utf8");
       if (verifiedEngine !== engineConfigPreview) throw new Error(`Astrograph config verification failed for ${engineConfigPath}`);
     });
-    const stateReset = reset ? (await resetAstrographStorage(resolvedRepoRoot)).changed : false;
+    const stateReset = reset && resetState ? (await resetAstrographStorage(resolvedRepoRoot)).changed : false;
     return {
       ide,
       repoRoot: resolvedRepoRoot,
@@ -1993,7 +2108,7 @@ export async function setupForAllIdes(
 
   const results: SetupResult[] = [];
   for (const ide of normalizedIdes) {
-    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun, reset });
+    const result = await setupForIde(resolvedRepoRoot, { ide, dryRun, reset, resetState: false });
     const agentsPolicyResult = await writeAgentsPolicy(
       resolvedRepoRoot,
       dryRun,
@@ -2012,6 +2127,11 @@ export async function setupForAllIdes(
       agentsPolicyPreview: agentsPolicyResult.agentsPolicyPreview,
       gitHooks: hookResults,
     });
+  }
+
+  if (reset && !dryRun && results.length > 0) {
+    const stateReset = await resetAstrographStorage(resolvedRepoRoot);
+    results[0] = { ...results[0]!, stateReset: stateReset.changed };
   }
 
   return normalizedIdes.length === 1 ? results[0] : results;
@@ -2126,36 +2246,7 @@ async function main(): Promise<void> {
     return;
   }
   if (argv.includes("--global")) {
-    const allowed = new Set(["--global", "--ide", "codex", "copilot-cli", "--dry-run", "--json"]);
-    if (argv.some((entry) => !allowed.has(entry))) {
-      throw new Error("astrograph install --global accepts only --ide copilot-cli|codex, --dry-run, and --json.");
-    }
-    const ideIndex = argv.indexOf("--ide");
-    const ide = ideIndex >= 0 ? argv[ideIndex + 1] : DEFAULT_GLOBAL_INSTALL_IDE;
-    if (ide !== "codex" && ide !== "copilot-cli") {
-      throw new Error("astrograph install --global currently supports only --ide codex or --ide copilot-cli");
-    }
-    const dryRun = argv.includes("--dry-run");
-    const json = argv.includes("--json");
-    const interactive = !json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
-    const progress = interactive ? spinner() : null;
-    if (progress) {
-      process.stdout.write(`\n${formatInstallPhase(1, 2, dryRun ? "Validating the setup preview" : "Updating Astrograph configuration")}\n`);
-      progress.start(dryRun ? `Previewing ${ide} setup…` : `Connecting Astrograph to ${ide}…`);
-    }
-    const result = ide === "copilot-cli"
-      ? await setupGlobalForCopilotCli({ dryRun })
-      : await setupGlobalForCodex({ dryRun });
-    if (progress) {
-      progress.stop(dryRun ? "Preview ready" : "Connection ready");
-      process.stdout.write(`${formatInstallPhase(2, 2, dryRun ? "Finishing the preview" : "Verifying the registration")}\n`);
-      outro(formatGlobalInstallation(result, { dryRun }));
-    } else if (json) {
-      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
-    } else {
-      process.stdout.write(`${formatGlobalInstallation(result, { dryRun })}\n`);
-    }
-    return;
+    throw new Error("The pre-1.0 `--global` setup alias has been removed. Use `astrograph install --yes --scope global --ide codex|copilot-cli`.");
   }
 
   const parsed = parseArgs(argv);

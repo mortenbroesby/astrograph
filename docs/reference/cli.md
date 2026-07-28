@@ -165,7 +165,7 @@ branch/head/worktree identity, diagnostic, and indexed time.
 For a globally installed Codex or Copilot CLI client, use these recovery
 commands before editing or deleting cache files manually. They operate on the
 selected repository's isolated global cache, not a shared cross-repository
-index. Re-run the matching `astrograph install --global --ide ...` command to
+index. Re-run the matching `astrograph install --yes --scope global --ide ...` command to
 repair a managed client entry without changing unrelated user configuration.
 
 ```bash
