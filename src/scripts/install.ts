@@ -1069,6 +1069,7 @@ function resolveManagedInvocation(): ManagedInvocation {
 function createMinimalTsConfig(): string {
   return [
     "export default {",
+    '  storageLocation: "repo-local",',
     "  performance: {",
     '    exclude: ["node_modules/**", "dist/**", "coverage/**", ".git/**"],',
     "  },",

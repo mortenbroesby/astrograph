@@ -1433,6 +1433,20 @@ describe("ai-context-engine contract", () => {
       .resolves.toMatchObject({ packageVersion: ASTROGRAPH_PACKAGE_VERSION });
   });
 
+  it("archives Astrograph-owned state during an explicit setup reset", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-state-reset-"));
+    tempDirs.push(repoRoot);
+    const staleFile = path.join(repoRoot, ".astrograph", "stale.txt");
+    await mkdir(path.dirname(staleFile), { recursive: true });
+    await writeFile(staleFile, "obsolete");
+    setLocalMcpStartupVerifierForTest(async () => {});
+
+    const result = await setupForIde(repoRoot, { ide: "codex", reset: true });
+
+    expect(result.stateReset).toBe(true);
+    await expect(readFile(staleFile)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
   it("replaces malformed Astrograph JSON config only with an explicit reset", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-malformed-json-"));
     tempDirs.push(repoRoot);
