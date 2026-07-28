@@ -582,7 +582,7 @@ async function resolveRepoRoot(repoRoot: string): Promise<string> {
   return cachedResolution;
 }
 
-async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy) {
+async function resolveStorageConfig(repoRoot: string, summaryStrategy?: SummaryStrategy) {
   const resolvedRepoRoot = await resolveRepoRoot(repoRoot);
   const repoConfig = await loadRepoEngineConfig(resolvedRepoRoot, {
     repoRootResolved: true,
@@ -607,6 +607,11 @@ async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy
     maxChildProcessOutputBytes: repoConfig.limits.maxChildProcessOutputBytes,
     maxLiveSearchMatches: repoConfig.limits.maxLiveSearchMatches,
   });
+  return config;
+}
+
+async function ensureStorage(repoRoot: string, summaryStrategy?: SummaryStrategy) {
+  const config = await resolveStorageConfig(repoRoot, summaryStrategy);
   if (!getLruEntry(ensuredStorageRoots, config.paths.storageDir)) {
     await mkdir(config.paths.storageDir, { recursive: true });
     await ensureStorageVersion(config);
@@ -2633,7 +2638,9 @@ export async function getSymbolSource(input: {
 }
 
 export async function diagnostics(input: DiagnosticsOptions): Promise<DiagnosticsResult> {
-  const config = await ensureStorage(input.repoRoot);
+  const config = input.readOnly
+    ? await resolveStorageConfig(input.repoRoot)
+    : await ensureStorage(input.repoRoot);
   const db = openDatabase(config.paths.databasePath);
   const repoRoot = config.repoRoot;
 

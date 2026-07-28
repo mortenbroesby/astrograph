@@ -1610,7 +1610,11 @@ export async function getSetupReadiness(
   const [codexContents, hooksDirectory, indexOutcome] = await Promise.all([
     readFile(codexConfigPath, "utf8").catch(() => ""),
     Promise.resolve(resolveGitHooksDirectory(resolvedRepoRoot)),
-    diagnostics({ repoRoot: resolvedRepoRoot, scanFreshness: options.scanFreshness ?? true })
+    diagnostics({
+      repoRoot: resolvedRepoRoot,
+      scanFreshness: options.scanFreshness ?? true,
+      readOnly: options.scanFreshness === false,
+    })
       .then((result) => ({ result, error: null }))
       .catch((error) => ({ result: null, error: error instanceof Error ? error.message : String(error) })),
   ]);

@@ -103,6 +103,17 @@ describe("ai-context-engine contract", () => {
     expect(result.status).toBe(1);
     expect(`${result.stderr}${result.stdout}`).toContain("Non-interactive setup requires --yes --scope");
   });
+
+  it("keeps the fast setup dashboard read-only when no index exists", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-status-read-only-"));
+    tempDirs.push(repoRoot);
+    await import("node:child_process").then(({ execFileSync }) => {
+      execFileSync("git", ["init"], { cwd: repoRoot, stdio: "ignore" });
+    });
+    const result = await getSetupReadiness(repoRoot, { scanFreshness: false });
+    expect(result.index.status).toBe("unavailable");
+    await expect(stat(path.join(repoRoot, ".astrograph"))).rejects.toThrow();
+  });
   it("builds an explicitly reviewable issue URL without secrets or local paths", () => {
     const url = decodeURIComponent(createSanitizedIssueUrl("token=ghp_ABCdef123 /Users/alice/project password: nope"));
     expect(url).toContain("github.com/mortenbroesby/astrograph/issues/new");
