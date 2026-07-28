@@ -690,6 +690,16 @@ async function promptForSetupArgs(): Promise<{
     process.exit(0);
   }
 
+  const preview = await setupForAllIdes(resolvedRepo, {
+    ides: [ide as RequestedIde],
+    dryRun: true,
+    agentsPolicy: Boolean(agentsPolicy),
+    gitHooks: Boolean(gitHooks),
+    migrateLegacy: Boolean(migrateLegacy),
+  });
+  const previewResults = Array.isArray(preview) ? preview : [preview];
+  process.stdout.write(`\nReview (no files changed):\n${previewResults.map((result) => `- ${result.configPath}\n- ${result.engineConfigPath}`).join("\n")}\n`);
+
   const confirmWrite = await confirm({
     message: `Review complete. Write the managed ${String(ide)} setup to ${resolvedRepo}?`,
     initialValue: true,
@@ -849,6 +859,11 @@ async function runGuidedInstall(): Promise<void> {
     outro("Setup cancelled. No client configuration was changed.");
     return;
   }
+
+  const globalPreview = ide === "codex"
+    ? await setupGlobalForCodex({ dryRun: true })
+    : await setupGlobalForCopilotCli({ dryRun: true });
+  process.stdout.write(`\nReview (no files changed):\n- ${globalPreview.configPath}\n- ${globalPreview.engineConfigPath}\n`);
 
   const confirmWrite = await confirm({
     message: `Review complete. Write the managed ${String(ide)} registration?`,
