@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { constants as fsConstants, accessSync, existsSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
 import {
   isCancel,
@@ -21,8 +21,6 @@ import { diagnostics } from "../index.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import { runProcess } from "../lib/process.ts";
-import { fetchLatestNpmVersion } from "../lib/npm-registry.ts";
-import { compareGenericPackageVersions, normalizeGenericPackageVersion } from "../version.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
@@ -54,6 +52,7 @@ type InstalledObject = Record<string, unknown>;
 
 interface ParsedArgs {
   ides: RequestedIde[] | null;
+  scope: "global" | "repository" | null;
   repo: string;
   dryRun: boolean;
   json: boolean;
@@ -99,6 +98,7 @@ interface SetupResult {
 
 interface CliOptions {
   ide?: string;
+  scope?: string;
   dryRun?: boolean;
   json?: boolean;
   repo?: string;
@@ -296,34 +296,6 @@ interface AgentsPolicyResult {
   agentsPolicyPreview?: string;
 }
 
-async function resolveLatestAstrographVersion(): Promise<string | null> {
-  try {
-    const latest = await fetchLatestNpmVersion({ packageName: PACKAGE_NAME, timeoutMs: 2_500 });
-    return normalizeGenericPackageVersion(latest);
-  } catch {
-    return null;
-  }
-}
-
-async function emitUpdateSuggestion(currentVersion: string): Promise<void> {
-  const latest = await resolveLatestAstrographVersion();
-  const comparison = latest === null ? null : compareGenericPackageVersions(latest, currentVersion);
-  if (comparison === null || comparison <= 0) {
-    return;
-  }
-
-  const suggestion = `npm install ${PACKAGE_NAME}@latest`;
-  process.stderr.write(
-    `A newer Astrograph version is available: ${latest} (current: ${currentVersion}).\n` +
-    `To update, run: ${suggestion}\n` +
-      `If you see stale behavior after update, clear local state and rebuild index:\n` +
-      `  Git Bash: rm -rf .astrograph\n` +
-      `  PowerShell: Remove-Item -Recurse -Force .astrograph\n` +
-      `  cmd.exe: rmdir /s /q .astrograph\n` +
-      `  astrograph install --yes\n`,
-  );
-}
-
 function usage(): void {
   process.stderr.write(
     [
@@ -404,6 +376,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   if (argv.includes("--help") || argv.includes("-h")) {
     return {
       ides: null,
+      scope: null,
       repo: process.cwd(),
       dryRun: false,
       json: false,
@@ -423,6 +396,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--json",
     "--repo",
     "--ide",
+    "--scope",
     "--help",
     "-h",
   ]);
@@ -458,7 +432,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--dry-run", "Preview changes only."))
     .addOption(new Option("--json", "Print the machine-readable setup result."))
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
-    .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined));
+    .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined))
+    .addOption(new Option("--scope <scope>", "Setup scope: global or repository.").choices(["global", "repository"]));
 
   let options: CliOptions;
   try {
@@ -469,6 +444,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     if (commanderError.code === "commander.helpDisplayed") {
       return {
         ides: null,
+        scope: null,
         repo: process.cwd(),
         dryRun: false,
         json: false,
@@ -485,6 +461,7 @@ function parseArgs(argv: string[]): ParsedArgs {
   if (options.help) {
     return {
       ides: null,
+      scope: null,
       repo: process.cwd(),
       dryRun: false,
       json: false,
@@ -503,6 +480,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     ides: hasFlag("ide")
       ? parseIdeSelections(options.ide)
       : null,
+    scope: options.scope === "global" || options.scope === "repository" ? options.scope : null,
     repo: options.repo ?? process.cwd(),
     dryRun: Boolean(options.dryRun),
     json: Boolean(options.json),
@@ -516,7 +494,8 @@ function parseArgs(argv: string[]): ParsedArgs {
       hasFlag("dry-run") ||
       hasFlag("json") ||
       hasFlag("repo") ||
-      hasFlag("ide"),
+      hasFlag("ide") ||
+      hasFlag("scope"),
     showHelp: false,
   };
 }
@@ -680,22 +659,24 @@ async function runGuidedInstall(): Promise<void> {
     outro("Setup cancelled.");
     return;
   }
-  const shouldInstall = await confirm({
-    message: `Install or update Astrograph globally, then connect ${ide === "codex" ? "Codex" : "GitHub Copilot CLI"}?`,
-    initialValue: true,
+  const shouldInstallGlobalCli = await confirm({
+    message: "Also install the optional `astrograph` command globally?",
+    initialValue: false,
   });
-  if (isCancel(shouldInstall) || shouldInstall === false) {
-    outro("Setup cancelled. No package or client configuration was changed.");
+  if (isCancel(shouldInstallGlobalCli)) {
+    outro("Setup cancelled. No client configuration was changed.");
     return;
   }
 
   const progress = spinner();
-  progress.start("Installing Astrograph globally…");
-  runProcess("npm", ["install", "--global", `${PACKAGE_NAME}@latest`], { stdio: "inherit" });
-  progress.message("Connecting your selected client…");
+  progress.start("Connecting your selected client…");
+  if (shouldInstallGlobalCli) {
+    progress.message("Installing the optional global Astrograph command…");
+    runProcess("npm", ["install", "--global", `${PACKAGE_NAME}@${PACKAGE_VERSION}`], { stdio: "inherit" });
+  }
   const result = ide === "codex"
-    ? await setupGlobalForCodex({ executableAvailable: true })
-    : await setupGlobalForCopilotCli({ executableAvailable: true });
+    ? await setupGlobalForCodex()
+    : await setupGlobalForCopilotCli();
   progress.stop("Global setup ready");
   outro(formatGlobalInstallation(result));
 }
@@ -874,7 +855,7 @@ function hasLocalAstrographDependency(repoRoot: string): boolean {
 function resolveManagedInvocation(): ManagedInvocation {
   return {
     command: "npx",
-    args: ["-y", "--package", `${PACKAGE_NAME}@latest`, "astrograph", "mcp"],
+    args: ["-y", "--package", `${PACKAGE_NAME}@${PACKAGE_VERSION}`, "astrograph", "mcp"],
   };
 }
 
@@ -914,10 +895,12 @@ function globalAstrographConfigBlock(): string {
   const toolApprovals = MCP_TOOLS.map((tool) =>
     `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
   ).join("\n\n");
+  const invocation = resolveManagedInvocation();
+  const args = invocation.args.map((arg) => `"${arg}"`).join(", ");
   return `${MARKER_BEGIN}
 [mcp_servers.astrograph]
-command = "astrograph"
-args = ["mcp"]
+command = "${invocation.command}"
+args = [${args}]
 startup_timeout_sec = 90
 enabled_tools = [${enabledTools}]
 
@@ -949,35 +932,12 @@ function parseGlobalConfig(contents: string, configPath: string): Record<string,
   }
 }
 
-function globalExecutableIsAvailable(environment: StoragePathEnvironment): boolean {
-  const env = environment.env ?? process.env;
-  const pathValue = env.PATH;
-  if (!pathValue) return false;
-  const extensions = process.platform === "win32" ? [".cmd", ".exe", ".bat", ""] : [""];
-  return pathValue.split(path.delimiter).some((entry) =>
-    extensions.some((extension) => {
-      const candidate = path.join(entry, `astrograph${extension}`);
-      try {
-        accessSync(candidate, fsConstants.X_OK);
-        return true;
-      } catch {
-        return false;
-      }
-    }),
-  );
-}
-
 function assertGlobalInstallPrerequisites(
   options: SetupGlobalClientOptions,
-  ide: "codex" | "copilot-cli",
 ): void {
   const nodeVersion = options.nodeVersion ?? process.versions.node;
   if (!nodeVersionSupported(nodeVersion)) {
     throw new Error(`Astrograph global install requires Node.js 20.19+ or >=22.12.0; found ${nodeVersion}. Install a supported Node release and retry.`);
-  }
-  const executableAvailable = options.executableAvailable ?? globalExecutableIsAvailable(options.environment ?? {});
-  if (!executableAvailable) {
-    throw new Error(`Cannot find \`astrograph\` on PATH. Install it with \`npm install --global astrograph\`, open a new shell, then rerun \`astrograph install --global --ide ${ide}\`.`);
   }
 }
 
@@ -994,7 +954,7 @@ export async function setupGlobalForCodex(
   options: SetupGlobalClientOptions = {},
 ): Promise<GlobalSetupResult> {
   const { dryRun = false, environment = {} } = options;
-  assertGlobalInstallPrerequisites({ ...options, environment }, "codex");
+  assertGlobalInstallPrerequisites({ ...options, environment });
   const configPath = resolveGlobalCodexConfigPath(environment);
   const engineConfigPath = resolveGlobalConfigPath(environment);
   const currentCodexConfig = await readOptionalConfig(configPath);
@@ -1058,7 +1018,7 @@ export async function setupGlobalForCopilotCli(
   options: SetupGlobalClientOptions = {},
 ): Promise<GlobalSetupResult> {
   const { dryRun = false, environment = {} } = options;
-  assertGlobalInstallPrerequisites({ ...options, environment }, "copilot-cli");
+  assertGlobalInstallPrerequisites({ ...options, environment });
   const configPath = resolveGlobalCopilotCliConfigPath(environment);
   const engineConfigPath = resolveGlobalConfigPath(environment);
   const currentCopilotConfig = await readOptionalConfig(configPath);
@@ -1660,6 +1620,25 @@ async function main(): Promise<void> {
     return;
   }
 
+  if (parsed.nonInteractive && (!parsed.scope || !parsed.ides?.length)) {
+    throw new Error("Non-interactive setup requires --yes --scope global|repository --ide codex|copilot|copilot-cli.");
+  }
+
+  if (parsed.nonInteractive && parsed.scope === "global") {
+    if (parsed.ides?.length !== 1 || (parsed.ides[0] !== "codex" && parsed.ides[0] !== "copilot-cli")) {
+      throw new Error("Global setup supports exactly one --ide value: codex or copilot-cli.");
+    }
+    const result = parsed.ides[0] === "codex"
+      ? await setupGlobalForCodex({ dryRun: parsed.dryRun })
+      : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun });
+    if (parsed.json) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${formatGlobalInstallation(result, { dryRun: parsed.dryRun })}\n`);
+    }
+    return;
+  }
+
   const normalizedArgs: ParsedArgs = {
     ...parsed,
     ides: parsed.ides || [...DEFAULT_INSTALL_IDES],
@@ -1689,7 +1668,6 @@ async function main(): Promise<void> {
     gitHooks: args.gitHooks,
   });
 
-  await emitUpdateSuggestion(PACKAGE_VERSION);
   if (progress) {
     progress.stop(args.dryRun ? "Preview ready" : "Repository ready");
     outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));

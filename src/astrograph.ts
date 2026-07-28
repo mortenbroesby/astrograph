@@ -36,7 +36,8 @@ function usage() {
 );
 }
 
-const [mode, ...args] = process.argv.slice(2);
+const [providedMode, ...args] = process.argv.slice(2);
+const mode = providedMode || "install";
 
 if (mode === "--version" || mode === "-v") {
   process.stdout.write(`${packageVersion}\n`);

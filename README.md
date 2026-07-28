@@ -53,7 +53,7 @@ when you want the deeper model.
 In the repository you want to explore:
 
 ```bash
-npx astrograph install
+npx --yes astrograph
 ```
 
 Choose your AI client when prompted, restart it, then let it ask Astrograph for

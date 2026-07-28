@@ -876,7 +876,7 @@ describe("ai-context-engine contract", () => {
     expect(result.configPreview).toContain("[mcp_servers.astrograph]");
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
+      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
     );
   });
 
@@ -893,13 +893,15 @@ describe("ai-context-engine contract", () => {
     await mkdir(path.dirname(codexConfigPath), { recursive: true });
     await writeFile(codexConfigPath, "[mcp_servers.unrelated]\ncommand = \"keep\"\n");
 
-    const first = await setupGlobalForCodex({ environment, executableAvailable: true });
-    const second = await setupGlobalForCodex({ environment, executableAvailable: true });
+    const first = await setupGlobalForCodex({ environment });
+    const second = await setupGlobalForCodex({ environment });
 
     expect(first.configPath).toBe(codexConfigPath);
     expect(second.configPreview).toBe(first.configPreview);
-    expect(first.configPreview).toContain('command = "astrograph"');
-    expect(first.configPreview).toContain('args = ["mcp"]');
+    expect(first.configPreview).toContain('command = "npx"');
+    expect(first.configPreview).toContain(
+      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
+    );
     expect(first.configPreview).toContain('"get_project_status"');
     expect(first.configPreview).toContain('"find_files"');
     expect(first.configPreview).toContain('"search_text"');
@@ -1250,8 +1252,7 @@ describe("ai-context-engine contract", () => {
     }))
       .resolves.toMatchObject({ ide: "codex" });
     await expect(setupGlobalForCodex({ environment, executableAvailable: false }))
-      .rejects.toThrow(/Cannot find `astrograph` on PATH.*npm install --global astrograph/i);
-    await expect(readFile(path.join(homeDir, ".codex", "config.toml"))).rejects.toMatchObject({ code: "ENOENT" });
+      .resolves.toMatchObject({ ide: "codex" });
   });
 
   it("reports an unwritable global configuration location before registration is written", async () => {
@@ -1303,7 +1304,7 @@ describe("ai-context-engine contract", () => {
 
     expect(result.configPreview).toContain('command = "npx"');
     expect(result.configPreview).toContain(
-      'args = ["-y", "--package", "astrograph@latest", "astrograph", "mcp"]',
+      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
     );
     expect(result.configPreview.match(/\[mcp_servers\.astrograph\]/g)).toHaveLength(1);
     expect(result.configPreview).toContain("# END ASTROGRAPH\n\n[features]");

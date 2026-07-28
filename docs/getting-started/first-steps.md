@@ -13,7 +13,7 @@ npm install -D astrograph
 If you just want to initialize once:
 
 ```bash
-npx astrograph install
+npx --yes astrograph
 ```
 
 ## 2. Configure MCP
@@ -21,7 +21,7 @@ npx astrograph install
 Run the installer:
 
 ```bash
-npx astrograph install
+npx --yes astrograph
 ```
 
 That writes MCP configuration for your chosen client and preserves unrelated
