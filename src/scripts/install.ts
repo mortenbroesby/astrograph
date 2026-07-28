@@ -177,6 +177,18 @@ export interface GlobalInstallationDiagnostics {
   nextStep: string;
 }
 
+export function installOptionalGlobalCli(
+  runner: typeof runProcess = runProcess,
+): string | null {
+  try {
+    runner("npm", ["install", "--global", `${PACKAGE_NAME}@${PACKAGE_VERSION}`], { stdio: "inherit" });
+    return null;
+  } catch {
+    // ponytail: package-manager-specific repair belongs in npm; the MCP registration remains usable without a global shell command.
+    return "The optional npm global command could not be installed. Your MCP registration is still usable; check npm's global prefix or PATH if you want the `astrograph` shell command.";
+  }
+}
+
 export function createSanitizedIssueUrl(
   message: string,
   context: { action?: string; ide?: string; scope?: string } = {},
@@ -852,12 +864,7 @@ async function runGuidedInstall(): Promise<void> {
   let optionalCliWarning = "";
   if (shouldInstallGlobalCli) {
     progress.message("Installing the optional global Astrograph command…");
-    try {
-      runProcess("npm", ["install", "--global", `${PACKAGE_NAME}@${PACKAGE_VERSION}`], { stdio: "inherit" });
-    } catch {
-      // ponytail: package-manager-specific repair belongs in npm; the MCP registration remains usable without a global shell command.
-      optionalCliWarning = "The optional npm global command could not be installed. Your MCP registration is still usable; check npm's global prefix or PATH if you want the `astrograph` shell command.";
-    }
+    optionalCliWarning = installOptionalGlobalCli() ?? "";
   }
   const result = ide === "codex"
     ? await setupGlobalForCodex()

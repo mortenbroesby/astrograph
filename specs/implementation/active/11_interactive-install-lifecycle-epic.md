@@ -132,11 +132,11 @@ accepts the source change.
   clients presented as choices, never implicit writes.
 - [x] Make global registration independent of the optional CLI and emit exact
   package-version-pinned `npx` MCP commands for supported global clients.
-- [ ] Offer npm global CLI installation only after confirmation, using the
+- [x] Offer npm global CLI installation only after confirmation, using the
   installer version; warn—but do not fail—when another package manager is in
   use or npm's global prefix requires intervention.
 - [x] Offer immediate indexing with repository=yes and global=no defaults.
-- [ ] Verify no repository writes occur for device-wide setup without an index
+- [x] Verify no repository writes occur for device-wide setup without an index
   opt-in, and prove package smoke from a clean temporary home.
 
 ## Task 3: Add status, update, repair, and reversible managed writes
@@ -146,15 +146,15 @@ accepts the source change.
 - Modify: `tests/engine-contract.test.ts`
 - Modify: `src/scripts/smoke-package-bin.ts`
 
-- [ ] Build the read-only dashboard from existing readiness/diagnostic data.
+- [x] Build the read-only dashboard from existing readiness/diagnostic data.
 - [x] Add explicit update, repair, and reconfigure actions; no automatic update
   check or network request occurs on ordinary launch.
 - [x] Back up each affected user config before a managed-block edit, preserve
   unrelated text, and require an explicit migration for a legacy unmarked
   Astrograph entry.
-- [ ] Verify config parse plus a bounded local MCP startup before reporting
+- [x] Verify config parse plus a bounded local MCP startup before reporting
   success; restore backups on verification failure.
-- [ ] Test idempotency, unrelated-config preservation, legacy migration,
+- [x] Test idempotency, unrelated-config preservation, legacy migration,
   backup creation, rollback, and an optional CLI failure that leaves a valid
   registration intact.
 
@@ -165,9 +165,9 @@ accepts the source change.
 - Modify: `tests/engine-contract.test.ts`
 - Modify: `docs/guides/troubleshooting.md`
 
-- [ ] Implement granular uninstall preview and confirmation. Cache/index data
+- [x] Implement granular uninstall preview and confirmation. Cache/index data
   has no preselected destructive option and uses existing safe cache controls.
-- [ ] Classify expected user/environment failures separately from Astrograph
+- [x] Classify expected user/environment failures separately from Astrograph
   failures; every category has a copyable sanitized diagnostic summary.
 - [x] Offer an explicitly consented browser issue URL only for Astrograph
   failures. Test redaction for tokens, config values, source, and local paths.
@@ -187,7 +187,7 @@ accepts the source change.
 
 - [x] Make `npx --yes astrograph` the one-command interactive quick start and
   distinguish it from the optional global CLI package.
-- [ ] Document global versus repository behavior, opt-ins, update/repair,
+- [x] Document global versus repository behavior, opt-ins, update/repair,
   uninstall scopes, diagnostics consent, privacy boundaries, and deterministic
   non-interactive commands.
 - [ ] Add one end-to-end packaged smoke scenario for first setup, rerun,

@@ -61,6 +61,7 @@ import {
   createSanitizedIssueUrl,
   classifyInstallerFailure,
   setLocalMcpStartupVerifierForTest,
+  installOptionalGlobalCli,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -119,6 +120,20 @@ describe("ai-context-engine contract", () => {
     const fatal = classifyInstallerFailure(new Error("Managed registration verification failed unexpectedly"));
     expect(fatal.kind).toBe("astrograph");
     expect(fatal.nextStep).toContain("--diagnostics-consent");
+  });
+
+  it("does not make a valid registration depend on the optional global CLI", async () => {
+    const warning = installOptionalGlobalCli(() => {
+      throw new Error("simulated npm prefix failure");
+    });
+    expect(warning).toContain("registration is still usable");
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-config-"));
+    tempDirs.push(homeDir, configHome);
+    const registration = await setupGlobalForCodex({
+      environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
+    });
+    await expect(readFile(registration.configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
   });
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
