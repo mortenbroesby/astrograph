@@ -165,6 +165,25 @@ If setup succeeded but retrieval still feels empty, the next command to try is:
 npx astrograph cli index-folder --repo /absolute/path/to/repo
 ```
 
+## Reporting an Astrograph Installer Defect
+
+Most setup errors are local conditions: an unsupported Node version, a missing
+client, an invalid configuration file, or a permission problem. Astrograph
+prints an actionable next step for those errors; do not file an issue that
+contains configuration contents or credentials.
+
+For a reproducible Astrograph-owned installer failure, you can explicitly
+generate a browser-only, copyable issue link:
+
+```bash
+astrograph report-issue --diagnostics-consent --message "short failure summary"
+```
+
+The command does not open a browser or create an issue. It prints a URL that
+you can inspect, copy, or discard. The generated text includes only the
+Astrograph and Node versions, platform, and a redacted failure summary; it
+removes common token/password forms and local paths before building the URL.
+
 ## If You Installed Astrograph Locally
 
 If `astrograph` is not on your shell `PATH`, prefer `npx astrograph ...`

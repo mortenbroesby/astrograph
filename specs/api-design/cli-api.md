@@ -24,6 +24,10 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph uninstall` has the same explicit selectors and removes only the
   selected MCP registration. It leaves package installation and index/cache
   data untouched.
+- `astrograph report-issue --diagnostics-consent --message <summary>` returns
+  a sanitized GitHub issue URL only after affirmative consent. It cannot open a
+  browser or create an issue and excludes paths, config contents, and common
+  credential forms.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
   status, including the persisted checkout identity that last populated the
   selected cache (or `checkout: null` before indexing). `astrograph cache

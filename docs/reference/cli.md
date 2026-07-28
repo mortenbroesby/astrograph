@@ -56,6 +56,9 @@ invocation path in your environment.
 - `astrograph uninstall --yes --scope global|repository --ide ...`
   Removes only the selected Astrograph MCP registration. It leaves the optional
   global CLI and all index/cache data untouched.
+- `astrograph report-issue --diagnostics-consent --message <summary>`
+  Prints a sanitized, prefilled browser issue URL after explicit consent. It
+  never opens a browser, sends diagnostics, or creates a GitHub issue.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`
