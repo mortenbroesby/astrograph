@@ -27,9 +27,11 @@ turns those focuses into an exclusive execution gate.
 2. [MCP Runtime Hygiene Delivery Checklist](./active/mcp-runtime-hygiene-delivery-checklist.md)
    - Goal: make abandoned stdio MCP processes visible and release
      process-lifetime resources during normal shutdown.
-3. [Comforting Install Experience](./active/2_comforting-global-install-experience.md)
-   - Goal: make global and repository-local setup understandable without
-     hidden configuration writes.
+3. [Interactive Install Lifecycle Epic](./active/11_interactive-install-lifecycle-epic.md)
+   - Goal: make setup, update, repair, diagnostics, and removal one
+     understandable lifecycle with explicit opt-ins and reversible writes.
+   - Architecture: exact pinned `npx` MCP registrations, optional global CLI,
+     no background network work, and verified managed-block edits.
 4. [Git Ref Watch Reconciliation](./active/3_git-ref-watch-reconciliation-delivery-checklist.md)
    - Goal: reconcile an active watch session when its Git checkout identity
      advances or changes without dependable filesystem events.
