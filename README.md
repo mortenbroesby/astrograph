@@ -53,7 +53,7 @@ when you want the deeper model.
 In the repository you want to explore:
 
 ```bash
-npx astrograph install
+npx --yes astrograph
 ```
 
 Choose your AI client when prompted, restart it, then let it ask Astrograph for
@@ -64,13 +64,14 @@ your selected client, and keeps one private index per repository. Choose
 collaborators can review.
 
 Before it writes anything, Astrograph asks which scope and client you want, then
-shows the next step. Choose the recommended options and confirm to set it up for
-every repository on this device.
+shows the next step. Repository setup offers initial indexing by default;
+device-wide setup offers it only as an opt-in, so it leaves the current
+repository untouched unless you choose otherwise.
 
-Use the explicit version for automation:
+For deterministic automation, name the scope and client explicitly:
 
 ```bash
-npx astrograph install --yes --ide copilot-cli --repo /absolute/path/to/repo
+npx --yes astrograph install --yes --scope repository --ide copilot-cli --repo /absolute/path/to/repo
 ```
 
 New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
@@ -118,13 +119,14 @@ outline, a symbol, verified source, or a bounded task-context bundle.
 Install once for Copilot CLI or Codex across repositories:
 
 ```bash
-npm install --global astrograph@latest
-astrograph install --global --ide copilot-cli
+npx --yes astrograph
 ```
 
 This adds one user-level MCP registration and keeps a separate private cache
-for each repository. It does not modify repositories. For Codex, replace
-`copilot-cli` with `codex`.
+for each repository. It does not modify repositories unless you explicitly opt
+into indexing the current one. Installing `astrograph` globally is an optional
+convenience offered by the guide; the MCP registration itself uses a pinned
+package invocation and does not depend on your PATH.
 
 ## 🧪 Evidence, Not Promises
 

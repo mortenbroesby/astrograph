@@ -19,16 +19,13 @@ use its recorded evidence or selection gate instead.
   Checklist](./specs/implementation/active/mcp-runtime-hygiene-delivery-checklist.md)
   — finish review/merge evidence for visible stdio MCP processes and clean
   process-lifetime shutdown.
-- [Comforting Install Experience](./specs/implementation/active/2_comforting-global-install-experience.md)
-  — finish the remaining delivery/PR evidence for understandable global and
-  repository-local setup.
+- [Interactive Install Lifecycle Epic](./specs/implementation/active/11_interactive-install-lifecycle-epic.md)
+  — selected by the user: deliver one explicit, reversible lifecycle for setup,
+  update, repair, diagnostics, and removal.
 - [Git Ref Watch Reconciliation Delivery
   Checklist](./specs/implementation/active/3_git-ref-watch-reconciliation-delivery-checklist.md)
   — keep active watch sessions correct when Git checkout identity changes
   without dependable filesystem events.
-- [Guided Install and Refresh Hooks](./specs/implementation/active/3_guided-install-and-refresh-hooks.md)
-  — simplify setup to one install command, make integrations opt-in, and
-  verify harness readiness before relying on it.
 - [Local Daemon Runtime Ownership Delivery
   Checklist](./specs/implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
   — run one user-local, on-demand daemon that owns isolated repository runtime
