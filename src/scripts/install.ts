@@ -1955,6 +1955,9 @@ async function main(): Promise<void> {
     const messageIndex = argv.indexOf("--message");
     const message = messageIndex >= 0 ? argv[messageIndex + 1] : "Unexpected installer failure";
     if (!message) throw new Error("--report-issue requires a value after --message.");
+    if (classifyInstallerFailure(message).kind !== "astrograph") {
+      throw new Error("This looks like a local setup problem, not an Astrograph installer failure. Follow the suggested recovery step or run `astrograph doctor` instead.");
+    }
     process.stdout.write(`${createSanitizedIssueUrl(message)}\n`);
     return;
   }

@@ -183,6 +183,8 @@ The command does not open a browser or create an issue. It prints a URL that
 you can inspect, copy, or discard. The generated text includes only the
 Astrograph and Node versions, platform, and a redacted failure summary; it
 removes common token/password forms and local paths before building the URL.
+It rejects messages that identify an ordinary local setup, input, or permission
+problem, so that path remains for Astrograph-owned failures only.
 
 ## If You Installed Astrograph Locally
 
