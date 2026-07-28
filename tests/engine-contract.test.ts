@@ -146,6 +146,21 @@ describe("ai-context-engine contract", () => {
     });
     await expect(readFile(registration.configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
   });
+
+  it("makes the optional global command install verbose and time-bounded on request", () => {
+    let invocation: { command: string; args: readonly string[]; options: unknown } | null = null;
+    const runner = ((command: string, args: readonly string[], options: unknown) => {
+      invocation = { command, args, options };
+      return undefined as never;
+    }) as typeof import("../src/lib/process.ts").runProcess;
+
+    expect(installOptionalGlobalCli(runner, { verbose: true })).toBeNull();
+    expect(invocation).toEqual({
+      command: "npm",
+      args: ["--loglevel", "verbose", "install", "--global", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`],
+      options: { stdio: "inherit", timeout: 60_000 },
+    });
+  });
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
 

@@ -63,6 +63,7 @@ interface ParsedArgs {
   agentsPolicy: boolean;
   gitHooks: boolean;
   migrateLegacy: boolean;
+  verbose?: boolean;
   hasExplicitArgs: boolean;
   showHelp: boolean;
 }
@@ -111,6 +112,7 @@ interface CliOptions {
   agents?: boolean;
   gitHooks?: boolean;
   migrateLegacy?: boolean;
+  verbose?: boolean;
   help?: boolean;
 }
 
@@ -179,13 +181,23 @@ export interface GlobalInstallationDiagnostics {
 
 export function installOptionalGlobalCli(
   runner: typeof runProcess = runProcess,
+  options: { verbose?: boolean } = {},
 ): string | null {
   try {
-    runner("npm", ["install", "--global", `${PACKAGE_NAME}@${PACKAGE_VERSION}`], { stdio: "inherit" });
+    runner(
+      "npm",
+      [
+        ...(options.verbose ? ["--loglevel", "verbose"] : []),
+        "install",
+        "--global",
+        `${PACKAGE_NAME}@${PACKAGE_VERSION}`,
+      ],
+      { stdio: "inherit", timeout: 60_000 },
+    );
     return null;
   } catch {
     // ponytail: package-manager-specific repair belongs in npm; the MCP registration remains usable without a global shell command.
-    return "The optional npm global command could not be installed. Your MCP registration is still usable; check npm's global prefix or PATH if you want the `astrograph` shell command.";
+    return "The optional npm global command did not finish within one minute or could not be installed. Your MCP registration is still usable; check npm's global prefix, PATH, or certificate setup if you want the `astrograph` shell command.";
   }
 }
 
@@ -376,7 +388,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph install [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
+      "  npx astrograph install [--verbose] [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -391,6 +403,7 @@ function usage(): void {
       "",
       "Examples:",
       "  npx astrograph install",
+      "  npx astrograph install --verbose",
       "  npx astrograph install --yes",
       "  npx astrograph install --yes --ide all",
       "  npx astrograph install --yes --json",
@@ -475,6 +488,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--ide",
     "--scope",
     "--migrate-legacy",
+    "--verbose",
     "--help",
     "-h",
   ]);
@@ -512,7 +526,8 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined))
     .addOption(new Option("--scope <scope>", "Setup scope: global or repository.").choices(["global", "repository"]))
-    .addOption(new Option("--migrate-legacy", "Confirm replacement of an unmarked legacy Codex registration."));
+    .addOption(new Option("--migrate-legacy", "Confirm replacement of an unmarked legacy Codex registration."))
+    .addOption(new Option("--verbose", "Show detailed npm output during guided global command installation."));
 
   let options: CliOptions;
   try {
@@ -569,6 +584,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     agentsPolicy: Boolean(options.agents),
     gitHooks: Boolean(argv.includes("--git-hooks")),
     migrateLegacy: Boolean(argv.includes("--migrate-legacy")),
+    verbose: Boolean(options.verbose),
     hasExplicitArgs:
       hasFlag("yes") ||
       hasFlag("agents") ||
@@ -720,7 +736,7 @@ async function promptForSetupArgs(): Promise<{
   };
 }
 
-async function runGuidedInstall(): Promise<void> {
+async function runGuidedInstall(options: { verbose?: boolean } = {}): Promise<void> {
   if (!process.stdin.isTTY || !process.stdout.isTTY) {
     throw new Error(
       "Guided install requires a TTY. Use `astrograph install --yes` for repository setup or `astrograph install --global --ide codex|copilot-cli` for global setup.",
@@ -878,8 +894,28 @@ async function runGuidedInstall(): Promise<void> {
   progress.start("Connecting your selected client…");
   let optionalCliWarning = "";
   if (shouldInstallGlobalCli) {
-    progress.message("Installing the optional global Astrograph command…");
-    optionalCliWarning = installOptionalGlobalCli() ?? "";
+    progress.stop("Preparing optional global command installation…");
+    const npmCommand = [
+      "npm",
+      ...(options.verbose ? ["--loglevel", "verbose"] : []),
+      "install",
+      "--global",
+      `${PACKAGE_NAME}@${PACKAGE_VERSION}`,
+    ].join(" ");
+    process.stdout.write([
+      "",
+      "Optional global command installation",
+      `  Command: ${npmCommand}`,
+      `  Node: ${process.version}`,
+      "  This only adds the `astrograph` shell command; your MCP registration is configured next even if this step fails.",
+      "  It stops after one minute instead of waiting indefinitely.",
+      options.verbose
+        ? "  Detailed npm output follows."
+        : "  Re-run with `npx --yes astrograph install --verbose` to see detailed npm output.",
+      "",
+    ].join("\n"));
+    optionalCliWarning = installOptionalGlobalCli(undefined, options) ?? "";
+    progress.start("Writing the managed client registration…");
   }
   const result = ide === "codex"
     ? await setupGlobalForCodex()
@@ -2044,9 +2080,9 @@ async function main(): Promise<void> {
   }
   if (
     process.env.ASTROGRAPH_ENTRY_MODE === "install"
-    && argv.length === 0
+    && (argv.length === 0 || (argv.length === 1 && argv[0] === "--verbose"))
   ) {
-    await runGuidedInstall();
+    await runGuidedInstall({ verbose: argv.includes("--verbose") });
     return;
   }
   if (argv.includes("--global")) {
