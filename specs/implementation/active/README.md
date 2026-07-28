@@ -45,6 +45,10 @@ new work complements rather than duplicates existing plans.
 12. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
     — selected by the user: remove the native Tree-sitter install boundary and
     prove packed global installs on Node 20, 22, and 24.
+13. [Pre-v1 Clean Install Contract Epic](./12_pre-v1-clean-install-contract-epic.md)
+   — selected by the user: remove setup migrations and compatibility paths;
+   require a confirmed clean reset with visible installer phases whenever local
+   Astrograph configuration or state is mismatched.
 
 Use the [Delivery Roadmap](../roadmap.md) to understand planned, parked,
 descoped, idea, and completed work. Update the roadmap, this index, and the

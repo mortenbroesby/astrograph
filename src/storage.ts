@@ -734,6 +734,24 @@ async function discardObsoleteStorage(
   await writeStorageVersion(config.paths.storageVersionPath, ENGINE_STORAGE_VERSION);
 }
 
+export async function resetAstrographStorage(repoRoot: string): Promise<{
+  repoRoot: string;
+  storageDir: string;
+  changed: boolean;
+}> {
+  const config = await resolveStorageConfig(repoRoot);
+  const entry = await lstat(config.paths.storageDir).catch((error: unknown) => {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
+    throw error;
+  });
+  if (!entry) {
+    return { repoRoot: config.repoRoot, storageDir: config.paths.storageDir, changed: false };
+  }
+
+  await discardObsoleteStorage(config, "explicit-reset");
+  return { repoRoot: config.repoRoot, storageDir: config.paths.storageDir, changed: true };
+}
+
 async function assertNoSymlinkedPathSegments(root: string, target: string): Promise<void> {
   const resolvedRoot = path.resolve(root);
   const resolvedTarget = path.resolve(target);

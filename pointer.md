@@ -49,6 +49,9 @@ use its recorded evidence or selection gate instead.
 - [WASM Parser Runtime Migration](./specs/implementation/active/11_wasm-parser-runtime-migration.md)
   — replace the native Tree-sitter installation boundary and prove Node 20–24
   packaged installs without consumer compiler requirements.
+- [Pre-v1 Clean Install Contract Epic](./specs/implementation/active/12_pre-v1-clean-install-contract-epic.md)
+  — remove setup migration/compatibility paths and use a confirmed clean reset
+  with visible phases whenever Astrograph installation state is mismatched.
 
 ## Keeping this useful
 
