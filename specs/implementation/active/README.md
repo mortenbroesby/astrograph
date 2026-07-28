@@ -18,15 +18,12 @@ new work complements rather than duplicates existing plans.
 2. [MCP Runtime Hygiene Delivery Checklist](./mcp-runtime-hygiene-delivery-checklist.md)
    — selected by the user: make stdio-server process sprawl visible and ensure
    normal shutdown releases process-lifetime resources.
-3. [Comforting Install Experience](./2_comforting-global-install-experience.md)
-   — make package installation plus global and repository-local client setup
-   understandable without hidden configuration writes.
+3. [Interactive Install Lifecycle Epic](./11_interactive-install-lifecycle-epic.md)
+   — selected by the user: make setup, update, repair, diagnostics, and
+   removal one safe, understandable lifecycle with explicit opt-ins.
 4. [Git Ref Watch Reconciliation Delivery Checklist](./3_git-ref-watch-reconciliation-delivery-checklist.md)
    — selected by the user: reconcile active watch sessions after a Git checkout
    identity changes, without adding a daemon or another cache.
-5. [Guided Install and Refresh Hooks](./3_guided-install-and-refresh-hooks.md)
-   — selected by the user: unify local/global onboarding, add opt-in
-   integrations, and verify harness readiness.
 6. [Local Daemon Runtime Ownership Delivery Checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
    — selected by the user: one user-local daemon owns isolated repository
    runtimes, watches, workers, and SQLite lifecycles for MCP stdio clients.

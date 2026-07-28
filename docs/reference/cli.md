@@ -2,7 +2,9 @@
 
 Astrograph exposes three main command surfaces:
 
-- `astrograph install [--global]`
+- `astrograph install`
+- `astrograph status [--repo /abs/repo] [--json]`
+- `astrograph update|repair|reconfigure|uninstall ...`
 - `astrograph doctor [--repo /abs/repo] [--json]`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
@@ -14,11 +16,16 @@ Use `astrograph --version` to print the installed package version. Use
 compatibility, global config and cache paths, storage selection, and Copilot
 CLI/Codex registration presence.
 
-If these commands show an older installed version than expected, update first:
+The normal MCP registration pins the exact Astrograph package version selected
+during setup. It does not check for updates at startup and does not depend on a
+global executable. Use the explicit `update` command when you choose to refresh
+the registration.
 
-```bash
-npm install --global astrograph@latest
-```
+The guided global flow can also install the optional shell command with npm. It
+asks first and never makes the MCP registration depend on that step: if npm's
+global prefix or PATH needs attention, setup warns and leaves the registration
+usable. This is especially relevant when the repository uses pnpm, Yarn, or
+another package manager.
 
 On macOS, global setup stores `config.json` under `~/.astrograph` and creates
 `~/.astrograph/cache` when a repository is first indexed. Pre-v1 releases do
@@ -31,7 +38,7 @@ invocation path in your environment.
 
 - `astrograph install`
   Writes MCP configuration for supported clients.
-- `astrograph install --global [--ide copilot-cli|codex]`
+- `astrograph install --yes --scope global --ide copilot-cli|codex`
   Registers one user-level MCP server and enables per-repository global cache
   storage. Codex writes its managed Astrograph block to `~/.codex/config.toml`;
   Copilot CLI writes only `mcpServers.astrograph` to
@@ -45,6 +52,24 @@ invocation path in your environment.
   registrations, global registrations, managed agent guidance, opted-in Git
   refresh hooks, and index/retrieval health. Use this after setup or whenever
   the harness seems unavailable.
+- `astrograph status [--repo /abs/repo] [--json]`
+  Is the fast, read-only setup dashboard. It skips the more expensive freshness
+  scan used by `doctor`. Running the bare guided command in a TTY presents the
+  same state before offering explicit index, reapply, repair, reconfigure, or
+  single-registration removal actions.
+- `astrograph update|repair|reconfigure --yes --scope global|repository --ide ...`
+  Rewrites only Astrograph-managed registration. These are deliberate actions;
+  none performs an automatic update check. Each changed configuration gets a
+  local timestamped backup first.
+- `astrograph uninstall --yes --scope global|repository --ide ...`
+  Removes only the selected Astrograph MCP registration. It leaves the optional
+  global CLI and all index/cache data untouched.
+- `astrograph report-issue --diagnostics-consent --message <summary>`
+  Prints a sanitized, prefilled browser issue URL after explicit consent. It
+  never opens a browser, sends diagnostics, or creates a GitHub issue.
+  Expected input, permission, client, and environment failures instead print a
+  local next step and a copyable redacted summary; only an Astrograph-owned
+  failure suggests this reporting path.
 - `astrograph cli`
   Retrieval, indexing, diagnostics, and maintenance commands.
 - `astrograph git-refresh`
@@ -74,27 +99,23 @@ the complete current extension matrix and summary behavior.
 Interactive install:
 
 ```bash
-npx astrograph install
+npx --yes astrograph
 ```
 
 Common profiles:
 
 ```bash
-npx astrograph install --ide copilot
-npx astrograph install --yes --ide codex --repo /repo
-npx astrograph install --yes --ide all --repo /repo
-npx astrograph install --yes --ide codex,copilot-cli --repo /repo
+npx --yes astrograph install --yes --scope global --ide codex
+npx --yes astrograph install --yes --scope repository --ide codex --repo /repo
+npx --yes astrograph install --yes --scope repository --ide all --repo /repo
+npx --yes astrograph install --yes --scope repository --ide codex,copilot-cli --repo /repo
 ```
 
-If the target repository has a `package.json`, setup ensures Astrograph is
-tracked at `latest` in `devDependencies`.
+Setup never changes `package.json`, installs dependencies, or checks npm for an
+update. This keeps ordinary setup deterministic and reviewable.
 
-After setup, Astrograph checks npm metadata and prints an update hint when a
-newer version is available:
-
-```bash
-npm install astrograph@latest
-```
+In the guided flow, repository setup offers first indexing by default. Global
+setup offers current-repository indexing separately and defaults to no.
 
 Do not manually delete `.astrograph` state. A missing, malformed, or
 incompatible storage marker causes Astrograph to archive the managed cache and
@@ -259,17 +280,17 @@ npx astrograph git-refresh push --execute
 
 ## Guided Setup and Opt-in Integrations
 
-Use `npx astrograph install` in an interactive terminal to choose between
+Use `npx --yes astrograph` in an interactive terminal to choose between
 project-owned setup for the current repository and user-global setup for every
 repository on the device. The global route asks for confirmation before running
-`npm install --global astrograph@latest` or editing user-level client
-configuration.
+an optional exact-version `npm install --global` or editing user-level client
+configuration. Declining the optional shell command does not prevent MCP setup.
 
 Repository setup remains available directly through `install` and keeps optional
 integrations explicit:
 
 ```bash
-npx astrograph install --yes --agents --git-hooks
+npx --yes astrograph install --yes --scope repository --ide codex --agents --git-hooks
 ```
 
 `--agents` adds only an Astrograph-managed guidance block to the client’s

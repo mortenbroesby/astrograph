@@ -453,7 +453,11 @@ export async function dispatchTool(
     const session = parseMcpSession(args.session);
     const commandArgs = { ...args };
     delete commandArgs.session;
-    const result = await executeMcpCommand(name, commandArgs);
+    const parsedInput = zod.object(tool.inputSchema).safeParse(commandArgs);
+    if (!parsedInput.success) {
+      throw new Error(`Invalid arguments: ${parsedInput.error.issues[0]?.message ?? "validation failed"}`);
+    }
+    const result = await executeMcpCommand(name, parsedInput.data);
     validateToolOutput(name, result);
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,

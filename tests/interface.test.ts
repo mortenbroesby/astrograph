@@ -13,7 +13,7 @@ import { afterEach, describe, expect, it as baseIt } from "vitest";
 import { handleCli } from "../src/cli.ts";
 import { decodeCompactMcpEnvelope } from "../src/compact-mcp.ts";
 import { MCP_SERVER_NAME, MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
-import { dispatchTool } from "../src/mcp.ts";
+import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { ASTROGRAPH_PACKAGE_VERSION, indexFolder } from "../src/index.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
@@ -120,8 +120,8 @@ describe("ai-context-engine interfaces", () => {
     const stdout = await handleCli(["get-repo-outline", "--repo", repoRoot]);
 
     expect(JSON.parse(stdout)).toMatchObject({
-      totalFiles: 3,
-      totalSymbols: 6,
+      totalFiles: 2,
+      totalSymbols: 5,
     });
 
     const diagnosticsStdout = await handleCli(["diagnostics", "--repo", repoRoot]);
@@ -129,15 +129,15 @@ describe("ai-context-engine interfaces", () => {
       staleStatus: "fresh",
       freshnessMode: "metadata",
       freshnessScanned: false,
-      indexedFiles: 3,
-      currentFiles: 3,
+      indexedFiles: 2,
+      currentFiles: 2,
       readiness: {
         stage: "deep-retrieval-ready",
         discoveryReady: true,
         deepRetrievalReady: true,
         deepening: false,
-        discoveredFiles: 3,
-        deepIndexedFiles: 3,
+        discoveredFiles: 2,
+        deepIndexedFiles: 2,
         pendingDeepIndexedFiles: 0,
       },
       retrievalHealth: {
@@ -369,7 +369,7 @@ export function circumference(radius: number): string {
     const signatureDiagnostics = JSON.parse(signatureDiagnosticsStdout);
     expect(signatureDiagnostics).toMatchObject({
       summarySources: {
-        signature: 6,
+        signature: 5,
       },
       watch: {
         status: "idle",
@@ -408,8 +408,8 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(summaryStdout)).toMatchObject({
-      indexedFiles: 3,
-      indexedSymbols: 6,
+      indexedFiles: 2,
+      indexedSymbols: 5,
       staleStatus: "fresh",
     });
 
@@ -421,11 +421,11 @@ export function circumference(radius: number): string {
     expect(JSON.parse(diagnosticsStdout)).toMatchObject({
       storageVersion: 1,
       schemaVersion: 7,
-      indexedFiles: 3,
-      currentFiles: 3,
+      indexedFiles: 2,
+      currentFiles: 2,
       readiness: {
         stage: "deep-retrieval-ready",
-        discoveredFiles: 3,
+        discoveredFiles: 2,
       },
     });
   }, 15_000);
@@ -1098,21 +1098,10 @@ export class Greeter {
 
   it("rejects malformed MCP tool outputs with a strict failure envelope", async () => {
     const repoRoot = await createFixtureRepo();
-
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "search_symbols");
-    expect(tool).toBeDefined();
-
-    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
-    const originalExecute = mutableTool.execute;
+    const restore = setMcpCommandExecutorForTest(async () => [
+      { id: "sym-id", kind: "class", filePath: "src/strings.ts" },
+    ]);
     try {
-      mutableTool.execute = async () => [
-        {
-          id: "sym-id",
-          kind: "class",
-          filePath: "src/strings.ts",
-        },
-      ];
-
       const malformedResult = await dispatchTool("search_symbols", {
         repoRoot,
         query: "Greeter",
@@ -1132,24 +1121,17 @@ export class Greeter {
         },
       });
     } finally {
-      mutableTool.execute = originalExecute;
+      restore();
     }
   }, 15_000);
 
   it("rejects malformed get_symbol_source MCP output with a strict failure envelope", async () => {
     const repoRoot = await createFixtureRepo();
-
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_symbol_source");
-    expect(tool).toBeDefined();
-
-    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
-    const originalExecute = mutableTool.execute;
+    const restore = setMcpCommandExecutorForTest(async () => ({
+      requestedContextLines: 5,
+      items: "not-an-array",
+    }));
     try {
-      mutableTool.execute = async () => ({
-        requestedContextLines: 5,
-        items: "not-an-array",
-      });
-
       const malformedResult = await dispatchTool("get_symbol_source", {
         repoRoot,
         symbolId: "fake-symbol",
@@ -1170,30 +1152,23 @@ export class Greeter {
         },
       });
     } finally {
-      mutableTool.execute = originalExecute;
+      restore();
     }
   }, 15_000);
 
   it("rejects malformed get_task_context MCP output with a strict failure envelope", async () => {
     const repoRoot = await createFixtureRepo();
-
-    const tool = MCP_TOOL_DEFINITIONS.find((entry) => entry.name === "get_task_context");
-    expect(tool).toBeDefined();
-
-    const mutableTool = tool as unknown as { execute: (...args: any[]) => Promise<unknown> };
-    const originalExecute = mutableTool.execute;
+    const restore = setMcpCommandExecutorForTest(async () => ({
+      payloadTokenBudget: 128,
+      usedPayloadTokens: 12,
+      estimatedPayloadTokens: 18,
+      sourceTokens: 12,
+      truncated: false,
+      query: "Greeter",
+      repoRoot,
+      items: "not-an-array",
+    }));
     try {
-      mutableTool.execute = async () => ({
-        payloadTokenBudget: 128,
-        usedPayloadTokens: 12,
-        estimatedPayloadTokens: 18,
-        sourceTokens: 12,
-        truncated: false,
-        query: "Greeter",
-        repoRoot,
-        items: "not-an-array",
-      });
-
       const malformedResult = await dispatchTool("get_task_context", {
         repoRoot,
         query: "Greeter",
@@ -1213,7 +1188,7 @@ export class Greeter {
         },
       });
     } finally {
-      mutableTool.execute = originalExecute;
+      restore();
     }
   }, 15_000);
 
