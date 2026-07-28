@@ -18,7 +18,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
-import { diagnostics } from "../index.ts";
+import { diagnostics, indexFolder } from "../index.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import { runProcess } from "../lib/process.ts";
@@ -705,6 +705,12 @@ async function runGuidedInstall(): Promise<void> {
       gitHooks: args.gitHooks,
       migrateLegacy: args.migrateLegacy,
     });
+    const shouldIndex = await confirm({ message: "Create the initial index now?", initialValue: true });
+    if (isCancel(shouldIndex)) {
+      outro("Setup complete. The index was not created.");
+      return;
+    }
+    if (shouldIndex) await indexFolder({ repoRoot: args.repo });
     outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));
     return;
   }
@@ -749,6 +755,12 @@ async function runGuidedInstall(): Promise<void> {
     ? await setupGlobalForCodex()
     : await setupGlobalForCopilotCli();
   progress.stop("Global setup ready");
+  const shouldIndex = await confirm({ message: "Also create an index for this repository now?", initialValue: false });
+  if (isCancel(shouldIndex)) {
+    outro(formatGlobalInstallation(result));
+    return;
+  }
+  if (shouldIndex) await indexFolder({ repoRoot: resolveRepoRoot(process.cwd()) });
   outro(formatGlobalInstallation(result));
 }
 
