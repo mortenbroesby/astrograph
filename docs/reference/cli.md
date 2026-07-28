@@ -27,6 +27,15 @@ global prefix or PATH needs attention, setup warns and leaves the registration
 usable. This is especially relevant when the repository uses pnpm, Yarn, or
 another package manager.
 
+npm creates `astrograph` in the selected Node runtime's global executable
+directory. Runtime managers—not Astrograph—make that directory available to
+your shell. A Node-version switch can therefore require a new
+`npm install --global astrograph@latest`; follow the selected runtime manager's
+documented refresh step if it uses generated command shims. Astrograph never
+modifies shell profiles, `.tool-versions`, or PATH, and the managed MCP
+registration remains an exact pinned `npx` invocation regardless of the
+optional global command.
+
 On macOS, global setup stores `config.json` under `~/.astrograph` and creates
 `~/.astrograph/cache` when a repository is first indexed. Pre-v1 releases do
 not retain or migrate the former Library cache/config locations.

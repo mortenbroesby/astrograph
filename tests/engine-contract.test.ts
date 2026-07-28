@@ -63,6 +63,7 @@ import {
   formatInstallPhase,
   setLocalMcpStartupVerifierForTest,
   installOptionalGlobalCli,
+  formatOptionalGlobalCliRecovery,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
@@ -144,6 +145,7 @@ describe("ai-context-engine contract", () => {
       throw new Error("simulated npm prefix failure");
     });
     expect(warning).toContain("registration is still usable");
+    expect(warning).toContain(`npm install --global astrograph@${ASTROGRAPH_PACKAGE_VERSION}`);
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-home-"));
     const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-config-"));
     tempDirs.push(homeDir, configHome);
@@ -151,6 +153,15 @@ describe("ai-context-engine contract", () => {
       environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
     });
     await expect(readFile(registration.configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+  });
+
+  it("gives runtime-specific recovery guidance without managing the user's runtime", () => {
+    const message = formatOptionalGlobalCliRecovery({ nodeVersion: "24.13.0", packageVersion: "1.2.3" });
+
+    expect(message).toContain("Node.js 24.13.0");
+    expect(message).toContain("npm install --global astrograph@1.2.3");
+    expect(message).toContain("runtime manager's documented refresh step");
+    expect(message).toContain("MCP registration is still usable");
   });
 
   it("makes the optional global command install verbose and time-bounded on request", () => {

@@ -193,6 +193,74 @@ accepts the source change.
 - [ ] Add one end-to-end packaged smoke scenario for first setup, rerun,
   update/repair, cancellation, and issue-link redaction.
 
+## Task 6: Make optional global CLI installation runtime-manager-safe
+
+**Files:**
+- Modify: `src/scripts/install.ts`
+- Modify: `src/scripts/global-install-message.mjs`
+- Modify: `tests/engine-contract.test.ts`
+- Modify: `tests/global-install-message.test.ts`
+- Modify: `src/scripts/smoke-package-bin.ts`
+- Modify: `README.md`
+- Modify: `docs/getting-started/first-steps.md`
+- Modify: `docs/guides/troubleshooting.md`
+- Modify: `docs/reference/cli.md`
+
+**Baseline verification:**
+
+```bash
+pnpm exec vitest run tests/engine-contract.test.ts tests/global-install-message.test.ts
+pnpm test:package-bin
+```
+
+Expected: global-package and installer behavior pass without a user-global
+runtime-manager mutation.
+
+- [x] Document the three separate responsibilities: Node/runtime managers
+  select a runtime, npm places an optional global executable under that
+  runtime's global prefix, and `astrograph install` configures MCP clients.
+  State plainly that changing Node versions can require reinstalling an
+  optional global executable and following a runtime manager's documented
+  refresh step when necessary.
+- [x] Keep client registrations on exact version-pinned `npx` invocations.
+  A missing or stale optional `astrograph` command must never make an existing
+  client registration unusable.
+- [x] Make the optional-global-install success and failure output identify the
+  installed Astrograph version, distinguish a package-manager/PATH problem
+  from MCP configuration, and give a copyable recovery command using the
+  current package version. Do not infer, install, update, or configure a
+  runtime manager, Node, npm, or shell PATH automatically.
+- [x] Add focused renderer/installer tests for the recovery guidance and a
+  packed-package smoke scenario that installs the packed tarball into an
+  isolated npm prefix, invokes the linked `astrograph` binary, and proves
+  `astrograph --version` matches the packed version. The test must not depend
+  on a runtime manager being installed in CI.
+- [x] Add neutral runtime-manager guidance to the first-steps and
+  troubleshooting docs:
+
+  ```bash
+  npm install --global astrograph@latest
+  astrograph install
+  ```
+
+  Explain that any runtime-manager refresh step is tool-specific and not a
+  prerequisite for normal `npx --yes astrograph` setup.
+
+**Final verification:**
+
+```bash
+pnpm exec vitest run tests/engine-contract.test.ts tests/global-install-message.test.ts
+pnpm test:package-bin
+pnpm type-lint
+pnpm build
+pnpm check:version-bump --base origin/main
+git diff --check
+```
+
+Expected: all commands exit `0`. Before a source or package change is
+committed, use `.skills/release-decision/SKILL.md`; documentation-only changes
+remain subject to the repository's version-policy check.
+
 ## Final verification and release checkpoint
 
 - [ ] Run focused installer, global-package-message, and package-bin tests.
@@ -206,6 +274,8 @@ accepts the source change.
 ## Non-goals
 
 - Installing or upgrading Node, npm, Codex, or Copilot CLI.
+- Owning runtime-manager configuration, modifying `.tool-versions`, or adding
+  a runtime manager as an Astrograph dependency.
 - Background update checks, telemetry, hidden network requests, or source upload.
 - Replacing package-manager behavior or adding an interactivity framework.
 - Rewriting unrelated global-cache, MCP, daemon, or Git-hook behavior.

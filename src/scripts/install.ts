@@ -202,9 +202,22 @@ export function installOptionalGlobalCli(
     );
     return null;
   } catch {
-    // ponytail: package-manager-specific repair belongs in npm; the MCP registration remains usable without a global shell command.
-    return "The optional npm global command did not finish within one minute or could not be installed. Your MCP registration is still usable; check npm's global prefix, PATH, or certificate setup if you want the `astrograph` shell command.";
+    return formatOptionalGlobalCliRecovery();
   }
+}
+
+export function formatOptionalGlobalCliRecovery(
+  options: { nodeVersion?: string; packageVersion?: string } = {},
+): string {
+  const nodeVersion = options.nodeVersion ?? process.versions.node;
+  const packageVersion = options.packageVersion ?? PACKAGE_VERSION;
+  return [
+    `The optional \`astrograph\` global command could not be installed for Node.js ${nodeVersion}.`,
+    "Your MCP registration is still usable because it runs Astrograph through a pinned npx package.",
+    "Retry with the Node runtime you want to use:",
+    `  npm install --global ${PACKAGE_NAME}@${packageVersion}`,
+    "If npm succeeds but your shell cannot find `astrograph`, follow your runtime manager's documented refresh step (if any), or check `npm prefix --global` and PATH.",
+  ].join("\n");
 }
 
 export function formatInstallPhase(step: number, total: number, title: string): string {
