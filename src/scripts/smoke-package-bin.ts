@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { execFile as execFileCallback } from "node:child_process";
-import { mkdtemp, readdir, rm, writeFile, mkdir, readFile } from "node:fs/promises";
+import { access, mkdtemp, readdir, rm, writeFile, mkdir, readFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { promisify } from "node:util";
@@ -238,6 +238,10 @@ async function main(): Promise<void> {
         "astrograph",
         "install",
         "--yes",
+        "--scope",
+        "repository",
+        "--ide",
+        "codex",
         "--agents",
         "--json",
         "--repo",
@@ -261,6 +265,15 @@ async function main(): Promise<void> {
     }
     if (!String(installed.agentsPolicyPreview).includes("## Code Exploration with Astrograph")) {
       throw new Error(`Expected astrograph install --agents to write code exploration policy: ${installResult.stdout}`);
+    }
+
+    const rerun = await run(
+      "pnpm",
+      ["exec", "astrograph", "repair", "--yes", "--scope", "repository", "--ide", "codex", "--repo", fixtureRepo, "--json"],
+      installDir,
+    );
+    if (JSON.parse(rerun.stdout).action !== "repair") {
+      throw new Error(`Expected packaged repair to be explicit and idempotent: ${rerun.stdout}`);
     }
 
     const { stdout: doctorOutput } = await run(
@@ -351,10 +364,24 @@ async function main(): Promise<void> {
       await readFile(path.join(globalCopilotHome, "mcp-config.json"), "utf8"),
     ) as { mcpServers?: Record<string, { command?: string; args?: string[] }> };
     if (
-      installedCopilotConfig.mcpServers?.astrograph?.command !== "astrograph"
-      || installedCopilotConfig.mcpServers.astrograph.args?.join(" ") !== "mcp"
+      installedCopilotConfig.mcpServers?.astrograph?.command !== "npx"
+      || installedCopilotConfig.mcpServers.astrograph.args?.join(" ") !== `-y --package astrograph@${packageManifest.version} astrograph mcp`
     ) {
       throw new Error("Expected packaged global install to persist the Copilot CLI Astrograph server");
+    }
+    await access(path.join(secondFixtureRepo, ".codex", "config.toml"))
+      .then(() => { throw new Error("Global setup must not write repository configuration without an index opt-in"); })
+      .catch((error) => {
+        if (error instanceof Error && error.message.includes("Global setup must")) throw error;
+      });
+
+    const { stdout: issueUrl } = await run(
+      "pnpm",
+      ["exec", "astrograph", "report-issue", "--diagnostics-consent", "--message", "token=ghp_ABCdef123 /Users/example/project"],
+      installDir,
+    );
+    if (!issueUrl.includes("issues/new") || !issueUrl.includes("%5Bredacted%5D") || issueUrl.includes("ghp_ABCdef123")) {
+      throw new Error(`Expected packaged issue URL to redact local diagnostics: ${issueUrl}`);
     }
 
     const globalEnvironment = {
