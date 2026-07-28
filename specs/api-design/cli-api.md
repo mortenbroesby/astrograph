@@ -16,6 +16,9 @@ The `astrograph` binary exposes package operations and a JSON CLI surface.
 - `astrograph doctor --repo <path>` verifies the current repository’s local
   and global client registration, managed agent guidance, Git refresh-hook
   state, and index readiness without writing configuration.
+- `astrograph status --repo <path>` is the read-only lifecycle status surface;
+  it returns the same setup readiness in human or `--json` form without a
+  freshness scan or configuration write.
 - `astrograph cache status --repo <path>` returns a versioned JSON cache
   status, including the persisted checkout identity that last populated the
   selected cache (or `checkout: null` before indexing). `astrograph cache

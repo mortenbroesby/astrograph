@@ -1575,6 +1575,25 @@ async function main(): Promise<void> {
     }
     return;
   }
+  if (argv[0] === "--status") {
+    const allowed = new Set(["--status", "--repo", "--json"]);
+    if (argv.some((entry) => !allowed.has(entry) && entry !== argv[argv.indexOf("--repo") + 1])) {
+      throw new Error("astrograph status accepts only --repo /abs/repo and --json.");
+    }
+    const repoIndex = argv.indexOf("--repo");
+    if (repoIndex >= 0 && !argv[repoIndex + 1]) {
+      throw new Error("astrograph status requires a value after --repo.");
+    }
+    const result = await getSetupReadiness(repoIndex >= 0 ? argv[repoIndex + 1]! : process.cwd(), {
+      scanFreshness: false,
+    });
+    if (argv.includes("--json")) {
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    } else {
+      process.stdout.write(`${formatSetupReadiness(result)}\n`);
+    }
+    return;
+  }
   if (
     process.env.ASTROGRAPH_ENTRY_MODE === "install"
     && argv.length === 0
