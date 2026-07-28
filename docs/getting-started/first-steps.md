@@ -32,6 +32,10 @@ your chosen client once, keeps a separate private index for each repository,
 and does not modify those repositories. Choose **this repository** only when
 you want project-owned configuration that collaborators can review.
 
+Repository setup offers to create the first index by default. Global setup asks
+separately and defaults to no, so selecting device-wide setup never writes to
+the current repository unless you opt in.
+
 Useful explicit targets:
 
 ```bash

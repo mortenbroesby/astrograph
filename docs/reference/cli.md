@@ -103,6 +103,9 @@ npx --yes astrograph install --yes --scope repository --ide codex,copilot-cli --
 Setup never changes `package.json`, installs dependencies, or checks npm for an
 update. This keeps ordinary setup deterministic and reviewable.
 
+In the guided flow, repository setup offers first indexing by default. Global
+setup offers current-repository indexing separately and defaults to no.
+
 Do not manually delete `.astrograph` state. A missing, malformed, or
 incompatible storage marker causes Astrograph to archive the managed cache and
 rebuild it on the next operation. If a cache needs recovery, inspect status and

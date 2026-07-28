@@ -64,8 +64,9 @@ your selected client, and keeps one private index per repository. Choose
 collaborators can review.
 
 Before it writes anything, Astrograph asks which scope and client you want, then
-shows the next step. Choose the recommended options and confirm to set it up for
-every repository on this device.
+shows the next step. Repository setup offers initial indexing by default;
+device-wide setup offers it only as an opt-in, so it leaves the current
+repository untouched unless you choose otherwise.
 
 For deterministic automation, name the scope and client explicitly:
 
