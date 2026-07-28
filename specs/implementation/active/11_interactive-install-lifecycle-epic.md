@@ -216,33 +216,34 @@ pnpm test:package-bin
 Expected: global-package and installer behavior pass without a user-global
 runtime-manager mutation.
 
-- [ ] Document the three separate responsibilities: Node/runtime managers
+- [x] Document the three separate responsibilities: Node/runtime managers
   select a runtime, npm places an optional global executable under that
   runtime's global prefix, and `astrograph install` configures MCP clients.
   State plainly that changing Node versions can require reinstalling an
-  optional global executable and refreshing a runtime-manager shim.
-- [ ] Keep client registrations on exact version-pinned `npx` invocations.
+  optional global executable and following a runtime manager's documented
+  refresh step when necessary.
+- [x] Keep client registrations on exact version-pinned `npx` invocations.
   A missing or stale optional `astrograph` command must never make an existing
   client registration unusable.
-- [ ] Make the optional-global-install success and failure output identify the
+- [x] Make the optional-global-install success and failure output identify the
   installed Astrograph version, distinguish a package-manager/PATH problem
   from MCP configuration, and give a copyable recovery command using the
-  current package version. Do not infer, install, update, or configure ASDF,
-  Node, npm, or shell PATH automatically.
-- [ ] Add focused renderer/installer tests for the recovery guidance and a
+  current package version. Do not infer, install, update, or configure a
+  runtime manager, Node, npm, or shell PATH automatically.
+- [x] Add focused renderer/installer tests for the recovery guidance and a
   packed-package smoke scenario that installs the packed tarball into an
   isolated npm prefix, invokes the linked `astrograph` binary, and proves
   `astrograph --version` matches the packed version. The test must not depend
-  on ASDF being installed in CI.
-- [ ] Add an ASDF example to the first-steps and troubleshooting docs:
+  on a runtime manager being installed in CI.
+- [x] Add neutral runtime-manager guidance to the first-steps and
+  troubleshooting docs:
 
   ```bash
   npm install --global astrograph@latest
-  asdf reshim nodejs
   astrograph install
   ```
 
-  Explain that it is a runtime-manager-specific repair example, not a
+  Explain that any runtime-manager refresh step is tool-specific and not a
   prerequisite for normal `npx --yes astrograph` setup.
 
 **Final verification:**
@@ -273,8 +274,8 @@ remain subject to the repository's version-policy check.
 ## Non-goals
 
 - Installing or upgrading Node, npm, Codex, or Copilot CLI.
-- Owning ASDF configuration, modifying `.tool-versions`, or adding a runtime
-  manager as an Astrograph dependency.
+- Owning runtime-manager configuration, modifying `.tool-versions`, or adding
+  a runtime manager as an Astrograph dependency.
 - Background update checks, telemetry, hidden network requests, or source upload.
 - Replacing package-manager behavior or adding an interactivity framework.
 - Rewriting unrelated global-cache, MCP, daemon, or Git-hook behavior.

@@ -128,6 +128,27 @@ into indexing the current one. Installing `astrograph` globally is an optional
 convenience offered by the guide; the MCP registration itself uses a pinned
 package invocation and does not depend on your PATH.
 
+### Optional global command and runtime managers
+
+The guided setup works through `npx`, so it does not need a global shell
+command. If you want the convenience command, npm owns its installation:
+
+```bash
+npm install --global astrograph@latest
+astrograph install
+```
+
+Global npm packages belong to the active Node runtime. After changing Node
+versions, reinstall Astrograph with that runtime. Runtime managers own shell
+integration. If yours uses generated command shims, follow its documented
+refresh step after installing a global package, then verify the command:
+
+```bash
+astrograph --version
+```
+
+Astrograph never edits `.zshrc`, `.tool-versions`, Node, npm, or your PATH.
+
 ## 🧪 Evidence, Not Promises
 
 Astrograph ships reproducible benchmark commands. The current deterministic
@@ -167,10 +188,10 @@ already usable today.
 ## 📦 Install Details
 
 - Package runtime: Node `^20.19.0 || >=22.12.0` (Node 20.19+, 22, and 24)
-- Repository build tooling: Node 22.18+ or 24.11+; the checked-in ASDF toolchain
+- Repository build tooling: Node 22.18+ or 24.11+; the checked-in toolchain
   remains Node `22.23.1`.
 - Repository tooling: [`.tool-versions`](./.tool-versions) pins Node `22.23.1`
-  and pnpm `9.15.9` for ASDF users.
+  and pnpm `9.15.9` for compatible runtime managers.
 - Entry command: `astrograph`
 - Supported terminals on Windows: PowerShell, `cmd.exe`, and Git Bash.
 - Git is optional for ordinary indexing and retrieval. When Git is unavailable

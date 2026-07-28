@@ -43,6 +43,30 @@ native prebuild availability depends on your operating system and architecture.
 The repository build itself uses Node 22.18+ or 24.11+ because its build tool
 does not support Node 20; package users do not need to run that build.
 
+### Problem: `astrograph: command not found` after changing Node versions
+
+The optional global command is installed by npm under the currently selected
+Node runtime. It does not move when a runtime manager switches Node versions.
+Your MCP registration still works because it uses a pinned `npx` invocation.
+
+Fix the convenience command with the Node version you intend to use:
+
+```bash
+npm install --global astrograph@latest
+```
+
+If your runtime manager generates command shims, follow its documented refresh
+step after that install, then verify the command:
+
+```bash
+astrograph --version
+```
+
+Do not add an Astrograph-specific directory to `.zshrc`. Your runtime manager
+or npm setup owns shell integration. If the command is still unavailable,
+inspect npm's selected prefix with `npm prefix --global` and repair the runtime
+manager or PATH, not Astrograph's MCP configuration.
+
 ### Problem: the repo is not indexed yet
 
 Fix:

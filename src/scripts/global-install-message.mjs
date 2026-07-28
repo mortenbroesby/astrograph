@@ -13,6 +13,8 @@ export function formatGlobalInstallMessage(version = packageVersion) {
   return [
     "",
     `Astrograph v${version} installed globally.`,
+    "The `astrograph` command belongs to the Node runtime npm is using.",
+    `After switching Node runtimes, reinstall it with: npm install --global astrograph@${version}`,
     "",
     "Next, choose the AI client you want to connect:",
     "  astrograph install --global --ide codex",

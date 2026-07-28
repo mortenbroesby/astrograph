@@ -16,6 +16,27 @@ If you just want to initialize once:
 npx --yes astrograph
 ```
 
+`npx` is the recommended first-run route and does not require a global shell
+command. If you want `astrograph` available directly in your terminal, install
+it globally with the Node runtime selected by your runtime manager:
+
+```bash
+npm install --global astrograph@latest
+astrograph install
+```
+
+If you later switch Node versions, reinstall the optional global command for
+the new runtime. If your runtime manager generates command shims, follow its
+documented refresh step, then verify the command:
+
+```bash
+astrograph --version
+```
+
+Astrograph does not edit shell profiles or runtime-manager configuration. The
+MCP registration created below remains a pinned `npx` invocation, so it keeps
+working even when the optional `astrograph` command is unavailable.
+
 ## 2. Configure MCP
 
 Run the installer:
