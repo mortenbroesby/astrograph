@@ -15,6 +15,8 @@ const packageVersion = JSON.parse(readFileSync(path.join(packageRoot, "package.j
 function usage() {
   process.stderr.write(
   [
+    `Astrograph v${packageVersion}`,
+    "",
     "Usage:",
     "  astrograph cli <args...>",
     "  astrograph cli index-folder --repo /abs/repo [--storage-location repo-local|global]",
@@ -40,7 +42,7 @@ function usage() {
 }
 
 const [providedMode, ...args] = process.argv.slice(2);
-const mode = providedMode || "install";
+const mode = providedMode;
 
 if (mode === "--version" || mode === "-v") {
   process.stdout.write(`${packageVersion}\n`);
@@ -68,7 +70,7 @@ const distTarget =
           ? path.join(packageRoot, "dist", "scripts", "install.js")
           : null;
 
-if (!sourceTarget || !distTarget) {
+if (!mode || !sourceTarget || !distTarget) {
   usage();
   process.exit(1);
 }
