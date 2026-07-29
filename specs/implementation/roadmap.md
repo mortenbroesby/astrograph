@@ -17,43 +17,10 @@ turns those focuses into an exclusive execution gate.
 
 ## Active — current focuses
 
-1. [Tree-Sitter Polyglot Language Support](./active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
-   - Goal: expand from JavaScript-family parsing to the bounded set of parsers
-     listed by Tree-sitter's upstream organization.
-   - First action: freeze the package/ABI/extension/licence inventory and the
-     current four-language baseline before adding a grammar dependency.
-   - Architecture: adapters and explicit `structured`/`graph` support tiers;
-     do not claim the open-ended community grammar ecosystem.
-2. [Interactive Install Lifecycle Epic](./active/11_interactive-install-lifecycle-epic.md)
-   - Goal: make setup, update, repair, diagnostics, and removal one
-     understandable lifecycle with explicit opt-ins and reversible writes.
-   - Architecture: exact pinned `npx` MCP registrations, optional global CLI,
-     no background network work, and verified managed-block edits.
-3. [Local Daemon Runtime Ownership](./active/5_local-daemon-runtime-ownership-delivery-checklist.md)
-   - Goal: one user-local daemon owns independent repository runtimes, watches,
-     SQLite connections, and workers for concurrent stdio MCP clients.
-   - Architecture: on-demand local IPC proxying with authenticated singleton
-     ownership and a five-minute idle exit; no network listener, source upload,
-     or shared mutable repository index.
-4. [Repository Structure Cleanup](./active/7_repository-structure-cleanup-epic.md)
-   - Goal: make benchmark, workflow, and repository automation ownership
-     obvious without changing runtime behavior or increasing CI cost.
-   - First action: move benchmark/profiling entrypoints under `bench/` while
-     preserving all existing package commands and output shapes.
-5. [Publishable Workflow Benchmark](./active/9_publishable-workflow-benchmark.md)
-   - Goal: publish one small, auditable comparison between broad file reading
-     and Astrograph retrieval.
-   - Architecture: reuse the existing corpus and Markdown renderer; require a
-     matching snapshot and successful selected workflows before publishing.
-6. [Runtime Acceleration Epic](./active/10_runtime-acceleration-epic.md)
-   - Goal: make repeated local MCP work faster by retaining daemon SQLite and
-     worker resources through direct in-process indexing.
-   - Architecture: one authenticated local daemon serializes mutable work per
-     canonical repository; retain ordinary CLI child-process isolation.
-7. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
+1. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
    - Goal: replace native Tree-sitter installation with a packaged WASM parser
      and grammar assets, then prove Linux packaged installs on Node 20 and 24.
-12. [Pre-v1 Clean Install Contract](./active/12_pre-v1-clean-install-contract-epic.md)
+2. [Pre-v1 Clean Install Contract](./active/12_pre-v1-clean-install-contract-epic.md)
    - Goal: replace obsolete Astrograph installation/configuration/state formats
      through one confirmed clean-reset flow, with no migration or compatibility
      promise before 1.0.
@@ -74,6 +41,18 @@ turns those focuses into an exclusive execution gate.
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
+4. [Tree-Sitter Polyglot Language Support](./planned/tree-sitter-polyglot-language-support-delivery-checklist.md)
+   is ready after WASM package/Node proof and a fresh value, asset-size, and
+   support-tier inventory select the next language batch.
+5. [Local Daemon Runtime Ownership](./planned/local-daemon-runtime-ownership-delivery-checklist.md)
+   is ready only for a reproduced lifecycle, multi-client, isolation, or
+   platform gap beyond the delivered runtime-reuse path.
+6. [Repository Structure Cleanup](./planned/repository-structure-cleanup-epic.md)
+   is ready one behavior-preserving story at a time; workflow changes require
+   their existing cost guardrail.
+7. [Publishable Workflow Benchmark](./planned/publishable-workflow-benchmark.md)
+   is ready after a deliberately selected corpus is clean, snapshot-locked,
+   fully successful, and has generated JSON evidence ready to check in.
 
 ## Parked — revisit only with new evidence
 
@@ -196,6 +175,11 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [VoidZero Toolchain](./closed/voidzero-toolchain-epic.md)
   — closed after PR #105 migrated the package build to tsdown and completed
   the scoped runtime, alias, and Oxlint evidence gates.
+- [Runtime Acceleration](./closed/runtime-acceleration-epic.md) — closed with
+  direct daemon indexing, serialized repository work, and measured warm-run
+  evidence.
+- [Interactive Install Lifecycle](./closed/interactive-install-lifecycle-epic.md)
+  — superseded by the active Pre-v1 clean-install contract.
 
 ## Maintaining this roadmap
 

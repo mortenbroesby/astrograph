@@ -1,6 +1,8 @@
 # Publishable Workflow Benchmark Implementation Plan
 
-> **Status:** Active — selected by the user on 2026-07-26.
+> **Status:** Ready — reconciled on 2026-07-29. The harness now contains
+> snapshot guards and focused tests, but no report may be published until the
+> remaining reproducibility gate passes on a deliberately selected corpus.
 
 **Goal:** Publish a small, reproducible comparison that shows when Astrograph
 retrieval beats broad read-all exploration, without presenting stale, synthetic,

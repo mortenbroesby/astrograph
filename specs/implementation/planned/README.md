@@ -42,6 +42,17 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    remains deferred and it is not authorized for implementation.
 7. [Spec System Backlog](./7_spec-system-backlog.md) — lower-impact durable
    architecture/API coverage and authoring consistency.
+- [Tree-Sitter Polyglot Language Support](./tree-sitter-polyglot-language-support-delivery-checklist.md)
+  — resume after the active WASM migration passes package/Node proof and one
+  value- and asset-budgeted language batch is selected.
+- [Local Daemon Runtime Ownership](./local-daemon-runtime-ownership-delivery-checklist.md)
+  — resume only for a reproduced daemon lifecycle, multi-client, isolation, or
+  platform gap beyond the delivered runtime-reuse path.
+- [Repository Structure Cleanup](./repository-structure-cleanup-epic.md)
+  — select one narrow, behavior-preserving layout or script-ownership story.
+- [Publishable Workflow Benchmark](./publishable-workflow-benchmark.md)
+  — publish only after a clean snapshot-locked corpus run has zero selected
+  workflow failures and check-in-ready JSON evidence.
 - [Complexity Cleanup Epic](./complexity-cleanup-epic.md) — completed
   non-pointer cleanup evidence retained outside the active delivery queue.
 

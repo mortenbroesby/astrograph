@@ -1,7 +1,9 @@
 # Local Daemon Runtime Ownership Delivery Checklist
 
-> **Status:** Active — partial implementation merged into PR #96; unchecked
-> items remain required completion work.
+> **Status:** Ready — reconciled on 2026-07-29. The delivered daemon/runtime
+> path is retained below as evidence. Resume only for a demonstrated lifecycle,
+> multi-client, or platform gap; do not infer unfinished work from historical
+> unchecked design steps alone.
 >
 > **Decision:** [ADR-009](../../architecture/adrs.md#adr-009-use-one-user-local-daemon-for-repository-runtime-ownership)
 

@@ -1,6 +1,9 @@
 # Tree-Sitter Polyglot Language Support Delivery Checklist
 
-> **Status:** Active — selected after the Precision/Munch epic closed.
+> **Status:** Ready — reconciled on 2026-07-29. The native-binding delivery
+> record is no longer an active implementation path; the active WASM migration
+> owns installation compatibility. Resume only after it lands, with a fresh
+> value, asset-size, and support-tier inventory.
 
 **Goal:** Expand Astrograph from its current JavaScript-family-only parser
 coverage to every parser currently listed in Tree-sitter's upstream

@@ -1,7 +1,7 @@
 # Runtime Acceleration Epic
 
-> **Status:** Active — selected as the most urgent product-performance work on
-> 2026-07-27. Delivered in one branch and one pull request.
+> **Status:** Done — reconciled on 2026-07-29. The delivery evidence below is
+> complete; any later parser work belongs to the WASM migration, not this epic.
 
 **Goal:** Make repeated local MCP work materially faster by completing the
 daemon reuse path, then prove the improvement on small and representative
@@ -15,7 +15,7 @@ process instead of starting a disposable CLI child, while ordinary CLI
 indexing keeps its existing child-process isolation. Commands for the same
 canonical repository are serialized at the daemon boundary so direct indexing
 cannot race with a read or watch refresh. The existing
-[local-daemon checklist](./5_local-daemon-runtime-ownership-delivery-checklist.md)
+[local-daemon checklist](../planned/local-daemon-runtime-ownership-delivery-checklist.md)
 remains the detailed lifecycle and trust-boundary record.
 
 **Tech Stack:** TypeScript, Node.js 22, SQLite FTS5/WAL, Tree-sitter, Piscina,

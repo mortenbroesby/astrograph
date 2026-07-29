@@ -369,7 +369,7 @@ not dynamically download grammars or claim all community grammars are covered.
 
 ## Verification
 
-- The active [polyglot delivery checklist](../implementation/active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
+- The ready [polyglot delivery checklist](../implementation/planned/tree-sitter-polyglot-language-support-delivery-checklist.md)
   records the inventory, adapter migration, fixtures, package measurements,
   public contract tests, and release evidence.
 
@@ -441,7 +441,7 @@ isolation and privacy model.
 
 ## Verification
 
-- The [local daemon delivery checklist](../implementation/active/5_local-daemon-runtime-ownership-delivery-checklist.md)
+- The [local daemon delivery checklist](../implementation/planned/local-daemon-runtime-ownership-delivery-checklist.md)
   defines singleton, stale-record, authentication, tenant-isolation, shutdown,
   and MCP-compatibility proofs.
 - `tests/interface.test.ts`, focused daemon/proxy tests, type checks, package
