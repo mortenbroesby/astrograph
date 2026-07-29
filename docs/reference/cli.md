@@ -16,32 +16,11 @@ Use `astrograph --version` to print the installed package version. Use
 compatibility, global config and cache paths, storage selection, and Copilot
 CLI/Codex registration presence.
 
-The normal MCP registration pins the exact Astrograph package version selected
-during setup. It does not check for updates at startup and does not depend on a
-global executable. Use the explicit `update` command when you choose to refresh
-the registration.
-
-The guided global flow can also install the optional shell command with npm. It
-asks first and never makes the MCP registration depend on that step: if npm's
-global prefix or PATH needs attention, setup warns and leaves the registration
-usable. This is especially relevant when the repository uses pnpm, Yarn, or
-another package manager.
-
-npm creates `astrograph` in the selected Node runtime's global executable
-directory. Runtime managers—not Astrograph—make that directory available to
-your shell. A Node-version switch can therefore require a new
-`npm install --global astrograph@latest`; follow the selected runtime manager's
-documented refresh step if it uses generated command shims. Astrograph never
-modifies shell profiles, `.tool-versions`, or PATH, and the managed MCP
-registration remains an exact pinned `npx` invocation regardless of the
-optional global command.
-
-On macOS, global setup stores `config.json` under `~/.astrograph` and creates
-`~/.astrograph/cache` when a repository is first indexed. Pre-v1 releases do
-not retain or migrate the former Library cache/config locations.
-
-Prefer `npx astrograph ...` unless you have already verified another local
-invocation path in your environment.
+The managed MCP registration pins the selected Astrograph package version and
+does not depend on a global executable. Prefer `npx --yes astrograph ...`
+unless you have already verified another local invocation path. See
+[Troubleshooting](../guides/troubleshooting.md) for Node-runtime and global
+command recovery.
 
 ## Command Groups
 
@@ -93,18 +72,6 @@ invocation path in your environment.
 Most CLI commands emit JSON by default. `doctor` also supports a more readable
 formatted report unless you pass `--json`.
 
-## File Support
-
-JavaScript modules (`.js`, `.cjs`, `.mjs`) are graph-capable source files, like
-TypeScript. Markdown (`.md`), YAML (`.yaml`, `.yml`), and text (`.txt`) are
-discovery-only: use `find-files`, `search-text`, and `get-file-summary` for
-them, but do not pass them through a `language` filter or expect symbols,
-outlines, or dependency-graph results. `get-project-status` and `diagnostics`
-return the full registry and available tools for each tier.
-
-See [File Support Tiers](../getting-started/concepts.md#file-support-tiers) for
-the complete current extension matrix and summary behavior.
-
 ## Setup Commands
 
 Interactive install:
@@ -122,30 +89,17 @@ npx --yes astrograph install --yes --scope repository --ide all --repo /repo
 npx --yes astrograph install --yes --scope repository --ide codex,copilot-cli --repo /repo
 ```
 
-Setup never changes `package.json`, installs dependencies, or checks npm for an
-update. This keeps ordinary setup deterministic and reviewable.
-
-When current-package validation finds obsolete Astrograph setup, it does not
-use a compatibility path. Interactive setup explains why, prints numbered
-phases, and asks before reset. Non-interactive setup fails without writes until
-`--reset` is supplied with `--yes`:
+Setup never changes `package.json` or installs repository dependencies. When
+current-package validation finds obsolete Astrograph setup, interactive setup
+explains the mismatch; non-interactive setup requires an explicit reset:
 
 ```bash
 npx --yes astrograph install --yes --reset --scope repository --ide codex --repo /repo
 ```
 
-Valid client configuration is changed only in Astrograph's marked block or
-named server entry. If a whole client config is malformed, Astrograph reports
-the issue, saves a timestamped backup, and writes a fresh Astrograph-only file
-only after reset confirmation. Use `--verbose` for detailed optional npm output.
-
-In the guided flow, repository setup offers first indexing by default. Global
-setup offers current-repository indexing separately and defaults to no.
-
-Do not manually delete `.astrograph` state. A missing, malformed, or
-incompatible storage marker causes Astrograph to archive the managed cache and
-rebuild it on the next operation. If a cache needs recovery, inspect status and
-use the scoped archive commands below.
+Client updates are scoped to Astrograph-managed configuration. For backups,
+cache recovery, or verbose global-command installation output, see
+[Troubleshooting](../guides/troubleshooting.md).
 
 ## Local Astrograph Report
 
@@ -324,62 +278,8 @@ runtime hook. `--git-hooks` manages non-blocking `post-commit`,
 `post-checkout`, and `post-merge` hooks that delegate to `git-refresh`. It
 refuses to replace a hook owned by another tool.
 
-## Configuration
+## Related References
 
-Astrograph reads optional defaults from `astrograph.config.ts`.
-
-```ts
-import { defineConfig } from "astrograph";
-
-export default defineConfig({
-  "summaryStrategy": "doc-comments-first",
-  "storageMode": "wal",
-  "observability": {
-    "retentionDays": 3,
-    "redactSourceText": true
-  },
-  "ranking": {
-    "exactName": 1000,
-    "filePathContains": 120,
-    "exportedBonus": 20
-  },
-  "performance": {
-    "include": ["src/**/*.{ts,tsx,js,jsx}"],
-    "exclude": ["**/*.test.ts"],
-    "fileProcessingConcurrency": "auto",
-    "workerPool": {
-      "enabled": false,
-      "maxWorkers": "auto"
-    }
-  },
-  "watch": {
-    "backend": "auto",
-    "debounceMs": 100
-  },
-  "limits": {
-    "maxFilesDiscovered": 100000,
-    "maxFileBytes": 250000,
-    "maxSymbolsPerFile": 2000,
-    "maxSymbolResults": 8,
-    "maxTextResults": 100,
-    "maxChildProcessOutputBytes": 1000000,
-    "maxLiveSearchMatches": 100
-  }
-});
-```
-
-## Development Commands
-
-```bash
-pnpm install
-pnpm build
-pnpm type-lint
-pnpm test
-pnpm test:package-bin
-```
-
-Source-mode execution during local development:
-
-```bash
-ASTROGRAPH_USE_SOURCE=1 pnpm exec astrograph cli diagnostics --repo /repo
-```
+- [Config Reference](./config.md)
+- [Language Support](./language-support.md)
+- [Contributing](../../CONTRIBUTING.md)

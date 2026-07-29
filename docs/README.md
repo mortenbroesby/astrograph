@@ -1,19 +1,15 @@
 # Astrograph Docs
 
-Astrograph's README explains the thesis. This compendium explains how to use,
-operate, and reason about the tool without turning the root page into a wall of
-detail.
+The README gets you started. This page helps you find the detail you need.
 
 ![Docs journey diagram showing new readers starting with concepts and first steps, then branching into workflows, guides, and reference.](../assets/diagrams/docs-journey.svg)
 
 ## Start Here
 
-If you are new to Astrograph, read these in order:
+New to Astrograph? Start here:
 
-1. [Concepts](./getting-started/concepts.md)
-2. [First Steps](./getting-started/first-steps.md)
-3. [Retrieval Workflows](./guides/retrieval-workflows.md)
-4. [CLI Reference](./reference/cli.md)
+1. [First Steps](./getting-started/first-steps.md)
+2. [Retrieval Workflows](./guides/retrieval-workflows.md)
 
 ## Getting Started
 
@@ -21,8 +17,7 @@ If you are new to Astrograph, read these in order:
   The mental model: what Astrograph is, when it helps, and why structured
   retrieval beats broad file reading.
 - [First Steps](./getting-started/first-steps.md)
-  Install Astrograph, wire up MCP, run a few useful commands, and know what to
-  do next.
+  Install Astrograph, connect an AI client, and make the first useful query.
 
 ## Guides
 
@@ -40,8 +35,6 @@ If you are new to Astrograph, read these in order:
 - [Troubleshooting](./guides/troubleshooting.md)
   What to do when the repo is not indexed, stale, unhealthy, or missing watch
   refresh.
-- [Ralph Runner](./guides/ralph-runner.md)
-  The opt-in autonomous runner for planning-oriented story loops in this repo.
 
 ## Reference
 
@@ -52,26 +45,18 @@ If you are new to Astrograph, read these in order:
 - [Language Support](./reference/language-support.md)
   Exact parser-backed languages, tiers, extensions, and evidence-based exclusions.
 - [Release Reference](./reference/release.md)
-  How Astrograph versions, plans, and publishes npm releases.
+  Contributor-only release workflow.
 
-## Reviews
+## For Contributors
 
-- [Staff Engineer Review — July 2026](./reviews/staff-engineering-review-2026-07.md)
-  Evidence-based architectural and engineering assessment with a proportionate
-  Now/Next/Later roadmap.
-- [Windows Compatibility Audit — July 2026](./reviews/windows-compatibility-audit-2026-07.md)
-  Evidence map and story handoff for Windows Node terminals and Git Bash.
-- [MCP Tool-Surface Audit — July 2026](./reviews/mcp-tool-surface-audit-2026-07-22.md)
-- [Compact Output vs Internal Serialization Assessment — July 2026](./reviews/compact-output-vs-internal-serialization-2026-07-22.md)
-  Measured MCP schema baseline, global-client policy finding, and selected core
-  versus specialized-tool policy.
-- [Reversible Cache Cleanup Safety Baseline — July 2026](./reviews/reversible-cache-cleanup-safety-baseline-2026-07.md)
-  Mutation inventory, archive-first boundaries, and external safety-practice
-  references for managed cache recovery.
+- [Contributing](../CONTRIBUTING.md)
+- [Local container verification](./guides/local-container-verification.md)
+- [Release reference](./reference/release.md)
+- [Ralph runner](./guides/ralph-runner.md)
+- [Historical reviews and audits](./reviews/)
 
 ## Reading Strategy
 
-- Start with the getting-started pages if you are evaluating Astrograph.
-- Jump straight to reference if you already know what you need.
-- Use guides when you are optimizing, troubleshooting, or adopting optional
-  workflows.
+- Start with First Steps when evaluating Astrograph.
+- Go straight to Reference when you know the command or setting you need.
+- Use Guides for retrieval habits, troubleshooting, and performance work.
