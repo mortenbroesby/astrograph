@@ -6,6 +6,16 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Open Epic Reconciliation — 2026-07-29](./open-epic-reconciliation-2026-07-29.md)
+  — consolidated stale active records, preserving only the WASM parser and
+  Pre-v1 clean-install product tracks as active.
+- [Runtime Acceleration Epic](./runtime-acceleration-epic.md) — completed with
+  direct daemon indexing, per-repository serialization, and recorded warm-run
+  benchmark evidence.
+- [Interactive Install Lifecycle Epic](./interactive-install-lifecycle-epic.md)
+  — superseded by the active Pre-v1 Clean Install Contract; retained as design
+  and delivery evidence rather than an additional implementation queue.
+
 - [Session-Aware Agent Efficiency Epic](./session-aware-agent-efficiency-epic.md)
   and its [repeat-read baseline](./session-aware-repeat-read-trace-delivery-checklist.md),
   [content-reference contract](./session-content-reference-contract-delivery-checklist.md),

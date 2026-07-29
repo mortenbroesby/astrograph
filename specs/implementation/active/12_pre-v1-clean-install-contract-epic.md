@@ -21,7 +21,7 @@ compatibility aliases, background update check, telemetry, or startup network
 request.
 
 **Relationship to existing work:** This is the selected cleanup successor to
-the [Interactive Install Lifecycle Epic](./11_interactive-install-lifecycle-epic.md).
+the [Interactive Install Lifecycle Epic](../closed/interactive-install-lifecycle-epic.md).
 It retains its managed-write backups, rollback checks, and granular ownership;
 it removes the remaining legacy-registration migration option rather than
 extending it. The completed [pre-v1 cache cleanup](../closed/pre-v1-cache-codebase-cleanup-delivery-checklist.md)

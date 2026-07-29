@@ -1,6 +1,8 @@
 # Repository Structure Cleanup Epic
 
-> **Status:** Active — selected by the user on 2026-07-26.
+> **Status:** Ready — reconciled on 2026-07-29. The completed benchmark move
+> remains recorded below. Resume one independently verifiable story at a time;
+> do not combine workflow edits, benchmark-health repair, and layout cleanup.
 
 **Goal:** Make repository automation and benchmarking easy to locate, run, and
 change without altering Astrograph runtime behavior or expanding CI cost.
