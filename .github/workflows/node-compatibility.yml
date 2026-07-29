@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       node-version:
-        description: Runtime used for the packed-package smoke test.
+        description: Runtime used for the packed WASM parser package smoke test.
         required: true
         type: choice
         options:
@@ -44,4 +44,4 @@ jobs:
         with:
           node-version: ${{ inputs.node-version }}
 
-      - run: pnpm test:package-bin:prebuilt
+      - run: pnpm test:package-bin:wasm

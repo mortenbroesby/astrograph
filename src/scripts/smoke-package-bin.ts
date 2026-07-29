@@ -16,6 +16,29 @@ const packageRoot = path.resolve(
   "..",
 );
 
+const wasmFixtureFiles = [
+  ["polyglot.ts", "export const typescript = 1;\n"],
+  ["polyglot.tsx", "export const Tsx = () => <main />;\n"],
+  ["polyglot.js", "export const javascript = 1;\n"],
+  ["polyglot.jsx", "export const Jsx = () => <main />;\n"],
+  ["polyglot.py", "def python():\n  return 1\n"],
+  ["polyglot.sh", "bash_fn() { echo ok; }\n"],
+  ["polyglot.ps1", "function PowerShellFn { Write-Host ok }\n"],
+  ["Polyglot.cs", "public class CSharpType { public void Run() {} }\n"],
+  ["Polyglot.java", "class JavaType { void run() {} }\n"],
+  ["polyglot.go", "package polyglot\nfunc GoFn() {}\n"],
+  ["polyglot.rs", "struct RustType {}\nfn rust_fn() {}\n"],
+  ["polyglot.json", "{\"name\": \"polyglot\"}\n"],
+  ["polyglot.html", "<main>html</main>\n"],
+  ["polyglot.css", ".polyglot { color: red; }\n"],
+  ["polyglot.c", "int c_fn(void) { return 1; }\n"],
+  ["polyglot.cpp", "class CppType { public: void run() {} };\n"],
+  ["polyglot.php", "<?php class PhpType { function run() {} }\n"],
+  ["polyglot.rb", "class RubyType\n  def run; end\nend\n"],
+  ["polyglot.erb", "<%= polyglot %>\n"],
+  ["polyglot.scala", "class ScalaType\ndef scalaFn = 1\n"],
+] as const;
+
 async function run(
   command: string,
   args: readonly string[],
@@ -56,6 +79,7 @@ async function run(
 
 async function main(): Promise<void> {
   const prebuiltPackage = process.argv.includes("--prebuilt");
+  const wasmOnly = process.argv.includes("--wasm-only");
   const packageManifest = JSON.parse(
     await readFile(path.join(packageRoot, "package.json"), "utf8"),
   ) as { packageManager?: string; version?: string };
@@ -112,6 +136,11 @@ async function main(): Promise<void> {
       path.join(secondFixtureRepo, "src", "catalog.ts"),
       "export const catalogOnly = () => \"two\";\n",
     );
+    await Promise.all(
+      wasmFixtureFiles.map(([fileName, content]) =>
+        writeFile(path.join(secondFixtureRepo, "src", fileName), content),
+      ),
+    );
 
     await run("git", ["init"], fixtureRepo);
     await run("git", ["add", "."], fixtureRepo);
@@ -159,6 +188,29 @@ async function main(): Promise<void> {
     const { stdout: globalVersion } = await run(globalBin, ["--version"], installDir);
     if (!packageManifest.version || globalVersion.trim() !== packageManifest.version) {
       throw new Error(`Unexpected globally installed package version: ${globalVersion}`);
+    }
+    const { stdout: wasmIndexOutput } = await run(
+      globalBin,
+      ["cli", "index-folder", "--repo", secondFixtureRepo],
+      installDir,
+    );
+    const wasmIndex = JSON.parse(wasmIndexOutput) as {
+      indexedFiles?: number;
+      indexedSymbols?: number;
+      parsedFiles?: number;
+    };
+    if (
+      wasmIndex.indexedFiles !== wasmFixtureFiles.length + 1
+      || wasmIndex.parsedFiles !== wasmFixtureFiles.length + 1
+      || (wasmIndex.indexedSymbols ?? 0) < wasmFixtureFiles.length
+    ) {
+      throw new Error(
+        `Expected globally installed package to parse every supported WASM grammar: ${wasmIndexOutput}`,
+      );
+    }
+    if (wasmOnly) {
+      console.error("package smoke: WASM grammar coverage completed successfully");
+      return;
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);

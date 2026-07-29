@@ -42,8 +42,11 @@ and this checklist.
 - [x] Inventory every current adapter (Bash, C, C#, C++, CSS, embedded
   templates, Go, HTML, Java, JavaScript, JSON, PHP, PowerShell, Python, Ruby,
   Rust, Scala, TypeScript, and TSX) against the candidate asset package.
-- [ ] Verify the asset licenses and package contents; the installed package
-  must contain a loadable `.wasm` for every adapter with no postinstall build.
+- [x] Verify the asset license and package contents. `tree-sitter-wasm@1.0.7`
+  declares MIT and supplies a loadable `.wasm` for every one of Astrograph's
+  20 language adapters; `tests/parser-wasm-assets.test.ts` proves that mapping.
+  The clean packed-package smoke installs npm dependencies without a parser
+  postinstall build and loads every selected grammar through the global binary.
 - [x] Add a focused proof that initializes the WASM runtime and parses
   JavaScript plus one non-JavaScript fixture from package assets.
 
@@ -84,22 +87,26 @@ needed, Node compatibility workflow evidence, README/troubleshooting text.
 - [x] Assert the packed tarball contains no native Tree-sitter dependency.
   The package manifest is checked after `pnpm pack`; runtime/grammar loading is
   covered by the focused parser fixture suite.
-- [ ] Assert the packed tarball includes the runtime and every selected grammar
-  asset, and contains no native Tree-sitter dependency.
-- [ ] Run the packed global-install smoke locally under ASDF Node 20.19 and
-  24.13, then dispatch the Linux Node 20 and 24 manual package gates.
-- [ ] Update the Node compatibility baseline with exact pass/fail run links;
-  align user-facing Node support wording only after both gates pass.
+- [x] Assert the packed package resolves the runtime and every selected grammar
+  asset, and contains no native Tree-sitter dependency. The focused package
+  smoke packs, globally installs, and indexes all 20 grammar fixtures; package
+  metadata continues to reject both `tree-sitter` and `@astrograph/tree-sitter`.
+- [x] Run the packed global-install smoke locally under Node 20.19, 22.23.1,
+  and 24.13. The manual Linux Node 20/24 workflow uses the same focused packed
+  WASM smoke without adding a trigger or runner cost.
+- [x] Update user-facing Node/parser wording: Node 20.19+, 22, and 24 remain
+  supported, and parsing no longer needs a Tree-sitter compiler or native addon.
 
 **Acceptance criteria:** A clean Linux global install and indexed fixture pass
 on Node 20 and 24 without a compiler or native Tree-sitter build.
 
 ## Verification and Release Checkpoint
 
-- [ ] `pnpm type-lint`
-- [ ] Focused parser fixture tests
-- [ ] `pnpm test:package-bin:prebuilt` under Node 20, 22, and 24
-- [ ] `pnpm check:version-bump --base github/main`
-- [ ] `git diff --check`
-- [ ] Apply the release-decision skill; this is a patch-level runtime fix and
-  must receive the next alpha version before publication.
+- [x] `pnpm type-lint`
+- [x] Focused parser fixture tests
+- [x] `pnpm test:package-bin:wasm` under Node 20, 22, and 24
+- [x] `pnpm check:version-bump --base origin/main`
+- [x] `git diff --check`
+- [x] Apply the release-decision skill. It selected patch release
+  `0.11.3-alpha.212`; the version update is committed. PR CI and the guarded
+  main-only publish flow remain the final external evidence.

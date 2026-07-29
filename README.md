@@ -97,7 +97,9 @@ choose the document that matches your task:
 ## Requirements
 
 Astrograph supports Node 20.19+, 22, and 24. Git is optional: without it,
-Astrograph uses a safe filesystem fallback.
+Astrograph uses a safe filesystem fallback. Its parser uses packaged WebAssembly
+grammars, so installing Astrograph does not compile Tree-sitter or require a
+C++ toolchain for parsing.
 
 ## ⚖️ License
 
