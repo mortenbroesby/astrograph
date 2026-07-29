@@ -81,6 +81,7 @@
     "profile:query:0x": "0x --output-dir .profiles/0x/query -- node --import=tsx ./bench/scripts/perf-query.mjs",
     "test:package-bin": "node --import=tsx ./src/scripts/smoke-package-bin.ts",
     "test:package-bin:prebuilt": "node --import=tsx ./src/scripts/smoke-package-bin.ts --prebuilt",
+    "test:package-bin:wasm": "node --import=tsx ./src/scripts/smoke-package-bin.ts --prebuilt --wasm-only",
     "check:version-bump": "node --import=tsx ./src/scripts/check-version-bump.ts",
     "release": "pnpm release:apply && pnpm test",
     "release:plan": "node ./dist/scripts/release-agent.js",

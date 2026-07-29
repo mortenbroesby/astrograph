@@ -87,7 +87,7 @@ describe("ai-context-engine contract", () => {
       .toBe("Step 2 of 4 — Updating Astrograph configuration");
   });
 
-  it("refuses a bare non-TTY install without writing a repository", async () => {
+  it("keeps a bare non-TTY entrypoint read-only and prints concise help", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-non-tty-"));
     tempDirs.push(repoRoot);
     const entry = path.join(process.cwd(), "dist", "astrograph.js");
@@ -97,7 +97,7 @@ describe("ai-context-engine contract", () => {
       { cwd: repoRoot, encoding: "utf8", env: process.env },
     );
     expect(result.status).toBe(1);
-    expect(`${result.stderr}${result.stdout}`).toContain("Guided install requires a TTY");
+    expect(`${result.stderr}${result.stdout}`).toContain("Usage:");
     await expect(stat(path.join(repoRoot, ".codex", "config.toml"))).rejects.toThrow();
   });
 

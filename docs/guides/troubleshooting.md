@@ -13,7 +13,7 @@ For detailed state, use:
 npx --yes astrograph cli diagnostics --repo /absolute/path/to/repo --scan-freshness
 ```
 
-## Node.js or Native Dependency Errors
+## Node.js or Package Installation Errors
 
 The published package supports Node 20.19+, 22, and 24. Check the runtime that
 starts Astrograph:
@@ -22,9 +22,10 @@ starts Astrograph:
 node --version
 ```
 
-Upgrade to a supported version and reinstall. If installation still fails, keep
-the complete error: native prebuild availability depends on your operating
-system and architecture.
+Upgrade to a supported version and reinstall. Astrograph's parser uses packaged
+WebAssembly grammars and does not compile Tree-sitter. If installation still
+fails, keep the complete error and report it: a supported Node version should
+not need a compiler to install the parser.
 
 ## `astrograph: command not found`
 

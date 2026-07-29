@@ -1,8 +1,8 @@
 # Language Support
 
-Astrograph uses static, pinned Tree-sitter grammars. A language is exposed only
-after its grammar loads in the supported Node binding and a fixture proves
-deterministic symbols and ranges.
+Astrograph uses static, pinned Tree-sitter WebAssembly grammars. A language is
+exposed only after its packaged grammar loads without a native addon and a
+fixture proves deterministic symbols and ranges.
 
 ## Support tiers
 
@@ -45,16 +45,16 @@ produce invented symbols.
 ## Deliberate exclusions
 
 Tree-sitter's upstream parser catalog is not a blanket promise that every
-grammar package will work in every Node binding. Astrograph currently excludes:
+grammar has a useful Astrograph file contract. Astrograph currently excludes:
 
-- **Agda** and **Verilog:** their tested Node packages were rejected as invalid
-  language objects by `tree-sitter@0.25.0`.
+- **Agda** and **Verilog:** they are outside the selected product language set;
+  do not add them without a package-size review and fixture-backed contract.
 - **Regex** and **JSDoc:** they parse in isolation but do not have a stable,
   standalone file-extension contract in Astrograph; JSDoc is normally embedded
   in JavaScript-family comments.
 - **OCaml**, **Haskell**, and **Julia:** intentionally excluded from the
   default Java/.NET/React-oriented product set. They can be reconsidered as
-  separate specialist language packs rather than default native dependencies.
+  separate specialist language packs after a package-size and fixture review.
 
 These exclusions are recorded in the active implementation checklist and can
 be reconsidered only with compatible runtime evidence and a user-facing file
