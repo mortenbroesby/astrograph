@@ -102,10 +102,11 @@ on Node 20 and 24 without a compiler or native Tree-sitter build.
 
 ## Verification and Release Checkpoint
 
-- [ ] `pnpm type-lint`
-- [ ] Focused parser fixture tests
+- [x] `pnpm type-lint`
+- [x] Focused parser fixture tests
 - [x] `pnpm test:package-bin:wasm` under Node 20, 22, and 24
-- [ ] `pnpm check:version-bump --base origin/main`
-- [ ] `git diff --check`
-- [ ] Apply the release-decision skill; this is a patch-level runtime fix and
-  must receive the next alpha version before publication.
+- [x] `pnpm check:version-bump --base origin/main`
+- [x] `git diff --check`
+- [x] Apply the release-decision skill. It selected patch release
+  `0.11.3-alpha.212`; the version update is committed. PR CI and the guarded
+  main-only publish flow remain the final external evidence.
