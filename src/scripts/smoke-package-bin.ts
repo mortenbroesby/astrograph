@@ -44,6 +44,7 @@ async function run(
   args: readonly string[],
   cwd: string,
   environment: NodeJS.ProcessEnv = {},
+  timeout = 60_000,
 ): Promise<{ stdout: string; stderr: string }> {
   const displayCommand = [command, ...args].map((value) => JSON.stringify(value)).join(" ");
   console.error(`package smoke: ${displayCommand}`);
@@ -58,7 +59,7 @@ async function run(
         ...environment,
         CI: "1",
       },
-      timeout: 60_000,
+      timeout,
       maxBuffer: 10 * 1024 * 1024,
     });
     return {
@@ -174,6 +175,8 @@ async function main(): Promise<void> {
       "npm",
       ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
       installDir,
+      {},
+      180_000,
     );
     // Resolver and engine warnings mean users may not get a usable install.
     // Third-party deprecation notices are maintained upstream and do not change
