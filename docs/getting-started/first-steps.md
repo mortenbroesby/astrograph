@@ -10,18 +10,35 @@ In the repository you want to explore, run:
 npx --yes astrograph
 ```
 
-Choose your AI client and setup scope, then restart the client.
+This is the quickest path: it runs Astrograph without installing a shell
+command. If you want to use `astrograph` directly in any terminal, install it
+globally once instead:
+
+```bash
+npm install --global astrograph@latest
+astrograph install
+```
+
+Both commands open the same guided setup. Choose your AI client and setup
+scope, then restart the client.
 
 - **This device** registers your client once and keeps a private index for each
   repository.
 - **This repository** writes project-owned configuration that collaborators can
   review.
 
-You do not need a global `astrograph` command. The MCP registration uses a
-pinned `npx` invocation. If you want a package dependency for repository
-scripts, install `astrograph` with your package manager instead.
+Global installation gives you a permanent `astrograph` command. **This device**
+is the device-wide setup scope; you can select it from either the `npx` or
+global-command path. The MCP registration itself remains pinned to the chosen
+Astrograph package version.
 
-For automation, use the explicit form:
+For non-interactive device-wide setup, use:
+
+```bash
+astrograph install --yes --scope global --ide codex
+```
+
+For non-interactive repository setup, use:
 
 ```bash
 npx --yes astrograph install --yes --scope repository --ide codex --repo /absolute/path/to/repo

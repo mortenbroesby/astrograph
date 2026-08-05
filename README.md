@@ -50,15 +50,26 @@ In the repository you want to explore:
 npx --yes astrograph
 ```
 
-Choose your AI client and setup scope, then restart the client.
+Or install Astrograph globally once when you want the `astrograph` command
+available in your shell:
+
+```bash
+npm install --global astrograph@latest
+astrograph install
+```
+
+Both paths open the same guided setup. Choose your AI client and setup scope,
+then restart the client.
 
 - **This device** connects your client once and keeps a private index for each
   repository. It does not change repositories unless you opt into indexing one.
 - **This repository** creates project-owned configuration that collaborators
   can review.
 
-The installer explains every write before it makes it. For automation and
-recovery commands, use the [CLI reference](./docs/reference/cli.md).
+Global installation gives you a permanent `astrograph` command; **This device**
+is the device-wide setup scope. You can use either `npx` or the global command
+to choose it. The installer explains every write before it makes it. For
+automation and recovery commands, use the [CLI reference](./docs/reference/cli.md).
 
 New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
 
