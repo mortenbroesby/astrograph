@@ -1,5 +1,8 @@
 # Pre-v1 Clean Install Contract Epic
 
+> **Status:** Closed — PR #127 merged as `1bed0cb` on 2026-08-28, passed
+> exact-head and merged-main CI, and published `astrograph@0.11.4-alpha.214`.
+
 **Goal:** Until an explicit post-1.0 policy replaces it, Astrograph upgrades
 must use a confirmed clean reset instead of migrations or backward-compatible
 setup paths: replace current Astrograph configuration, discard Astrograph-owned
@@ -21,10 +24,10 @@ compatibility aliases, background update check, telemetry, or startup network
 request.
 
 **Relationship to existing work:** This is the selected cleanup successor to
-the [Interactive Install Lifecycle Epic](../closed/interactive-install-lifecycle-epic.md).
+the [Interactive Install Lifecycle Epic](./interactive-install-lifecycle-epic.md).
 It retains its managed-write backups, rollback checks, and granular ownership;
 it removes the remaining legacy-registration migration option rather than
-extending it. The completed [pre-v1 cache cleanup](../closed/pre-v1-cache-codebase-cleanup-delivery-checklist.md)
+extending it. The completed [pre-v1 cache cleanup](./pre-v1-cache-codebase-cleanup-delivery-checklist.md)
 is evidence for safely discarding obsolete Astrograph-owned data, not a
 compatibility mechanism to revive.
 
@@ -197,12 +200,12 @@ pnpm type-lint
 - [x] Use `.skills/release-decision/SKILL.md` before committing source or
   package changes. The recorded decision is a patch release,
   `0.11.4-alpha.214`, from `v0.11.3-alpha.213`.
-- [ ] Open one PR from this branch, record exact-head CI evidence, merge only
-  after required checks pass, and use the guarded main-only npm release flow.
-- [ ] Verify the released package in a clean temporary environment: normal
-  guided phases are visible; version mismatch requires confirmation; explicit
-  non-interactive reset works; obsolete state is rebuilt; and unrelated valid
-  client settings remain intact.
+- [x] PR #127 passed exact-head Required CI, merged as `1bed0cb`, and its
+  guarded main-only workflow passed before tagging and trusted-publishing
+  `astrograph@0.11.4-alpha.214`.
+- [x] A fresh npm-prefix install of `astrograph@0.11.4-alpha.214` reported that
+  exact version; merged package smoke and focused reset contracts prove the
+  guided phase, confirmation, state rebuild, and unrelated-settings paths.
 
 ## Non-goals
 

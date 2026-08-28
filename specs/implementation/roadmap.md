@@ -20,14 +20,6 @@ turns those focuses into an exclusive execution gate.
 1. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
    - Goal: replace native Tree-sitter installation with a packaged WASM parser
      and grammar assets, then prove Linux packaged installs on Node 20 and 24.
-2. [Pre-v1 Clean Install Contract](./active/12_pre-v1-clean-install-contract-epic.md)
-   - Goal: replace obsolete Astrograph installation/configuration/state formats
-     through one confirmed clean-reset flow, with no migration or compatibility
-     promise before 1.0.
-   - Architecture: granular managed-block updates for valid files; backup plus
-     fresh Astrograph-only replacement only for malformed client files; no
-     startup network version check and clear normal-mode phase output.
-
 ## Ready — detailed, but not selected
 
 1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
@@ -179,7 +171,10 @@ and the [MCP contract](../api-design/mcp-tools.md).
   direct daemon indexing, serialized repository work, and measured warm-run
   evidence.
 - [Interactive Install Lifecycle](./closed/interactive-install-lifecycle-epic.md)
-  — superseded by the active Pre-v1 clean-install contract.
+  — superseded by the completed Pre-v1 clean-install contract.
+- [Pre-v1 Clean Install Contract](./closed/pre-v1-clean-install-contract-epic.md)
+  — closed after PR #127 merged as `1bed0cb`, required and guarded release
+  workflows passed, and `astrograph@0.11.4-alpha.214` was verified from npm.
 
 ## Maintaining this roadmap
 

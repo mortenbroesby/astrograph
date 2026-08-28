@@ -13,10 +13,8 @@ use its recorded evidence or selection gate instead.
 
 - [WASM Parser Runtime Migration](./specs/implementation/active/11_wasm-parser-runtime-migration.md)
   — remove the native Tree-sitter install boundary and prove packed global
-  installs on Node 20, 22, and 24.
-- [Pre-v1 Clean Install Contract Epic](./specs/implementation/active/12_pre-v1-clean-install-contract-epic.md)
-  — remove setup migration/compatibility paths and use a confirmed clean reset
-  with visible phases whenever Astrograph installation state is mismatched.
+  installs on Node 20, 22, and 24. Current-main Node 24 proof is recorded;
+  Node 20 hosted proof remains the deliberately deferred compatibility follow-up.
 
 The [open-epic reconciliation record](./specs/implementation/closed/open-epic-reconciliation-2026-07-29.md)
 lists the ready follow-ups and their selection gates.

@@ -6,6 +6,11 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Pre-v1 Clean Install Contract Epic](./pre-v1-clean-install-contract-epic.md)
+  — closed after PR #127 merged as `1bed0cb`, exact-head and merged-main CI
+  passed, and `astrograph@0.11.4-alpha.214` was trusted-published and verified
+  from a fresh npm install.
+
 - [Open Epic Reconciliation — 2026-07-29](./open-epic-reconciliation-2026-07-29.md)
   — consolidated stale active records, preserving only the WASM parser and
   Pre-v1 clean-install product tracks as active.
@@ -13,7 +18,7 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
   direct daemon indexing, per-repository serialization, and recorded warm-run
   benchmark evidence.
 - [Interactive Install Lifecycle Epic](./interactive-install-lifecycle-epic.md)
-  — superseded by the active Pre-v1 Clean Install Contract; retained as design
+  — superseded by the completed Pre-v1 Clean Install Contract; retained as design
   and delivery evidence rather than an additional implementation queue.
 
 - [Session-Aware Agent Efficiency Epic](./session-aware-agent-efficiency-epic.md)

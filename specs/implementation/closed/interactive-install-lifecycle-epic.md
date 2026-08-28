@@ -1,7 +1,7 @@
 # Interactive Install Lifecycle Epic (Superseded)
 
-> **Status:** Superseded on 2026-07-29 by the active
-> [Pre-v1 Clean Install Contract Epic](../active/12_pre-v1-clean-install-contract-epic.md).
+> **Status:** Superseded on 2026-07-29 by the now-completed
+> [Pre-v1 Clean Install Contract Epic](./pre-v1-clean-install-contract-epic.md).
 > This record retains the delivered lifecycle design and evidence. Its unchecked
 > compatibility/migration follow-ups must not be completed independently: the
 > successor deliberately removes those paths and owns any still-relevant tests.
