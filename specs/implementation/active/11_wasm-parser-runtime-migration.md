@@ -1,7 +1,9 @@
 # WASM Parser Runtime Migration
 
 > **Status:** Active — selected by the user on 2026-07-27 after packaged
-> global installation failed on Linux under Node 20 and 24.
+> global installation failed on Linux under Node 20 and 24. Node 24 now has
+> current-main local and hosted Linux proof; remaining Node 20 work is outside
+> the current focus.
 
 **Goal:** Remove the native `tree-sitter` installation boundary while retaining
 Astrograph's existing supported-language and symbol-extraction behavior.
@@ -94,9 +96,14 @@ needed, Node compatibility workflow evidence, README/troubleshooting text.
 - [x] Run the packed global-install smoke locally under Node 20.19, 22.23.1,
   and 24.13. The manual Linux Node 20/24 workflow uses the same focused packed
   WASM smoke without adding a trigger or runner cost.
-- [ ] Dispatch and record the manual Linux Node 20 and 24 workflow runs. Local
-  package evidence is complete; this separate hosted evidence remains pending
-  because this checkout has no valid GitHub CLI workflow-dispatch credential.
+- [x] Dispatch and record the manual Linux Node 24 workflow on current main.
+  [Run 33187593051](https://github.com/mortenbroesby/astrograph/actions/runs/33187593051)
+  passed the packed WASM smoke on 2026-08-28 for `b979e2a`, after a Node 22
+  build. The same current-main artifact also passed the complete local
+  Node 22 package smoke and the local Node 24 prebuilt package smoke.
+- [ ] Run and record a current-main Linux Node 20 workflow. This is deliberately
+  out of scope for the current Node 24 focus; it is no longer blocked by GitHub
+  CLI authentication.
 - [x] Update user-facing Node/parser wording: Node 20.19+, 22, and 24 remain
   supported, and parsing no longer needs a Tree-sitter compiler or native addon.
 

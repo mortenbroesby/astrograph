@@ -14,7 +14,8 @@ new work complements rather than duplicates existing plans.
 
 1. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
    — remove the native Tree-sitter install boundary and prove packed global
-   installs on Node 20, 22, and 24.
+   installs on Node 20, 22, and 24. Current-main Node 24 Linux package proof
+   is recorded; Node 20 hosted proof remains separately pending.
 2. [Pre-v1 Clean Install Contract Epic](./12_pre-v1-clean-install-contract-epic.md)
    — selected by the user: remove setup migrations and compatibility paths;
    require a confirmed clean reset with visible installer phases whenever local
