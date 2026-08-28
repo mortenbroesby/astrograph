@@ -6,9 +6,14 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Tree-Sitter Polyglot Support Contract](./tree-sitter-polyglot-support-contract.md)
+  — delivered in PR #129 with the authoritative 20-language WASM registry,
+  public grammar provenance, measured costs, green CI, and npm publication of
+  `astrograph@0.12.0-alpha.216`.
+
 - [Tree-Sitter Polyglot Language Support History](./tree-sitter-polyglot-language-support-history.md)
   — superseded native-binding batch research; the maintained WASM contract is
-  tracked in active work.
+  now closed above.
 
 - [Pre-v1 Clean Install Contract Epic](./pre-v1-clean-install-contract-epic.md)
   — closed after PR #127 merged as `1bed0cb`, exact-head and merged-main CI

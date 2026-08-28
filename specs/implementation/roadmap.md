@@ -20,9 +20,6 @@ turns those focuses into an exclusive execution gate.
 1. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
    - Goal: replace native Tree-sitter installation with a packaged WASM parser
      and grammar assets, then prove Linux packaged installs on Node 20 and 24.
-2. [Tree-Sitter Polyglot Support Contract](./active/12_tree-sitter-polyglot-support-contract.md)
-   - Goal: maintain one explicit, measured 20-language WASM grammar contract
-     for the JavaScript/.NET/Java-oriented monorepo set.
 ## Ready — detailed, but not selected
 
 1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
@@ -98,6 +95,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 
 ## Done — evidence, not queue
 
+- [Tree-Sitter Polyglot Support Contract](./closed/tree-sitter-polyglot-support-contract.md)
+  — closed after PR #129 merged as `adce69d`, exact-main CI passed, and
+  `astrograph@0.12.0-alpha.216` was trusted-published with its matching tag.
 - [Closed records](./closed/README.md) contain the completed global install and
   cache, global Codex/Copilot setup, cache cleanup, branch-aware indexing,
   provenance/ranking, task context, tokenizer research, and MCP tool-surface
