@@ -4,6 +4,11 @@ Astrograph uses static, pinned Tree-sitter WebAssembly grammars. A language is
 exposed only after its packaged grammar loads without a native addon and a
 fixture proves deterministic symbols and ranges.
 
+The runtime is `web-tree-sitter@0.25.10` and its static assets come from
+`tree-sitter-wasm@1.0.7` (both MIT). Grammar identities below are the pinned
+asset names resolved by Astrograph; they are not network downloads or a promise
+to support every upstream Tree-sitter grammar.
+
 ## Support tiers
 
 - **Graph:** JavaScript and TypeScript family files support Astrograph's full
@@ -15,28 +20,28 @@ fixture proves deterministic symbols and ranges.
 
 ## Supported languages
 
-| Tier | Language | Extensions |
-| --- | --- | --- |
-| Graph | TypeScript | `.ts` |
-| Graph | TSX | `.tsx` |
-| Graph | JavaScript | `.js`, `.cjs`, `.mjs` |
-| Graph | JSX | `.jsx` |
-| Structured | Python | `.py`, `.pyi` |
-| Structured | Bash | `.sh`, `.bash`, `.zsh` |
-| Structured | PowerShell | `.ps1`, `.psm1`, `.psd1` |
-| Structured | C# | `.cs` |
-| Structured | Java | `.java` |
-| Structured | Go | `.go` |
-| Structured | Rust | `.rs` |
-| Structured | JSON | `.json` |
-| Structured | HTML | `.html`, `.htm` |
-| Structured | CSS | `.css` |
-| Structured | C | `.c`, `.h` |
-| Structured | C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` |
-| Structured | PHP | `.php` |
-| Structured | Ruby | `.rb`, `.rake`, `.gemspec` |
-| Structured | ERB/EJS | `.erb`, `.ejs` |
-| Structured | Scala | `.scala`, `.sc` |
+| Tier | Language | Extensions | Grammar asset |
+| --- | --- | --- | --- |
+| Graph | TypeScript | `.ts` | `typescript` |
+| Graph | TSX | `.tsx` | `tsx` |
+| Graph | JavaScript | `.js`, `.cjs`, `.mjs` | `javascript` |
+| Graph | JSX | `.jsx` | `javascript` |
+| Structured | Python | `.py`, `.pyi` | `python` |
+| Structured | Bash | `.sh`, `.bash`, `.zsh` | `bash` |
+| Structured | PowerShell | `.ps1`, `.psm1`, `.psd1` | `powershell` |
+| Structured | C# | `.cs` | `c_sharp` |
+| Structured | Java | `.java` | `java` |
+| Structured | Go | `.go` | `go` |
+| Structured | Rust | `.rs` | `rust` |
+| Structured | JSON | `.json` | `json` |
+| Structured | HTML | `.html`, `.htm` | `html` |
+| Structured | CSS | `.css` | `css` |
+| Structured | C | `.c`, `.h` | `c` |
+| Structured | C++ | `.cc`, `.cpp`, `.cxx`, `.hh`, `.hpp`, `.hxx` | `cpp` |
+| Structured | PHP | `.php` | `php` |
+| Structured | Ruby | `.rb`, `.rake`, `.gemspec` | `ruby` |
+| Structured | ERB/EJS | `.erb`, `.ejs` | `embedded_template` |
+| Structured | Scala | `.scala`, `.sc` | `scala` |
 
 JSON emits top-level keys only to avoid noisy duplicate configuration symbols.
 ERB/EJS parsing is currently structure-only; embedded template text does not
@@ -56,6 +61,7 @@ grammar has a useful Astrograph file contract. Astrograph currently excludes:
   default Java/.NET/React-oriented product set. They can be reconsidered as
   separate specialist language packs after a package-size and fixture review.
 
-These exclusions are recorded in the active implementation checklist and can
-be reconsidered only with compatible runtime evidence and a user-facing file
-contract.
+These exclusions are recorded in the active
+[polyglot support contract](../../specs/implementation/active/12_tree-sitter-polyglot-support-contract.md)
+and can be reconsidered only with compatible runtime evidence and a user-facing
+file contract.

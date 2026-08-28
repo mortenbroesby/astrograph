@@ -148,12 +148,16 @@ describe("ai-context-engine interfaces", () => {
         byLanguage: expect.arrayContaining([
           expect.objectContaining({
             language: "ts",
+            grammar: "typescript",
+            traversal: "javascript",
             extensions: [".ts"],
             tiers: ["discovery", "structured", "graph"],
             summaryStrategies: ["doc-comments-first", "signature-only"],
           }),
           expect.objectContaining({
             language: "js",
+            grammar: "javascript",
+            traversal: "javascript",
             extensions: [".js", ".cjs", ".mjs"],
             tiers: ["discovery", "structured", "graph"],
             summaryStrategies: ["doc-comments-first", "signature-only"],
@@ -680,6 +684,8 @@ export function circumference(radius: number): string {
           byLanguage: expect.arrayContaining([
             {
               language: "ts",
+              grammar: "typescript",
+              traversal: "javascript",
               extensions: [".ts"],
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
@@ -693,6 +699,8 @@ export function circumference(radius: number): string {
             },
             {
               language: "js",
+              grammar: "javascript",
+              traversal: "javascript",
               extensions: [".js", ".cjs", ".mjs"],
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],

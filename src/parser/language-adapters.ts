@@ -1,42 +1,26 @@
 import { Language, Parser } from "web-tree-sitter";
 import { getWasmPath } from "tree-sitter-wasm";
 
+import { LANGUAGE_SUPPORT_REGISTRY } from "../language-registry.ts";
 import type { SupportedLanguage } from "../types.ts";
-
-export type AdapterTraversal = "javascript" | "structured";
+import type { ParserTraversal } from "../types.ts";
 
 export interface LanguageAdapter {
   grammar: Language;
-  traversal: AdapterTraversal;
+  traversal: ParserTraversal;
 }
 
 type GrammarName = Parameters<typeof getWasmPath>[0];
 
 export const LANGUAGE_ADAPTERS: Record<
   SupportedLanguage,
-  { grammar: GrammarName; traversal: AdapterTraversal }
-> = {
-  ts: { grammar: "typescript", traversal: "javascript" },
-  tsx: { grammar: "tsx", traversal: "javascript" },
-  js: { grammar: "javascript", traversal: "javascript" },
-  jsx: { grammar: "javascript", traversal: "javascript" },
-  python: { grammar: "python", traversal: "structured" },
-  bash: { grammar: "bash", traversal: "structured" },
-  powershell: { grammar: "powershell", traversal: "structured" },
-  csharp: { grammar: "c_sharp", traversal: "structured" },
-  java: { grammar: "java", traversal: "structured" },
-  go: { grammar: "go", traversal: "structured" },
-  rust: { grammar: "rust", traversal: "structured" },
-  json: { grammar: "json", traversal: "structured" },
-  html: { grammar: "html", traversal: "structured" },
-  css: { grammar: "css", traversal: "structured" },
-  c: { grammar: "c", traversal: "structured" },
-  cpp: { grammar: "cpp", traversal: "structured" },
-  php: { grammar: "php", traversal: "structured" },
-  ruby: { grammar: "ruby", traversal: "structured" },
-  template: { grammar: "embedded_template", traversal: "structured" },
-  scala: { grammar: "scala", traversal: "structured" },
-};
+  { grammar: GrammarName; traversal: ParserTraversal }
+> = Object.fromEntries(
+  LANGUAGE_SUPPORT_REGISTRY.map(({ language, grammar, traversal }) => [
+    language,
+    { grammar: grammar as GrammarName, traversal },
+  ]),
+) as Record<SupportedLanguage, { grammar: GrammarName; traversal: ParserTraversal }>;
 
 const runtime = Parser.init();
 const adapters = new Map<SupportedLanguage, Promise<LanguageAdapter>>();

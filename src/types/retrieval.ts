@@ -127,8 +127,13 @@ export interface TierToolAvailability {
   graph: EngineToolName[];
 }
 
+export type ParserTraversal = "javascript" | "structured";
+
 export interface LanguageSupportDescriptor {
   language: SupportedLanguage;
+  /** Pinned grammar identity resolved from tree-sitter-wasm. */
+  grammar: string;
+  traversal: ParserTraversal;
   extensions: string[];
   tiers: SupportTier[];
   summaryStrategies: SummaryStrategy[];

@@ -6,6 +6,10 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Tree-Sitter Polyglot Language Support History](./tree-sitter-polyglot-language-support-history.md)
+  — superseded native-binding batch research; the maintained WASM contract is
+  tracked in active work.
+
 - [Pre-v1 Clean Install Contract Epic](./pre-v1-clean-install-contract-epic.md)
   — closed after PR #127 merged as `1bed0cb`, exact-head and merged-main CI
   passed, and `astrograph@0.11.4-alpha.214` was trusted-published and verified

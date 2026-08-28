@@ -11,6 +11,11 @@ describe("language registry", () => {
     expect(supportedLanguageForFile("component.TSX")).toBe("tsx");
     expect(supportedLanguageForFile("native/header.h")).toBe("c");
     expect(supportedLanguageForFile("native/header.hpp")).toBe("cpp");
+    expect(LANGUAGE_SUPPORT_REGISTRY).toEqual(expect.arrayContaining([
+      expect.objectContaining({ language: "ts", grammar: "typescript", traversal: "javascript" }),
+      expect.objectContaining({ language: "csharp", grammar: "c_sharp", traversal: "structured" }),
+      expect.objectContaining({ language: "template", grammar: "embedded_template", traversal: "structured" }),
+    ]));
   });
 
   it("rejects ambiguous extension ownership", () => {
