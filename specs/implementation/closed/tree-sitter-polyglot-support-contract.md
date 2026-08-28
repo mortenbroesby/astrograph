@@ -1,7 +1,8 @@
 # Tree-Sitter Polyglot Support Contract
 
-> **Status:** Active — selected on 2026-08-28. This is the only live
-> implementation checklist for Astrograph's public Tree-sitter language set.
+> **Status:** Closed — delivered in [PR #129](https://github.com/mortenbroesby/astrograph/pull/129),
+> merged as `adce69d` on 2026-08-28. The guarded release workflow passed and
+> published `astrograph@0.12.0-alpha.216` with tag `v0.12.0-alpha.216`.
 
 **Goal:** Make the shipped 20-language WASM parser set explicit, deterministic,
 measured, and truthful across the registry, diagnostics, documentation, and

@@ -15,10 +15,6 @@ use its recorded evidence or selection gate instead.
   — remove the native Tree-sitter install boundary and prove packed global
   installs on Node 20, 22, and 24. Current-main Node 24 proof is recorded;
   Node 20 hosted proof remains the deliberately deferred compatibility follow-up.
-- [Tree-Sitter Polyglot Support Contract](./specs/implementation/active/12_tree-sitter-polyglot-support-contract.md)
-  — keep the released 20-language WASM grammar set explicit, measured, and
-  tiered for the JavaScript/.NET/Java-oriented monorepo target.
-
 The [open-epic reconciliation record](./specs/implementation/closed/open-epic-reconciliation-2026-07-29.md)
 lists the ready follow-ups and their selection gates.
 

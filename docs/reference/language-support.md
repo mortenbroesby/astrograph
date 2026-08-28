@@ -61,7 +61,7 @@ grammar has a useful Astrograph file contract. Astrograph currently excludes:
   default Java/.NET/React-oriented product set. They can be reconsidered as
   separate specialist language packs after a package-size and fixture review.
 
-These exclusions are recorded in the active
-[polyglot support contract](../../specs/implementation/active/12_tree-sitter-polyglot-support-contract.md)
+These exclusions are recorded in the completed
+[polyglot support contract](../../specs/implementation/closed/tree-sitter-polyglot-support-contract.md)
 and can be reconsidered only with compatible runtime evidence and a user-facing
 file contract.
