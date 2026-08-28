@@ -20,6 +20,9 @@ turns those focuses into an exclusive execution gate.
 1. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
    - Goal: replace native Tree-sitter installation with a packaged WASM parser
      and grammar assets, then prove Linux packaged installs on Node 20 and 24.
+2. [Tree-Sitter Polyglot Support Contract](./active/12_tree-sitter-polyglot-support-contract.md)
+   - Goal: maintain one explicit, measured 20-language WASM grammar contract
+     for the JavaScript/.NET/Java-oriented monorepo set.
 ## Ready — detailed, but not selected
 
 1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
@@ -33,16 +36,13 @@ turns those focuses into an exclusive execution gate.
    hosted Windows CI is disabled for cost. Its retained child checklists are
    available in [planned work](./planned/README.md) when a concrete platform
    gap, local/container proof, and re-enable budget exist.
-4. [Tree-Sitter Polyglot Language Support](./planned/tree-sitter-polyglot-language-support-delivery-checklist.md)
-   is ready after WASM package/Node proof and a fresh value, asset-size, and
-   support-tier inventory select the next language batch.
-5. [Local Daemon Runtime Ownership](./planned/local-daemon-runtime-ownership-delivery-checklist.md)
+4. [Local Daemon Runtime Ownership](./planned/local-daemon-runtime-ownership-delivery-checklist.md)
    is ready only for a reproduced lifecycle, multi-client, isolation, or
    platform gap beyond the delivered runtime-reuse path.
-6. [Repository Structure Cleanup](./planned/repository-structure-cleanup-epic.md)
+5. [Repository Structure Cleanup](./planned/repository-structure-cleanup-epic.md)
    is ready one behavior-preserving story at a time; workflow changes require
    their existing cost guardrail.
-7. [Publishable Workflow Benchmark](./planned/publishable-workflow-benchmark.md)
+6. [Publishable Workflow Benchmark](./planned/publishable-workflow-benchmark.md)
    is ready after a deliberately selected corpus is clean, snapshot-locked,
    fully successful, and has generated JSON evidence ready to check in.
 

@@ -156,21 +156,27 @@ paths without changing the core local-storage model.
 
 ## Tree-sitter Grammar Cost
 
-Parser grammars are native dependencies, so their cost must be measured rather
-than assumed. On the macOS/Node 24 development baseline recorded on 2026-07-24,
-cold module imports ranged from about **5 ms** (Go/C) to **40 ms** (PowerShell).
-Installed package footprints varied much more: JSON was about **0.5 MB**, while
-OCaml was about **200 MB**; Julia, C#, Scala, Haskell, C++, Ruby, and PHP were
-also materially larger than the small grammar packages.
+Parser grammars are static WebAssembly assets, not native dependencies. On the
+macOS x64 / Node 22.23.1 baseline recorded on 2026-08-28, Astrograph's 20
+public languages resolved to 19 selected assets totaling **23.30 MiB**. The
+complete installed `tree-sitter-wasm@1.0.7` package was **143.65 MiB** and
+`web-tree-sitter@0.25.10` was **5.66 MiB**; Astrograph currently selects assets
+from that full package rather than repackaging a smaller custom distribution.
+
+Fresh Node processes loaded the runtime and every selected adapter in
+**69–94 ms** across three samples. A cold temporary repository with one valid
+source file for every public language indexed 20 files / 28 symbols in
+**4,828.1 ms**, including process-local runtime and SQLite setup. These are
+local baselines, not cross-platform guarantees or per-file latency claims.
 
 These figures are not cross-platform guarantees. Before a release that changes
 grammar dependencies, measure the target package set on the supported Node and
 platform matrix, then record:
 
-- installed package size and packed tarball size
-- cold grammar import/load time
+- installed dependency footprint and selected WASM asset size
+- fresh-process grammar runtime/load time
 - representative indexing latency for each added extension
-- whether the native build uses a prebuild or local compiler
+- whether the package remains static WASM with no build or download step
 
 Do not retain a grammar package that is not exposed through the evidence-gated
 language registry. See [Language Support](../reference/language-support.md) for

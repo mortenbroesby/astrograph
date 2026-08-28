@@ -16,6 +16,9 @@ new work complements rather than duplicates existing plans.
    — remove the native Tree-sitter install boundary and prove packed global
    installs on Node 20, 22, and 24. Current-main Node 24 Linux package proof
    is recorded; Node 20 hosted proof remains separately pending.
+2. [Tree-Sitter Polyglot Support Contract](./12_tree-sitter-polyglot-support-contract.md)
+   — reconcile the released 20-language WASM parser set with one public,
+   measured registry contract and explicit exclusions.
 The [2026-07-29 open-epic reconciliation](../closed/open-epic-reconciliation-2026-07-29.md)
 records why the former active plans are closed, superseded, or ready rather than
 active.

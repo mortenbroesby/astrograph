@@ -42,9 +42,6 @@ dependency-ordered part of its parent epic, not a competing top-level priority.
    remains deferred and it is not authorized for implementation.
 7. [Spec System Backlog](./7_spec-system-backlog.md) — lower-impact durable
    architecture/API coverage and authoring consistency.
-- [Tree-Sitter Polyglot Language Support](./tree-sitter-polyglot-language-support-delivery-checklist.md)
-  — resume after the active WASM migration passes package/Node proof and one
-  value- and asset-budgeted language batch is selected.
 - [Local Daemon Runtime Ownership](./local-daemon-runtime-ownership-delivery-checklist.md)
   — resume only for a reproduced daemon lifecycle, multi-client, isolation, or
   platform gap beyond the delivered runtime-reuse path.

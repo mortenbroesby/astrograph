@@ -4,6 +4,7 @@ import type {
   FallbackSupportDescriptor,
   FileSupportProfile,
   LanguageSupportDescriptor,
+  ParserTraversal,
   SummaryStrategy,
   SupportedLanguage,
   SupportTier,
@@ -50,9 +51,14 @@ const SUPPORT_TIER_RANK = new Map(
   SUPPORT_TIERS.map((tier, index) => [tier, index] as const),
 );
 
+const GRAPH_TRAVERSAL: ParserTraversal = "javascript";
+const STRUCTURED_TRAVERSAL: ParserTraversal = "structured";
+
 export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   {
     language: "ts",
+    grammar: "typescript",
+    traversal: GRAPH_TRAVERSAL,
     extensions: [".ts"],
     tiers: ["discovery", "structured", "graph"],
     summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
@@ -60,6 +66,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "tsx",
+    grammar: "tsx",
+    traversal: GRAPH_TRAVERSAL,
     extensions: [".tsx"],
     tiers: ["discovery", "structured", "graph"],
     summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
@@ -67,6 +75,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "js",
+    grammar: "javascript",
+    traversal: GRAPH_TRAVERSAL,
     extensions: [".js", ".cjs", ".mjs"],
     tiers: ["discovery", "structured", "graph"],
     summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
@@ -74,6 +84,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "jsx",
+    grammar: "javascript",
+    traversal: GRAPH_TRAVERSAL,
     extensions: [".jsx"],
     tiers: ["discovery", "structured", "graph"],
     summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
@@ -81,6 +93,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "python",
+    grammar: "python",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".py", ".pyi"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -88,6 +102,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "bash",
+    grammar: "bash",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".sh", ".bash", ".zsh"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -95,6 +111,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "powershell",
+    grammar: "powershell",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".ps1", ".psm1", ".psd1"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -102,6 +120,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "csharp",
+    grammar: "c_sharp",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".cs"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -109,6 +129,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "java",
+    grammar: "java",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".java"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -116,6 +138,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "go",
+    grammar: "go",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".go"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -123,6 +147,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "rust",
+    grammar: "rust",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".rs"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -130,6 +156,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "json",
+    grammar: "json",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".json"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -137,6 +165,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "html",
+    grammar: "html",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".html", ".htm"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -144,6 +174,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "css",
+    grammar: "css",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".css"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -151,6 +183,8 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "c",
+    grammar: "c",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".c", ".h"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
@@ -158,15 +192,49 @@ export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
   },
   {
     language: "cpp",
+    grammar: "cpp",
+    traversal: STRUCTURED_TRAVERSAL,
     extensions: [".cc", ".cpp", ".cxx", ".hh", ".hpp", ".hxx"],
     tiers: ["discovery", "structured"],
     summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
     toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
   },
-  { language: "php", extensions: [".php"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
-  { language: "ruby", extensions: [".rb", ".rake", ".gemspec"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
-  { language: "template", extensions: [".erb", ".ejs"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
-  { language: "scala", extensions: [".scala", ".sc"], tiers: ["discovery", "structured"], summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES, toolAvailability: STRUCTURED_TOOL_AVAILABILITY },
+  {
+    language: "php",
+    grammar: "php",
+    traversal: STRUCTURED_TRAVERSAL,
+    extensions: [".php"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "ruby",
+    grammar: "ruby",
+    traversal: STRUCTURED_TRAVERSAL,
+    extensions: [".rb", ".rake", ".gemspec"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "template",
+    grammar: "embedded_template",
+    traversal: STRUCTURED_TRAVERSAL,
+    extensions: [".erb", ".ejs"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
+  {
+    language: "scala",
+    grammar: "scala",
+    traversal: STRUCTURED_TRAVERSAL,
+    extensions: [".scala", ".sc"],
+    tiers: ["discovery", "structured"],
+    summaryStrategies: STRUCTURED_SUMMARY_STRATEGIES,
+    toolAvailability: STRUCTURED_TOOL_AVAILABILITY,
+  },
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [

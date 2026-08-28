@@ -8,10 +8,12 @@ import { fileURLToPath } from "node:url";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { afterEach, describe, expect, it as baseIt } from "vitest";
+import { afterEach, beforeEach, describe, expect, it as baseIt } from "vitest";
 
 import { handleCli } from "../src/cli.ts";
 import { decodeCompactMcpEnvelope } from "../src/compact-mcp.ts";
+import { executeDaemonCommand } from "../src/daemon-client.ts";
+import { readDaemonRuntime } from "../src/daemon-runtime.ts";
 import { MCP_SERVER_NAME, MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { ASTROGRAPH_PACKAGE_VERSION, indexFolder } from "../src/index.ts";
@@ -25,6 +27,9 @@ const packageRoot = path.resolve(
 
 const it = (name: string, fn: (...args: never[]) => unknown, timeout = 30_000) =>
   baseIt(name, fn as never, timeout);
+
+let dispatchRuntimeDir: string | null = null;
+let restoreMcpCommandExecutor: (() => void) | null = null;
 
 async function waitFor(predicate: () => boolean | Promise<boolean>, timeoutMs = 5_000): Promise<void> {
   const deadline = Date.now() + timeoutMs;
@@ -93,7 +98,29 @@ async function withMcpClient<T>(
   }
 }
 
+beforeEach(async () => {
+  dispatchRuntimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-dispatch-runtime-"));
+  restoreMcpCommandExecutor = setMcpCommandExecutorForTest((command, input) =>
+    executeDaemonCommand(command, input, { runtimeDir: dispatchRuntimeDir! }));
+});
+
 afterEach(async () => {
+  restoreMcpCommandExecutor?.();
+  restoreMcpCommandExecutor = null;
+  if (dispatchRuntimeDir) {
+    const state = await readDaemonRuntime({ runtimeDir: dispatchRuntimeDir });
+    if (state) {
+      try {
+        process.kill(state.pid, "SIGTERM");
+      } catch {
+        // The isolated daemon already exited.
+      }
+      await waitFor(async () => (await readDaemonRuntime({ runtimeDir: dispatchRuntimeDir! })) === null)
+        .catch(() => undefined);
+    }
+    await rm(dispatchRuntimeDir, { recursive: true, force: true });
+    dispatchRuntimeDir = null;
+  }
   await cleanupFixtureRepos();
 }, 30_000);
 
@@ -148,12 +175,16 @@ describe("ai-context-engine interfaces", () => {
         byLanguage: expect.arrayContaining([
           expect.objectContaining({
             language: "ts",
+            grammar: "typescript",
+            traversal: "javascript",
             extensions: [".ts"],
             tiers: ["discovery", "structured", "graph"],
             summaryStrategies: ["doc-comments-first", "signature-only"],
           }),
           expect.objectContaining({
             language: "js",
+            grammar: "javascript",
+            traversal: "javascript",
             extensions: [".js", ".cjs", ".mjs"],
             tiers: ["discovery", "structured", "graph"],
             summaryStrategies: ["doc-comments-first", "signature-only"],
@@ -680,6 +711,8 @@ export function circumference(radius: number): string {
           byLanguage: expect.arrayContaining([
             {
               language: "ts",
+              grammar: "typescript",
+              traversal: "javascript",
               extensions: [".ts"],
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
@@ -693,6 +726,8 @@ export function circumference(radius: number): string {
             },
             {
               language: "js",
+              grammar: "javascript",
+              traversal: "javascript",
               extensions: [".js", ".cjs", ".mjs"],
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
