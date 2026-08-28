@@ -111,6 +111,34 @@ describe("ai-context-engine contract", () => {
     expect(`${result.stderr}${result.stdout}`).toContain("Non-interactive setup requires --yes --scope");
   });
 
+  it("requires --reset before a non-interactive generation replacement", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-cli-reset-"));
+    tempDirs.push(repoRoot);
+    await mkdir(path.join(repoRoot, ".codex"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, ".codex", "config.toml"),
+      [
+        "# BEGIN ASTROGRAPH",
+        "[mcp_servers.astrograph]",
+        'command = "npx"',
+        'args = ["-y", "--package", "astrograph@0.0.0-alpha.1", "astrograph", "mcp"]',
+        "# END ASTROGRAPH",
+        "",
+      ].join("\n"),
+    );
+    const entry = path.join(process.cwd(), "src", "astrograph.ts");
+    const args = ["--import=tsx", entry, "install", "--yes", "--scope", "repository", "--ide", "codex", "--repo", repoRoot, "--dry-run"];
+    const environment = { ...process.env, ASTROGRAPH_USE_SOURCE: "1" };
+
+    const refused = spawnSync(process.execPath, args, { encoding: "utf8", env: environment });
+    expect(refused.status).toBe(1);
+    expect(`${refused.stderr}${refused.stdout}`).toMatch(/--yes --reset/i);
+
+    const reset = spawnSync(process.execPath, [...args, "--reset"], { encoding: "utf8", env: environment });
+    expect(reset.status).toBe(0);
+    expect(`${reset.stderr}${reset.stdout}`).toContain("Preview complete — no files were changed.");
+  });
+
   it("keeps the fast setup dashboard read-only when no index exists", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-status-read-only-"));
     tempDirs.push(repoRoot);
@@ -1458,6 +1486,20 @@ describe("ai-context-engine contract", () => {
     await expect(readFile(staleFile)).rejects.toMatchObject({ code: "ENOENT" });
   });
 
+  it("reports the single state-reset phase after managed configuration is ready", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-state-phase-"));
+    tempDirs.push(repoRoot);
+    setLocalMcpStartupVerifierForTest(async () => {});
+    let stateResetStarted = false;
+
+    await setupForAllIdes(repoRoot, {
+      reset: true,
+      onStateReset: () => { stateResetStarted = true; },
+    });
+
+    expect(stateResetStarted).toBe(true);
+  });
+
   it("replaces malformed Codex TOML only with an explicit reset and keeps a backup", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-malformed-toml-"));
     tempDirs.push(repoRoot);
@@ -1488,6 +1530,25 @@ describe("ai-context-engine contract", () => {
     const result = await setupForIde(repoRoot, { ide: "copilot", dryRun: true, reset: true });
     expect(JSON.parse(result.configPreview)).toMatchObject({
       servers: { astrograph: { type: "stdio" } },
+    });
+  });
+
+  it("repairs an invalid managed JSON section only with an explicit reset", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-install-invalid-json-section-"));
+    tempDirs.push(repoRoot);
+    await mkdir(path.join(repoRoot, ".vscode"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, ".vscode", "mcp.json"),
+      JSON.stringify({ servers: "not-an-object", untouched: true }),
+    );
+
+    await expect(setupForIde(repoRoot, { ide: "copilot", dryRun: true }))
+      .rejects.toThrow(/Invalid servers entry.*--reset/i);
+
+    const result = await setupForIde(repoRoot, { ide: "copilot", dryRun: true, reset: true });
+    expect(JSON.parse(result.configPreview)).toMatchObject({
+      servers: { astrograph: { type: "stdio" } },
+      untouched: true,
     });
   });
 

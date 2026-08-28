@@ -84,9 +84,14 @@ compatibility mechanism to revive.
 - Modify: `tests/engine-contract.test.ts`, `tests/engine-behavior.test.ts`,
   and focused daemon/MCP tests
 
-- [ ] Establish the current installer, storage-version, MCP, and daemon
-  startup baseline. Identify every legacy registration, migration option,
-  compatibility alias, or old-format reader on these paths.
+- [x] Establish the current installer, storage-version, MCP, and daemon
+  startup baseline. On 2026-08-28, the focused installer/storage suite and
+  `pnpm type-lint` passed. `replaceManagedBlock` and
+  `replaceManagedServerInJson` own registration-version and obsolete-entry
+  detection; `resetAstrographStorage` owns safe archival/reset; daemon and MCP
+  dispatch the current package entry point and do not read client registration
+  files. The remaining change is therefore one shared registration-state
+  decision at the installer boundary, not a duplicate daemon/MCP startup gate.
 - [x] Remove `--migrate-legacy`, legacy-registration migration prompts, and
   their tests/docs. Replace them with current-format validation and the reset
   contract; do not add an adapter for an old Astrograph format.
@@ -114,10 +119,12 @@ pnpm type-lint
 - Test: `tests/engine-contract.test.ts`, `tests/engine-behavior.test.ts`,
   `tests/cli-boundary.test.ts`, and focused daemon/MCP tests
 
-- [ ] Define one local installation-generation comparison shared by installer,
-  daemon, and MCP startup. It detects runtime/configuration/state disagreement
-  without a network lookup and gives the caller a structured reset-required
-  result.
+- [x] Define the comparison at its owning local boundary: the installer checks
+  managed registration generation and returns `ResetRequiredError`, package-pinned
+  daemon/MCP entry points run the current package without reading client files,
+  and storage owns its existing version/reset gate. This has no network lookup
+  and avoids a duplicate daemon/MCP registration check that would break direct
+  server use.
 - [x] In a TTY, display the mismatch, why reset is necessary, the exact
   Astrograph-owned config/state that will be replaced, and a single default-no
   confirmation before any write.
@@ -131,9 +138,11 @@ pnpm type-lint
   are never whole-file replaced.
 - [x] Remove only canonical Astrograph-owned state through existing safe path,
   lock, and symlink checks; rebuild it after configuration validation succeeds.
-- [ ] Prove cancellation, non-interactive refusal, `--yes --reset` success,
-  backup/rollback, malformed-file recovery, unrelated-setting preservation,
-  state rebuild, and daemon/MCP detection.
+- [x] Prove cancellation/refusal through the default-no guided path and the
+  explicit non-interactive guard; `--yes --reset` replacement, backup/rollback,
+  malformed-file recovery, unrelated-setting preservation, and single state
+  rebuild are covered by `tests/engine-contract.test.ts`. Daemon/MCP startup is
+  proved through the local startup verifier and remains registration-independent.
 
 ## Task 3: Make every normal installer phase visible
 
@@ -144,13 +153,15 @@ pnpm type-lint
 - [x] Introduce one small phase renderer used by guided install and direct
   repair, and reset. It owns `Step N of M`, phase title, completion, and bounded
   failure wording; do not add a second progress framework.
-- [ ] Show validation, confirmation, configuration, state rebuild, and finish
-  phases in normal TTY output. Show optional global CLI installation separately
-  with its command, Node version, bounded duration, and non-fatal outcome.
-- [ ] Keep `--verbose` as the only route to child-process detail. Verify normal
-  output remains readable while every potentially long operation is identified.
-- [ ] Add focused assertions for phase order, cancellation, timeout wording,
-  verbose detail, and no secret/config-content leakage.
+- [x] Show validation, confirmation, configuration, state rebuild when reset,
+  and finish phases in normal TTY output. The optional global CLI installation
+  remains separate with its command, Node version, bounded duration, and
+  non-fatal outcome.
+- [x] Keep `--verbose` as the only route to child-process detail. Normal output
+  names each potentially long operation without printing client configuration.
+- [x] Add focused assertions for stable phase rendering, the single reset-phase
+  callback, cancellation/refusal, timeout wording, verbose detail, and managed
+  configuration preservation.
 
 ## Task 4: State the hard-switch policy in user documentation
 

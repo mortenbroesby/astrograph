@@ -130,6 +130,15 @@ interface ManagedConfig {
   nextContents: string;
 }
 
+class ResetRequiredError extends Error {
+  readonly code = "RESET_REQUIRED";
+
+  constructor(reason: string) {
+    super(`${reason} Re-run with --yes --reset to replace Astrograph's registration and rebuild its state.`);
+    this.name = "ResetRequiredError";
+  }
+}
+
 interface SetupForIdeOptions {
   ide?: InstallIde;
   dryRun?: boolean;
@@ -144,6 +153,8 @@ interface SetupForAllOptions {
   agentsPolicy?: boolean;
   gitHooks?: boolean;
   reset?: boolean;
+  /** Internal installer seam so reset progress is visible without duplicating the reset. */
+  onStateReset?: () => void;
 }
 
 export interface GitHookResult {
@@ -772,17 +783,16 @@ async function findResetRequirement(repoRoot: string, ides: InstallIde[]): Promi
     try {
       resolveManagedConfig(ide, repoRoot, currentContents, false);
     } catch (error) {
-      return error instanceof Error ? error.message.replace(/\s*See https:\/\/\S+$/, "") : "the existing setup is invalid";
+      const resetReason = resetRequirementFromError(error);
+      if (resetReason) return resetReason;
+      throw error;
     }
   }
   return null;
 }
 
 function resetRequirementFromError(error: unknown): string | null {
-  const message = error instanceof Error ? error.message : String(error);
-  return /(?:version does not match|obsolete unmarked|Invalid (?:JSON|Codex) config)/i.test(message)
-    ? message.replace(/\s*See https:\/\/\S+$/, "")
-    : null;
+  return error instanceof ResetRequiredError ? error.message : null;
 }
 
 async function findGlobalResetRequirement(ide: "codex" | "copilot-cli"): Promise<string | null> {
@@ -1557,13 +1567,13 @@ function replaceManagedBlock(contents: string, block: string, reset = false): st
   try {
     assertTomlStructurallyValid(contents, "config.toml");
   } catch (error) {
-    if (!reset) throw error;
+    if (!reset) throw new ResetRequiredError(error instanceof Error ? error.message : String(error));
     return `${block}\n`;
   }
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     const currentBlock = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0] ?? "";
     if (!currentBlock.includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
-      throw new Error("Astrograph setup version does not match this package. It is not migrated; re-run with --yes --reset to replace Astrograph's registration and rebuild its state.");
+      throw new ResetRequiredError("Astrograph setup version does not match this package. It is not migrated.");
     }
     return contents.replace(
       new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"),
@@ -1576,7 +1586,7 @@ function replaceManagedBlock(contents: string, block: string, reset = false): st
 
   if (legacyBlockPattern.test(contents)) {
     if (!reset) {
-      throw new Error("Found obsolete unmarked Astrograph setup. It is not migrated; re-run with --yes --reset to replace only Astrograph's registration and rebuild its state.");
+      throw new ResetRequiredError("Found obsolete unmarked Astrograph setup. It is not migrated.");
     }
     return contents.replace(legacyBlockPattern, `${block}\n\n`);
   }
@@ -1906,7 +1916,7 @@ function replaceManagedServerInJson(
   try {
     parsed = parseJsonConfig(contents, configPath);
   } catch (error) {
-    if (!reset) throw error;
+    if (!reset) throw new ResetRequiredError(error instanceof Error ? error.message : String(error));
     return JSON.stringify({
       [rootKey]: { [MCP_SERVER_NAME]: managedServer },
     }, null, 2) + "\n";
@@ -1914,7 +1924,11 @@ function replaceManagedServerInJson(
   const existing = parsed[rootKey];
 
   if (existing != null && (typeof existing !== "object" || Array.isArray(existing))) {
-    throw new Error(`Invalid ${rootKey} entry in ${path.basename(configPath)}`);
+    if (!reset) throw new ResetRequiredError(`Invalid ${rootKey} entry in ${path.basename(configPath)}.`);
+    return JSON.stringify({
+      ...parsed,
+      [rootKey]: { [MCP_SERVER_NAME]: managedServer },
+    }, null, 2) + "\n";
   }
 
   const nextServers = {
@@ -1925,7 +1939,7 @@ function replaceManagedServerInJson(
     ? (existing as InstalledObject)[MCP_SERVER_NAME]
     : undefined;
   if (currentServer && !JSON.stringify(currentServer).includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
-    throw new Error("Astrograph setup version does not match this package. It is not migrated; re-run with --yes --reset to replace Astrograph's registration and rebuild its state.");
+    throw new ResetRequiredError("Astrograph setup version does not match this package. It is not migrated.");
   }
 
   return JSON.stringify(
@@ -2121,6 +2135,7 @@ export async function setupForAllIdes(
     agentsPolicy = false,
     gitHooks = false,
     reset = false,
+    onStateReset,
   }: SetupForAllOptions = {},
 ): Promise<SetupResult | SetupResult[]> {
   const normalizedIdes = validateIdes({ ides }).ides;
@@ -2157,6 +2172,7 @@ export async function setupForAllIdes(
   }
 
   if (reset && !dryRun && results.length > 0) {
+    onStateReset?.();
     const stateReset = await resetAstrographStorage(resolvedRepoRoot);
     results[0] = { ...results[0]!, stateReset: stateReset.changed };
   }
@@ -2329,9 +2345,15 @@ async function main(): Promise<void> {
 
   const interactive = !args.json && Boolean(process.stdin.isTTY && process.stdout.isTTY);
   const progress = interactive ? spinner() : null;
+  const totalPhases = args.dryRun ? 2 : args.reset ? 4 : 3;
   if (progress) {
-    process.stdout.write(`\n${formatInstallPhase(1, 2, args.dryRun ? "Validating the setup preview" : "Updating Astrograph configuration")}\n`);
-    progress.start(args.dryRun ? "Previewing repository setup…" : "Setting up Astrograph…");
+    process.stdout.write(`\n${formatInstallPhase(1, totalPhases, args.dryRun ? "Validating the setup preview" : "Validating your selected setup")}\n`);
+    progress.start(args.dryRun ? "Previewing repository setup…" : "Checking the selected setup…");
+    if (!args.dryRun) {
+      progress.stop("Setup validated");
+      process.stdout.write(`${formatInstallPhase(2, totalPhases, "Updating Astrograph configuration")}\n`);
+      progress.start("Writing and verifying the managed registration…");
+    }
   }
   verboseLine(parsed.verbose, `${args.dryRun ? "Previewing" : "Writing"} repository setup for ${args.ides.join(", ")}…`);
   const result = await setupForAllIdes(args.repo, {
@@ -2340,12 +2362,19 @@ async function main(): Promise<void> {
     agentsPolicy: args.agentsPolicy,
     gitHooks: args.gitHooks,
     reset: args.reset,
+    onStateReset: progress
+      ? () => {
+        progress.stop("Registration updated");
+        process.stdout.write(`${formatInstallPhase(3, totalPhases, "Rebuilding Astrograph state")}\n`);
+        progress.start("Removing obsolete Astrograph-owned state…");
+      }
+      : undefined,
   });
   verboseLine(parsed.verbose, `${args.dryRun ? "Preview" : "Setup"} complete for ${args.ides.join(", ")}.`);
 
   if (progress) {
-    progress.stop(args.dryRun ? "Preview ready" : "Repository ready");
-    process.stdout.write(`${formatInstallPhase(2, 2, args.dryRun ? "Finishing the preview" : "Verifying the registration")}\n`);
+    progress.stop(args.dryRun ? "Preview ready" : args.reset ? "Astrograph state rebuilt" : "Registration verified");
+    process.stdout.write(`${formatInstallPhase(totalPhases, totalPhases, args.dryRun ? "Finishing the preview" : "Finishing setup")}\n`);
     outro(formatRepositoryInstallation(result, { dryRun: args.dryRun }));
   } else if (args.json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
