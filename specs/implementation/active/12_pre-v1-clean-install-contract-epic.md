@@ -188,13 +188,15 @@ pnpm type-lint
 
 ## Final verification and release checkpoint
 
-- [ ] Run focused installer, storage, CLI, daemon/MCP, and packed-package
-  tests; include a clean temporary-home reset scenario.
-- [ ] Run `pnpm type-lint`, `pnpm test`, `pnpm build`, `pnpm test:package-bin`,
+- [x] Run focused installer, storage, CLI, daemon/MCP, and packed-package
+  tests. The 2026-08-28 installer contract run includes the temporary reset
+  boundary, state reset, local MCP startup verifier, and packed global-install
+  smoke scenario.
+- [x] Run `pnpm type-lint`, `pnpm test`, `pnpm build`, `pnpm test:package-bin`,
   `pnpm check:version-bump --base origin/main`, and `git diff --check`.
-- [ ] Use `.skills/release-decision/SKILL.md` before committing source or
-  package changes. This hard pre-1.0 behavior change requires its recorded
-  release decision.
+- [x] Use `.skills/release-decision/SKILL.md` before committing source or
+  package changes. The recorded decision is a patch release,
+  `0.11.4-alpha.214`, from `v0.11.3-alpha.213`.
 - [ ] Open one PR from this branch, record exact-head CI evidence, merge only
   after required checks pass, and use the guarded main-only npm release flow.
 - [ ] Verify the released package in a clean temporary environment: normal
