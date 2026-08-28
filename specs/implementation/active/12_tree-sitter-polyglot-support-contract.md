@@ -35,8 +35,9 @@ and fresh value/asset evidence.
   The complete installed `tree-sitter-wasm` package was 143.65 MiB and
   `web-tree-sitter` was 5.66 MiB, so this is not a custom slim-asset package.
 - [x] Publish the grammar provenance and cost boundaries in user-facing docs.
-- [ ] Run focused parser, registry, interface, package, and version-policy
-  verification for the exact branch head; then make the release decision.
+- [x] Run focused parser, registry, interface, package, and version-policy
+  verification for the exact branch head; release policy selected
+  `0.12.0-alpha.216`.
 
 ## Verification pointers
 
