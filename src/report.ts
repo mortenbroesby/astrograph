@@ -12,7 +12,7 @@ export interface AstrographReport {
   repositoryCount: number;
   eventCount: number;
   operations: Array<{
-    operationClass: "mcp";
+    operationClass: "mcp" | "cli";
     calls: number;
     tokenBudgetTotal: number;
     deliveredTokens: number;
@@ -22,6 +22,13 @@ export interface AstrographReport {
     referenceResponses: number;
     latencyBands: Record<"under100ms" | "under1000ms" | "over1000ms", number>;
   }>;
+  resultSelectionSavings: {
+    samples: number;
+    baselineTokens: number;
+    returnedTokens: number;
+    savedTokens: number;
+    savedPercent: number;
+  };
   privacy: {
     sourceFree: true;
     rawQueriesExcluded: true;
@@ -33,9 +40,13 @@ function numberValue(value: unknown): number {
   return typeof value === "number" && Number.isFinite(value) ? value : 0;
 }
 
-function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["scope"], repositoryCount: number): AstrographReport {
-  const completed = events.filter((event) => event.event === "mcp.tool.finished");
-  const formatted = events.filter((event) => event.event === "mcp.tool.response_formatted");
+function operationReport(
+  events: EngineEventEnvelope[],
+  operationClass: "mcp" | "cli",
+): AstrographReport["operations"][number] {
+  const prefix = operationClass === "mcp" ? "mcp.tool" : "cli.command";
+  const completed = events.filter((event) => event.event === `${prefix}.finished`);
+  const formatted = events.filter((event) => event.event === `${prefix}.response_formatted`);
   const latencyBands = { under100ms: 0, under1000ms: 0, over1000ms: 0 };
   let tokenBudgetTotal = 0;
   let referenceResponses = 0;
@@ -53,22 +64,53 @@ function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["sco
     .filter((event) => event.data.responseRepresentation !== "reference")
     .reduce((total, event) => total + numberValue(event.data.savedTokens), 0);
   return {
+    operationClass,
+    calls: completed.length,
+    tokenBudgetTotal,
+    deliveredTokens,
+    savedTokens,
+    unavailableSavingsSamples: formattedReferences.length + Math.max(0, completed.length - formatted.length),
+    fullResponses: completed.length - referenceResponses,
+    referenceResponses,
+    latencyBands,
+  };
+}
+
+function selectionSavings(events: EngineEventEnvelope[]): AstrographReport["resultSelectionSavings"] {
+  let samples = 0;
+  let baselineTokens = 0;
+  let returnedTokens = 0;
+  let savedTokens = 0;
+  for (const event of events) {
+    const baseline = numberValue(event.data.selectionBaselineTokens);
+    const returned = numberValue(event.data.selectionReturnedTokens);
+    const saved = numberValue(event.data.selectionSavedTokens);
+    if (baseline === 0 || baseline - returned !== saved) continue;
+    samples += 1;
+    baselineTokens += baseline;
+    returnedTokens += returned;
+    savedTokens += saved;
+  }
+  return {
+    samples,
+    baselineTokens,
+    returnedTokens,
+    savedTokens,
+    savedPercent: baselineTokens === 0 ? 0 : Math.round((savedTokens / baselineTokens) * 100),
+  };
+}
+
+function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["scope"], repositoryCount: number): AstrographReport {
+  const operations = [operationReport(events, "mcp"), operationReport(events, "cli")];
+  const formatted = events.filter((event) => event.event === "mcp.tool.response_formatted" || event.event === "cli.command.response_formatted");
+  return {
     schemaVersion: 2,
     collection: "local-observability-events",
     scope,
     repositoryCount,
-    eventCount: completed.length,
-    operations: [{
-      operationClass: "mcp",
-      calls: completed.length,
-      tokenBudgetTotal,
-      deliveredTokens,
-      savedTokens,
-      unavailableSavingsSamples: formattedReferences.length + Math.max(0, completed.length - formatted.length),
-      fullResponses: completed.length - referenceResponses,
-      referenceResponses,
-      latencyBands,
-    }],
+    eventCount: operations.reduce((total, operation) => total + operation.calls, 0),
+    operations,
+    resultSelectionSavings: selectionSavings(formatted),
     privacy: { sourceFree: true, rawQueriesExcluded: true, sessionIdsExcluded: true },
   };
 }

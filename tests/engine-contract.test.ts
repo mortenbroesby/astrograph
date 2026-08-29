@@ -788,19 +788,24 @@ describe("ai-context-engine contract", () => {
     };
     const globalConfigPath = resolveGlobalConfigPath(environment);
     await mkdir(path.dirname(globalConfigPath), { recursive: true });
-    await writeFile(globalConfigPath, JSON.stringify({ storageLocation: "global" }));
+    await writeFile(globalConfigPath, JSON.stringify({
+      storageLocation: "global",
+      observability: { retentionDays: 14, redactSourceText: true },
+    }));
     await expect(loadRepoEngineConfig(repoRoot, { environment })).resolves.toMatchObject({
       storageLocation: "global",
       globalConfigPath,
+      observability: { retentionDays: 14, redactSourceText: true },
     });
 
     await writeFile(
       path.join(repoRoot, "astrograph.config.json"),
-      JSON.stringify({ storageLocation: "repo-local" }),
+      JSON.stringify({ storageLocation: "repo-local", observability: { retentionDays: 7 } }),
     );
     await expect(loadRepoEngineConfig(repoRoot, { environment })).resolves.toMatchObject({
       storageLocation: "repo-local",
       globalConfigPath,
+      observability: { retentionDays: 7, redactSourceText: true },
     });
   });
 

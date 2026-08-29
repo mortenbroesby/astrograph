@@ -13,8 +13,11 @@ import {
 import { COMMAND_REGISTRY } from "./command-registry.ts";
 import * as engine from "./index.ts";
 import { parseStorageLocation } from "./config.ts";
+import { emitEngineEvent } from "./event-sink.ts";
 import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
+import { countTokens } from "./tokenizer.ts";
+import { extractTokenSavings } from "./token-savings.ts";
 
 type StopReason = "timeout" | "signal" | "closed";
 
@@ -30,6 +33,7 @@ const BOOLEAN_FLAGS = new Set([
   "json",
   "yes",
   "dry-run",
+  "global",
   "reset",
   "all",
 ]);
@@ -116,6 +120,7 @@ const commands: Record<string, CliHandler> = {
       return engine.resetReport(repoRoot);
     }
     if (repoRoot) return engine.getReport(repoRoot);
+    if (args.global === "true") return engine.getGlobalReport();
     try {
       const config = await engine.loadRepoEngineConfig(process.cwd());
       if (config.storageLocation === "repo-local") return engine.getReport(config.repoRoot);
@@ -349,6 +354,7 @@ async function runWatchCommand(args: Record<string, string>) {
 }
 
 export async function handleCli(argv: string[]): Promise<string> {
+  const startedAt = Date.now();
   const { command, args } = parseArgs(argv);
   const handler = commands[command];
   if (!handler) {
@@ -361,7 +367,35 @@ export async function handleCli(argv: string[]): Promise<string> {
   if (explicitStorageLocation !== undefined) process.env.ASTROGRAPH_STORAGE_LOCATION = explicitStorageLocation;
   try {
     const result = await handler(args);
-    return typeof result === "string" ? result : JSON.stringify(result, null, 2);
+    const output = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+    const repoRoot = optional(args, "repo");
+    if (repoRoot && command !== "report") {
+      const savings = extractTokenSavings(result);
+      emitEngineEvent({
+        repoRoot,
+        source: "cli",
+        event: "cli.command.finished",
+        level: "info",
+        data: { command, durationMs: Date.now() - startedAt, responseRepresentation: "full" },
+      });
+      emitEngineEvent({
+        repoRoot,
+        source: "cli",
+        event: "cli.command.response_formatted",
+        level: "debug",
+        data: {
+          command,
+          tokens: countTokens(output),
+          responseRepresentation: "full",
+          ...(savings && {
+            selectionBaselineTokens: savings.baselineTokens,
+            selectionReturnedTokens: savings.returnedTokens,
+            selectionSavedTokens: savings.savedTokens,
+          }),
+        },
+      });
+    }
+    return output;
   } finally {
     if (explicitStorageLocation !== undefined) {
       if (previousStorageLocation === undefined) delete process.env.ASTROGRAPH_STORAGE_LOCATION;

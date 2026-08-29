@@ -106,6 +106,10 @@ Available fields:
 The most important setting for most users is `redactSourceText`, which defaults
 to `true`.
 
+For a global Astrograph installation, the same object in the user-level
+`~/.astrograph/config.json` supplies defaults for every repository using that
+installation. Repository config still takes precedence.
+
 ### `performance`
 
 Controls indexing scope and concurrency.

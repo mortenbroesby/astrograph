@@ -194,6 +194,8 @@ export interface RepoEngineConfig {
 
 export interface GlobalEngineConfig {
   storageLocation?: StorageLocation;
+  /** Default local-only observability retention and redaction for this device. */
+  observability?: RepoObservabilityConfig;
 }
 
 export interface ResolvedObservabilityConfig {

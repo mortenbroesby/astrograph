@@ -23,6 +23,7 @@ import { getLogger } from "./logger.ts";
 import { isMainModule } from "./entrypoint.ts";
 import { registerRuntimePresence } from "./runtime-presence.ts";
 import { executeDaemonCommand } from "./daemon-client.ts";
+import { extractTokenSavings } from "./token-savings.ts";
 import { clearStorageProcessCaches } from "./storage.ts";
 import { disposeTokenizer } from "./tokenizer.ts";
 import { loadRepoEngineConfig } from "./config.ts";
@@ -547,6 +548,7 @@ export function createMcpServer() {
       const formatted = formatMcpEnvelope(tool.name, requestedFormat, envelope);
       const repoRoot = typeof args.repoRoot === "string" ? args.repoRoot : undefined;
       if (repoRoot) {
+        const savings = extractTokenSavings(envelope.data);
         emitEngineEvent({
           repoRoot,
           source: "mcp",
@@ -557,6 +559,11 @@ export function createMcpServer() {
             toolName: tool.name,
             responseRepresentation: envelope.ok ? envelope.meta.contentReference?.representation ?? "full" : "full",
             ...formatted.metrics,
+            ...(savings && {
+              selectionBaselineTokens: savings.baselineTokens,
+              selectionReturnedTokens: savings.returnedTokens,
+              selectionSavedTokens: savings.savedTokens,
+            }),
           },
         });
       }

@@ -202,7 +202,7 @@ export interface AstrographVersionParts {
   increment: number;
 }
 
-export type EngineEventSource = "mcp" | "watch" | "index-worker" | "health";
+export type EngineEventSource = "mcp" | "cli" | "watch" | "index-worker" | "health";
 export type EngineEventLevel = "debug" | "info" | "warn" | "error";
 
 export interface EngineEventEnvelope {

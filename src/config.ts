@@ -167,6 +167,7 @@ const repoEngineConfigSchema = z.object({
 
 const globalEngineConfigSchema = z.object({
   storageLocation: z.enum(["repo-local", "global"]).optional(),
+  observability: repoObservabilityConfigSchema.optional(),
 }) satisfies z.ZodType<GlobalEngineConfig>;
 
 type WorkerPoolMaxWorkersValue = number | "auto" | undefined;
@@ -352,8 +353,8 @@ async function createDefaultResolvedRepoEngineConfig(
     storageMode: "wal",
     storageLocation: global.data.storageLocation ?? "repo-local",
     observability: {
-      retentionDays: DEFAULT_OBSERVABILITY_RETENTION_DAYS,
-      redactSourceText: true,
+      retentionDays: global.data.observability?.retentionDays ?? DEFAULT_OBSERVABILITY_RETENTION_DAYS,
+      redactSourceText: global.data.observability?.redactSourceText ?? true,
     },
     outputPrivacy: { redactSecretLikeValues: false },
     performance: {

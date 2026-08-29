@@ -63,7 +63,24 @@ describe("Astrograph report", () => {
         fullResponses: 1,
         referenceResponses: 1,
         latencyBands: { under100ms: 1, under1000ms: 1, over1000ms: 0 },
+      }, {
+        operationClass: "cli",
+        calls: 0,
+        tokenBudgetTotal: 0,
+        deliveredTokens: 0,
+        savedTokens: 0,
+        unavailableSavingsSamples: 0,
+        fullResponses: 0,
+        referenceResponses: 0,
+        latencyBands: { under100ms: 0, under1000ms: 0, over1000ms: 0 },
       }],
+      resultSelectionSavings: {
+        samples: 0,
+        baselineTokens: 0,
+        returnedTokens: 0,
+        savedTokens: 0,
+        savedPercent: 0,
+      },
       privacy: { sourceFree: true, rawQueriesExcluded: true, sessionIdsExcluded: true },
     });
   });
@@ -73,6 +90,51 @@ describe("Astrograph report", () => {
     await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });
     await expect(resetReport(repoRoot)).resolves.toEqual({ reset: true });
     await expect(getReport(repoRoot)).resolves.toMatchObject({ eventCount: 0 });
+  });
+
+  it("aggregates comparable result-selection savings from CLI and MCP calls", async () => {
+    const repoRoot = await createFixtureRepo();
+    await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });
+    await appendEngineEvent({
+      repoRoot,
+      source: "mcp",
+      event: "mcp.tool.response_formatted",
+      level: "debug",
+      data: {
+        tokens: 10,
+        savedTokens: 2,
+        selectionBaselineTokens: 100,
+        selectionReturnedTokens: 60,
+        selectionSavedTokens: 40,
+      },
+    });
+    await appendEngineEvent({ repoRoot, source: "cli", event: "cli.command.finished", level: "info", data: {} });
+    await appendEngineEvent({
+      repoRoot,
+      source: "cli",
+      event: "cli.command.response_formatted",
+      level: "debug",
+      data: {
+        tokens: 20,
+        selectionBaselineTokens: 50,
+        selectionReturnedTokens: 30,
+        selectionSavedTokens: 20,
+      },
+    });
+
+    await expect(getReport(repoRoot)).resolves.toMatchObject({
+      operations: [
+        expect.objectContaining({ operationClass: "mcp", calls: 1, deliveredTokens: 10, savedTokens: 2 }),
+        expect.objectContaining({ operationClass: "cli", calls: 1, deliveredTokens: 20, savedTokens: 0 }),
+      ],
+      resultSelectionSavings: {
+        samples: 2,
+        baselineTokens: 150,
+        returnedTokens: 90,
+        savedTokens: 60,
+        savedPercent: 40,
+      },
+    });
   });
 
   it("aggregates only registered global repository storage directories", async () => {
@@ -88,7 +150,7 @@ describe("Astrograph report", () => {
       scope: "global",
       repositoryCount: 1,
       eventCount: 0,
-      operations: [expect.objectContaining({ deliveredTokens: 9, savedTokens: 3 })],
+      operations: expect.arrayContaining([expect.objectContaining({ deliveredTokens: 9, savedTokens: 3 })]),
     });
     await rm(globalHome, { recursive: true, force: true });
   });

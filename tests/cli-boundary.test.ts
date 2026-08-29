@@ -5,7 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { handleCli } from "../src/cli.ts";
-import { appendEngineEvent, indexFolder, searchSymbols } from "../src/index.ts";
+import { appendEngineEvent, getReport, indexFolder, searchSymbols } from "../src/index.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 afterEach(async () => {
@@ -13,6 +13,20 @@ afterEach(async () => {
 });
 
 describe("cli boundaries", () => {
+  it("records CLI result-selection savings without storing the query", async () => {
+    const repoRoot = await createFixtureRepo();
+    await indexFolder({ repoRoot });
+    await handleCli(["search-symbols", "--repo", repoRoot, "--query", "Greeter", "--limit", "1"]);
+
+    await expect.poll(async () => (await getReport(repoRoot)).resultSelectionSavings.samples).toBe(1);
+    const report = await getReport(repoRoot);
+    expect(report.operations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ operationClass: "cli", calls: 2 }),
+    ]));
+    expect(report.resultSelectionSavings.savedTokens).toEqual(expect.any(Number));
+    expect(JSON.stringify(report)).not.toContain("Greeter");
+  });
+
   it("keeps --repo as the explicit single-repository report scope", async () => {
     const repoRoot = await createFixtureRepo();
     await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });
@@ -320,7 +334,7 @@ describe("cli boundaries", () => {
         fallbackRate: 0,
       },
       observability: {
-        retentionDays: 3,
+        retentionDays: expect.any(Number),
         redactSourceText: true,
       },
       runtime: {

@@ -29,7 +29,7 @@ function usage() {
     "  astrograph mcp",
     "  astrograph --version",
     "  astrograph --diagnostics",
-    "  astrograph report [--repo /abs/repo]",
+    "  astrograph report [--repo /abs/repo] [--global]",
     "  astrograph report-issue --diagnostics-consent --message <sanitized-summary>",
     "  astrograph git-refresh [manual|commit|checkout|merge|push] [args...]",
     "  astrograph install [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--yes] [--scope global|repository] [--reset] [--agents] [--git-hooks] [--dry-run] [--json]",

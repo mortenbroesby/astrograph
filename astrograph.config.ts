@@ -3,7 +3,7 @@ import { defineConfig } from "astrograph";
 export default defineConfig({
   observability: {
     retentionDays: 14,
-    redactSourceText: false,
+    redactSourceText: true,
   },
   performance: {
     exclude: [
