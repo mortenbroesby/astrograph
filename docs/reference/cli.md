@@ -6,6 +6,7 @@ Astrograph exposes three main command surfaces:
 - `astrograph status [--repo /abs/repo] [--json]`
 - `astrograph update|repair|reconfigure|uninstall ...`
 - `astrograph doctor [--repo /abs/repo] [--json]`
+- `astrograph report [--repo /abs/repo]`
 - `astrograph cli ...`
 - `astrograph git-refresh ...`
 
@@ -114,6 +115,10 @@ repository when Astrograph uses repository-local storage, or aggregates the
 existing Astrograph stores for all local repositories when global storage is
 selected. `--repo` always selects one repository. Reset is deliberately more
 strict: it requires both `--repo` and `--yes`.
+
+It reports delivered and saved output tokens when a response format has an
+exact delta; unavailable samples are reported separately rather than treated as
+zero savings.
 
 ## Cache Archive and Recovery Commands
 
