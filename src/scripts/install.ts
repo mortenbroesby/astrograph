@@ -1606,12 +1606,12 @@ function agentsPolicyBlockForAgentsMd(): string {
     "",
     "### Working agreements",
     "",
-    "- Start with `get_project_status` for the current repository; if the index is missing or stale, run `index_folder`.",
+    "- Start with `get_project_status` for the current repository. If the index is missing, stale, or unavailable, run `index_folder`, wait for it to finish, then retry the Astrograph request.",
     "- Before reading a symbol, use `get_symbol_source`; before reading a file, use `get_file_outline` or `get_file_summary`.",
     "- Before searching broadly, use `search_symbols`, `find_files`, or `search_text`.",
     "- For bounded implementation context, use `get_task_context`.",
     "- Before exploring structure, use `get_file_tree` or `get_repo_outline`.",
-    "- Use raw file reads or shell search only when Astrograph cannot answer the question.",
+    "- Do not fall back to raw file reads or shell search merely because an index is absent. Use them only after indexing and the retry fail, and state why.",
     AGENTS_POLICY_END,
   ].join("\n");
 }
@@ -1625,12 +1625,12 @@ function agentsPolicyBlockForCopilotInstructions(): string {
     "",
     "Astrograph MCP tools are configured for this repository. Use them for code intelligence before falling back to raw file reads.",
     "",
-    "- Use `get_project_status` to check the index; run `index_folder` if stale.",
+    "- Use `get_project_status` to check the index. If it is missing, stale, or unavailable, run `index_folder`, wait for it to finish, then retry the Astrograph request.",
     "- Use `get_file_outline`, `get_file_summary`, or `get_symbol_source` before opening raw source.",
     "- Use `search_symbols`, `find_files`, or `search_text` for discovery.",
     "- Use `get_task_context` for bounded implementation context.",
     "- Use `get_file_tree` or `get_repo_outline` to understand structure.",
-    "- Fall back to raw file access only when Astrograph tools cannot answer the question.",
+    "- Do not fall back to raw file access merely because an index is absent. Use it only after indexing and the retry fail, and state why.",
     AGENTS_POLICY_END,
   ].join("\n");
 }

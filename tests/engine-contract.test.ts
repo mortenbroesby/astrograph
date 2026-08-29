@@ -1632,6 +1632,8 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("### Working agreements");
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
+    expect(result.agentsPolicyPreview).toContain("then retry the Astrograph request");
+    expect(result.agentsPolicyPreview).toContain("merely because an index is absent");
     expect(result.agentsPolicyPreview).toContain("search_symbols");
     expect(result.agentsPolicyPreview).toContain("get_task_context");
     expect(result.agentsPolicyPreview).not.toContain("query_code");
@@ -1772,6 +1774,8 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("## Code Exploration with Astrograph");
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
+    expect(result.agentsPolicyPreview).toContain("then retry the Astrograph request");
+    expect(result.agentsPolicyPreview).toContain("merely because an index is absent");
   });
 
   it("does not add Astrograph as a dependency of itself", async () => {
