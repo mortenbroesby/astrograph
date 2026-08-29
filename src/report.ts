@@ -116,6 +116,16 @@ function retainedEvents(events: EngineEventEnvelope[], retentionDays: number): E
   return events.filter((event) => typeof event.ts === "string" && Date.parse(event.ts) >= cutoff);
 }
 
+function reportableEvents(events: EngineEventEnvelope[]): EngineEventEnvelope[] {
+  return events.filter((event) =>
+    event.event === "mcp.tool.finished"
+    || event.event === "mcp.tool.failed"
+    || event.event === "mcp.tool.response_formatted"
+    || event.event === "cli.command.finished"
+    || event.event === "cli.command.failed"
+    || event.event === "cli.command.response_formatted");
+}
+
 function selectionSavings(events: EngineEventEnvelope[]): AstrographReport["resultSelectionSavings"] {
   let samples = 0;
   let baselineTokens = 0;
@@ -159,7 +169,7 @@ function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["sco
 export async function getReport(repoRoot: string): Promise<AstrographReport> {
   const config = await loadRepoEngineConfig(repoRoot);
   const events = await readRecentEngineEvents({ repoRoot: config.repoRoot, limit: 10_000 });
-  return buildReport(retainedEvents(events, config.observability.retentionDays), "repository", 1);
+  return buildReport(reportableEvents(retainedEvents(events, config.observability.retentionDays)), "repository", 1);
 }
 
 export async function getGlobalReport(environment: StoragePathEnvironment = {}): Promise<AstrographReport> {
@@ -171,7 +181,7 @@ export async function getGlobalReport(environment: StoragePathEnvironment = {}):
     .filter((entry) => entry.isDirectory() && /^[a-f0-9]{64}$/.test(entry.name))
     .map((entry) => readEngineEventsFile(path.join(reposRoot, entry.name, "events.jsonl"), 10_000)));
   const retainedGroups = eventGroups
-    .map((events) => retainedEvents(events, retentionDays))
+    .map((events) => reportableEvents(retainedEvents(events, retentionDays)))
     .filter((events) => events.length > 0);
   return buildReport(retainedGroups.flat(), "global", retainedGroups.length);
 }

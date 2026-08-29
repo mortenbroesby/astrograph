@@ -121,8 +121,8 @@ Use `--global` to aggregate every repository stored by a global Astrograph
 installation, even when you run the command from a repository using local
 storage.
 
-It reports only events inside the configured retention window, the retained time
-window itself, successful and failed calls, total and
+It reports only completed, failed, and response-format events inside the
+configured retention window, the retained time window itself, successful and failed calls, total and
 average latency, plus delivered and saved output tokens when a response format
 has an exact delta. Unavailable samples are reported separately rather than
 treated as zero savings. `resultSelectionSavings` is the comparable retrieval

@@ -164,7 +164,12 @@ describe("Astrograph report", () => {
     const storageDir = path.join(reposRoot, "a".repeat(64));
     await mkdir(storageDir, { recursive: true });
     await writeFile(path.join(storageDir, "events.jsonl"), `${JSON.stringify(event)}\n`);
-    await mkdir(path.join(reposRoot, "b".repeat(64)), { recursive: true });
+    const startedOnlyStorageDir = path.join(reposRoot, "b".repeat(64));
+    await mkdir(startedOnlyStorageDir, { recursive: true });
+    await writeFile(
+      path.join(startedOnlyStorageDir, "events.jsonl"),
+      `${JSON.stringify({ ...event, event: "mcp.tool.started" })}\n`,
+    );
     const expiredStorageDir = path.join(reposRoot, "c".repeat(64));
     await mkdir(expiredStorageDir, { recursive: true });
     await writeFile(

@@ -71,8 +71,8 @@ astrograph report --repo /abs/repo
 astrograph report --repo /abs/repo --reset --yes
 ```
 
-The JSON report covers CLI and MCP calls. It excludes expired events even when a
-repository has not written recently, then includes the retained time window,
+The JSON report covers completed CLI and MCP calls. It excludes expired and
+start-only events even when a repository has not written recently, then includes the retained time window,
 success/failure counts, total and average latency, latency bands, and exact
 formatted-response tokens/savings when the existing serving path already knows
 them. `resultSelectionSavings` is kept separate because it measures retrieval
