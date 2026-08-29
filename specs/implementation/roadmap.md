@@ -17,14 +17,9 @@ turns those focuses into an exclusive execution gate.
 
 ## Active — current focuses
 
-1. [WASM Parser Runtime Migration](./active/11_wasm-parser-runtime-migration.md)
-   - Goal: replace native Tree-sitter installation with a packaged WASM parser
-     and grammar assets, then prove Linux packaged installs on Node 20 and 24.
+No implementation checklist is currently active.
 ## Ready — detailed, but not selected
 
-1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
-   retains non-parser evidence; the active WASM migration owns the proven
-   native Tree-sitter Linux installation failure.
 2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
    1–3 complete; Stories 4–6 remain parked behind their CI-cost and
    third-party-command evidence gates. Preserve product-specific behavior;
@@ -87,6 +82,12 @@ the [global-cache handoff](./planned/6_global-install-and-cache-deferred-stories
 and the [MCP contract](../api-design/mcp-tools.md).
 
 ## Done — evidence, not queue
+
+- [Node 20–24 Runtime Compatibility Epic](./closed/node-20-to-24-runtime-compatibility-epic.md)
+  and [WASM Parser Runtime Migration](./closed/wasm-parser-runtime-migration.md)
+  — closed after current-main Linux packed-package smoke passed for Node 20 and
+  Node 24 in [run 33271199916](https://github.com/mortenbroesby/astrograph/actions/runs/33271199916)
+  and [run 33271201542](https://github.com/mortenbroesby/astrograph/actions/runs/33271201542).
 
 - [Tree-Sitter Polyglot Support Contract](./closed/tree-sitter-polyglot-support-contract.md)
   — closed after PR #129 merged as `adce69d`, exact-main CI passed, and

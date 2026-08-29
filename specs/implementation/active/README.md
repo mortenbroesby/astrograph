@@ -12,10 +12,8 @@ new work complements rather than duplicates existing plans.
 
 ## Current focuses
 
-1. [WASM Parser Runtime Migration](./11_wasm-parser-runtime-migration.md)
-   — remove the native Tree-sitter install boundary and prove packed global
-   installs on Node 20, 22, and 24. Current-main Node 24 Linux package proof
-   is recorded; Node 20 hosted proof remains separately pending.
+No implementation checklist is currently active. Completed Node 20–24 and
+WASM parser evidence is retained in [closed records](../closed/README.md).
 
 The [2026-07-29 open-epic reconciliation](../closed/open-epic-reconciliation-2026-07-29.md)
 records why the former active plans are closed, superseded, or ready rather than

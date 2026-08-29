@@ -6,6 +6,11 @@ work queues. Any remaining follow-up is linked to an active or planned epic.
 
 ## Completed Delivery Records
 
+- [Node 20–24 Runtime Compatibility Epic](./node-20-to-24-runtime-compatibility-epic.md)
+  and [WASM Parser Runtime Migration](./wasm-parser-runtime-migration.md)
+  — closed after current-main Node 20 and 24 packed-package workflow runs
+  passed on 2026-08-29, completing the published package support contract.
+
 - [Tree-Sitter Polyglot Support Contract](./tree-sitter-polyglot-support-contract.md)
   — delivered in PR #129 with the authoritative 20-language WASM registry,
   public grammar provenance, measured costs, green CI, and npm publication of
