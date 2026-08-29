@@ -22,16 +22,13 @@ multiple skills just because they exist.
 
 ## Workflow Triggers
 
-- Load `using-superpowers` when the user explicitly asks for Superpowers or
-  wants a stricter process-first skill-selection mode.
 - Load `grill-me` before planning or implementation when the main problem is
   unclear requirements, unresolved assumptions, or an untested design.
 - Load `engineering-workflow` for multi-step implementation, review, testing,
   simplification, or shipping work.
-- Load `spec-driven-development` when the request introduces a new feature,
-  boundary, or structural change and the target is not yet crisp.
-- Load `planning-and-task-breakdown` when the user wants a plan or when the work
-  is large enough to benefit from ordered slices before editing.
+- Use `$openspec-explore` when a durable change needs investigation.
+- Use `$openspec-propose` when a durable feature, boundary, architecture, or
+  workflow change needs specification and ordered tasks.
 - Load `incremental-implementation` when the task spans multiple files or needs
   thin, verifiable slices.
 - Load `test-driven-development` for behavior changes, bug fixes, or
@@ -74,10 +71,8 @@ multiple skills just because they exist.
 
 ## Composition
 
-- `using-superpowers` is a bootstrap/process selector. Follow it by loading the
-  concrete workflow or specialist skill it points to.
-- Typical discovery flow: `grill-me` first, then `spec-driven-development` or
-  `planning-and-task-breakdown` once the decision tree is clearer.
+- Typical discovery flow: `grill-me` or `$openspec-explore` first, then
+  `$openspec-propose` once the decision tree is clear.
 - Typical flow: `engineering-workflow` plus one specialist skill.
 - For external-library feature work: `engineering-workflow` plus
   `source-driven-development`.
@@ -92,8 +87,8 @@ multiple skills just because they exist.
 
 - Do not load skills just to restate obvious instructions already covered by
   `AGENTS.md` or repo rules.
-- Do not load both `grill-me` and `planning-and-task-breakdown` at the same
-  time unless the open questions are still blocking a useful plan.
+- Do not load `grill-me` alongside OpenSpec planning unless unresolved
+  questions still block a useful change.
 - Do not load both `browser-testing-with-devtools` and `webapp-testing` unless
   both toolsets are actually needed.
 - Do not load both `gh-stack` and `using-git-worktrees` unless the user

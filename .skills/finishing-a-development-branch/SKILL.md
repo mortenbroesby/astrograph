@@ -194,7 +194,7 @@ git worktree remove <worktree-path>
 
 **Called by:**
 - **subagent-driven-development** (Step 7) - After all tasks complete
-- **executing-plans** (Step 5) - After all batches complete
+- **openspec-archive-change** - After all change tasks and checks complete
 
 **Pairs with:**
 - **using-git-worktrees** - Cleans up worktree created by that skill
