@@ -1,12 +1,8 @@
 # Node 20–24 Runtime Compatibility Epic
 
-> **Superseded for the parser boundary:** The Native Tree-sitter remediation is
-> now the active [WASM Parser Runtime Migration](../active/11_wasm-parser-runtime-migration.md).
-> Its installation and Linux CI evidence are authoritative for this failure.
-
-> **Status:** Partially superseded — retain this record for broader Node
-> compatibility evidence; the active WASM migration owns the proven native
-> Tree-sitter package-install failure.
+> **Status:** Closed — hosted Linux packed-package evidence on current main
+> passed for Node 20 and Node 24 on 2026-08-29. The WASM parser migration that
+> removed the native Tree-sitter boundary is closed alongside this record.
 
 **Goal:** Make the published Astrograph package reliably install and run on
 supported Node.js 20, 22, and 24 releases, or narrow the public contract only
@@ -42,6 +38,11 @@ better-sqlite3, Tree-sitter native grammars, GitHub Actions, npm pack.
 - Preserve Node 22's fast required check and the GitHub Actions cost policy.
   Any new matrix or always-on runner requires measured cost and explicit
   approval under `.agents/rules/github-actions-cost.md`.
+- Current-main Linux package evidence passed: [Node 20 run
+  33271199916](https://github.com/mortenbroesby/astrograph/actions/runs/33271199916)
+  and [Node 24 run
+  33271201542](https://github.com/mortenbroesby/astrograph/actions/runs/33271201542)
+  both built on Node 22 and ran the packed WASM package smoke on `b8719f3`.
 
 ## Story 1: Establish a Reproducible Compatibility Baseline
 
@@ -105,7 +106,7 @@ relevant test scripts.
   same packed-package/native-load contract selected in Story 1.
 - [x] Preserve cache keys, scoped triggers, concurrency cancellation, and the
   fast-versus-expensive workflow split.
-- [ ] Record exact CI evidence for all claimed Node versions.
+- [x] Record exact CI evidence for all claimed Node versions.
 
 **Acceptance criteria:** The automated evidence catches a broken supported
 version while respecting the documented Actions cost guardrail.
@@ -139,14 +140,13 @@ same version promise and direct unsupported users to a single remedy.
   `git diff --check` under the repository toolchain.
 - [x] Run the release-decision skill before the final source or package-metadata
   commit; compatibility fixes require the appropriate pre-release version bump.
-- [ ] Link the exact CI runs and baseline review in the delivery checklist, then
-  update the roadmap status only after the public contract is proven.
+- [x] Link the exact CI runs and baseline review in the delivery checklist, then
+  update the roadmap status after the public contract is proven.
 
 ## Post-Merge Manual Gate
 
-The Node 20 and Node 24 package jobs are intentionally not available until
-`.github/workflows/node-compatibility.yml` reaches the default branch. After
-merge, dispatch **Node package compatibility** once with `20` and once with
-`24`, add both run links to the baseline review, then check the remaining
-Story 3 and final-verification items and update the roadmap. PR CI run 372
-already proves the required Node 22 baseline.
+The manual **Node package compatibility** workflow passed on current main for
+[Node 20](https://github.com/mortenbroesby/astrograph/actions/runs/33271199916)
+and [Node 24](https://github.com/mortenbroesby/astrograph/actions/runs/33271201542).
+Together with required Node 22 CI, this is the cost-bounded continuous evidence
+for the published Node 20.19+, 22, and 24 package contract.

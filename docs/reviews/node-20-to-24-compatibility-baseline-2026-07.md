@@ -76,8 +76,10 @@ platform-specific.
 
 ## Automation Evidence
 
-[PR CI run 372](https://github.com/mortenbroesby/astrograph/actions/runs/30267841879)
-passed the required Node 22 package gate. The two manual package runs cannot
-be dispatched until this workflow exists on the default branch; after merge,
-record the Node 20 and Node 24 run links here before declaring continuous
-cross-runtime evidence complete.
+[Required CI](https://github.com/mortenbroesby/astrograph/actions/runs/33270379241)
+passed the Node 22 package gate on current main. The manual workflow then
+passed its packed WASM package smoke on current main for
+[Node 20](https://github.com/mortenbroesby/astrograph/actions/runs/33271199916)
+and [Node 24](https://github.com/mortenbroesby/astrograph/actions/runs/33271201542).
+These runs complete the cost-bounded continuous evidence for the published
+Node 20.19+, 22, and 24 support contract.
