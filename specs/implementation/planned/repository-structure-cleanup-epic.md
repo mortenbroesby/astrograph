@@ -104,10 +104,10 @@ retains its existing scope and failure semantics.
 **Files:** `scripts/astrograph.mjs`, its references if any emerge during the
 fresh audit, package/bin smoke coverage, and documentation only if affected.
 
-- [ ] Reconfirm there are no supported callers after Stories 1–3.
-- [ ] Delete the wrapper instead of moving it when the source/built/package bin
+- [x] Reconfirm there are no supported callers after Stories 1–3.
+- [x] Delete the wrapper instead of moving it when the source/built/package bin
   surfaces already cover its behavior.
-- [ ] Run package-bin and CLI smoke verification.
+- [x] Run package-bin and CLI smoke verification.
 
 **Acceptance:** There is one documented Astrograph executable path and no
 unreferenced wrapper to maintain.

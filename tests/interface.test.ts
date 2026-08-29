@@ -61,7 +61,7 @@ async function withMcpClient<T>(
   const isolatedHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-mcp-home-"));
   const transport = new StdioClientTransport({
     command: process.execPath,
-    args: [path.join(packageRoot, "scripts", "astrograph.mjs"), "mcp"],
+    args: ["--import=tsx", path.join(packageRoot, "src", "astrograph.ts"), "mcp"],
     cwd: packageRoot,
     stderr: "pipe",
     env: {

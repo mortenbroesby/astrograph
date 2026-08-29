@@ -58,13 +58,6 @@ turns those focuses into an exclusive execution gate.
   Freshness Lifecycle before the temporary candidate-CLI evaluation. Resume
   only with explicit approval and a renewed product-priority decision.
 
-## Blocked — external prerequisite only
-
-- `astrograph@0.7.0-alpha.165` has tag `v0.7.0-alpha.165` but is not published:
-  post-merge release job `89280716957` received npm `E404`/permission denied.
-  Restore npm registry access, then use the existing tagged-release retry; do
-  not create another source release or reopen the Munch implementation.
-
 ## Ideas — not a commitment
 
 - [Later precision retrieval candidates](./closed/precision-retrieval-agent-experience-epic.md):
@@ -143,7 +136,9 @@ and the [MCP contract](../api-design/mcp-tools.md).
 - [Token-Efficient Agent Output](./closed/token-efficient-agent-output-delivery-checklist.md)
   closed after PR #79 merged `3a8fa04`, passing exact-head and merged-main Fast
   checks. The public `agc1` contract and benchmark show 55.6–66.7% savings for
-  measured selected MCP envelopes; npm publication is recorded above as blocked.
+  measured selected MCP envelopes. Its historical `v0.7.0-alpha.165` npm
+  publication failure is retained in the closed delivery record and does not
+  block the current release line.
 - [Precision Retrieval and Agent Experience Epic](./closed/precision-retrieval-agent-experience-epic.md)
   — closed after Story 4 completed the measured agent-visible token-efficiency
   end-cap in PR #79.
