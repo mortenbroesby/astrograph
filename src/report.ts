@@ -6,14 +6,22 @@ import { readEngineEventsFile, readRecentEngineEvents } from "./event-sink.ts";
 import type { EngineEventEnvelope, StoragePathEnvironment } from "./types.ts";
 
 export interface AstrographReport {
-  schemaVersion: 2;
+  schemaVersion: 3;
   collection: "local-observability-events";
   scope: "repository" | "global";
   repositoryCount: number;
   eventCount: number;
+  eventWindow: {
+    firstEventAt: string | null;
+    lastEventAt: string | null;
+  };
   operations: Array<{
     operationClass: "mcp" | "cli";
     calls: number;
+    successfulCalls: number;
+    failedCalls: number;
+    durationMsTotal: number;
+    averageDurationMs: number;
     tokenBudgetTotal: number;
     deliveredTokens: number;
     savedTokens: number;
@@ -46,15 +54,21 @@ function operationReport(
 ): AstrographReport["operations"][number] {
   const prefix = operationClass === "mcp" ? "mcp.tool" : "cli.command";
   const completed = events.filter((event) => event.event === `${prefix}.finished`);
+  const failed = events.filter((event) => event.event === `${prefix}.failed`);
+  const attempts = [...completed, ...failed];
   const formatted = events.filter((event) => event.event === `${prefix}.response_formatted`);
   const latencyBands = { under100ms: 0, under1000ms: 0, over1000ms: 0 };
   let tokenBudgetTotal = 0;
   let referenceResponses = 0;
-  for (const event of completed) {
+  let durationMsTotal = 0;
+  for (const event of attempts) {
     const durationMs = numberValue(event.data.durationMs);
     if (durationMs < 100) latencyBands.under100ms += 1;
     else if (durationMs < 1_000) latencyBands.under1000ms += 1;
     else latencyBands.over1000ms += 1;
+    durationMsTotal += durationMs;
+  }
+  for (const event of completed) {
     tokenBudgetTotal += numberValue(event.data.tokenBudgetUsed);
     if (event.data.responseRepresentation === "reference") referenceResponses += 1;
   }
@@ -65,7 +79,11 @@ function operationReport(
     .reduce((total, event) => total + numberValue(event.data.savedTokens), 0);
   return {
     operationClass,
-    calls: completed.length,
+    calls: attempts.length,
+    successfulCalls: completed.length,
+    failedCalls: failed.length,
+    durationMsTotal,
+    averageDurationMs: attempts.length === 0 ? 0 : Math.round(durationMsTotal / attempts.length),
     tokenBudgetTotal,
     deliveredTokens,
     savedTokens,
@@ -73,6 +91,17 @@ function operationReport(
     fullResponses: completed.length - referenceResponses,
     referenceResponses,
     latencyBands,
+  };
+}
+
+function eventWindow(events: EngineEventEnvelope[]): AstrographReport["eventWindow"] {
+  const timestamps = events
+    .map((event) => event.ts)
+    .filter((timestamp): timestamp is string => typeof timestamp === "string" && Number.isFinite(Date.parse(timestamp)))
+    .sort();
+  return {
+    firstEventAt: timestamps[0] ?? null,
+    lastEventAt: timestamps.at(-1) ?? null,
   };
 }
 
@@ -104,11 +133,12 @@ function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["sco
   const operations = [operationReport(events, "mcp"), operationReport(events, "cli")];
   const formatted = events.filter((event) => event.event === "mcp.tool.response_formatted" || event.event === "cli.command.response_formatted");
   return {
-    schemaVersion: 2,
+    schemaVersion: 3,
     collection: "local-observability-events",
     scope,
     repositoryCount,
     eventCount: operations.reduce((total, operation) => total + operation.calls, 0),
+    eventWindow: eventWindow(events),
     operations,
     resultSelectionSavings: selectionSavings(formatted),
     privacy: { sourceFree: true, rawQueriesExcluded: true, sessionIdsExcluded: true },

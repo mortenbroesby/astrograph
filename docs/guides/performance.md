@@ -71,11 +71,13 @@ astrograph report --repo /abs/repo
 astrograph report --repo /abs/repo --reset --yes
 ```
 
-The JSON report groups local MCP calls into latency bands and reports exact
+The JSON report covers CLI and MCP calls. It includes the retained time window,
+success/failure counts, total and average latency, latency bands, and exact
 formatted-response tokens/savings when the existing serving path already knows
-them, plus full/reference counts. Reference responses are counted but excluded
-from saved-token totals because they have no canonical comparison. It excludes
-source, file paths, raw queries, and session IDs. Without `--repo`, repository-local storage reports the current
+them. `resultSelectionSavings` is kept separate because it measures retrieval
+selection against its all-ranked-items baseline. Reference responses are counted
+but excluded from formatted-response saved-token totals because they have no
+canonical comparison. It excludes source, file paths, raw queries, and session IDs. Without `--repo`, repository-local storage reports the current
 repository and global storage aggregates existing Astrograph repository stores;
 `--repo` always narrows the report to one repository. It does not upload data
 or create a dashboard. Retention follows `observability.retentionDays` (three

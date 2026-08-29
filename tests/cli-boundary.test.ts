@@ -27,6 +27,22 @@ describe("cli boundaries", () => {
     expect(JSON.stringify(report)).not.toContain("Greeter");
   });
 
+  it("records a failed CLI command without recording its arguments", async () => {
+    const repoRoot = await createFixtureRepo();
+
+    await expect(handleCli(["get-symbol-source", "--repo", repoRoot])).rejects.toThrow(/At least one symbol id is required/i);
+
+    await expect.poll(async () => {
+      const report = await getReport(repoRoot);
+      return report.operations.find((operation) => operation.operationClass === "cli")?.failedCalls;
+    }).toBe(1);
+    const report = await getReport(repoRoot);
+    expect(JSON.stringify(report)).not.toContain(repoRoot);
+    expect(report.operations).toEqual(expect.arrayContaining([
+      expect.objectContaining({ operationClass: "cli", calls: 1, successfulCalls: 0, failedCalls: 1 }),
+    ]));
+  });
+
   it("keeps --repo as the explicit single-repository report scope", async () => {
     const repoRoot = await createFixtureRepo();
     await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });

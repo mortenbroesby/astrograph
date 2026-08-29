@@ -28,6 +28,13 @@ describe("Astrograph report", () => {
       level: "info",
       data: { toolName: "get_task_context", durationMs: 250, tokenBudgetUsed: 80, responseRepresentation: "reference" },
     });
+    await appendEngineEvent({
+      repoRoot,
+      source: "mcp",
+      event: "mcp.tool.failed",
+      level: "error",
+      data: { toolName: "get_symbol_source", durationMs: 1_500 },
+    });
 
     await appendEngineEvent({
       repoRoot,
@@ -48,24 +55,36 @@ describe("Astrograph report", () => {
     expect(JSON.stringify(report)).not.toContain(repoRoot);
     expect(JSON.stringify(report)).not.toContain("search_symbols");
     expect(report).toEqual({
-      schemaVersion: 2,
+      schemaVersion: 3,
       collection: "local-observability-events",
       scope: "repository",
       repositoryCount: 1,
-      eventCount: 2,
+      eventCount: 3,
+      eventWindow: {
+        firstEventAt: expect.any(String),
+        lastEventAt: expect.any(String),
+      },
       operations: [{
         operationClass: "mcp",
-        calls: 2,
+        calls: 3,
+        successfulCalls: 2,
+        failedCalls: 1,
+        durationMsTotal: 1_775,
+        averageDurationMs: 592,
         tokenBudgetTotal: 92,
         deliveredTokens: 18,
         savedTokens: 4,
         unavailableSavingsSamples: 1,
         fullResponses: 1,
         referenceResponses: 1,
-        latencyBands: { under100ms: 1, under1000ms: 1, over1000ms: 0 },
+        latencyBands: { under100ms: 1, under1000ms: 1, over1000ms: 1 },
       }, {
         operationClass: "cli",
         calls: 0,
+        successfulCalls: 0,
+        failedCalls: 0,
+        durationMsTotal: 0,
+        averageDurationMs: 0,
         tokenBudgetTotal: 0,
         deliveredTokens: 0,
         savedTokens: 0,
@@ -146,7 +165,7 @@ describe("Astrograph report", () => {
     await mkdir(storageDir, { recursive: true });
     await writeFile(path.join(storageDir, "events.jsonl"), `${JSON.stringify(event)}\n`);
     await expect(getGlobalReport(environment)).resolves.toMatchObject({
-      schemaVersion: 2,
+      schemaVersion: 3,
       scope: "global",
       repositoryCount: 1,
       eventCount: 0,

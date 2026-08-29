@@ -396,6 +396,18 @@ export async function handleCli(argv: string[]): Promise<string> {
       });
     }
     return output;
+  } catch (error) {
+    const repoRoot = optional(args, "repo");
+    if (repoRoot && command !== "report") {
+      emitEngineEvent({
+        repoRoot,
+        source: "cli",
+        event: "cli.command.failed",
+        level: "error",
+        data: { command, durationMs: Date.now() - startedAt },
+      });
+    }
+    throw error;
   } finally {
     if (explicitStorageLocation !== undefined) {
       if (previousStorageLocation === undefined) delete process.env.ASTROGRAPH_STORAGE_LOCATION;
