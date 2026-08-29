@@ -383,7 +383,7 @@ async function createDefaultResolvedRepoEngineConfig(
   };
 }
 
-async function loadGlobalEngineConfig(
+export async function loadGlobalEngineConfig(
   environment?: StoragePathEnvironment,
 ): Promise<{ configPath: string | null; data: GlobalEngineConfig }> {
   const configPath = resolveGlobalConfigPath(environment);

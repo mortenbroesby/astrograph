@@ -1,7 +1,13 @@
 import { mkdir, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
-import { loadRepoEngineConfig, resolveEnginePaths, resolveGlobalCacheRoot } from "./config.ts";
+import {
+  DEFAULT_OBSERVABILITY_RETENTION_DAYS,
+  loadGlobalEngineConfig,
+  loadRepoEngineConfig,
+  resolveEnginePaths,
+  resolveGlobalCacheRoot,
+} from "./config.ts";
 import { readEngineEventsFile, readRecentEngineEvents } from "./event-sink.ts";
 import type { EngineEventEnvelope, StoragePathEnvironment } from "./types.ts";
 
@@ -105,6 +111,11 @@ function eventWindow(events: EngineEventEnvelope[]): AstrographReport["eventWind
   };
 }
 
+function retainedEvents(events: EngineEventEnvelope[], retentionDays: number): EngineEventEnvelope[] {
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1_000;
+  return events.filter((event) => typeof event.ts === "string" && Date.parse(event.ts) >= cutoff);
+}
+
 function selectionSavings(events: EngineEventEnvelope[]): AstrographReport["resultSelectionSavings"] {
   let samples = 0;
   let baselineTokens = 0;
@@ -146,16 +157,23 @@ function buildReport(events: EngineEventEnvelope[], scope: AstrographReport["sco
 }
 
 export async function getReport(repoRoot: string): Promise<AstrographReport> {
-  return buildReport(await readRecentEngineEvents({ repoRoot, limit: 10_000 }), "repository", 1);
+  const config = await loadRepoEngineConfig(repoRoot);
+  const events = await readRecentEngineEvents({ repoRoot: config.repoRoot, limit: 10_000 });
+  return buildReport(retainedEvents(events, config.observability.retentionDays), "repository", 1);
 }
 
 export async function getGlobalReport(environment: StoragePathEnvironment = {}): Promise<AstrographReport> {
   const reposRoot = path.join(resolveGlobalCacheRoot(environment), "repos");
+  const globalConfig = await loadGlobalEngineConfig(environment);
+  const retentionDays = globalConfig.data.observability?.retentionDays ?? DEFAULT_OBSERVABILITY_RETENTION_DAYS;
   const entries = await readdir(reposRoot, { withFileTypes: true }).catch(() => []);
   const eventGroups = await Promise.all(entries
     .filter((entry) => entry.isDirectory() && /^[a-f0-9]{64}$/.test(entry.name))
     .map((entry) => readEngineEventsFile(path.join(reposRoot, entry.name, "events.jsonl"), 10_000)));
-  return buildReport(eventGroups.flat(), "global", eventGroups.length);
+  const retainedGroups = eventGroups
+    .map((events) => retainedEvents(events, retentionDays))
+    .filter((events) => events.length > 0);
+  return buildReport(retainedGroups.flat(), "global", retainedGroups.length);
 }
 
 export async function resetReport(repoRoot: string): Promise<{ reset: true }> {

@@ -164,6 +164,13 @@ describe("Astrograph report", () => {
     const storageDir = path.join(reposRoot, "a".repeat(64));
     await mkdir(storageDir, { recursive: true });
     await writeFile(path.join(storageDir, "events.jsonl"), `${JSON.stringify(event)}\n`);
+    await mkdir(path.join(reposRoot, "b".repeat(64)), { recursive: true });
+    const expiredStorageDir = path.join(reposRoot, "c".repeat(64));
+    await mkdir(expiredStorageDir, { recursive: true });
+    await writeFile(
+      path.join(expiredStorageDir, "events.jsonl"),
+      `${JSON.stringify({ ...event, ts: "2020-01-01T00:00:00.000Z" })}\n`,
+    );
     await expect(getGlobalReport(environment)).resolves.toMatchObject({
       schemaVersion: 3,
       scope: "global",
