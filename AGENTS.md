@@ -1,34 +1,31 @@
 # Agent Instructions
 
-## Spec Workflow
+## OpenSpec Workflow
 
-## Focus Context
+OpenSpec is the only live specification and work-tracking system in this
+repository. Current behavioral truth lives in `openspec/specs/`; proposed and
+in-progress work lives in `openspec/changes/`; completed changes live in
+`openspec/changes/archive/`.
 
-Before choosing unspecified work, read [`pointer.md`](./pointer.md). It is a
-lightweight view of current focuses and the delivery roadmap, not a mandatory
-single-goal queue. A clear user request sets the work boundary; use the pointer
-to avoid duplicating roadmap work or reviving closed and deferred stories by
-accident. Multiple focuses may be active at once.
+Use the generated OpenSpec skills for durable changes:
 
-Astrograph specs live under `specs/`, using the same broad taxonomy as the
-referenced `zyncbase/specs` setup:
+1. Explore with `$openspec-explore` when the scope needs investigation.
+2. Create one change with `$openspec-propose`, or revise an existing change
+   with `$openspec-update-change`.
+3. Review its proposal, delta specs, design, and tasks before implementation.
+4. Implement with `$openspec-apply-change` and keep `tasks.md` current.
+5. Sync or archive with `$openspec-sync-specs` and
+   `$openspec-archive-change` after verification.
 
-- `specs/architecture/` for principles, ADRs, and long-term decisions
-- `specs/api-design/` for MCP, CLI, and TypeScript API contracts
-- `specs/implementation/` for internal implementation specs and plans
-- `specs/templates/` for reusable authoring templates
+Run `openspec list` to see all open work. Migrated names beginning with
+`active-` were in progress; names beginning with `backlog-` were planned,
+parked, or deferred. Do not implement a backlog change until the user selects
+it. `specs-legacy/` is read-only source material from the retired workflow; do
+not add or update work there.
 
 For general agent tasks, use the repo-local commands in `.agents/commands/` and shared guidance in `.agents/references/`.
 For any repository change, follow the always-on Ponytail policy in
 `.agents/rules/ponytail.md`; its full skill body lives in `.skills/ponytail/`.
-
-Before creating or changing specs, use the repo-local skills in `.skills/`:
-
-- `spec-authoring`
-- `adr-authoring`
-- `implementation-plan-authoring`
-- `spec-maintenance`
-- `release-decision`
 
 Keep durable policy in `.agents/rules/`.
 

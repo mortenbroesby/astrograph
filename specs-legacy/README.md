@@ -1,7 +1,11 @@
-# Astrograph Project Specifications
+# Legacy Astrograph Specifications
 
-This directory is the source of truth for Astrograph architecture, public
-contracts, implementation plans, and architectural decisions.
+> **Archived:** OpenSpec replaced this spec and roadmap system on 2026-08-30.
+> These files are read-only source material. Current specs and work live under
+> [`openspec/`](../openspec/README.md); do not add or update work here.
+
+This directory preserves the former architecture, public contracts,
+implementation plans, and architectural decisions for brownfield context.
 
 ## Documentation Index
 

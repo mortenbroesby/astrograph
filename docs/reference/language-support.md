@@ -62,6 +62,6 @@ grammar has a useful Astrograph file contract. Astrograph currently excludes:
   separate specialist language packs after a package-size and fixture review.
 
 These exclusions are recorded in the completed
-[polyglot support contract](../../specs/implementation/closed/tree-sitter-polyglot-support-contract.md)
+[legacy polyglot support contract](../../specs-legacy/implementation/closed/tree-sitter-polyglot-support-contract.md)
 and can be reconsidered only with compatible runtime evidence and a user-facing
 file contract.

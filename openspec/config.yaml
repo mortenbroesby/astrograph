@@ -1,0 +1,28 @@
+schema: spec-driven
+context: |
+  Astrograph is a Node 22 TypeScript package and MCP server. Use pnpm.
+  Explore this repository with Astrograph's indexed tools first.
+  Follow AGENTS.md, the always-on Ponytail rule, compatibility-sensitive API
+  boundaries, version-bump policy, and GitHub Actions cost guardrail.
+  specs-legacy/ is read-only historical source material, never a live queue.
+  Migrated active-* changes were in progress. Migrated backlog-* changes were
+  planned, parked, or deferred and require explicit user selection.
+rules:
+  proposal:
+    - Keep scope to one coherent change and name explicit non-goals.
+    - Distinguish observable behavior from implementation-only work.
+  specs:
+    - Link every public contract requirement to focused verification in design.md.
+  design:
+    - Name exact compatibility-sensitive files and verification commands.
+  tasks:
+    - Keep tasks small, ordered, and independently verifiable.
+    - Include pnpm check:version-bump when source or package behavior changes.
+operations:
+  apply:
+    guidance:
+      - Use the smallest reliable change and preserve unrelated worktree changes.
+      - Run focused checks before broader verification.
+  archive:
+    guidance:
+      - Archive only after all tasks and relevant verification are complete.

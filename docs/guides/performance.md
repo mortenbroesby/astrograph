@@ -110,7 +110,7 @@ It also compares the public, lossless `agc1` compact JSON format for
 `search_symbols`, `get_file_tree`, and `get_file_outline`. On the recorded
 fixture, compact output saved 55.6%, 57.4%, 66.7%, and 59.0% respectively for
 successful search, empty search, tree, and outline responses. Ordinary JSON is
-still the default. See [MCP Tools](../../specs/api-design/mcp-tools.md) for the opt-in
+still the default. See [legacy MCP Tools](../../specs-legacy/api-design/mcp-tools.md) for the opt-in
 `format: "compact" | "auto"` contract and reference decoder.
 The broader [AGC1 compact-output baseline](../reviews/agc1-compact-output-baseline-2026-07-26.md)
 uses four representative fixtures and protects the current serving contract

@@ -19,12 +19,12 @@ that future sessions will actually load.
 
 ## Process
 
-1. Decide whether the change belongs in a README, AGENTS file, rule, decision
-   note, or session note.
+1. Put observable behavior in OpenSpec specs and change-specific decisions in
+   the change's `design.md`. Use README, AGENTS, rules, or docs only for their
+   established audiences.
 2. Capture the why, not just the mechanics.
 3. Keep docs aligned with the actual command surface and repo structure.
-4. For durable architecture or workflow choices, prefer vault notes under
-   `vault/00 Repositories/playground/`.
+4. For durable architecture or workflow choices, use an OpenSpec change.
 5. Link related docs instead of duplicating large explanations.
 
 ## Rationalizations
