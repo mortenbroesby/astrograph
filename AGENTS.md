@@ -50,4 +50,4 @@ sets `ALLOW_GITHUB_ACTIONS_COST_INCREASE=true`.
 
 ## Code Exploration Policy
 
-Use Astrograph normally from the target harness (such as Codex or Copilot) for code exploration. Prefer its indexed search, file summaries, and repository views before raw file reads or shell search; fall back only when Astrograph cannot answer the question or when debugging Astrograph itself.
+Use Astrograph normally from the target harness (such as Codex or Copilot) for code exploration. Start with its project status; if the index is missing, stale, or unavailable, hydrate it with `index_folder` and retry the requested Astrograph tool before raw file reads or shell search. Fall back only after hydration and retry fail, or when debugging Astrograph itself, and state why.
