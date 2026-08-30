@@ -746,6 +746,13 @@ describe("ai-context-engine contract", () => {
     });
   });
 
+  it("loads the source checkout config before the package is built", async () => {
+    await expect(loadRepoEngineConfig(process.cwd())).resolves.toMatchObject({
+      observability: { retentionDays: 14, redactSourceText: false },
+      limits: { maxSymbolResults: 100 },
+    });
+  });
+
   it("fails clearly for an invalid TypeScript repo config", async () => {
     const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-config-"));
     tempDirs.push(repoRoot);
@@ -1627,6 +1634,8 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("### Working agreements");
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
+    expect(result.agentsPolicyPreview).toContain("then retry the Astrograph request");
+    expect(result.agentsPolicyPreview).toContain("merely because an index is absent");
     expect(result.agentsPolicyPreview).toContain("search_symbols");
     expect(result.agentsPolicyPreview).toContain("get_task_context");
     expect(result.agentsPolicyPreview).not.toContain("query_code");
@@ -1767,6 +1776,8 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("## Code Exploration with Astrograph");
     expect(result.agentsPolicyPreview).toContain("get_project_status");
     expect(result.agentsPolicyPreview).toContain("index_folder");
+    expect(result.agentsPolicyPreview).toContain("then retry the Astrograph request");
+    expect(result.agentsPolicyPreview).toContain("merely because an index is absent");
   });
 
   it("does not add Astrograph as a dependency of itself", async () => {

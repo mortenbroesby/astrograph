@@ -1,6 +1,6 @@
-import { defineConfig } from "astrograph";
+import type { RepoEngineConfig } from "./src/types/config.ts";
 
-export default defineConfig({
+export default {
   observability: {
     retentionDays: 14,
     redactSourceText: false,
@@ -24,4 +24,4 @@ export default defineConfig({
   limits: {
     maxSymbolResults: 100,
   },
-});
+} satisfies RepoEngineConfig;
