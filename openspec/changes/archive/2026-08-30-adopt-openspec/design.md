@@ -13,8 +13,11 @@ already provides proposals, delta specs, designs, task progress, and archives.
   `backlog-*`; preserve their complete plans and checkbox states in `tasks.md`.
 - Consolidate closed records into one dated archive change that links every
   preserved record.
-- Generate only Codex and Claude Code integrations because those are the tools
-  represented by this repository's checked-in instructions.
+- Generate only the Codex integration because Codex is the repository's active
+  OpenSpec harness. Keep `AGENTS.md` agent-generic and `CLAUDE.md` as a thin
+  compatibility pointer rather than duplicating generated workflows.
+- Retire `grill-me`; route uncertain durable work through OpenSpec Explore while
+  preserving its useful one-question-at-a-time and recommended-default style.
 
 ## Verification
 

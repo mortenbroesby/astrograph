@@ -22,11 +22,12 @@ multiple skills just because they exist.
 
 ## Workflow Triggers
 
-- Load `grill-me` before planning or implementation when the main problem is
-  unclear requirements, unresolved assumptions, or an untested design.
+- Use `$openspec-explore` before planning or implementation when a durable
+  change has unclear requirements, unresolved assumptions, or an untested
+  design. Inspect the repository first, then ask one material question at a
+  time with a recommended default.
 - Load `engineering-workflow` for multi-step implementation, review, testing,
   simplification, or shipping work.
-- Use `$openspec-explore` when a durable change needs investigation.
 - Use `$openspec-propose` when a durable feature, boundary, architecture, or
   workflow change needs specification and ordered tasks.
 - Load `incremental-implementation` when the task spans multiple files or needs
@@ -71,7 +72,7 @@ multiple skills just because they exist.
 
 ## Composition
 
-- Typical discovery flow: `grill-me` or `$openspec-explore` first, then
+- Typical discovery flow: `$openspec-explore` first, then
   `$openspec-propose` once the decision tree is clear.
 - Typical flow: `engineering-workflow` plus one specialist skill.
 - For external-library feature work: `engineering-workflow` plus
@@ -87,8 +88,6 @@ multiple skills just because they exist.
 
 - Do not load skills just to restate obvious instructions already covered by
   `AGENTS.md` or repo rules.
-- Do not load `grill-me` alongside OpenSpec planning unless unresolved
-  questions still block a useful change.
 - Do not load both `browser-testing-with-devtools` and `webapp-testing` unless
   both toolsets are actually needed.
 - Do not load both `gh-stack` and `using-git-worktrees` unless the user

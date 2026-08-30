@@ -24,12 +24,11 @@ Current status:
 - use `skills:route` before reading a skill when the task shape is unclear;
   load only the returned skill body that materially improves the task
 
-## Astrograph-Specific Skills
+## Astrograph-Specific Skill
 
-These repo-local skills are maintained here alongside the shared skill surface:
+This repo-local skill is maintained here alongside the shared skill surface:
 
 - `release-decision`
-- `grill-me`
 
 Specification, design, planning, application, and archival use the generated
 OpenSpec skills under `.agents/skills/openspec-*` instead of repo-owned

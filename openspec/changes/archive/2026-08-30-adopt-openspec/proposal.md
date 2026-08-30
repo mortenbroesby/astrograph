@@ -11,8 +11,10 @@ evidence.
 - Migrate every active and planned tracker, preserving its checkbox state.
 - Archive completed records and retain old architecture/API prose as read-only
   brownfield source material.
-- Replace incompatible local planning skills and commands with generated
-  OpenSpec integrations for Codex and Claude Code.
+- Replace incompatible local planning skills and commands with the generated
+  OpenSpec integration for Codex.
+- Fold the useful questioning behavior from `grill-me` into OpenSpec Explore
+  instead of maintaining a parallel discovery skill.
 
 ## Capabilities
 
@@ -28,4 +30,5 @@ evidence.
 ## Impact
 
 Repository agent instructions, planning artifacts, and documentation links
-change. Runtime code and public APIs do not.
+change. Shared policy remains agent-generic, with Codex as the configured
+OpenSpec harness. Runtime code and public APIs do not.

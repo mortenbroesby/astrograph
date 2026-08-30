@@ -10,7 +10,8 @@ in-progress work lives in `openspec/changes/`; completed changes live in
 Use the generated OpenSpec skills for durable changes:
 
 1. Explore with `$openspec-explore` when the scope needs investigation.
-2. Create or update one change with `$openspec-propose`.
+2. Create one change with `$openspec-propose`, or revise an existing change
+   with `$openspec-update-change`.
 3. Review its proposal, delta specs, design, and tasks before implementation.
 4. Implement with `$openspec-apply-change` and keep `tasks.md` current.
 5. Sync or archive with `$openspec-sync-specs` and
