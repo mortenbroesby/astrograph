@@ -1,0 +1,58 @@
+# Completed legacy records
+
+- [x] 1.1 Preserve [Astrograph Feedback Epic Delivery Checklist](../../../../specs-legacy/implementation/closed/astro-feedback-delivery-checklist.md) as completed or superseded evidence.
+- [x] 2.1 Preserve [Astrograph Feedback Consolidation Epic](../../../../specs-legacy/implementation/closed/astro-feedback-epic.md) as completed or superseded evidence.
+- [x] 3.1 Preserve [Branch-Aware Incremental Index Delivery Checklist](../../../../specs-legacy/implementation/closed/branch-aware-incremental-index-delivery-checklist.md) as completed or superseded evidence.
+- [x] 4.1 Preserve [Branch-Aware Incremental Index Epic](../../../../specs-legacy/implementation/closed/branch-aware-incremental-index-epic.md) as completed or superseded evidence.
+- [x] 5.1 Preserve [Branch-Aware Incremental Index Mapping Plan](../../../../specs-legacy/implementation/closed/branch-aware-incremental-index-plan.md) as completed or superseded evidence.
+- [x] 6.1 Preserve [Comforting Install Experience Implementation Plan](../../../../specs-legacy/implementation/closed/comforting-global-install-experience.md) as completed or superseded evidence.
+- [x] 7.1 Preserve [Deterministic Lexical Ranking Delivery Checklist](../../../../specs-legacy/implementation/closed/deterministic-lexical-ranking-delivery-checklist.md) as completed or superseded evidence.
+- [x] 8.1 Preserve [File-Type Support Coverage and Discovery Delivery Checklist](../../../../specs-legacy/implementation/closed/filetype-support-coverage-delivery-checklist.md) as completed or superseded evidence.
+- [x] 9.1 Preserve [Git Ref Watch Reconciliation Delivery Checklist](../../../../specs-legacy/implementation/closed/git-ref-watch-reconciliation-delivery-checklist.md) as completed or superseded evidence.
+- [x] 10.1 Preserve [Global Astrograph Cleanup and Delivery Preparation Checklist](../../../../specs-legacy/implementation/closed/global-astrograph-cleanup-preparation-checklist.md) as completed or superseded evidence.
+- [x] 11.1 Preserve [Checkout and Cache Transparency Delivery Checklist](../../../../specs-legacy/implementation/closed/global-checkout-cache-transparency-delivery-checklist.md) as completed or superseded evidence.
+- [x] 12.1 Preserve [Global Copilot CLI Delivery Checklist](../../../../specs-legacy/implementation/closed/global-copilot-cli-delivery-checklist.md) as completed or superseded evidence.
+- [x] 13.1 Preserve [Global Install and Cache Deferred Story Handoffs](../../../../specs-legacy/implementation/closed/global-install-and-cache-deferred-stories-legacy.md) as completed or superseded evidence.
+- [x] 14.1 Preserve [Global Install and Cache Epic](../../../../specs-legacy/implementation/closed/global-install-and-cache-epic.md) as completed or superseded evidence.
+- [x] 15.1 Preserve [Global Installation Health and Recovery Delivery Checklist](../../../../specs-legacy/implementation/closed/global-install-health-recovery-delivery-checklist.md) as completed or superseded evidence.
+- [x] 16.1 Preserve [Global Storage Contract Delivery Checklist](../../../../specs-legacy/implementation/closed/global-storage-contract-delivery-checklist.md) as completed or superseded evidence.
+- [x] 17.1 Preserve [Guided Install and Refresh Hooks Implementation Plan](../../../../specs-legacy/implementation/closed/guided-install-and-refresh-hooks.md) as completed or superseded evidence.
+- [x] 18.1 Preserve [Human and Agent Onboarding Packs Delivery Checklist](../../../../specs-legacy/implementation/closed/human-agent-onboarding-packs-delivery-checklist.md) as completed or superseded evidence.
+- [x] 19.1 Preserve [Incremental Freshness Lifecycle Delivery Checklist](../../../../specs-legacy/implementation/closed/incremental-freshness-lifecycle-delivery-checklist.md) as completed or superseded evidence.
+- [x] 20.1 Preserve [Interactive Install Lifecycle Epic (Superseded)](../../../../specs-legacy/implementation/closed/interactive-install-lifecycle-epic.md) as completed or superseded evidence.
+- [x] 21.1 Preserve [Local Token-Savings Analytics Delivery Checklist](../../../../specs-legacy/implementation/closed/local-token-savings-analytics-delivery-checklist.md) as completed or superseded evidence.
+- [x] 22.1 Preserve [Local Token-Savings Analytics Epic](../../../../specs-legacy/implementation/closed/local-token-savings-analytics-epic.md) as completed or superseded evidence.
+- [x] 23.1 Preserve [MCP Runtime Hygiene Delivery Checklist](../../../../specs-legacy/implementation/closed/mcp-runtime-hygiene-delivery-checklist.md) as completed or superseded evidence.
+- [x] 24.1 Preserve [MCP Tool-Surface Core Delivery Checklist](../../../../specs-legacy/implementation/closed/mcp-tool-surface-core-delivery-checklist.md) as completed or superseded evidence.
+- [x] 25.1 Preserve [MCP v1 Hard-Switch Plan: Explicit Tools, Strict Schemas, and Cache Deletion](../../../../specs-legacy/implementation/closed/mcp-v1-hard-switch-plan.md) as completed or superseded evidence.
+- [x] 26.1 Preserve [Node 20–24 Runtime Compatibility Epic](../../../../specs-legacy/implementation/closed/node-20-to-24-runtime-compatibility-epic.md) as completed or superseded evidence.
+- [x] 27.1 Preserve [Node 22 Compatibility Delivery Checklist](../../../../specs-legacy/implementation/closed/node-22-compatibility-delivery-checklist.md) as completed or superseded evidence.
+- [x] 28.1 Preserve [Node 22 Compatibility Epic](../../../../specs-legacy/implementation/closed/node-22-compatibility-epic.md) as completed or superseded evidence.
+- [x] 29.1 Preserve [Process Execution Seam with `execa` Delivery Checklist](../../../../specs-legacy/implementation/closed/npm-module-process-execution-delivery-checklist.md) as completed or superseded evidence.
+- [x] 30.1 Preserve [Registry Lookup with Native `fetch` Delivery Checklist](../../../../specs-legacy/implementation/closed/npm-module-registry-lookup-delivery-checklist.md) as completed or superseded evidence.
+- [x] 31.1 Preserve [Generic Version Handling with `semver` Delivery Checklist](../../../../specs-legacy/implementation/closed/npm-module-semver-delivery-checklist.md) as completed or superseded evidence.
+- [x] 32.1 Preserve [Open Epic Reconciliation — 2026-07-29](../../../../specs-legacy/implementation/closed/open-epic-reconciliation-2026-07-29.md) as completed or superseded evidence.
+- [x] 33.1 Preserve [Pain-Free Global Install Delivery Checklist](../../../../specs-legacy/implementation/closed/pain-free-global-install-delivery-checklist.md) as completed or superseded evidence.
+- [x] 34.1 Preserve [Pre-v1 Cache and Codebase Cleanup Delivery Checklist](../../../../specs-legacy/implementation/closed/pre-v1-cache-codebase-cleanup-delivery-checklist.md) as completed or superseded evidence.
+- [x] 35.1 Preserve [Pre-v1 Clean Install Contract Epic](../../../../specs-legacy/implementation/closed/pre-v1-clean-install-contract-epic.md) as completed or superseded evidence.
+- [x] 36.1 Preserve [Precision Retrieval and Agent Experience Epic](../../../../specs-legacy/implementation/closed/precision-retrieval-agent-experience-epic.md) as completed or superseded evidence.
+- [x] 37.1 Preserve [Provenance-First Symbol Contract Delivery Checklist](../../../../specs-legacy/implementation/closed/provenance-first-symbol-contract-delivery-checklist.md) as completed or superseded evidence.
+- [x] 38.1 Preserve [README and Docs Diagram Design](../../../../specs-legacy/implementation/closed/readme-docs-diagram-design.md) as completed or superseded evidence.
+- [x] 39.1 Preserve [Release on Main Merge Delivery Checklist](../../../../specs-legacy/implementation/closed/release-on-main-merge-delivery-checklist.md) as completed or superseded evidence.
+- [x] 40.1 Preserve [Reversible User-Data Cleanup Delivery Checklist](../../../../specs-legacy/implementation/closed/reversible-user-data-cleanup-delivery-checklist.md) as completed or superseded evidence.
+- [x] 41.1 Preserve [Runtime Acceleration Epic](../../../../specs-legacy/implementation/closed/runtime-acceleration-epic.md) as completed or superseded evidence.
+- [x] 42.1 Preserve [Session-Aware Agent Efficiency Epic](../../../../specs-legacy/implementation/closed/session-aware-agent-efficiency-epic.md) as completed or superseded evidence.
+- [x] 43.1 Preserve [Session-Aware Agent Efficiency Epic Completion Checklist](../../../../specs-legacy/implementation/closed/session-aware-epic-completion-delivery-checklist.md) as completed or superseded evidence.
+- [x] 44.1 Preserve [Session-Aware Repeat-Read Trace Delivery Checklist](../../../../specs-legacy/implementation/closed/session-aware-repeat-read-trace-delivery-checklist.md) as completed or superseded evidence.
+- [x] 45.1 Preserve [Session Content-Reference Contract Delivery Checklist](../../../../specs-legacy/implementation/closed/session-content-reference-contract-delivery-checklist.md) as completed or superseded evidence.
+- [x] 46.1 Preserve [Session Exact-Reference Delta Delivery Checklist](../../../../specs-legacy/implementation/closed/session-exact-reference-delta-delivery-checklist.md) as completed or superseded evidence.
+- [x] 47.1 Preserve [Source Architecture Refactor Plan](../../../../specs-legacy/implementation/closed/src-architecture-refactor-plan.md) as completed or superseded evidence.
+- [x] 48.1 Preserve [Staff Engineer Review Delivery Checklist](../../../../specs-legacy/implementation/closed/staff-engineering-review-delivery-checklist.md) as completed or superseded evidence.
+- [x] 49.1 Preserve [Token-Budgeted Task Context Delivery Checklist](../../../../specs-legacy/implementation/closed/token-budgeted-task-context-delivery-checklist.md) as completed or superseded evidence.
+- [x] 50.1 Preserve [Token-Efficient Agent Output Delivery Checklist](../../../../specs-legacy/implementation/closed/token-efficient-agent-output-delivery-checklist.md) as completed or superseded evidence.
+- [x] 51.1 Preserve [Tokenizer and Token-Estimator Research Delivery Checklist](../../../../specs-legacy/implementation/closed/tokenizer-estimator-research-delivery-checklist.md) as completed or superseded evidence.
+- [x] 52.1 Preserve [Tree-Sitter Polyglot Language Support Delivery Checklist](../../../../specs-legacy/implementation/closed/tree-sitter-polyglot-language-support-history.md) as completed or superseded evidence.
+- [x] 53.1 Preserve [Tree-Sitter Polyglot Support Contract](../../../../specs-legacy/implementation/closed/tree-sitter-polyglot-support-contract.md) as completed or superseded evidence.
+- [x] 54.1 Preserve [VoidZero Toolchain Epic](../../../../specs-legacy/implementation/closed/voidzero-toolchain-epic.md) as completed or superseded evidence.
+- [x] 55.1 Preserve [WASM Parser Runtime Migration](../../../../specs-legacy/implementation/closed/wasm-parser-runtime-migration.md) as completed or superseded evidence.
+- [x] 56.1 Preserve [Windows Platform Support Epic](../../../../specs-legacy/implementation/closed/windows-platform-support-epic.md) as completed or superseded evidence.

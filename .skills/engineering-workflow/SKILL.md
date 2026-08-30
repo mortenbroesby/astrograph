@@ -1,6 +1,6 @@
 ---
 name: engineering-workflow
-description: Use for spec, plan, build, test, review, simplify, or ship workflows. Adapts the agent-skills lifecycle for this repo while keeping Codex, Claude, Copilot, and OpenCode on the shared .agents surface.
+description: Use for build, test, review, simplify, or ship workflows after OpenSpec has defined durable work.
 ---
 
 # Engineering Workflow
@@ -11,10 +11,8 @@ adapters thin and repo-native.
 
 ## Lifecycle
 
-- Define: clarify the objective, users, constraints, acceptance criteria, and
-  non-goals before broad implementation.
-- Plan: split work into small, ordered, verifiable tasks. Prefer vertical slices
-  over horizontal layers.
+- Define and plan durable work with the generated OpenSpec explore/propose/update
+  skills. Keep tiny, obvious edits in the conversation.
 - Build: implement one slice at a time. Keep the tree working after each slice.
 - Test: prove behavior with the narrowest useful verification. For bug fixes,
   reproduce the bug before fixing it when practical.
@@ -28,24 +26,22 @@ adapters thin and repo-native.
 
 - Follow `AGENTS.md` and `.agents/rules/` first.
 - Use `pnpm` commands only.
-- Use `jcodemunch` as the default repo code retrieval path, with
-  `ai-context-engine` as fallback diagnostics or freshness tooling, and use
-  `obsidian-memory` for repo history.
-- Keep durable workflow or architecture changes in
-  `vault/02 Repositories/playground/`.
+- Use Astrograph's indexed tools as the default repository retrieval path.
+- Keep durable behavioral truth and change artifacts under `openspec/`.
 - Keep commands in `.agents/commands/` so Claude slash commands and Codex
   prompts share the same source.
 
 ## Command Mapping
 
-- `/spec` or `spec.md`: `spec-driven-development`
-- `/plan` or `plan.md`: `planning-and-task-breakdown`
+- `$openspec-explore`: investigate before committing to a change
+- `$openspec-propose`: create the proposal, specs, design, and tasks
+- `$openspec-apply-change`: implement the current change
+- `$openspec-archive-change`: merge specs and preserve completed history
 - `/build` or `build.md`: `incremental-implementation`
 - `/test` or `test.md`: `test-driven-development`
 - `/review` or `review.md`: `code-review-and-quality`
 - `/code-simplify` or `code-simplify.md`: `code-simplification`
 - `/ship` or `ship.md`: `shipping-and-launch`
-- `ralph-plan.md`: use `ralph-plan` for interactive Ralph-loop planning
 
 Cross-cutting support skills:
 

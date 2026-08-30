@@ -24,7 +24,7 @@ a product failure.
 | Repository configuration | `src/config.ts` loads typed `astrograph.config.ts` through the dedicated `jiti` loader and accepts `astrograph.config.json` only as a fallback. The primary contract is documented and covered by engine, CLI, event, and watch fixtures. | Retain the typed TypeScript public configuration contract; configuration is an explicit local-code boundary rather than a general production runtime path. |
 | Duplicate generated-client tool definitions | `src/scripts/install.ts` derives Codex and Copilot allowlists from `MCP_TOOL_DEFINITIONS`. | Retain; the production installer has one owner. |
 | Stale tracked Codex client policy | `.codex/config.toml` allowlisted removed MCP `query_code`, omitted current direct tools, and placed the unrelated GitHub server inside Astrograph’s managed block. | **Remove/reconcile now.** Align its allowlist and approvals with the v1 definitions; keep GitHub outside Astrograph markers. |
-| Documentation/spec tracker links | `pointer.md`, `specs/implementation/roadmap.md`, and active/planned/closed indexes were reconciled in PRs #41–42. | No additional cleanup candidate found in this inventory. |
+| Documentation/spec tracker links | The legacy pointer, roadmap, and active/planned/closed indexes were reconciled in PRs #41–42. | Archived under `specs-legacy/` after the OpenSpec migration. |
 
 ## Selected cleanup
 
@@ -42,7 +42,7 @@ envelope, or repository configuration contract.
 
 ## Next-story selection
 
-[File-Type Support Coverage and Discovery](../../specs/implementation/closed/filetype-support-coverage-delivery-checklist.md)
+[File-Type Support Coverage and Discovery](../../specs-legacy/implementation/closed/filetype-support-coverage-delivery-checklist.md)
 is the next selected story after this cleanup merges. The user requested visible
 support for `.cjs`, `.mjs`, `.yaml`, `.yml`, `.md`, and `.txt`; the registry
 already supports those extensions, but user-facing coverage documentation and

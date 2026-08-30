@@ -76,8 +76,7 @@ function route(query) {
   const routes = [
     [/\b(debug|bug|failure|error|broken)\b/, "debugging-and-error-recovery"],
     [/\b(test|regression|behavior)\b/, "test-driven-development"],
-    [/\b(plan|breakdown|milestone)\b/, "planning-and-task-breakdown"],
-    [/\b(spec|adr|architecture)\b/, "spec-driven-development"],
+    [/\b(plan|breakdown|milestone|spec|adr|architecture)\b/, "openspec-propose"],
     [/\b(release|publish|version)\b/, "release-decision"],
     [/\b(review|quality|verify)\b/, "verification-before-completion"],
   ];

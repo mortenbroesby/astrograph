@@ -209,9 +209,9 @@ Ready to implement auth feature
 ## Integration
 
 **Called by:**
-- **brainstorming** (Phase 4) - REQUIRED when design is approved and implementation follows
+- **openspec-propose** - Defines durable work before implementation
 - **subagent-driven-development** - REQUIRED before executing any tasks
-- **executing-plans** - REQUIRED before executing any tasks
+- **openspec-apply-change** - Applies tasks from an approved OpenSpec change
 - Any skill needing isolated workspace
 
 **Pairs with:**
