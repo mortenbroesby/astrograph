@@ -12,6 +12,17 @@ function resolvePathFromRepoRoot(repoRoot: string, input: string): string {
 function parseArgs(argv: string[]) {
   const args: Record<string, string> = {};
   for (let index = 0; index < argv.length; index += 1) {
+    if (
+      argv[index] !== "--" &&
+      argv[index]?.startsWith("--") &&
+      argv[index + 1]?.startsWith("--")
+    ) {
+      args[argv[index]?.slice(2) ?? ""] = "true";
+      continue;
+    }
+    if (argv[index] === "--") {
+      continue;
+    }
     const token = argv[index];
     if (!token?.startsWith("--")) {
       continue;
