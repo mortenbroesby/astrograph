@@ -43,8 +43,8 @@ renderer, Vitest, Markdown.
 - [ ] Run:
 
   ```bash
-  pnpm exec vitest run bench/tests/benchmark.test.ts
-  node --experimental-strip-types ./bench/src/cli.ts --strict
+  pnpm exec vitest run bench/tests/cli.test.ts bench/tests/corpus.test.ts bench/tests/runner.test.ts bench/tests/snapshot.test.ts bench/tests/report.test.ts
+  pnpm bench:corpus -- --strict
   ```
 
   Expected: the strict run writes a report only when the corpus and checkout
