@@ -67,6 +67,9 @@ describe("daemon runtime", () => {
 
   it("recovers a demonstrably dead daemon owner before claiming the runtime", async () => {
     const runtimeDir = await createRuntimeDir();
+    const cacheDir = await createRuntimeDir();
+    const cacheMarker = path.join(cacheDir, "index.sqlite");
+    await writeFile(cacheMarker, "existing cache");
     await writeFile(resolveDaemonStatePath(runtimeDir), JSON.stringify({
       schemaVersion: 1,
       status: "ready",
@@ -78,11 +81,13 @@ describe("daemon runtime", () => {
       token: "a".repeat(32),
     }));
 
+    await expect(readFile(cacheMarker, "utf8")).resolves.toBe("existing cache");
     const claim = await claimDaemonRuntime({
       runtimeDir,
       token: "b".repeat(32),
       isProcessAlive: () => false,
     });
+    await expect(readFile(cacheMarker, "utf8")).resolves.toBe("existing cache");
 
     expect(claim).toMatchObject({ kind: "claimed", state: { token: "b".repeat(32) } });
   });

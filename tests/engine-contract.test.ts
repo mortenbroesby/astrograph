@@ -63,6 +63,7 @@ import {
   formatInstallPhase,
   setLocalMcpStartupVerifierForTest,
   installOptionalGlobalCli,
+  ensureDeviceCommand,
   formatOptionalGlobalCliRecovery,
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
@@ -168,19 +169,18 @@ describe("ai-context-engine contract", () => {
     expect(fatal.nextStep).toContain("pre-filled GitHub issue");
   });
 
-  it("explains that failed device installation leaves global registration unchanged", async () => {
-    const warning = installOptionalGlobalCli(() => {
-      throw new Error("simulated npm prefix failure");
-    });
-    expect(warning).toContain("Global MCP setup was not changed");
-    expect(warning).toContain(`npm install --global astrograph@${ASTROGRAPH_PACKAGE_VERSION}`);
+  it("keeps global registrations untouched when device bootstrap fails", async () => {
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-home-"));
     const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-config-"));
     tempDirs.push(homeDir, configHome);
-    const registration = await setupGlobalForCodex({
-      environment: { platform: "linux", env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir },
-    });
-    await expect(readFile(registration.configPath, "utf8")).resolves.toContain("BEGIN ASTROGRAPH");
+    const configPath = path.join(homeDir, ".codex", "config.toml");
+    await mkdir(path.dirname(configPath), { recursive: true });
+    await writeFile(configPath, "[mcp_servers.unrelated]\ncommand = \"keep\"\n");
+
+    expect(() => ensureDeviceCommand(() => {
+      throw new Error("simulated npm prefix failure");
+    })).toThrow("Global MCP setup was not changed");
+    await expect(readFile(configPath, "utf8")).resolves.toBe("[mcp_servers.unrelated]\ncommand = \"keep\"\n");
   });
 
   it("gives runtime-specific recovery guidance without managing the user's runtime", () => {
@@ -205,6 +205,22 @@ describe("ai-context-engine contract", () => {
       args: ["--loglevel", "verbose", "install", "--global", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`],
       options: { stdio: "inherit", timeout: 60_000 },
     });
+  });
+
+  it("verifies the device command through npm after bootstrap", () => {
+    const invocations: Array<{ command: string; args: readonly string[]; options: unknown }> = [];
+    const runner = ((command: string, args: readonly string[], options: unknown) => {
+      invocations.push({ command, args, options });
+      return { stdout: "/tmp/not-global\n" } as never;
+    }) as typeof import("../src/lib/process.ts").runProcess;
+
+    ensureDeviceCommand(runner);
+
+    expect(invocations).toEqual([
+      { command: "npm", args: ["root", "--global"], options: { stdio: "pipe" } },
+      { command: "npm", args: ["install", "--global", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`], options: { stdio: "inherit", timeout: 60_000 } },
+      { command: "npm", args: ["exec", "--global", "astrograph", "--", "--version"], options: { stdio: "pipe", timeout: 15_000 } },
+    ]);
   });
   it("uses repo-local storage artifacts aligned with the engine name", () => {
     const repoRoot = "/tmp/playground";
@@ -1242,7 +1258,15 @@ describe("ai-context-engine contract", () => {
       process.env.XDG_CONFIG_HOME = configHome;
       process.env.ASTROGRAPH_CACHE_HOME = cacheHome;
       process.env.ASTROGRAPH_HOME = path.join(homeDir, ".astrograph");
-      await setupGlobalForCodex({ environment, executableAvailable: true });
+      const [codex, copilot] = await Promise.all([
+        setupGlobalForCodex({ environment, executableAvailable: true }),
+        setupGlobalForCopilotCli({ environment, executableAvailable: true }),
+      ]);
+      expect(codex.configPreview).toContain('command = "astrograph"');
+      expect(JSON.parse(copilot.configPreview).mcpServers.astrograph).toMatchObject({
+        command: "astrograph",
+        args: ["mcp"],
+      });
       await writeFile(path.join(firstRepo, "first.ts"), "export function firstGlobalFixture() { return true; }\n");
       await writeFile(path.join(secondRepo, "second.ts"), "export function secondGlobalFixture() { return true; }\n");
       clearStorageProcessCaches();

@@ -218,17 +218,30 @@ export function installOptionalGlobalCli(
   }
 }
 
-function ensureDeviceCommand(options: { verbose?: boolean } = {}): void {
+export function ensureDeviceCommand(
+  runner: typeof runProcess = runProcess,
+  options: { verbose?: boolean } = {},
+): void {
+  let isCurrentDeviceInstallation = false;
   try {
-    const globalRoot = runProcess("npm", ["root", "--global"], { stdio: "pipe" }).stdout.trim();
-    if (globalRoot && path.relative(globalRoot, packageRoot) && !path.relative(globalRoot, packageRoot).startsWith("..")) {
-      return;
-    }
+    const globalRoot = runner("npm", ["root", "--global"], { stdio: "pipe" }).stdout.trim();
+    const relativePackageRoot = path.relative(globalRoot, packageRoot);
+    isCurrentDeviceInstallation = Boolean(globalRoot)
+      && !path.isAbsolute(relativePackageRoot)
+      && relativePackageRoot !== ".."
+      && !relativePackageRoot.startsWith(`..${path.sep}`);
   } catch {
-    // Fall through: a failed discovery must not register a temporary npx command.
+    // A failed discovery simply requires a fresh device installation.
   }
-  const recovery = installOptionalGlobalCli(undefined, options);
-  if (recovery) throw new Error(recovery);
+  if (!isCurrentDeviceInstallation) {
+    const recovery = installOptionalGlobalCli(runner, options);
+    if (recovery) throw new Error(recovery);
+  }
+  try {
+    runner("npm", ["exec", "--global", "astrograph", "--", "--version"], { stdio: "pipe", timeout: 15_000 });
+  } catch {
+    throw new Error(formatOptionalGlobalCliRecovery());
+  }
 }
 
 export function formatOptionalGlobalCliRecovery(
@@ -1035,7 +1048,7 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
       "",
     ].join("\n"));
     try {
-      ensureDeviceCommand(options);
+      ensureDeviceCommand(undefined, options);
     } catch (error) {
       progress.stop("Device installation failed");
       throw error;
@@ -2327,7 +2340,7 @@ async function main(): Promise<void> {
     if (parsed.ides?.length !== 1 || (parsed.ides[0] !== "codex" && parsed.ides[0] !== "copilot-cli")) {
       throw new Error("Global setup supports exactly one --ide value: codex or copilot-cli.");
     }
-    if (!parsed.dryRun) ensureDeviceCommand({ verbose: parsed.verbose });
+    if (!parsed.dryRun) ensureDeviceCommand(undefined, { verbose: parsed.verbose });
     const result = parsed.ides[0] === "codex"
       ? await setupGlobalForCodex({ dryRun: parsed.dryRun, reset: parsed.reset })
       : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun, reset: parsed.reset });
