@@ -107,7 +107,7 @@ export async function requestDaemon(
     let buffered = "";
     const timeout = setTimeout(() => {
       socket.destroy();
-      reject(new Error("Timed out waiting for the local Astrograph daemon"));
+      reject(new Error("Astrograph daemon request timed out; it may still be indexing the repository. Retry the indexed request after hydration completes."));
     }, options.timeoutMs ?? DEFAULT_DAEMON_REQUEST_TIMEOUT_MS);
     const finish = (callback: () => void) => {
       clearTimeout(timeout);

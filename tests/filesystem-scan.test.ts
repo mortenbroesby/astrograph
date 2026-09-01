@@ -36,6 +36,7 @@ describe("astrograph filesystem scan", () => {
     await mkdir(path.join(repoRoot, "src", "nested"), { recursive: true });
     await mkdir(path.join(repoRoot, "dist"), { recursive: true });
     await mkdir(path.join(repoRoot, "node_modules", "pkg"), { recursive: true });
+    await mkdir(path.join(repoRoot, ".worktrees", "feature", "src"), { recursive: true });
 
     await writeFile(path.join(repoRoot, "src", "alpha.ts"), "export const alpha = 1;\n");
     await writeFile(path.join(repoRoot, "src", "nested", "beta.js"), "export const beta = 2;\n");
@@ -45,6 +46,7 @@ describe("astrograph filesystem scan", () => {
     await writeFile(path.join(repoRoot, "src", "notes.md"), "# Discovery-only documentation\n");
     await writeFile(path.join(repoRoot, "dist", "bundle.ts"), "export const ignored = true;\n");
     await writeFile(path.join(repoRoot, "node_modules", "pkg", "index.ts"), "export const dep = true;\n");
+    await writeFile(path.join(repoRoot, ".worktrees", "feature", "src", "copied.ts"), "export const copied = true;\n");
 
     const result = await discoverSourceFiles({ repoRoot });
 
@@ -55,6 +57,7 @@ describe("astrograph filesystem scan", () => {
       "src/nested/module.MJS",
     ]);
     expect(result.map((entry) => entry.language)).toEqual(["ts", "js", "js", "js"]);
+    await expect(listSupportedFiles(repoRoot)).resolves.toEqual(result.map((entry) => entry.relativePath));
   });
 
   it("respects gitignore and preserves repo-relative paths for subtree discovery", async () => {

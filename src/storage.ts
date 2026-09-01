@@ -175,6 +175,7 @@ import type {
 
 const DISCOVERY_SKIP_SEGMENTS = new Set([
   ".git",
+  ".worktrees",
   ".next",
   ".turbo",
   ".vercel",

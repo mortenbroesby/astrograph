@@ -41,6 +41,7 @@ export interface DiscoveryLimits {
 
 const SKIP_SEGMENTS = new Set([
   ".git",
+  ".worktrees",
   ".next",
   ".turbo",
   ".vercel",

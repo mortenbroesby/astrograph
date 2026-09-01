@@ -422,6 +422,26 @@ describe("ai-context-engine contract", () => {
     }
   });
 
+  it("reports a daemon request timeout as actionable recovery unavailability", async () => {
+    const reset = setMcpCommandExecutorForTest(async () => {
+      throw new Error("Astrograph daemon request timed out; it may still be indexing the repository. Retry the indexed request after hydration completes.");
+    });
+    try {
+      await expect(dispatchTool("search_symbols", {
+        repoRoot: "/tmp",
+        query: "Greeter",
+      })).resolves.toMatchObject({
+        ok: false,
+        error: {
+          code: "daemon_unavailable",
+          message: expect.stringContaining("Retry the indexed request"),
+        },
+      });
+    } finally {
+      reset();
+    }
+  });
+
   it("rejects malformed MCP tool output with a strict failure envelope", async () => {
     const reset = setMcpCommandExecutorForTest(async () => [
       { id: "sym-id", kind: "class", filePath: "src/strings.ts" },

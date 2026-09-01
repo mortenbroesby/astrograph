@@ -386,6 +386,9 @@ function validateToolOutput(name: string, result: unknown) {
 
 function normalizeErrorCode(message: string) {
   const normalized = message.toLowerCase();
+  if (normalized.includes("astrograph daemon request timed out")) {
+    return "daemon_unavailable";
+  }
   if (normalized.includes("unknown tool")) {
     return "tool_not_found";
   }
