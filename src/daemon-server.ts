@@ -22,6 +22,7 @@ export interface DaemonServer {
 
 export interface DaemonServerOptions extends DaemonRuntimeOptions {
   dispatch(command: string, input: Record<string, unknown>): Promise<unknown>;
+  onShutdown?(): Promise<void> | void;
 }
 
 function write(socket: Socket, message: ReturnType<typeof daemonFailure> | {
@@ -33,7 +34,7 @@ function write(socket: Socket, message: ReturnType<typeof daemonFailure> | {
   socket.write(encodeDaemonMessage(message));
 }
 
-function attachSocket(socket: Socket, state: DaemonState, dispatch: DaemonServerOptions["dispatch"]): void {
+function attachSocket(socket: Socket, state: DaemonState, options: DaemonServerOptions): void {
   let buffered = "";
   socket.setEncoding("utf8");
   socket.on("data", (chunk: string) => {
@@ -63,7 +64,17 @@ function attachSocket(socket: Socket, state: DaemonState, dispatch: DaemonServer
         write(socket, daemonFailure("unauthorized", "Invalid daemon capability", request.id));
         continue;
       }
-      void dispatch(request.command, request.input).then((data) => {
+      if (request.command === "__shutdown") {
+        if (!options.onShutdown) {
+          write(socket, daemonFailure("command_failed", "Daemon shutdown is unavailable", request.id));
+          continue;
+        }
+        write(socket, { protocolVersion: 1, id: request.id, ok: true, data: { shuttingDown: true } });
+        socket.end();
+        queueMicrotask(() => void Promise.resolve(options.onShutdown!()).catch(() => undefined));
+        continue;
+      }
+      void options.dispatch(request.command, request.input).then((data) => {
         write(socket, { protocolVersion: 1, id: request.id, ok: true, data });
       }, (error: unknown) => {
         write(socket, daemonFailure(
@@ -102,7 +113,7 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
   if (!claim.state.endpoint.startsWith("\\\\.\\pipe\\")) {
     await rm(claim.state.endpoint, { force: true }).catch(() => undefined);
   }
-  const server = createServer((socket) => attachSocket(socket, claim.state, options.dispatch));
+  const server = createServer((socket) => attachSocket(socket, claim.state, options));
   try {
     await listen(server, claim.state.endpoint);
     const state = await markDaemonReady(claim);

@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 
 import {
   claimDaemonRuntime,
+  clearStaleDaemonRuntime,
   getDaemonRuntimeSummary,
   markDaemonReady,
   readDaemonRuntime,
@@ -85,6 +86,16 @@ describe("daemon runtime", () => {
     });
 
     expect(claim).toMatchObject({ kind: "claimed", state: { token: "b".repeat(32) } });
+  });
+
+  it("clears a stale daemon record without starting a replacement", async () => {
+    const runtimeDir = await createRuntimeDir();
+    const claim = await claimDaemonRuntime({ runtimeDir });
+    if (claim.kind !== "claimed") throw new Error("expected daemon claim");
+    await markDaemonReady(claim);
+
+    await expect(clearStaleDaemonRuntime({ runtimeDir, isProcessAlive: () => false })).resolves.toBe(true);
+    await expect(readDaemonRuntime({ runtimeDir })).resolves.toBeNull();
   });
 
   it("reports source-free running and stale daemon health", async () => {

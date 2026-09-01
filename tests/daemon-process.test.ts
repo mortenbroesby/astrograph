@@ -8,7 +8,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { executeDaemonCommand } from "../src/daemon-client.ts";
-import { getDaemonRuntimeSummary, readDaemonRuntime } from "../src/daemon-runtime.ts";
+import { getDaemonRuntimeSummary, readDaemonRuntime, resolveDaemonStatePath } from "../src/daemon-runtime.ts";
 
 const temporaryPaths: string[] = [];
 const daemonPids: number[] = [];
@@ -135,6 +135,29 @@ describeDaemonProcess("daemon process", () => {
     expect(searched).toMatchObject({ items: [expect.objectContaining({ name: "recoveredDaemon" })] });
     const recovered = await readDaemonRuntime({ runtimeDir });
     expect(recovered?.pid).not.toBe(crashed.pid);
+
+    await stopDaemon(runtimeDir);
+  });
+
+  it("replaces a reachable incompatible daemon before the next command", async () => {
+    const runtimeDir = await createTempPath("astrograph-daemon-runtime-");
+    const repoRoot = await createTempPath("astrograph-daemon-repo-");
+    await writeFile(path.join(repoRoot, "index.ts"), "export const replacementProof = true;\n");
+
+    await executeDaemonCommand("index_folder", { repoRoot }, { runtimeDir });
+    const previous = await readDaemonRuntime({ runtimeDir });
+    if (!previous) throw new Error("expected a running daemon");
+    await writeFile(resolveDaemonStatePath(runtimeDir), JSON.stringify({ ...previous, version: "previous-version" }));
+
+    await expect(executeDaemonCommand("search_symbols", {
+      repoRoot,
+      query: "replacementProof",
+    }, { runtimeDir })).resolves.toMatchObject({
+      items: [expect.objectContaining({ name: "replacementProof" })],
+    });
+    await expect(readDaemonRuntime({ runtimeDir })).resolves.toMatchObject({
+      version: expect.not.stringMatching("previous-version"),
+    });
 
     await stopDaemon(runtimeDir);
   });

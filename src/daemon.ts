@@ -26,7 +26,21 @@ function loadEngineModule(): Promise<EngineModule> {
 async function main(): Promise<void> {
   let lastActivityAt = Date.now();
   const tenants = createDaemonTenantManager();
-  const server = await startDaemonServer({
+  let server: Awaited<ReturnType<typeof startDaemonServer>> | null = null;
+  let idleTimer: NodeJS.Timeout | null = null;
+  let closing: Promise<void> | null = null;
+  const close = () => {
+    closing ??= (async () => {
+      await server?.close();
+      await tenants.close();
+      clearStorageProcessCaches();
+      disposeTokenizer();
+      if (idleTimer) clearInterval(idleTimer);
+    })();
+    return closing;
+  };
+  server = await startDaemonServer({
+    onShutdown: close,
     async dispatch(command, input) {
       lastActivityAt = Date.now();
       try {
@@ -55,20 +69,9 @@ async function main(): Promise<void> {
     },
   });
 
-  let closing: Promise<void> | null = null;
-  const close = () => {
-    closing ??= (async () => {
-      await server.close();
-      await tenants.close();
-      clearStorageProcessCaches();
-      disposeTokenizer();
-      clearInterval(idleTimer);
-    })();
-    return closing;
-  };
   process.once("SIGINT", () => void close());
   process.once("SIGTERM", () => void close());
-  const idleTimer = setInterval(() => {
+  idleTimer = setInterval(() => {
     if (Date.now() - lastActivityAt >= DAEMON_IDLE_TIMEOUT_MS) {
       void close();
     }

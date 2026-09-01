@@ -12,7 +12,7 @@ import {
   encodeDaemonMessage,
   type DaemonResponse,
 } from "./daemon-protocol.ts";
-import { getDaemonRuntimeSummary, readDaemonRuntime, type DaemonState } from "./daemon-runtime.ts";
+import { clearStaleDaemonRuntime, getDaemonRuntimeSummary, readDaemonRuntime, type DaemonState } from "./daemon-runtime.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
 const DEFAULT_DAEMON_REQUEST_TIMEOUT_MS = 10_000;
@@ -37,6 +37,41 @@ function startDaemonProcess(runtimeDir?: string) {
   return child;
 }
 
+async function waitForDaemonRelease(state: DaemonState, runtimeDir?: string): Promise<void> {
+  const deadline = Date.now() + DAEMON_START_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const current = await readDaemonRuntime({ runtimeDir });
+    if (!current || current.pid !== state.pid || current.token !== state.token) {
+      return;
+    }
+    await delay(DAEMON_START_RETRY_MS);
+  }
+  throw new Error(`Astrograph daemon ${state.version} did not stop before the compatible runtime started`);
+}
+
+export async function reconcileLocalDaemon(options: { runtimeDir?: string } = {}): Promise<void> {
+  const existing = await readDaemonRuntime(options);
+  const summary = await getDaemonRuntimeSummary(options);
+  if (!existing) {
+    return;
+  }
+  if (summary.status === "stale") {
+    await clearStaleDaemonRuntime(options);
+    return;
+  }
+  if (existing.version === ASTROGRAPH_PACKAGE_VERSION) {
+    return;
+  }
+  try {
+    await requestDaemon(existing, "__shutdown", {});
+  } catch {
+    throw new Error(
+      `Astrograph daemon ${existing.version} is incompatible with ${ASTROGRAPH_PACKAGE_VERSION}; close the older Astrograph client once, then retry.`,
+    );
+  }
+  await waitForDaemonRelease(existing, options.runtimeDir);
+}
+
 export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): Promise<DaemonState> {
   const existing = await readDaemonRuntime(options);
   const existingSummary = await getDaemonRuntimeSummary(options);
@@ -47,9 +82,7 @@ export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): 
     return existing;
   }
   if (existing && existingSummary.status !== "stale" && existing.version !== ASTROGRAPH_PACKAGE_VERSION) {
-    throw new Error(
-      `Astrograph daemon version ${existing.version} is incompatible with ${ASTROGRAPH_PACKAGE_VERSION}; stop the old daemon before retrying`,
-    );
+    await reconcileLocalDaemon(options);
   }
 
   const staleToken = existingSummary.status === "stale" ? existing?.token : null;
