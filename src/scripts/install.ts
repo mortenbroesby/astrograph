@@ -218,14 +218,27 @@ export function installOptionalGlobalCli(
   }
 }
 
+function ensureDeviceCommand(options: { verbose?: boolean } = {}): void {
+  try {
+    const globalRoot = runProcess("npm", ["root", "--global"], { stdio: "pipe" }).stdout.trim();
+    if (globalRoot && path.relative(globalRoot, packageRoot) && !path.relative(globalRoot, packageRoot).startsWith("..")) {
+      return;
+    }
+  } catch {
+    // Fall through: a failed discovery must not register a temporary npx command.
+  }
+  const recovery = installOptionalGlobalCli(undefined, options);
+  if (recovery) throw new Error(recovery);
+}
+
 export function formatOptionalGlobalCliRecovery(
   options: { nodeVersion?: string; packageVersion?: string } = {},
 ): string {
   const nodeVersion = options.nodeVersion ?? process.versions.node;
   const packageVersion = options.packageVersion ?? PACKAGE_VERSION;
   return [
-    `The optional \`astrograph\` global command could not be installed for Node.js ${nodeVersion}.`,
-    "Your MCP registration is still usable because it runs Astrograph through a pinned npx package.",
+    `The device-wide \`astrograph\` command could not be installed for Node.js ${nodeVersion}.`,
+    "Global MCP setup was not changed, so it cannot point at a missing command.",
     "Retry with the Node runtime you want to use:",
     `  npm install --global ${PACKAGE_NAME}@${packageVersion}`,
     "If npm succeeds but your shell cannot find `astrograph`, follow your runtime manager's documented refresh step (if any), or check `npm prefix --global` and PATH.",
@@ -957,14 +970,7 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
     outro("Setup cancelled.");
     return;
   }
-  const shouldInstallGlobalCli = await confirm({
-    message: "Also install the optional `astrograph` command globally with npm? This may need npm prefix/PATH attention if you use another package manager.",
-    initialValue: false,
-  });
-  if (isCancel(shouldInstallGlobalCli)) {
-    outro("Setup cancelled. No client configuration was changed.");
-    return;
-  }
+  const shouldInstallGlobalCli = true;
 
   const globalPreviews = [] as GlobalSetupResult[];
   const resetIdes = new Set<"codex" | "copilot-cli">();
@@ -1006,10 +1012,9 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
   process.stdout.write(`\n${formatInstallPhase(1, totalPhases, "Validating your selected setup")}\n`);
   const progress = spinner();
   progress.start("Connecting your selected client…");
-  let optionalCliWarning = "";
   if (shouldInstallGlobalCli) {
-    progress.stop("Preparing optional global command installation…");
-    process.stdout.write(`${formatInstallPhase(2, totalPhases, "Installing the optional Astrograph command")}\n`);
+    progress.stop("Preparing device-wide command installation…");
+    process.stdout.write(`${formatInstallPhase(2, totalPhases, "Installing Astrograph for this device")}\n`);
     const npmCommand = [
       "npm",
       ...(options.verbose ? ["--loglevel", "verbose"] : []),
@@ -1019,17 +1024,22 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
     ].join(" ");
     process.stdout.write([
       "",
-      "Optional global command installation",
+      "Device-wide Astrograph installation",
       `  Command: ${npmCommand}`,
       `  Node: ${process.version}`,
-      "  This only adds the `astrograph` shell command; your MCP registration is configured next even if this step fails.",
+      "  This installs the one `astrograph` command used by every configured client.",
       "  It stops after one minute instead of waiting indefinitely.",
       options.verbose
         ? "  Detailed npm output follows."
         : "  Re-run with `npx --yes astrograph install --verbose` to see detailed npm output.",
       "",
     ].join("\n"));
-    optionalCliWarning = installOptionalGlobalCli(undefined, options) ?? "";
+    try {
+      ensureDeviceCommand(options);
+    } catch (error) {
+      progress.stop("Device installation failed");
+      throw error;
+    }
     process.stdout.write(`${formatInstallPhase(3, totalPhases, "Updating Astrograph configuration")}\n`);
     progress.start("Writing the managed client registration…");
   } else {
@@ -1047,11 +1057,11 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
   process.stdout.write(`${formatInstallPhase(totalPhases, totalPhases, "Verifying the registration")}\n`);
   const shouldIndex = await confirm({ message: "Also create an index for this repository now?", initialValue: false });
   if (isCancel(shouldIndex)) {
-    outro([output, optionalCliWarning].filter(Boolean).join("\n\n"));
+    outro(output);
     return;
   }
   if (shouldIndex) await indexFolder({ repoRoot: resolveRepoRoot(process.cwd()) });
-  outro([output, optionalCliWarning].filter(Boolean).join("\n\n"));
+  outro(output);
 }
 
 function parseJsonFromString(raw: string, configPath: string): InstalledObject {
@@ -1175,6 +1185,10 @@ function resolveManagedInvocation(): ManagedInvocation {
   };
 }
 
+function resolveGlobalManagedInvocation(): ManagedInvocation {
+  return { command: "astrograph", args: ["mcp"] };
+}
+
 function createMinimalTsConfig(): string {
   return [
     "export default {",
@@ -1212,7 +1226,7 @@ function globalAstrographConfigBlock(): string {
   const toolApprovals = MCP_TOOLS.map((tool) =>
     `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
   ).join("\n\n");
-  const invocation = resolveManagedInvocation();
+  const invocation = resolveGlobalManagedInvocation();
   const args = invocation.args.map((arg) => `"${arg}"`).join(", ");
   return `${MARKER_BEGIN}
 [mcp_servers.astrograph]
@@ -1432,7 +1446,7 @@ export async function setupGlobalForCodex(
   const engineConfigPath = resolveGlobalConfigPath(environment);
   const currentCodexConfig = await readOptionalConfig(configPath);
   const currentEngineConfig = await readOptionalConfig(engineConfigPath);
-  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock(), reset);
+  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock(), reset, true);
   const engineConfigPreview = `${JSON.stringify({
     ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
     storageLocation: "global",
@@ -1492,7 +1506,7 @@ function resolveGlobalCopilotCliConfigPath(
 }
 
 function globalCopilotCliServer(): InstalledObject {
-  const invocation = resolveManagedInvocation();
+  const invocation = resolveGlobalManagedInvocation();
   return {
     type: "local",
     command: invocation.command,
@@ -1518,6 +1532,7 @@ export async function setupGlobalForCopilotCli(
     "mcpServers",
     globalCopilotCliServer(),
     reset,
+    true,
   );
   const engineConfigPreview = `${JSON.stringify({
     ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
@@ -1563,7 +1578,7 @@ export async function setupGlobalForCopilotCli(
   };
 }
 
-function replaceManagedBlock(contents: string, block: string, reset = false): string {
+function replaceManagedBlock(contents: string, block: string, reset = false, acceptsDeviceCommand = false): string {
   try {
     assertTomlStructurallyValid(contents, "config.toml");
   } catch (error) {
@@ -1572,7 +1587,7 @@ function replaceManagedBlock(contents: string, block: string, reset = false): st
   }
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     const currentBlock = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0] ?? "";
-    if (!currentBlock.includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
+    if (!acceptsDeviceCommand && !currentBlock.includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
       throw new ResetRequiredError("Astrograph setup version does not match this package. It is not migrated.");
     }
     return contents.replace(
@@ -1911,6 +1926,7 @@ function replaceManagedServerInJson(
   rootKey: string,
   managedServer: InstalledObject,
   reset = false,
+  acceptsDeviceCommand = false,
 ): string {
   let parsed: InstalledObject;
   try {
@@ -1938,7 +1954,7 @@ function replaceManagedServerInJson(
   const currentServer = existing && typeof existing === "object" && !Array.isArray(existing)
     ? (existing as InstalledObject)[MCP_SERVER_NAME]
     : undefined;
-  if (currentServer && !JSON.stringify(currentServer).includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
+  if (currentServer && !acceptsDeviceCommand && !JSON.stringify(currentServer).includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
     throw new ResetRequiredError("Astrograph setup version does not match this package. It is not migrated.");
   }
 
@@ -2311,6 +2327,7 @@ async function main(): Promise<void> {
     if (parsed.ides?.length !== 1 || (parsed.ides[0] !== "codex" && parsed.ides[0] !== "copilot-cli")) {
       throw new Error("Global setup supports exactly one --ide value: codex or copilot-cli.");
     }
+    if (!parsed.dryRun) ensureDeviceCommand({ verbose: parsed.verbose });
     const result = parsed.ides[0] === "codex"
       ? await setupGlobalForCodex({ dryRun: parsed.dryRun, reset: parsed.reset })
       : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun, reset: parsed.reset });

@@ -16,9 +16,9 @@ Use `astrograph --version` to print the installed package version. Use
 compatibility, global config and cache paths, storage selection, and Copilot
 CLI/Codex registration presence.
 
-The managed MCP registration pins the selected Astrograph package version and
-does not depend on a global executable. Prefer `npx --yes astrograph ...`
-unless you have already verified another local invocation path. See
+Repository-local registration pins the selected Astrograph package version.
+Device-wide registration installs and invokes the global `astrograph` command,
+so Codex and Copilot CLI share one runtime. See
 [Troubleshooting](../guides/troubleshooting.md) for Node-runtime and global
 command recovery.
 

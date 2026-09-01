@@ -80,12 +80,15 @@ describeDaemonProcess("daemon process", () => {
 
     const indexed = await executeDaemonCommand("index_folder", { repoRoot }, { runtimeDir });
     expect(indexed).toMatchObject({ indexedFiles: 1, staleStatus: "fresh" });
+    const firstDaemon = await readDaemonRuntime({ runtimeDir });
+    expect(firstDaemon?.status).toBe("ready");
 
     const searched = await executeDaemonCommand("search_symbols", {
       repoRoot,
       query: "daemonProof",
     }, { runtimeDir });
     expect(searched).toMatchObject({ items: [expect.objectContaining({ name: "daemonProof" })] });
+    expect((await readDaemonRuntime({ runtimeDir }))?.pid).toBe(firstDaemon?.pid);
 
     await writeFile(
       path.join(repoRoot, "index.ts"),

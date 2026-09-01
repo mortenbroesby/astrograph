@@ -168,11 +168,11 @@ describe("ai-context-engine contract", () => {
     expect(fatal.nextStep).toContain("pre-filled GitHub issue");
   });
 
-  it("does not make a valid registration depend on the optional global CLI", async () => {
+  it("explains that failed device installation leaves global registration unchanged", async () => {
     const warning = installOptionalGlobalCli(() => {
       throw new Error("simulated npm prefix failure");
     });
-    expect(warning).toContain("registration is still usable");
+    expect(warning).toContain("Global MCP setup was not changed");
     expect(warning).toContain(`npm install --global astrograph@${ASTROGRAPH_PACKAGE_VERSION}`);
     const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-home-"));
     const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-optional-cli-config-"));
@@ -189,7 +189,7 @@ describe("ai-context-engine contract", () => {
     expect(message).toContain("Node.js 24.13.0");
     expect(message).toContain("npm install --global astrograph@1.2.3");
     expect(message).toContain("runtime manager's documented refresh step");
-    expect(message).toContain("MCP registration is still usable");
+    expect(message).toContain("Global MCP setup was not changed");
   });
 
   it("makes the optional global command install verbose and time-bounded on request", () => {
@@ -1060,10 +1060,8 @@ describe("ai-context-engine contract", () => {
 
     expect(first.configPath).toBe(codexConfigPath);
     expect(second.configPreview).toBe(first.configPreview);
-    expect(first.configPreview).toContain('command = "npx"');
-    expect(first.configPreview).toContain(
-      `args = ["-y", "--package", "astrograph@${ASTROGRAPH_PACKAGE_VERSION}", "astrograph", "mcp"]`,
-    );
+    expect(first.configPreview).toContain('command = "astrograph"');
+    expect(first.configPreview).toContain('args = ["mcp"]');
     expect(first.configPreview).toContain('"get_project_status"');
     expect(first.configPreview).toContain('"find_files"');
     expect(first.configPreview).toContain('"search_text"');
@@ -1104,8 +1102,8 @@ describe("ai-context-engine contract", () => {
         unrelated: { command: "keep" },
         astrograph: {
           type: "local",
-          command: "npx",
-          args: ["-y", "--package", `astrograph@${ASTROGRAPH_PACKAGE_VERSION}`, "astrograph", "mcp"],
+          command: "astrograph",
+          args: ["mcp"],
           env: {},
           tools: expect.arrayContaining([
             "get_project_status",

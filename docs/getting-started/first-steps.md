@@ -28,9 +28,9 @@ scope, then restart the client.
   review.
 
 Global installation gives you a permanent `astrograph` command. **This device**
-is the device-wide setup scope; you can select it from either the `npx` or
-global-command path. The MCP registration itself remains pinned to the chosen
-Astrograph package version.
+is the device-wide setup scope; starting it through `npx` installs the device
+command before registering clients. Both client registrations then run
+`astrograph mcp` and share the same device cache and compatible daemon.
 
 For non-interactive device-wide setup, use:
 

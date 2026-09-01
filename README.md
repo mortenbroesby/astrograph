@@ -67,8 +67,9 @@ then restart the client.
   can review.
 
 Global installation gives you a permanent `astrograph` command; **This device**
-is the device-wide setup scope. You can use either `npx` or the global command
-to choose it. The installer explains every write before it makes it. For
+is the device-wide setup scope. Starting global setup through `npx` installs
+the device command before registering clients. The installer explains every
+write before it makes it. For
 automation and recovery commands, use the [CLI reference](./docs/reference/cli.md).
 
 New to Astrograph? Follow the [five-minute setup](./docs/getting-started/first-steps.md).
