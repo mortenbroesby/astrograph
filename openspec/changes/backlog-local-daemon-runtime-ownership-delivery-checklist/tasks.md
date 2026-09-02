@@ -130,11 +130,21 @@ Vitest, and platform package smoke tests.
 
 - [ ] **Step 1: Spawn-or-connect once from MCP startup.**
 
-  Have the stdio entrypoint connect to a ready compatible daemon or spawn one
-  and wait for its authenticated readiness record. Retain public MCP validation,
-  envelope formatting, observability redaction, and stdio shutdown behavior in
-  `src/mcp.ts`. A connection error must include a local recovery command and
-  must never silently instantiate a competing engine.
+Have the stdio entrypoint connect to a ready compatible daemon or spawn one
+and wait for its authenticated readiness record. When a reachable daemon has a
+different package version, request its capability-authenticated graceful
+shutdown, wait for its owned state to clear, and then start the replacement so
+only one daemon remains. Never signal a PID based on a state record alone.
+Retain public MCP validation,
+envelope formatting, observability redaction, and stdio shutdown behavior in
+`src/mcp.ts`. A connection error must include a local recovery command and
+must never silently instantiate a competing engine.
+
+- [x] **Step 1a: Reconcile before explicit install lifecycle writes.**
+
+Before `astrograph install`, `update`, `repair`, or `reconfigure` changes an
+MCP registration, reconcile the private daemon state using the same safe
+handoff. Do not use npm package lifecycle hooks for daemon mutation.
 
 - [ ] **Step 2: Track proxy leases and idle exit.**
 

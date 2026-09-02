@@ -20,6 +20,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 
 import { isMainModule } from "../entrypoint.ts";
+import { reconcileLocalDaemon } from "../daemon-client.ts";
 import { diagnostics, indexFolder } from "../index.ts";
 import { resetAstrographStorage } from "../storage.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
@@ -1296,6 +1297,7 @@ interface ManagedConfigWrite {
 
 async function writeManagedConfigs(entries: ManagedConfigWrite[], verify?: () => Promise<void>): Promise<string[]> {
   const changedEntries = entries.filter((entry) => entry.current !== entry.next);
+  await reconcileLocalDaemon();
   const backups = await backupChangedConfigs(changedEntries);
   const written: ManagedConfigWrite[] = [];
   try {

@@ -6,7 +6,8 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DAEMON_PROTOCOL_VERSION, encodeDaemonMessage } from "../src/daemon-protocol.ts";
-import { requestDaemon } from "../src/daemon-client.ts";
+import { reconcileLocalDaemon, requestDaemon } from "../src/daemon-client.ts";
+import { readDaemonRuntime } from "../src/daemon-runtime.ts";
 import { startDaemonServer, type DaemonServer } from "../src/daemon-server.ts";
 
 const runtimeDirs: string[] = [];
@@ -77,5 +78,33 @@ describe("daemon server", () => {
       command: "search_symbols",
       input: { repoRoot: "/repo" },
     });
+  });
+
+  it("replaces only an authenticated incompatible daemon", async () => {
+    const runtimeDir = await createRuntimeDir();
+    let server: DaemonServer;
+    server = await startDaemonServer({
+      runtimeDir,
+      version: "previous-version",
+      dispatch: async () => ({}),
+      onShutdown: () => server.close(),
+    });
+    servers.push(server);
+
+    await expect(reconcileLocalDaemon({ runtimeDir })).resolves.toBeUndefined();
+    await expect(readDaemonRuntime({ runtimeDir })).resolves.toBeNull();
+  });
+
+  it("does not kill an incompatible daemon that cannot confirm shutdown", async () => {
+    const runtimeDir = await createRuntimeDir();
+    const server = await startDaemonServer({
+      runtimeDir,
+      version: "previous-version",
+      dispatch: async () => ({}),
+    });
+    servers.push(server);
+
+    await expect(reconcileLocalDaemon({ runtimeDir })).rejects.toThrow("close the older Astrograph client once");
+    await expect(readDaemonRuntime({ runtimeDir })).resolves.toMatchObject({ pid: process.pid });
   });
 });

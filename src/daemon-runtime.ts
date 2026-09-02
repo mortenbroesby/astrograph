@@ -176,6 +176,18 @@ export async function readDaemonRuntime(options: { runtimeDir?: string } = {}): 
   return readState(resolveDaemonStatePath(options.runtimeDir));
 }
 
+export async function clearStaleDaemonRuntime(options: DaemonRuntimeOptions = {}): Promise<boolean> {
+  if ((await getDaemonRuntimeSummary(options)).status !== "stale") {
+    return false;
+  }
+  const claim = await claimDaemonRuntime(options);
+  if (claim.kind !== "claimed") {
+    return false;
+  }
+  await releaseDaemonRuntime(claim);
+  return true;
+}
+
 export async function getDaemonRuntimeSummary(
   options: { runtimeDir?: string; isProcessAlive?: (pid: number) => boolean } = {},
 ): Promise<DaemonRuntimeSummary> {
