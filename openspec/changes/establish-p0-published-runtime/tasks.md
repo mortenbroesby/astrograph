@@ -50,7 +50,7 @@
   migration check for shadowing project registrations; verify launches from
   neutral directories and repositories with different `.tool-versions` report
   the same immutable version.
-- [ ] 3.4 Extend `doctor --json` and human diagnostics with configured/effective
+- [x] 3.4 Extend `doctor --json` and human diagnostics with configured/effective
   client paths and versions, runtime descriptor health, daemon identity,
   canonical project root, index state, and reload guidance; verify redaction and
   broken-runtime focused tests.

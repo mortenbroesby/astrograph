@@ -74,6 +74,7 @@ import {
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
+import { claimDaemonRuntime, markDaemonReady } from "../src/daemon-runtime.ts";
 
 const tempDirs: string[] = [];
 
@@ -1040,7 +1041,7 @@ describe("ai-context-engine contract", () => {
       env: { XDG_CONFIG_HOME: configHome },
       homeDir: () => homeDir,
     };
-    let resolvedVersion = "0.13.0-alpha.228.snapshot.1.gabcdef012345";
+    let resolvedVersion = "0.13.0-alpha.229.snapshot.1.gabcdef012345";
     const installSpecifiers: string[] = [];
     const runner = (command: string, args: readonly string[]) => {
       if (command !== "npm") throw new Error(`Unexpected command: ${command}`);
@@ -1078,7 +1079,7 @@ describe("ai-context-engine contract", () => {
     expect(path.isAbsolute(first.entrypoint)).toBe(true);
     expect(JSON.stringify(first)).not.toMatch(/\bnpx\b|file:|link:|workspace:|\.asdf\/shims/u);
 
-    resolvedVersion = "0.13.0-alpha.228.snapshot.2.gfedcba987654";
+    resolvedVersion = "0.13.0-alpha.229.snapshot.2.gfedcba987654";
     await expect(installManagedRuntime({
       channel: "snapshot",
       environment,
@@ -1122,12 +1123,12 @@ describe("ai-context-engine contract", () => {
       environment,
       runner: (command, args) => {
         calls.push([command, ...args]);
-        return { stdout: args[0] === "config" ? "https://registry.npmjs.org/\n" : '"0.13.0-alpha.228.snapshot.7.gabcdef012345"\n' };
+        return { stdout: args[0] === "config" ? "https://registry.npmjs.org/\n" : '"0.13.0-alpha.229.snapshot.7.gabcdef012345"\n' };
       },
     });
 
     expect(runtime).toMatchObject({
-      packageVersion: "0.13.0-alpha.228.snapshot.7.gabcdef012345",
+      packageVersion: "0.13.0-alpha.229.snapshot.7.gabcdef012345",
       packageSpecifier: "astrograph@snapshot",
       channel: "snapshot",
     });
@@ -1150,7 +1151,7 @@ describe("ai-context-engine contract", () => {
     const runtime = {
       schemaVersion: 1 as const,
       packageName: "astrograph" as const,
-      packageVersion: "0.13.0-alpha.228.snapshot.7.gabcdef012345",
+      packageVersion: "0.13.0-alpha.229.snapshot.7.gabcdef012345",
       packageSpecifier: "astrograph@snapshot",
       channel: "snapshot" as const,
       registry: "https://registry.npmjs.org/",
@@ -1209,7 +1210,7 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(neutral, node20Repo, node24Repo, runtimeRoot);
     await writeFile(path.join(node20Repo, ".tool-versions"), "nodejs 20.19.0\n");
     await writeFile(path.join(node24Repo, ".tool-versions"), "nodejs 24.7.0\n");
-    const version = "0.13.0-alpha.228.snapshot.7.gabcdef012345";
+    const version = "0.13.0-alpha.229.snapshot.7.gabcdef012345";
     const entrypoint = path.join(runtimeRoot, "astrograph.mjs");
     await writeFile(entrypoint, `process.stdout.write(${JSON.stringify(version)});\n`);
     const runtime = {
@@ -1387,6 +1388,100 @@ describe("ai-context-engine contract", () => {
     expect(after.clients).toEqual(expect.arrayContaining([
       expect.objectContaining({ ide: "copilot-cli", configured: true }),
     ]));
+  });
+
+  it("reports configured and effective runtime, daemon, project, and reload identity", async () => {
+    const repoRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-doctor-runtime-repo-"));
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-doctor-runtime-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-doctor-runtime-config-"));
+    tempDirs.push(repoRoot, homeDir, configHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome },
+      homeDir: () => homeDir,
+    };
+    const paths = resolveManagedRuntimePaths(environment);
+    const version = "0.13.0-alpha.229.snapshot.9.gabcdef012345";
+    const entrypoint = path.join(paths.versionsRoot, version, "node_modules", "astrograph", "dist", "astrograph.js");
+    await mkdir(path.dirname(entrypoint), { recursive: true });
+    await writeFile(entrypoint, `process.stdout.write(${JSON.stringify(version)});\n`);
+    const runtime = {
+      schemaVersion: 1 as const,
+      packageName: "astrograph" as const,
+      packageVersion: version,
+      packageSpecifier: "astrograph@snapshot",
+      channel: "snapshot" as const,
+      registry: "https://registry.npmjs.org/",
+      nodePath: process.execPath,
+      entrypoint,
+      installedAt: "2026-09-05T12:00:00.000Z",
+    };
+    await writeFile(paths.activeDescriptorPath, `${JSON.stringify(runtime)}\n`);
+    await writeFile(paths.previousDescriptorPath, `${JSON.stringify({
+      ...runtime,
+      packageVersion: "0.13.0-alpha.229.snapshot.8.gfedcba987654",
+      entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.229.snapshot.8.gfedcba987654", "node_modules", "astrograph", "dist", "astrograph.js"),
+      installedAt: "2026-09-05T11:00:00.000Z",
+    })}\n`);
+    const daemonClaim = await claimDaemonRuntime({ runtimeDir: paths.root, pid: process.pid, version });
+    if (daemonClaim.kind !== "claimed") throw new Error("Expected a test daemon claim");
+    await markDaemonReady(daemonClaim);
+    await setupGlobalForCodex({ environment, repoRoot, runtime });
+    await setupGlobalForCopilotCli({ environment, repoRoot, runtime });
+
+    const result = await getSetupReadiness(repoRoot, { environment, scanFreshness: false });
+    expect(result.canonicalProjectRoot).toBe(await realpath(repoRoot));
+    expect(result.global.managedRuntime).toMatchObject({
+      status: "ready",
+      selectedVersion: version,
+      effectiveVersion: version,
+      previousVersion: "0.13.0-alpha.229.snapshot.8.gfedcba987654",
+      channel: "snapshot",
+    });
+    expect(result.global.clients).toEqual(expect.arrayContaining([
+      expect.objectContaining({ ide: "codex", configuredVersion: version, effectiveVersion: version, healthy: true }),
+      expect.objectContaining({ ide: "copilot-cli", configuredVersion: version, effectiveVersion: version, healthy: true }),
+    ]));
+    expect(result.global.daemon).toMatchObject({ status: "running", version, pid: process.pid, compatible: true });
+    expect(result.global.daemon).not.toHaveProperty("token");
+    expect(result.global.reloadGuidance).toContain("reload that client once");
+    const human = formatSetupReadiness(result);
+    expect(human).toContain(`Managed runtime: ready (selected ${version}; effective ${version})`);
+    expect(human).toContain(`Canonical project root: ${await realpath(repoRoot)}`);
+    expect(human).toContain("Daemon: running");
+    expect(human).toContain("Reload:");
+  });
+
+  it("redacts sensitive text while reporting a broken managed runtime", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-doctor-broken-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-doctor-broken-config-"));
+    tempDirs.push(homeDir, configHome);
+    const sensitiveText = `${String.fromCharCode(115, 107, 45)}${"A".repeat(24)}`;
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: path.join(configHome, sensitiveText) },
+      homeDir: () => homeDir,
+    };
+    const paths = resolveManagedRuntimePaths(environment);
+    await mkdir(paths.root, { recursive: true });
+    await writeFile(paths.activeDescriptorPath, `${JSON.stringify({
+      schemaVersion: 1,
+      packageName: "astrograph",
+      packageVersion: "0.13.0-alpha.229.snapshot.9.gabcdef012345",
+      packageSpecifier: "astrograph@snapshot",
+      channel: "snapshot",
+      registry: "https://local-user@registry.npmjs.org/",
+      nodePath: process.execPath,
+      entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.229.snapshot.9.gabcdef012345", "node_modules", "astrograph", "dist", "astrograph.js"),
+      installedAt: "2026-09-05T12:00:00.000Z",
+    })}\n`);
+
+    const diagnostics = await getGlobalInstallationDiagnostics(environment);
+    const serialized = JSON.stringify(diagnostics);
+    expect(diagnostics.managedRuntime.status).toBe("broken");
+    expect(serialized).not.toContain(sensitiveText);
+    expect(serialized).not.toContain("local-user");
+    expect(serialized).toContain("[REDACTED:secret]");
   });
 
   it("uses COPILOT_HOME for global Copilot CLI setup", async () => {
