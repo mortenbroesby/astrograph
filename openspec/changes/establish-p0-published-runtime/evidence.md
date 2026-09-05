@@ -26,6 +26,16 @@ Exact-head CI, npm snapshot publication/digest, managed installation, and live
 Codex/Copilot catalog readback remain pending and are recorded here when tasks
 5.2 through 5.4 complete.
 
+The first snapshot dispatch, run `33977601352`, stopped safely before npm
+publication. Its exact artifact version
+`0.13.0-alpha.230.snapshot.33977601352.g2a0f9870dd85` exposed that module startup
+still parsed runtime package identity with the production-only version parser.
+The runtime parser now accepts only the workflow's immutable snapshot suffix
+while release and tag policy remain production-only. Before redispatch, a local
+snapshot artifact at `0.13.0-alpha.231.snapshot.999999991.g2a0f9870dd85` was
+packed once and the same tarball passed the complete package smoke, including
+global Codex and Copilot registration, MCP behavior, and repository isolation.
+
 ## Pre-publication gates
 
 Required task 5.1 evidence recorded 2026-09-05:
