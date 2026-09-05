@@ -16,7 +16,7 @@ users receive.
 - Replace current-directory and runtime-manager-dependent client commands with
   one stable device-owned runtime selection.
 - Permit separate Codex and Copilot configuration adapters while requiring both
-  to resolve the same selected package version, cache, and compatible daemon.
+  to resolve the same selected package version, cache, and version-scoped daemon.
 - Preserve distinct indexes for different repositories and worktrees behind a
   shared multi-repository runtime.
 - Add bounded MCP startup recovery and diagnostics that expose effective

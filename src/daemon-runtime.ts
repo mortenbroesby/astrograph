@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -79,9 +79,10 @@ function defaultIsProcessAlive(pid: number): boolean {
 }
 
 export function resolveRuntimeDirectory(runtimeDir?: string): string {
-  return runtimeDir
-    ?? process.env[RUNTIME_DIRECTORY_ENV]
-    ?? path.join(path.dirname(resolveGlobalConfigPath()), "runtime");
+  if (runtimeDir) return runtimeDir;
+  if (process.env[RUNTIME_DIRECTORY_ENV]) return process.env[RUNTIME_DIRECTORY_ENV];
+  const versionNamespace = createHash("sha256").update(ASTROGRAPH_PACKAGE_VERSION).digest("hex").slice(0, 16);
+  return path.join(path.dirname(resolveGlobalConfigPath()), "runtime", "daemons", versionNamespace);
 }
 
 export function resolveDaemonStatePath(runtimeDir?: string): string {
@@ -94,7 +95,8 @@ export function resolveDaemonHandoffPath(runtimeDir?: string): string {
 
 function defaultEndpoint(runtimeDir: string): string {
   if (process.platform === "win32") {
-    return `\\\\.\\pipe\\astrograph-${process.getuid?.() ?? "user"}`;
+    const namespace = createHash("sha256").update(runtimeDir).digest("hex").slice(0, 16);
+    return `\\\\.\\pipe\\astrograph-${process.getuid?.() ?? "user"}-${namespace}`;
   }
   return path.join(runtimeDir, "daemon.sock");
 }

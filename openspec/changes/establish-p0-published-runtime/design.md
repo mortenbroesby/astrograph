@@ -127,28 +127,35 @@ each client starts its own stdio bridge.
 command, arguments, selected version, and client scope as a compatibility
 boundary. A dry-run preview remains available before configuration mutation.
 
-### 5. Canonical worktree roots are independent daemon tenants
+### 5. Canonical worktree roots are independent version-scoped daemon tenants
 
 The stdio bridge continues to infer a canonical project root per client
-session. The daemon may share process and caches, but its tenant key is the
-canonical worktree root, not the Git common directory or repository remote.
-Tests will exercise two worktrees of one repository plus another repository
-through concurrent Codex- and Copilot-shaped bridges and assert distinct index
-metadata.
+session. Bridges on the same immutable package version share one daemon, while
+different package versions use deterministic separate daemon state and socket
+namespaces. This lets an upgraded client start while older live clients finish
+without either version reclaiming a singleton runtime record. Within a daemon,
+the tenant key remains the canonical worktree root, not the Git common
+directory or repository remote. Tests exercise two worktrees of one repository
+plus another repository through concurrent Codex- and Copilot-shaped bridges
+and assert distinct index metadata.
 
-Keeping the daemon initially is the smallest path because current evidence
-points to package selection and client reload, not daemon tenancy, as the
-primary absence cause. If the concurrency/recovery suite still attributes
-repeated failures to shared ownership, the stdio bridge contract permits a
-direct-process replacement without changing client registration.
+Keeping one daemon per immutable version is smaller than removing the indexing
+service and preserves reuse across compatible Codex and Copilot bridges. A
+device proof showed that one unversioned daemon namespace causes old live
+clients to reclaim the socket after an upgrade; version scoping removes that
+contention without terminating user sessions. If the concurrency/recovery
+suite still attributes failures to same-version shared ownership, the stdio
+bridge contract permits a direct-process replacement without changing client
+registration.
 
 ### 6. Startup recovery is single-owner and bounded
 
-`src/daemon-client.ts`, `src/daemon-runtime.ts`, and `src/daemon-server.ts` will
-implement one lock-coordinated handoff when the selected package version does
-not match the running daemon. Other bridges wait for that attempt instead of
-starting competing restarts. One retry and a documented deadline bound MCP
-startup.
+`src/daemon-runtime.ts` gives each immutable package version deterministic
+daemon state and endpoint names. Same-version bridges retain one lock-
+coordinated startup, stale-owner recovery, one retry, and a documented deadline.
+The legacy incompatible-daemon handoff remains for explicitly shared runtime
+directories, but normal device operation never asks old and new live clients
+to replace one another.
 
 Failure output and `doctor --json` will include the client adapter, configured
 and effective paths and versions, daemon record, project/worktree identity,
@@ -169,9 +176,9 @@ automatic repair.
   single-platform, avoid scheduled/matrix work, and reuse the packed artifact
   between verification and publication. Automatic PR/push cost is unchanged;
   each explicit snapshot adds one Ubuntu job capped at 20 minutes.
-- **Two clients race during upgrade** -> Versioned installation plus atomic
-  descriptor activation and one daemon handoff owner keep the prior runtime
-  usable until the new one passes its probe.
+- **Two clients race during upgrade** -> Versioned installation, atomic
+  descriptor activation, and version-scoped daemon endpoints let the prior
+  runtime remain usable while the new version starts independently.
 - **Canonical paths change through symlinks** -> Resolve real paths at the
   tenant boundary and cover aliases in `tests/daemon-tenants.test.ts`.
 - **Client reload remains externally controlled** -> Make it the sole explicit

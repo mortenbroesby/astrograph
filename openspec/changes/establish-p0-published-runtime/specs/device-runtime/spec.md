@@ -62,9 +62,11 @@ identity information instead of disappearing silently.
 
 - **WHEN** a bridge encounters a daemon owned by an incompatible Astrograph
   version
-- **THEN** it performs one coordinated graceful handoff or restart attempt
+- **THEN** it selects the deterministic daemon namespace for its own immutable
+  package version instead of contending for the older version's state or socket
 - **AND** retries the handshake within a documented time bound
 - **AND** avoids unbounded competing restart loops between clients
+- **AND** leaves live clients on the older immutable version operational
 
 #### Scenario: Recovery cannot establish an MCP server
 

@@ -2,7 +2,7 @@
 
 ## Shared daemon decision
 
-Decision: keep the shared daemon for the snapshot candidate.
+Decision: keep one shared daemon per immutable package version.
 
 Evidence recorded 2026-09-05:
 
@@ -14,17 +14,23 @@ Evidence recorded 2026-09-05:
 - The clients listed the same complete tool set and package version, hydrated two linked worktrees plus a separate repository, reused their indexes after restart, and kept all three storage identities distinct.
 - A search for the primary-worktree-only symbol from the linked worktree returned no results, directly checking tenant isolation.
 
-The one shared daemon therefore reduces four bridge processes to one indexing
-service without failing the current concurrency, restart, recovery, version, or
-isolation gates. Removal is not justified by current evidence. Reconsider this
-decision if the published-snapshot device proof fails the same harness or if a
-reproducible failure remains attributable to shared daemon ownership.
+The isolated suite showed that same-version sharing reduces four bridge
+processes to one indexing service without weakening tenant isolation. The first
+published-snapshot device proof then reproduced a cross-version failure: live
+`0.12.0-alpha.217` bridges and the installed `.232` bridge repeatedly contended
+for the unversioned `daemon.json` and socket, while the older daemon could not
+confirm the newer graceful-shutdown command. The `.233` candidate therefore
+uses a deterministic daemon state/socket namespace per immutable package
+version. Old and new client sessions can coexist, while Codex and Copilot on
+the same selected version still share one daemon. Removing the daemon is not
+justified unless the published `.233` proof attributes another failure to
+same-version ownership.
 
-## Pending device evidence
+## Device evidence
 
-Exact-head CI, npm snapshot publication/digest, managed installation, and live
-Codex/Copilot catalog readback remain pending and are recorded here when tasks
-5.2 through 5.4 complete.
+Final `.233` exact-head CI, npm publication/digest, managed installation, and
+live Codex/Copilot retrieval readback remain pending and are recorded here when
+tasks 5.2 through 5.4 complete.
 
 The first snapshot dispatch, run `33977601352`, stopped safely before npm
 publication. Its exact artifact version
@@ -65,6 +71,30 @@ downloaded SHA-256
 `a232e60512e3c6513de322cfabf3b57dbd383adaa6472d7f9f6c2c4ca73accab`
 matched CI. Its dist-tag needed longer than the initial 10-second verification
 window, motivating the bounded 60-second readback window.
+
+Snapshot run `33981591192` then passed the complete workflow in 1 minute 36
+seconds from exact commit `deb9b2afbafb006c66082d64c4e6b05c72fdb7bd`. It
+published `0.13.0-alpha.232.snapshot.33981591192.gdeb9b2afbafb`; registry
+readback downloaded the same tarball and matched SHA-256
+`43c00a8553a93c76f65f6c5a2591fd75734dc6e0cf547b4ba7438c729493ec36`.
+Both global client adapters activated that immutable runtime with absolute Node
+and package paths, and `previous.json` retained the working `.231` snapshot.
+Two real client-shaped bridges listed all 14 tools and reported `.232`, but
+project status reproduced the reported mismatch against a live
+`0.12.0-alpha.217` daemon. Process and runtime-state readback confirmed multiple
+old MCP sessions alongside the new daemon, proving the unversioned daemon
+namespace—not package resolution or SQLite activation—was the remaining root
+cause.
+
+The `.233` version-scoped daemon change passed 19 focused daemon/runtime tests:
+15 state/server/tenant tests, 3 spawned-process recovery tests, and the full
+Codex/Copilot reliability harness. The reliability harness completed in 47.1
+seconds under current machine load. Build and `pnpm type-lint` also passed. A
+local immutable `.233.snapshot.999999994` artifact was packed successfully;
+its first full package smoke reached npm global installation but the native
+install process exited without output while another machine-wide `npm ci` was
+consuming substantial CPU and memory. That attempt is not counted as passing;
+the exact-head CI package smoke remains required before publication.
 
 A laptop-wide read-only scan also found clean tracked project overrides pinned
 to `astrograph@0.3.1-alpha.74` in Playground and two of its worktrees, plus an

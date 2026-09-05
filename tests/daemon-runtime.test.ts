@@ -15,6 +15,7 @@ import {
   releaseDaemonHandoff,
   releaseDaemonRuntime,
   resolveDaemonHandoffPath,
+  resolveRuntimeDirectory,
   resolveDaemonStatePath,
 } from "../src/daemon-runtime.ts";
 
@@ -33,6 +34,19 @@ afterEach(async () => {
 });
 
 describe("daemon runtime", () => {
+  it("isolates the default daemon namespace by immutable package version", () => {
+    const previous = process.env.ASTROGRAPH_RUNTIME_DIR;
+    delete process.env.ASTROGRAPH_RUNTIME_DIR;
+    try {
+      const runtimeDir = resolveRuntimeDirectory();
+      expect(path.basename(path.dirname(runtimeDir))).toBe("daemons");
+      expect(path.basename(runtimeDir)).toMatch(/^[a-f0-9]{16}$/);
+    } finally {
+      if (previous === undefined) delete process.env.ASTROGRAPH_RUNTIME_DIR;
+      else process.env.ASTROGRAPH_RUNTIME_DIR = previous;
+    }
+  });
+
   it("allows one live handoff owner and recovers only a demonstrably dead owner", async () => {
     const runtimeDir = await createRuntimeDir();
     const first = await claimDaemonHandoff({

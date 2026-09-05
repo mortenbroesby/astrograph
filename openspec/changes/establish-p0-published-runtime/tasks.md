@@ -61,10 +61,10 @@
   distinct index metadata for worktree aliases; verify
   `tests/daemon-tenants.test.ts` covers aliases, two worktrees, and a separate
   repository.
-- [x] 4.2 Implement one lock-coordinated incompatible-version handoff with one
-  bounded retry in `src/daemon-client.ts`, `src/daemon-runtime.ts`, and
-  `src/daemon-server.ts`; verify simultaneous bridges do not enter competing
-  restart loops and failures finish within the documented deadline.
+- [x] 4.2 Isolate daemon state and endpoints by immutable package version while
+  retaining lock-coordinated same-version startup, stale recovery, and one
+  bounded retry; verify old and new live clients do not enter competing restart
+  loops and failures finish within the documented deadline.
 - [x] 4.3 Add a reliability harness that exercises Codex- and Copilot-shaped
   stdio bridges concurrently across two worktrees and another repository;
   verify tool listing, project status, hydration, search, version agreement,

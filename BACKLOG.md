@@ -33,9 +33,10 @@ Execution order:
    or package-manager shim selection.
 5. Configure Codex and Copilot independently where their formats differ, but
    make both launch the same selected device runtime and global cache.
-6. Retain one shared daemon only if it passes the reliability proof. Per-client
-   stdio bridges may be separate; the daemon must support multiple repositories
-   and distinct worktree indexes without version contention.
+6. Retain one shared daemon per immutable runtime version only if it passes the
+   reliability proof. Per-client stdio bridges may be separate; live old and new
+   versions must coexist without daemon contention, and each daemon must support
+   multiple repositories and distinct worktree indexes.
 7. Add bounded startup recovery and actionable diagnostics. A failed MCP start
    must be retryable or clearly require a client reload; it must not disappear
    silently for the lifetime of a long-running client.
