@@ -44,7 +44,7 @@ publication. Independent registry readback returned the expected version, and
 the downloaded tarball SHA-256
 `10798f392d53700c9040997a8095db78845887b61ab5672c1f81f7e1c6e23ed6`
 matched CI exactly. Registry verification now retries the expected dist-tag for
-up to 10 seconds before failing; `latest` remained `0.12.1-alpha.223`.
+up to 60 seconds before failing; `latest` remained `0.12.1-alpha.223`.
 
 Snapshot run `33979146118` passed the corrected exact-artifact workflow in 1
 minute 33 seconds and published
@@ -59,6 +59,12 @@ now rebuild only that native dependency in the final version directory and
 open an in-memory database before activation. The exact local `.232` runtime
 tarball then passed the full package smoke after aligning its global-install
 command budget with the existing bounded 16-second MCP startup budget.
+Snapshot run `33981198831` published the exact `.232` artifact; npm subsequently
+returned `0.13.0-alpha.232.snapshot.33981198831.gcabe86570f60`, and the
+downloaded SHA-256
+`a232e60512e3c6513de322cfabf3b57dbd383adaa6472d7f9f6c2c4ca73accab`
+matched CI. Its dist-tag needed longer than the initial 10-second verification
+window, motivating the bounded 60-second readback window.
 
 A laptop-wide read-only scan also found clean tracked project overrides pinned
 to `astrograph@0.3.1-alpha.74` in Playground and two of its worktrees, plus an
