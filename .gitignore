@@ -12,3 +12,4 @@ tests/.ai-context-engine/
 .DS_Store
 .ralph/
 .memory/
+.worktrees/

@@ -1,6 +1,6 @@
 ---
 name: using-git-worktrees
-description: Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification
+description: Use before repository-changing work unless already in the task's isolated linked worktree - creates or reuses a safe worktree and verifies its baseline
 ---
 
 # Using Git Worktrees
@@ -27,26 +27,18 @@ ls -d worktrees 2>/dev/null      # Alternative
 
 **If found:** Use that directory. If both exist, `.worktrees` wins.
 
-### 2. Check CLAUDE.md
+### 2. Check Repository Instructions
 
 ```bash
-grep -i "worktree.*director" CLAUDE.md 2>/dev/null
+rg -i "worktree.*director" AGENTS.md CLAUDE.md 2>/dev/null
 ```
 
 **If preference specified:** Use it without asking.
 
-### 3. Ask User
+### 3. Use the Default
 
-If no directory exists and no CLAUDE.md preference:
-
-```
-No worktree directory found. Where should I create worktrees?
-
-1. .worktrees/ (project-local, hidden)
-2. ~/.config/superpowers/worktrees/<project-name>/ (global location)
-
-Which would you prefer?
-```
+If no directory or repository preference exists, create and use `.worktrees/`.
+Ask only when the repository cannot safely use that location.
 
 ## Safety Verification
 
@@ -148,7 +140,7 @@ Ready to implement <feature-name>
 | `.worktrees/` exists | Use it (verify ignored) |
 | `worktrees/` exists | Use it (verify ignored) |
 | Both exist | Use `.worktrees/` |
-| Neither exists | Check CLAUDE.md → Ask user |
+| Neither exists | Check repo instructions → use `.worktrees/` |
 | Directory not ignored | Add to .gitignore + commit |
 | Tests fail during baseline | Report failures + ask |
 | No package.json/Cargo.toml | Skip dependency install |
@@ -197,11 +189,11 @@ Ready to implement auth feature
 - Create worktree without verifying it's ignored (project-local)
 - Skip baseline test verification
 - Proceed with failing tests without asking
-- Assume directory location when ambiguous
-- Skip CLAUDE.md check
+- Put the worktree in a non-standard location without a repository instruction
+- Skip the repository-instruction check
 
 **Always:**
-- Follow directory priority: existing > CLAUDE.md > ask
+- Follow directory priority: existing > repository instructions > `.worktrees/`
 - Verify directory is ignored for project-local
 - Auto-detect and run project setup
 - Verify clean test baseline

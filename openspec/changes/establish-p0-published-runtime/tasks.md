@@ -4,9 +4,13 @@
   and measurable exit criteria; verify P0 explicitly covers npm snapshot
   dogfooding, stable Codex/Copilot runtime selection, worktrees, recovery, and
   the daemon reliability gate.
-- [ ] 1.2 Update `AGENTS.md` to consult `BACKLOG.md` for priority before
+- [x] 1.2 Update `AGENTS.md` to consult `BACKLOG.md` for priority before
   OpenSpec; verify no instruction treats migrated `backlog-*` folders as the
   live queue and leave main-spec synchronization for task 5.5.
+- [x] 1.3 Make isolated linked worktrees the repository and laptop-wide default,
+  reuse the existing worktree skill, and ignore `.worktrees/`; verify the active
+  root is linked, repo routing no longer treats isolation as optional, and the
+  global instruction has narrowly documented exceptions.
 
 ## 2. Exact-artifact package channels
 

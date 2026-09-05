@@ -67,8 +67,9 @@ multiple skills just because they exist.
 - Load `skill-creator` when creating or refining a skill.
 - Load `gh-stack` when the user wants stacked branches, dependent PRs, or
   explicit `gh stack` workflows.
-- Load `using-git-worktrees` only when task isolation from the current workspace
-  is worth the extra setup.
+- Load `using-git-worktrees` before repository-changing work unless the task is
+  already running in its assigned isolated linked worktree or an explicit
+  exception in `AGENTS.md` applies.
 
 ## Composition
 

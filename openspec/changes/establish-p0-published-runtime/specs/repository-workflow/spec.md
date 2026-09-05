@@ -47,3 +47,25 @@ names as the live priority queue.
   historical planning context
 - **AND** only selection and ordering in `BACKLOG.md` authorizes current focus
 - **AND** completed records remain available under the OpenSpec archive
+
+## ADDED Requirements
+
+### Requirement: Repository changes use isolated linked worktrees
+
+Agents SHALL perform repository-changing work in a task-scoped linked Git
+worktree unless an explicit documented exception applies.
+
+#### Scenario: Agent begins repository-changing work
+
+- **WHEN** an agent is about to edit tracked or untracked repository content
+- **THEN** it reuses the linked worktree assigned to that task or creates one
+  from the intended base before editing
+- **AND** verifies the project-local worktree directory is ignored
+- **AND** reports the worktree root, branch, and baseline state
+
+#### Scenario: A worktree exception is required
+
+- **WHEN** the user explicitly requires the current checkout, the operation is
+  worktree administration or recovery, or the target is not a Git repository
+- **THEN** the agent states the reason before mutating files
+- **AND** preserves unrelated changes

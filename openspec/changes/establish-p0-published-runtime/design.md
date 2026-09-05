@@ -51,6 +51,14 @@ This avoids maintaining the same ordering in many OpenSpec folders. The
 alternative—one OpenSpec change for every idea—creates ceremony before scope
 is known and obscures the small number of truly active priorities.
 
+Repository changes also default to isolated linked worktrees. The existing
+`.skills/using-git-worktrees/SKILL.md` remains the procedural source; the
+always-on rule in `AGENTS.md` and `.agents/rules/worktrees.md` makes isolation
+the default instead of an optional routing choice. `.worktrees/` is ignored and
+used automatically unless repository instructions require another location.
+The laptop-wide Codex and Copilot instruction files carry the same default so
+repositories without their own policy remain isolated.
+
 ### 2. Both npm channels use a pack-once artifact pipeline
 
 The existing `.github/workflows/ci.yml` will be extended rather than adding a
