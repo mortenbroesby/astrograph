@@ -7,6 +7,8 @@ Shared instruction rules for agents working in this repository.
 - `skill-routing.md`: always-on guidance for when to load which on-demand
   skills.
 - `ponytail.md`: always-on minimal, root-cause-first implementation posture.
+- `task-lifecycle.md`: always-on Definitions of Ready and Done.
+- `worktrees.md`: always-on linked-worktree isolation policy.
 - `frontend.md`: path-scoped frontend implementation and design policy.
 - `agent-infrastructure.md`: path-scoped policy for hooks, rules, skills, and
   agent configuration.

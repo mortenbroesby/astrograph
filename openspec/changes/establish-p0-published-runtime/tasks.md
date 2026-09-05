@@ -11,6 +11,9 @@
   reuse the existing worktree skill, and ignore `.worktrees/`; verify the active
   root is linked, repo routing no longer treats isolation as optional, and the
   global instruction has narrowly documented exceptions.
+- [x] 1.4 Define repository-wide Ready and Done gates for tasks, distinguish a
+  verified OpenSpec checkbox from delivered work, and verify the policy requires
+  scoped commit/push, remote/CI evidence, and external target readback.
 
 ## 2. Exact-artifact package channels
 

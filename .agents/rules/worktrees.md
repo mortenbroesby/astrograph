@@ -1,3 +1,7 @@
+---
+alwaysApply: true
+---
+
 # Worktree Policy
 
 Repository-changing work uses an isolated linked Git worktree by default.

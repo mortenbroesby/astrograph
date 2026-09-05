@@ -59,15 +59,26 @@ used automatically unless repository instructions require another location.
 The laptop-wide Codex and Copilot instruction files carry the same default so
 repositories without their own policy remain isolated.
 
+The always-on `.agents/rules/task-lifecycle.md` defines readiness before work
+and evidence-backed completion afterward. It keeps an individual OpenSpec
+checkbox local to its stated behavior and verification, while reserving
+"delivered" for committed, pushed, exact-head-verified work with target-system
+readback for external mutations. This prevents local intent or a narrow test
+from being presented as the completed P0 outcome.
+
 ### 2. Both npm channels use a pack-once artifact pipeline
 
 The existing `.github/workflows/ci.yml` will be extended rather than adding a
 second broad workflow. Snapshot publication is an explicit manual mode with no
 schedule or matrix. In an isolated staging directory it assigns a unique
-SemVer prerelease such as `0.12.1-snapshot.<run>.<sha>`, builds once, packs once,
-and records the tarball SHA-256. `src/scripts/smoke-package-bin.ts` will accept
-an existing tarball and will not pack when one is supplied. The workflow then
-publishes that exact path with `npm publish <file> --tag snapshot --provenance`.
+SemVer prerelease such as
+`0.12.1-alpha.223.snapshot.<run>.<sha>`, builds once, packs once, and records the
+tarball SHA-256. Retaining the release-line alpha components keeps runtime
+diagnostics compatible while the extra identifiers keep snapshots immutable
+and ordered before the next production alpha. `src/scripts/smoke-package-bin.ts`
+will accept an existing tarball and will not pack when one is supplied. The
+workflow then publishes that exact path with
+`npm publish <file> --tag snapshot --provenance`.
 
 The production release path will likewise transfer one verified tarball and
 digest to its publish job and publish the file rather than the directory. It

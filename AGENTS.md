@@ -30,6 +30,10 @@ For any repository change, follow the always-on Ponytail policy in
 
 Keep durable policy in `.agents/rules/`.
 
+Before starting or completing work, apply the repository Definitions of Ready
+and Done in `.agents/rules/task-lifecycle.md`. Do not call partial, uncommitted,
+unpushed, unverified, or unread-back work done.
+
 Keep user-facing setup docs in `README.md`, the docs compendium in `docs/README.md`,
 release workflow in `docs/reference/release.md`, and performance workflow in
 `docs/guides/performance.md`.

@@ -69,3 +69,33 @@ worktree unless an explicit documented exception applies.
   worktree administration or recovery, or the target is not a Git repository
 - **THEN** the agent states the reason before mutating files
 - **AND** preserves unrelated changes
+
+### Requirement: Tasks use explicit readiness and completion gates
+
+The repository SHALL define and apply a Definition of Ready before implementation
+and a Definition of Done before reporting a task delivered.
+
+#### Scenario: A task becomes ready
+
+- **WHEN** work is selected for implementation
+- **THEN** its outcome, boundaries, acceptance criteria, dependencies, required
+  authority, worktree/base, and verification evidence are explicit
+- **AND** non-trivial durable work has a strict-valid OpenSpec contract
+- **AND** no unresolved choice can materially change the solution or side effects
+
+#### Scenario: An implementation task is checked complete
+
+- **WHEN** the task's full stated behavior exists and its stated verification
+  passes
+- **THEN** its OpenSpec checkbox may be marked complete
+- **AND** partial work, intent, indirect evidence, or deferred failures do not
+  qualify
+
+#### Scenario: A task is reported delivered
+
+- **WHEN** acceptance criteria and applicable repository gates pass
+- **THEN** the scoped changes are committed and pushed from the worktree
+- **AND** the remote ref and exact-head CI are verified when applicable
+- **AND** external mutations are read back from their target systems
+- **AND** required documentation, specifications, backlog state, versioning,
+  diagnostics, and rollback guidance are current
