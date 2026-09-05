@@ -24,7 +24,7 @@
   SemVer, packs once, records its SHA-256 and metadata, and fails on an existing
   npm version; verify unit tests cover version generation, paths, and fail-closed
   behavior without publishing.
-- [ ] 2.3 Extend the manual dispatch in `.github/workflows/ci.yml` with a
+- [x] 2.3 Extend the manual dispatch in `.github/workflows/ci.yml` with a
   single-platform `snapshot` mode that smoke-tests and publishes the exact
   generated tarball under the `snapshot` tag using trusted publishing; verify
   workflow syntax, scoped triggers, caching, permissions, concurrency, and the

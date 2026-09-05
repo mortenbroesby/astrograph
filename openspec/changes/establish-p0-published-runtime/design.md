@@ -167,7 +167,8 @@ automatic repair.
   deletion in P0.
 - **Workflow cost grows** -> Reuse `ci.yml`, keep snapshot dispatch-only and
   single-platform, avoid scheduled/matrix work, and reuse the packed artifact
-  between verification and publication jobs.
+  between verification and publication. Automatic PR/push cost is unchanged;
+  each explicit snapshot adds one Ubuntu job capped at 20 minutes.
 - **Two clients race during upgrade** -> Versioned installation plus atomic
   descriptor activation and one daemon handoff owner keep the prior runtime
   usable until the new one passes its probe.

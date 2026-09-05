@@ -23,18 +23,26 @@ on:
       - "vitest.config.ts"
   workflow_dispatch:
     inputs:
+      mode:
+        description: "Manual release operation."
+        type: choice
+        required: true
+        default: retry
+        options:
+          - retry
+          - snapshot
       tag:
         description: "Existing version tag to retry after an npm publication failure."
         type: string
-        required: true
+        required: false
 
 permissions:
   contents: read
   pull-requests: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.tag || 'ci' }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}-${{ github.event_name == 'workflow_dispatch' && inputs.mode || 'ci' }}-${{ github.event_name == 'workflow_dispatch' && inputs.tag || 'none' }}
+  cancel-in-progress: ${{ github.event_name != 'workflow_dispatch' || inputs.mode != 'snapshot' }}
 
 jobs:
   fast:
@@ -271,7 +279,7 @@ jobs:
     name: Retry a tagged npm publication
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'retry'
     permissions:
       contents: read
       id-token: write
@@ -280,7 +288,7 @@ jobs:
       - name: Checkout tagged release
         uses: actions/checkout@v4
         with:
-          ref: ${{ inputs.tag }}
+          ref: ${{ inputs.tag || github.sha }}
 
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
@@ -300,6 +308,10 @@ jobs:
         env:
           RELEASE_TAG: ${{ inputs.tag }}
         run: |
+          if [ -z "$RELEASE_TAG" ]; then
+            echo "The retry mode requires the tag input."
+            exit 1
+          fi
           expected_tag="v$(node -p "require('./package.json').version")"
           if [ "$RELEASE_TAG" != "$expected_tag" ]; then
             echo "Release tag '$RELEASE_TAG' does not match package version '$expected_tag'."
@@ -311,3 +323,89 @@ jobs:
 
       - name: Publish trusted npm release
         run: npm publish --provenance --access public --tag latest
+
+  snapshot_publish:
+    name: Publish npm snapshot
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: github.event_name == 'workflow_dispatch' && inputs.mode == 'snapshot'
+    permissions:
+      contents: read
+      "id-token": write
+    environment: npm
+    steps:
+      - name: Checkout selected commit
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.9
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          registry-url: https://registry.npmjs.org
+
+      - name: Upgrade npm for trusted publishing
+        run: npm install --global npm@11.5.1
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify selected commit
+        run: test "$(git rev-parse HEAD)" = "$GITHUB_SHA"
+
+      - name: Record current latest
+        id: before
+        run: echo "latest=$(npm view astrograph@latest version)" >> "$GITHUB_OUTPUT"
+
+      - name: Build one immutable snapshot artifact
+        id: artifact
+        run: >-
+          pnpm release:artifact
+          --output-dir "$RUNNER_TEMP/astrograph-snapshot"
+          --run-id "$GITHUB_RUN_ID"
+          --sha "$GITHUB_SHA"
+
+      - name: Smoke exact snapshot artifact
+        run: >-
+          node --import=tsx ./src/scripts/smoke-package-bin.ts
+          --prebuilt
+          --tarball "${{ steps.artifact.outputs.tarball_path }}"
+          --expected-version "${{ steps.artifact.outputs.package_version }}"
+
+      - name: Publish exact snapshot artifact
+        run: >-
+          npm publish "${{ steps.artifact.outputs.tarball_path }}"
+          --provenance
+          --access public
+          --tag snapshot
+
+      - name: Verify registry publication
+        env:
+          EXPECTED_DIGEST: ${{ steps.artifact.outputs.sha256 }}
+          EXPECTED_LATEST: ${{ steps.before.outputs.latest }}
+          EXPECTED_VERSION: ${{ steps.artifact.outputs.package_version }}
+        run: |
+          snapshot_version="$(npm view astrograph@snapshot version)"
+          latest_version="$(npm view astrograph@latest version)"
+          test "$snapshot_version" = "$EXPECTED_VERSION"
+          test "$latest_version" = "$EXPECTED_LATEST"
+          tarball_url="$(npm view "astrograph@$EXPECTED_VERSION" dist.tarball)"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/astrograph-readback.tgz" "$tarball_url"
+          actual_digest="$(sha256sum "$RUNNER_TEMP/astrograph-readback.tgz" | cut -d ' ' -f 1)"
+          test "$actual_digest" = "$EXPECTED_DIGEST"
+
+      - name: Record snapshot result
+        run: |
+          {
+            echo "## Astrograph npm snapshot"
+            echo
+            echo "Commit: \`$GITHUB_SHA\`"
+            echo "Version: \`${{ steps.artifact.outputs.package_version }}\`"
+            echo "SHA-256: \`${{ steps.artifact.outputs.sha256 }}\`"
+            echo "Dist-tag: \`snapshot\`"
+          } >> "$GITHUB_STEP_SUMMARY"
