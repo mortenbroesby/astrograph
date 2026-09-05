@@ -34,7 +34,12 @@ function write(socket: Socket, message: ReturnType<typeof daemonFailure> | {
   socket.write(encodeDaemonMessage(message));
 }
 
-function attachSocket(socket: Socket, state: DaemonState, options: DaemonServerOptions): void {
+function attachSocket(
+  socket: Socket,
+  state: DaemonState,
+  options: DaemonServerOptions,
+  lifecycle: { shuttingDown: boolean },
+): void {
   let buffered = "";
   socket.setEncoding("utf8");
   socket.on("data", (chunk: string) => {
@@ -69,9 +74,17 @@ function attachSocket(socket: Socket, state: DaemonState, options: DaemonServerO
           write(socket, daemonFailure("command_failed", "Daemon shutdown is unavailable", request.id));
           continue;
         }
+        const shouldShutdown = !lifecycle.shuttingDown;
+        lifecycle.shuttingDown = true;
         write(socket, { protocolVersion: 1, id: request.id, ok: true, data: { shuttingDown: true } });
         socket.end();
-        queueMicrotask(() => void Promise.resolve(options.onShutdown!()).catch(() => undefined));
+        if (shouldShutdown) {
+          queueMicrotask(() => void Promise.resolve(options.onShutdown!()).catch(() => undefined));
+        }
+        continue;
+      }
+      if (lifecycle.shuttingDown) {
+        write(socket, daemonFailure("command_failed", "Daemon handoff is in progress", request.id));
         continue;
       }
       void options.dispatch(request.command, request.input).then((data) => {
@@ -113,7 +126,8 @@ export async function startDaemonServer(options: DaemonServerOptions): Promise<D
   if (!claim.state.endpoint.startsWith("\\\\.\\pipe\\")) {
     await rm(claim.state.endpoint, { force: true }).catch(() => undefined);
   }
-  const server = createServer((socket) => attachSocket(socket, claim.state, options));
+  const lifecycle = { shuttingDown: false };
+  const server = createServer((socket) => attachSocket(socket, claim.state, options, lifecycle));
   try {
     await listen(server, claim.state.endpoint);
     const state = await markDaemonReady(claim);

@@ -5,12 +5,16 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  claimDaemonHandoff,
   claimDaemonRuntime,
   clearStaleDaemonRuntime,
   getDaemonRuntimeSummary,
   markDaemonReady,
+  readDaemonHandoff,
   readDaemonRuntime,
+  releaseDaemonHandoff,
   releaseDaemonRuntime,
+  resolveDaemonHandoffPath,
   resolveDaemonStatePath,
 } from "../src/daemon-runtime.ts";
 
@@ -29,6 +33,44 @@ afterEach(async () => {
 });
 
 describe("daemon runtime", () => {
+  it("allows one live handoff owner and recovers only a demonstrably dead owner", async () => {
+    const runtimeDir = await createRuntimeDir();
+    const first = await claimDaemonHandoff({
+      runtimeDir,
+      ownerId: "a".repeat(16),
+      targetVersion: "next-version",
+    });
+    expect(first.kind).toBe("claimed");
+    if (first.kind !== "claimed") throw new Error("expected handoff claim");
+
+    await expect(claimDaemonHandoff({
+      runtimeDir,
+      ownerId: "b".repeat(16),
+    })).resolves.toMatchObject({ kind: "occupied", state: { ownerId: "a".repeat(16) } });
+    await releaseDaemonHandoff(first);
+    await expect(readDaemonHandoff({ runtimeDir })).resolves.toBeNull();
+
+    const abandoned = await claimDaemonHandoff({
+      runtimeDir,
+      pid: 42,
+      ownerId: "c".repeat(16),
+    });
+    expect(abandoned.kind).toBe("claimed");
+    await expect(claimDaemonHandoff({
+      runtimeDir,
+      ownerId: "d".repeat(16),
+      isProcessAlive: () => false,
+    })).resolves.toMatchObject({ kind: "claimed", state: { ownerId: "d".repeat(16) } });
+  });
+
+  it("fails closed on a malformed handoff record", async () => {
+    const runtimeDir = await createRuntimeDir();
+    const statePath = resolveDaemonHandoffPath(runtimeDir);
+    await writeFile(statePath, "not-json", { mode: 0o600 });
+
+    await expect(claimDaemonHandoff({ runtimeDir })).resolves.toEqual({ kind: "invalid", statePath });
+  });
+
   it("claims one private runtime, marks readiness, and releases only its own record", async () => {
     const runtimeDir = await createRuntimeDir();
     const first = await claimDaemonRuntime({ runtimeDir, token: "a".repeat(32) });

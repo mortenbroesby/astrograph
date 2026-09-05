@@ -1,4 +1,4 @@
-import { execaSync, type SyncOptions } from "execa";
+import { execa, execaSync, type Options, type SyncOptions } from "execa";
 
 /**
  * Runs a script-support command with explicit, testable execa semantics.
@@ -11,4 +11,12 @@ export function runProcess<OptionsType extends SyncOptions>(
   options?: OptionsType,
 ) {
   return execaSync(command, args, options);
+}
+
+export function runProcessAsync<OptionsType extends Options>(
+  command: string,
+  args: readonly string[] = [],
+  options?: OptionsType,
+) {
+  return execa(command, args, options);
 }

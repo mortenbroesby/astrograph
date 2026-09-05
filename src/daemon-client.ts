@@ -12,12 +12,22 @@ import {
   encodeDaemonMessage,
   type DaemonResponse,
 } from "./daemon-protocol.ts";
-import { clearStaleDaemonRuntime, getDaemonRuntimeSummary, readDaemonRuntime, type DaemonState } from "./daemon-runtime.ts";
+import {
+  claimDaemonHandoff,
+  clearStaleDaemonRuntime,
+  getDaemonRuntimeSummary,
+  readDaemonHandoff,
+  readDaemonRuntime,
+  releaseDaemonHandoff,
+  type DaemonHandoffState,
+  type DaemonState,
+} from "./daemon-runtime.ts";
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
 const DEFAULT_DAEMON_REQUEST_TIMEOUT_MS = 10_000;
 const DAEMON_START_TIMEOUT_MS = 5_000;
 const DAEMON_START_RETRY_MS = 50;
+export const DAEMON_HANDOFF_TIMEOUT_MS = 16_000;
 
 const clientModulePath = fileURLToPath(import.meta.url);
 const clientModuleDir = path.dirname(clientModulePath);
@@ -37,6 +47,12 @@ function startDaemonProcess(runtimeDir?: string) {
   return child;
 }
 
+function isCompatibleReady(state: DaemonState | null): state is DaemonState {
+  return state?.status === "ready"
+    && state.version === ASTROGRAPH_PACKAGE_VERSION
+    && state.protocolVersion === 1;
+}
+
 async function waitForDaemonRelease(state: DaemonState, runtimeDir?: string): Promise<void> {
   const deadline = Date.now() + DAEMON_START_TIMEOUT_MS;
   while (Date.now() < deadline) {
@@ -49,7 +65,7 @@ async function waitForDaemonRelease(state: DaemonState, runtimeDir?: string): Pr
   throw new Error(`Astrograph daemon ${state.version} did not stop before the compatible runtime started`);
 }
 
-export async function reconcileLocalDaemon(options: { runtimeDir?: string } = {}): Promise<void> {
+async function reconcileLocalDaemonUnlocked(options: { runtimeDir?: string } = {}): Promise<void> {
   const existing = await readDaemonRuntime(options);
   const summary = await getDaemonRuntimeSummary(options);
   if (!existing) {
@@ -63,7 +79,7 @@ export async function reconcileLocalDaemon(options: { runtimeDir?: string } = {}
     return;
   }
   try {
-    await requestDaemon(existing, "__shutdown", {});
+    await requestDaemon(existing, "__shutdown", {}, { timeoutMs: DAEMON_START_TIMEOUT_MS });
   } catch {
     throw new Error(
       `Astrograph daemon ${existing.version} is incompatible with ${ASTROGRAPH_PACKAGE_VERSION}; close the older Astrograph client once, then retry.`,
@@ -72,7 +88,54 @@ export async function reconcileLocalDaemon(options: { runtimeDir?: string } = {}
   await waitForDaemonRelease(existing, options.runtimeDir);
 }
 
-export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): Promise<DaemonState> {
+async function waitForHandoff(
+  handoff: DaemonHandoffState,
+  options: { runtimeDir?: string },
+  requireReadyDaemon: boolean,
+): Promise<DaemonState | null> {
+  const deadline = Date.now() + DAEMON_HANDOFF_TIMEOUT_MS;
+  while (Date.now() < deadline) {
+    const current = await readDaemonHandoff(options);
+    if (!current || current.ownerId !== handoff.ownerId) {
+      const state = await readDaemonRuntime(options);
+      if (requireReadyDaemon ? isCompatibleReady(state) : (!state || state.version === ASTROGRAPH_PACKAGE_VERSION)) {
+        return state;
+      }
+      throw new Error(
+        `Astrograph daemon handoff to ${ASTROGRAPH_PACKAGE_VERSION} finished without a compatible ready runtime`,
+      );
+    }
+    await delay(DAEMON_START_RETRY_MS);
+  }
+  throw new Error(
+    `Astrograph daemon handoff to ${handoff.targetVersion} exceeded the ${DAEMON_HANDOFF_TIMEOUT_MS / 1_000}-second startup deadline`,
+  );
+}
+
+export async function reconcileLocalDaemon(options: { runtimeDir?: string } = {}): Promise<void> {
+  const existing = await readDaemonRuntime(options);
+  const summary = await getDaemonRuntimeSummary(options);
+  if (!existing || summary.status === "stale" || existing.version === ASTROGRAPH_PACKAGE_VERSION) {
+    await reconcileLocalDaemonUnlocked(options);
+    return;
+  }
+
+  const handoff = await claimDaemonHandoff(options);
+  if (handoff.kind === "invalid") {
+    throw new Error("Astrograph daemon handoff state is invalid; remove it only after confirming no runtime update is active");
+  }
+  if (handoff.kind === "occupied") {
+    await waitForHandoff(handoff.state, options, false);
+    return;
+  }
+  try {
+    await reconcileLocalDaemonUnlocked(options);
+  } finally {
+    await releaseDaemonHandoff(handoff);
+  }
+}
+
+async function ensureLocalDaemonUnlocked(options: { runtimeDir?: string } = {}): Promise<DaemonState> {
   const existing = await readDaemonRuntime(options);
   const existingSummary = await getDaemonRuntimeSummary(options);
   if (existingSummary.status !== "stale"
@@ -82,7 +145,7 @@ export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): 
     return existing;
   }
   if (existing && existingSummary.status !== "stale" && existing.version !== ASTROGRAPH_PACKAGE_VERSION) {
-    await reconcileLocalDaemon(options);
+    await reconcileLocalDaemonUnlocked(options);
   }
 
   const staleToken = existingSummary.status === "stale" ? existing?.token : null;
@@ -112,6 +175,28 @@ export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): 
   throw new Error("Timed out starting the local Astrograph daemon; run diagnostics after confirming no stale daemon record remains");
 }
 
+export async function ensureLocalDaemon(options: { runtimeDir?: string } = {}): Promise<DaemonState> {
+  const existing = await readDaemonRuntime(options);
+  if (isCompatibleReady(existing) && (await getDaemonRuntimeSummary(options)).status !== "stale") {
+    return existing;
+  }
+
+  const handoff = await claimDaemonHandoff(options);
+  if (handoff.kind === "invalid") {
+    throw new Error("Astrograph daemon handoff state is invalid; remove it only after confirming no runtime update is active");
+  }
+  if (handoff.kind === "occupied") {
+    const state = await waitForHandoff(handoff.state, options, true);
+    if (!state) throw new Error("Astrograph daemon handoff completed without a runtime");
+    return state;
+  }
+  try {
+    return await ensureLocalDaemonUnlocked(options);
+  } finally {
+    await releaseDaemonHandoff(handoff);
+  }
+}
+
 export async function executeDaemonCommand(
   command: string,
   input: Record<string, unknown>,
@@ -121,7 +206,9 @@ export async function executeDaemonCommand(
   try {
     return await requestDaemon(state, command, input, { timeoutMs: options.timeoutMs });
   } catch (error) {
-    if ((await getDaemonRuntimeSummary(options)).status !== "stale") {
+    const current = await readDaemonRuntime(options);
+    const changed = !current || current.pid !== state.pid || current.startedAt !== state.startedAt;
+    if (!changed && (await getDaemonRuntimeSummary(options)).status !== "stale") {
       throw error;
     }
     return requestDaemon(await ensureLocalDaemon(options), command, input, { timeoutMs: options.timeoutMs });

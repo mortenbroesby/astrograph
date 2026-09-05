@@ -200,7 +200,7 @@ Compatibility-sensitive files include `.github/workflows/ci.yml`,
 `package.json`, `src/scripts/smoke-package-bin.ts`, `src/scripts/install.ts`,
 `src/doctor.ts`, `src/daemon-client.ts`, `src/daemon-runtime.ts`,
 `src/daemon-server.ts`, and their focused tests. Required verification includes
-`pnpm build`, `pnpm type-check`, `pnpm lint`, `pnpm test:package-bin:prebuilt`,
+`pnpm build`, `pnpm type-lint`, `pnpm test:package-bin:prebuilt`,
 focused installer/release/daemon tests, `openspec validate
 establish-p0-published-runtime --strict`, and live npm plus Codex/Copilot MCP
 readback for the published snapshot.

@@ -1,7 +1,6 @@
 #!/usr/bin/env node
 
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
 import { access, chmod, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import {
@@ -25,7 +24,7 @@ import { diagnostics, indexFolder } from "../index.ts";
 import { resetAstrographStorage } from "../storage.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
-import { runProcess } from "../lib/process.ts";
+import { runProcess, runProcessAsync } from "../lib/process.ts";
 import { normalizeGenericPackageVersion } from "../version.ts";
 import { getDaemonRuntimeSummary, readDaemonRuntime } from "../daemon-runtime.ts";
 import { redactSecretLikeString } from "../privacy.ts";
@@ -1877,7 +1876,12 @@ async function verifyMcpStartup(
   args: string[],
   clientVersion: string,
 ): Promise<void> {
-  const child = spawn(command, args, { stdio: ["pipe", "pipe", "pipe"] });
+  const child = runProcessAsync(command, args, {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+    reject: false,
+  });
   await new Promise<void>((resolve, reject) => {
     let settled = false;
     let timer: ReturnType<typeof setTimeout>;

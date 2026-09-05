@@ -6,7 +6,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DAEMON_PROTOCOL_VERSION, encodeDaemonMessage } from "../src/daemon-protocol.ts";
-import { reconcileLocalDaemon, requestDaemon } from "../src/daemon-client.ts";
+import { DAEMON_HANDOFF_TIMEOUT_MS, reconcileLocalDaemon, requestDaemon } from "../src/daemon-client.ts";
 import { readDaemonRuntime } from "../src/daemon-runtime.ts";
 import { startDaemonServer, type DaemonServer } from "../src/daemon-server.ts";
 
@@ -82,16 +82,24 @@ describe("daemon server", () => {
 
   it("replaces only an authenticated incompatible daemon", async () => {
     const runtimeDir = await createRuntimeDir();
+    let shutdowns = 0;
     let server: DaemonServer;
     server = await startDaemonServer({
       runtimeDir,
       version: "previous-version",
       dispatch: async () => ({}),
-      onShutdown: () => server.close(),
+      onShutdown: () => {
+        shutdowns += 1;
+        return server.close();
+      },
     });
     servers.push(server);
 
-    await expect(reconcileLocalDaemon({ runtimeDir })).resolves.toBeUndefined();
+    await expect(Promise.all([
+      reconcileLocalDaemon({ runtimeDir }),
+      reconcileLocalDaemon({ runtimeDir }),
+    ])).resolves.toEqual([undefined, undefined]);
+    expect(shutdowns).toBe(1);
     await expect(readDaemonRuntime({ runtimeDir })).resolves.toBeNull();
   });
 
@@ -104,7 +112,9 @@ describe("daemon server", () => {
     });
     servers.push(server);
 
+    const startedAt = Date.now();
     await expect(reconcileLocalDaemon({ runtimeDir })).rejects.toThrow("close the older Astrograph client once");
+    expect(Date.now() - startedAt).toBeLessThan(DAEMON_HANDOFF_TIMEOUT_MS);
     await expect(readDaemonRuntime({ runtimeDir })).resolves.toMatchObject({ pid: process.pid });
   });
 });

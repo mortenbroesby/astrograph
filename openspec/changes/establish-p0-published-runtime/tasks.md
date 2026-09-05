@@ -57,26 +57,26 @@
 
 ## 4. Multi-client daemon reliability
 
-- [ ] 4.1 Key daemon tenants by real canonical worktree root and preserve
+- [x] 4.1 Key daemon tenants by real canonical worktree root and preserve
   distinct index metadata for worktree aliases; verify
   `tests/daemon-tenants.test.ts` covers aliases, two worktrees, and a separate
   repository.
-- [ ] 4.2 Implement one lock-coordinated incompatible-version handoff with one
+- [x] 4.2 Implement one lock-coordinated incompatible-version handoff with one
   bounded retry in `src/daemon-client.ts`, `src/daemon-runtime.ts`, and
   `src/daemon-server.ts`; verify simultaneous bridges do not enter competing
   restart loops and failures finish within the documented deadline.
-- [ ] 4.3 Add a reliability harness that exercises Codex- and Copilot-shaped
+- [x] 4.3 Add a reliability harness that exercises Codex- and Copilot-shaped
   stdio bridges concurrently across two worktrees and another repository;
   verify tool listing, project status, hydration, search, version agreement,
   and index isolation over repeated starts.
-- [ ] 4.4 Record the daemon keep/remove decision from reliability evidence; if
+- [x] 4.4 Record the daemon keep/remove decision from reliability evidence; if
   the daemon passes, verify the shared-process efficiency assertion, otherwise
   replace shared ownership behind the unchanged bridge contract and rerun the
   same harness.
 
 ## 5. Publish and device proof
 
-- [ ] 5.1 Run `pnpm build`, `pnpm type-check`, `pnpm lint`, focused tests,
+- [x] 5.1 Run `pnpm build`, `pnpm type-lint`, focused tests,
   `pnpm test:package-bin:prebuilt`, `pnpm check:version-bump`, and strict
   OpenSpec validation for this change; record every result.
 - [ ] 5.2 Commit and push the implementation, require exact-head CI success,
