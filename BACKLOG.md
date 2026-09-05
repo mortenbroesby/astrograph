@@ -11,7 +11,7 @@ until selected here.
 
 ## P0 - Trustworthy published runtime
 
-**Status:** Selected and in progress
+**Status:** Achieved
 
 Make the package we dogfood through Codex and Copilot the same package artifact
 we verify and publish, and make it resolve reliably across repositories and Git
@@ -61,9 +61,39 @@ Exit criteria:
 
 OpenSpec change: `establish-p0-published-runtime`
 
-## P1
+## P1 - Fast, safe development feedback loop
 
-To be prioritized after P0 is reliable.
+**Status:** Next
+
+Make the shortest trustworthy local verification path match required CI, reuse
+the same packed artifact throughout a run, and keep slow or resource-sensitive
+checks explicit instead of letting them distort ordinary feedback.
+
+Execution order:
+
+1. Define one authoritative fast local verification command that matches the
+   required PR gate.
+2. Separate fast deterministic checks from expensive package, reliability, and
+   performance checks, while retaining exact-artifact coverage before publish.
+3. Pack once and reuse the same tarball across local smoke, CI, and publication.
+4. Remove or repair stale assertions and unchecked benchmark error paths that
+   create false failures.
+5. Keep worktree and generated-state hygiene automatic without pruning or
+   mutating unrelated active worktrees.
+6. Keep verification output concise and structured enough to identify the
+   failing layer immediately.
+
+Exit criteria:
+
+- One documented command gives a fast, reproducible pre-push signal matching
+  required CI.
+- Expensive gates run only where their risk warrants them and report their
+  actual elapsed time and resource assumptions.
+- Package verification and publication consume one digest-identified artifact.
+- Known stale tests and benchmark error handling no longer obscure real
+  regressions.
+
+OpenSpec change: create after `establish-p0-published-runtime` is archived.
 
 ## P2
 

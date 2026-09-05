@@ -1,9 +1,11 @@
+# device-runtime Specification
+
 ## Purpose
 
 Provide one dependable device-owned Astrograph runtime for Codex and Copilot
 across repositories and linked worktrees without cwd or toolchain drift.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Client registration is independent of repository context
 

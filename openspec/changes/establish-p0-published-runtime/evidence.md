@@ -28,9 +28,10 @@ same-version ownership.
 
 ## Device evidence
 
-Final `.233` exact-head CI, npm publication/digest, managed installation, and
-live Codex/Copilot retrieval readback remain pending and are recorded here when
-tasks 5.2 through 5.4 complete.
+The published `.235` snapshot has exact-head CI, npm digest, managed
+installation, and live Codex/Copilot retrieval evidence below. The final
+documentation/diagnostic closeout head remains to be published and read back
+before task 5.2 and archive.
 
 The first snapshot dispatch, run `33977601352`, stopped safely before npm
 publication. Its exact artifact version
@@ -115,9 +116,41 @@ A laptop-wide read-only scan also found clean tracked project overrides pinned
 to `astrograph@0.3.1-alpha.74` in Playground and two of its worktrees, plus an
 untracked Playground Copilot CLI override. These explain the separately
 reported live daemon/client mismatch: project configuration takes precedence
-over the new global registration. They remain device-migration work for the
-published snapshot rather than being silently edited in unrelated
-worktrees.
+over the new global registration. They were handled as explicit device
+migration rather than hidden runtime behavior: the migration removed those
+Astrograph-only overrides from Playground main and both active feature
+worktrees. Cleanup commits `6e514b5`,
+`75d0daf`, and `74ee535` were pushed to their respective branches; generated
+backup copies were moved to the recoverable temporary folder
+`/private/tmp/astrograph-stale-registration-backups-20260905T1846`.
+
+Exact-head Required CI run `33984260764` passed commit `dd8b8dd` in 1 minute 31
+seconds. Snapshot run `33984371913` passed in 1 minute 38 seconds and published
+`0.13.0-alpha.235.snapshot.33984371913.gdd8b8dde084b`. Registry readback matched
+SHA-256 `f718a9d2c894d521a1fa992888f8f190be0becfd5c4ef28bfea55575d9f00e8f`.
+Separate global installer runs activated that exact version for Codex and
+Copilot CLI with the same absolute Node and package entrypoint; `previous.json`
+retained `.233` as rollback.
+
+Two simultaneous real MCP clients named for Codex and Copilot each exposed all
+14 tools and reported the exact `.235` snapshot. In 12.97 seconds they hydrated
+or reused, then searched, the task worktree, the primary Astrograph checkout,
+and the separate Agent Distro repository. All searches returned matches and
+all three canonical roots used distinct global storage directories. A later
+hydration under severe device load crossed the MCP SDK's default 60-second
+caller timeout while the server continued safely; this validates retaining the
+bounded 240-second internal `index_folder` budget without changing the fast
+10-second ordinary-query budget.
+
+The live proof also exposed that setup diagnostics still inspected the retired
+unversioned daemon path. The shared daemon namespace resolver now accepts the
+managed runtime's selected immutable version. With a live `.235` bridge,
+`doctor --json` reported daemon PID `1793`, the versioned endpoint under
+`runtime/daemons/ed6eba9698e8c818`, the exact snapshot version, and
+`compatible: true`. The focused runtime tests passed 8/8; the exact installer
+contract passed with a verification-only 20-second test ceiling after exceeding
+the old 5-second ceiling by 74 ms under machine load. Build, type lint, strict
+OpenSpec validation, and `git diff --check` passed after the fix.
 
 ## Pre-publication gates
 

@@ -73,7 +73,7 @@
   the daemon passes, verify the shared-process efficiency assertion, otherwise
   replace shared ownership behind the unchanged bridge contract and rerun the
   same harness.
-- [ ] 4.5 Give `index_folder` a bounded long-running IPC budget without slowing
+- [x] 4.5 Give `index_folder` a bounded long-running IPC budget without slowing
   failure feedback for ordinary queries; verify the timeout policy and the live
   published-runtime hydration path.
 
@@ -85,10 +85,10 @@
 - [ ] 5.2 Commit and push the implementation, require exact-head CI success,
   then dispatch the snapshot publish for that SHA; verify npm reports the
   expected `snapshot` version and the published tarball digest matches CI.
-- [ ] 5.3 Install `astrograph@snapshot` into this computer's managed runtime and
+- [x] 5.3 Install `astrograph@snapshot` into this computer's managed runtime and
   activate both clients; verify post-install readback contains registry origin,
   immutable version, absolute runtime paths, and a retained rollback target.
-- [ ] 5.4 Reload Codex and Copilot if their live MCP catalogs require it, then
+- [x] 5.4 Reload Codex and Copilot if their live MCP catalogs require it, then
   run tool-list, project status, hydration, and search from multiple
   repositories and two worktrees; record versions, roots, daemon identity,
   index separation, failures, and recovery timings in the change evidence.

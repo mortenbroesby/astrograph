@@ -1,9 +1,11 @@
+# package-channels Specification
+
 ## Purpose
 
 Define immutable npm snapshot and production channels whose published package
 is the exact artifact that passed package and MCP verification.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Snapshot publication uses one verified immutable artifact
 

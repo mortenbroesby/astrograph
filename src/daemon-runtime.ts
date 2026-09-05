@@ -81,8 +81,15 @@ function defaultIsProcessAlive(pid: number): boolean {
 export function resolveRuntimeDirectory(runtimeDir?: string): string {
   if (runtimeDir) return runtimeDir;
   if (process.env[RUNTIME_DIRECTORY_ENV]) return process.env[RUNTIME_DIRECTORY_ENV];
-  const versionNamespace = createHash("sha256").update(ASTROGRAPH_PACKAGE_VERSION).digest("hex").slice(0, 16);
-  return path.join(path.dirname(resolveGlobalConfigPath()), "runtime", "daemons", versionNamespace);
+  return resolveVersionedRuntimeDirectory(
+    path.join(path.dirname(resolveGlobalConfigPath()), "runtime"),
+    ASTROGRAPH_PACKAGE_VERSION,
+  );
+}
+
+export function resolveVersionedRuntimeDirectory(runtimeRoot: string, version: string): string {
+  const versionNamespace = createHash("sha256").update(version).digest("hex").slice(0, 16);
+  return path.join(runtimeRoot, "daemons", versionNamespace);
 }
 
 export function resolveDaemonStatePath(runtimeDir?: string): string {

@@ -74,7 +74,11 @@ import {
 } from "../src/scripts/install.ts";
 import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { SQLITE_INDEX_BACKEND } from "../src/sqlite-backend.ts";
-import { claimDaemonRuntime, markDaemonReady } from "../src/daemon-runtime.ts";
+import {
+  claimDaemonRuntime,
+  markDaemonReady,
+  resolveVersionedRuntimeDirectory,
+} from "../src/daemon-runtime.ts";
 
 const tempDirs: string[] = [];
 
@@ -1429,7 +1433,11 @@ describe("ai-context-engine contract", () => {
       entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.232.snapshot.8.gfedcba987654", "node_modules", "astrograph", "dist", "astrograph.js"),
       installedAt: "2026-09-05T11:00:00.000Z",
     })}\n`);
-    const daemonClaim = await claimDaemonRuntime({ runtimeDir: paths.root, pid: process.pid, version });
+    const daemonClaim = await claimDaemonRuntime({
+      runtimeDir: resolveVersionedRuntimeDirectory(paths.root, version),
+      pid: process.pid,
+      version,
+    });
     if (daemonClaim.kind !== "claimed") throw new Error("Expected a test daemon claim");
     await markDaemonReady(daemonClaim);
     await setupGlobalForCodex({ environment, repoRoot, runtime });

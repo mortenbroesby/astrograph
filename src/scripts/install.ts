@@ -26,7 +26,11 @@ import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
 import { runProcess, runProcessAsync } from "../lib/process.ts";
 import { normalizeGenericPackageVersion } from "../version.ts";
-import { getDaemonRuntimeSummary, readDaemonRuntime } from "../daemon-runtime.ts";
+import {
+  getDaemonRuntimeSummary,
+  readDaemonRuntime,
+  resolveVersionedRuntimeDirectory,
+} from "../daemon-runtime.ts";
 import { redactSecretLikeString } from "../privacy.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
@@ -712,10 +716,13 @@ export async function getGlobalInstallationDiagnostics(
   const copilotConfigPath = resolveGlobalCopilotCliConfigPath(environment);
   const codexConfigPath = resolveGlobalCodexConfigPath(environment);
   const runtimePaths = resolveManagedRuntimePaths(environment);
-  const [managedRuntime, daemonState, daemonSummary, copilotContents, codexContents] = await Promise.all([
-    inspectManagedRuntime(environment),
-    readDaemonRuntime({ runtimeDir: runtimePaths.root }),
-    getDaemonRuntimeSummary({ runtimeDir: runtimePaths.root }),
+  const managedRuntime = await inspectManagedRuntime(environment);
+  const daemonRuntimeDir = managedRuntime.selectedVersion
+    ? resolveVersionedRuntimeDirectory(runtimePaths.root, managedRuntime.selectedVersion)
+    : runtimePaths.root;
+  const [daemonState, daemonSummary, copilotContents, codexContents] = await Promise.all([
+    readDaemonRuntime({ runtimeDir: daemonRuntimeDir }),
+    getDaemonRuntimeSummary({ runtimeDir: daemonRuntimeDir }),
     readOptionalConfig(copilotConfigPath),
     readOptionalConfig(codexConfigPath),
   ]);
