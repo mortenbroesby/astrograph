@@ -36,6 +36,16 @@ snapshot artifact at `0.13.0-alpha.231.snapshot.999999991.g2a0f9870dd85` was
 packed once and the same tarball passed the complete package smoke, including
 global Codex and Copilot registration, MCP behavior, and repository isolation.
 
+Exact-head Required CI run `33978622643` passed commit `de0b7c1` in 1 minute
+22 seconds. Snapshot run `33978725786` then packed, smoked, and published
+`0.13.0-alpha.231.snapshot.33978725786.gde0b7c150a30`. Its immediate dist-tag
+readback received a transient npm 404, so the workflow reported failure after
+publication. Independent registry readback returned the expected version, and
+the downloaded tarball SHA-256
+`10798f392d53700c9040997a8095db78845887b61ab5672c1f81f7e1c6e23ed6`
+matched CI exactly. Registry verification now retries the expected dist-tag for
+up to 10 seconds before failing; `latest` remained `0.12.1-alpha.223`.
+
 ## Pre-publication gates
 
 Required task 5.1 evidence recorded 2026-09-05:

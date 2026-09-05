@@ -291,7 +291,11 @@ jobs:
           EXPECTED_DIGEST: ${{ steps.artifact.outputs.sha256 }}
           EXPECTED_VERSION: ${{ steps.release.outputs.target_version }}
         run: |
-          latest_version="$(npm view astrograph@latest version)"
+          for attempt in 1 2 3 4 5; do
+            latest_version="$(npm view astrograph@latest version 2>/dev/null || true)"
+            test "$latest_version" = "$EXPECTED_VERSION" && break
+            sleep 2
+          done
           test "$latest_version" = "$EXPECTED_VERSION"
           tarball_url="$(npm view "astrograph@$EXPECTED_VERSION" dist.tarball)"
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/astrograph-release-readback.tgz" "$tarball_url"
@@ -381,7 +385,11 @@ jobs:
           EXPECTED_DIGEST: ${{ steps.artifact.outputs.sha256 }}
           EXPECTED_VERSION: ${{ steps.artifact.outputs.package_version }}
         run: |
-          latest_version="$(npm view astrograph@latest version)"
+          for attempt in 1 2 3 4 5; do
+            latest_version="$(npm view astrograph@latest version 2>/dev/null || true)"
+            test "$latest_version" = "$EXPECTED_VERSION" && break
+            sleep 2
+          done
           test "$latest_version" = "$EXPECTED_VERSION"
           tarball_url="$(npm view "astrograph@$EXPECTED_VERSION" dist.tarball)"
           curl --fail --location --retry 3 --output "$RUNNER_TEMP/astrograph-release-readback.tgz" "$tarball_url"
@@ -454,7 +462,11 @@ jobs:
           EXPECTED_LATEST: ${{ steps.before.outputs.latest }}
           EXPECTED_VERSION: ${{ steps.artifact.outputs.package_version }}
         run: |
-          snapshot_version="$(npm view astrograph@snapshot version)"
+          for attempt in 1 2 3 4 5; do
+            snapshot_version="$(npm view astrograph@snapshot version 2>/dev/null || true)"
+            test "$snapshot_version" = "$EXPECTED_VERSION" && break
+            sleep 2
+          done
           latest_version="$(npm view astrograph@latest version)"
           test "$snapshot_version" = "$EXPECTED_VERSION"
           test "$latest_version" = "$EXPECTED_LATEST"
