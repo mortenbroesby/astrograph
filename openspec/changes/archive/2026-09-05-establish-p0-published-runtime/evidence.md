@@ -152,6 +152,12 @@ contract passed with a verification-only 20-second test ceiling after exceeding
 the old 5-second ceiling by 74 ms under machine load. Build, type lint, strict
 OpenSpec validation, and `git diff --check` passed after the fix.
 
+Final implementation closeout commit `c563e2cdda42ca4a00f951686bb3e2c0907ced61`
+passed exact-head Required CI run `33987014328`. That run rebuilt and
+smoke-tested the package boundary after the versioned-daemon diagnostic fix;
+the previously published and installed `.235` snapshot remains the end-to-end
+registry/device proof for the same P0 runtime behavior.
+
 ## Pre-publication gates
 
 Required task 5.1 evidence recorded 2026-09-05:

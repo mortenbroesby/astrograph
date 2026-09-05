@@ -82,7 +82,7 @@
 - [x] 5.1 Run `pnpm build`, `pnpm type-lint`, focused tests,
   `pnpm test:package-bin:prebuilt`, `pnpm check:version-bump`, and strict
   OpenSpec validation for this change; record every result.
-- [ ] 5.2 Commit and push the implementation, require exact-head CI success,
+- [x] 5.2 Commit and push the implementation, require exact-head CI success,
   then dispatch the snapshot publish for that SHA; verify npm reports the
   expected `snapshot` version and the published tarball digest matches CI.
 - [x] 5.3 Install `astrograph@snapshot` into this computer's managed runtime and
@@ -92,6 +92,6 @@
   run tool-list, project status, hydration, and search from multiple
   repositories and two worktrees; record versions, roots, daemon identity,
   index separation, failures, and recovery timings in the change evidence.
-- [ ] 5.5 Update `BACKLOG.md` with the achieved P0 state and next unresolved
+- [x] 5.5 Update `BACKLOG.md` with the achieved P0 state and next unresolved
   priority, sync the repository-workflow spec, and archive this change only
   after all exit criteria and remote/package readbacks pass.
