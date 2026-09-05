@@ -1,4 +1,4 @@
-import { randomBytes } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import { mkdir, open, readFile, rename, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
@@ -9,6 +9,7 @@ import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
 const RUNTIME_DIRECTORY_ENV = "ASTROGRAPH_RUNTIME_DIR";
 const DAEMON_STATE_FILENAME = "daemon.json";
+const DAEMON_HANDOFF_FILENAME = "handoff.json";
 
 export type DaemonStateStatus = "starting" | "ready";
 
@@ -38,9 +39,31 @@ export interface DaemonRuntimeOptions {
   isProcessAlive?: (pid: number) => boolean;
 }
 
+export interface DaemonHandoffOptions {
+  runtimeDir?: string;
+  pid?: number;
+  now?: () => Date;
+  targetVersion?: string;
+  ownerId?: string;
+  isProcessAlive?: (pid: number) => boolean;
+}
+
 export type DaemonClaim =
   | { kind: "claimed"; state: DaemonState; statePath: string }
   | { kind: "occupied"; state: DaemonState; statePath: string }
+  | { kind: "invalid"; statePath: string };
+
+export interface DaemonHandoffState {
+  schemaVersion: 1;
+  pid: number;
+  startedAt: string;
+  targetVersion: string;
+  ownerId: string;
+}
+
+export type DaemonHandoffClaim =
+  | { kind: "claimed"; state: DaemonHandoffState; statePath: string }
+  | { kind: "occupied"; state: DaemonHandoffState; statePath: string }
   | { kind: "invalid"; statePath: string };
 
 function defaultIsProcessAlive(pid: number): boolean {
@@ -56,18 +79,31 @@ function defaultIsProcessAlive(pid: number): boolean {
 }
 
 export function resolveRuntimeDirectory(runtimeDir?: string): string {
-  return runtimeDir
-    ?? process.env[RUNTIME_DIRECTORY_ENV]
-    ?? path.join(path.dirname(resolveGlobalConfigPath()), "runtime");
+  if (runtimeDir) return runtimeDir;
+  if (process.env[RUNTIME_DIRECTORY_ENV]) return process.env[RUNTIME_DIRECTORY_ENV];
+  return resolveVersionedRuntimeDirectory(
+    path.join(path.dirname(resolveGlobalConfigPath()), "runtime"),
+    ASTROGRAPH_PACKAGE_VERSION,
+  );
+}
+
+export function resolveVersionedRuntimeDirectory(runtimeRoot: string, version: string): string {
+  const versionNamespace = createHash("sha256").update(version).digest("hex").slice(0, 16);
+  return path.join(runtimeRoot, "daemons", versionNamespace);
 }
 
 export function resolveDaemonStatePath(runtimeDir?: string): string {
   return path.join(resolveRuntimeDirectory(runtimeDir), DAEMON_STATE_FILENAME);
 }
 
+export function resolveDaemonHandoffPath(runtimeDir?: string): string {
+  return path.join(resolveRuntimeDirectory(runtimeDir), DAEMON_HANDOFF_FILENAME);
+}
+
 function defaultEndpoint(runtimeDir: string): string {
   if (process.platform === "win32") {
-    return `\\\\.\\pipe\\astrograph-${process.getuid?.() ?? "user"}`;
+    const namespace = createHash("sha256").update(runtimeDir).digest("hex").slice(0, 16);
+    return `\\\\.\\pipe\\astrograph-${process.getuid?.() ?? "user"}-${namespace}`;
   }
   return path.join(runtimeDir, "daemon.sock");
 }
@@ -116,6 +152,68 @@ async function readState(statePath: string): Promise<DaemonState | null> {
   } catch {
     return null;
   }
+}
+
+function isDaemonHandoffState(value: unknown): value is DaemonHandoffState {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const state = value as Partial<DaemonHandoffState>;
+  return state.schemaVersion === 1
+    && typeof state.pid === "number"
+    && Number.isSafeInteger(state.pid)
+    && state.pid > 0
+    && typeof state.startedAt === "string"
+    && typeof state.targetVersion === "string"
+    && state.targetVersion.length > 0
+    && typeof state.ownerId === "string"
+    && state.ownerId.length >= 16;
+}
+
+export async function readDaemonHandoff(options: { runtimeDir?: string } = {}): Promise<DaemonHandoffState | null> {
+  const contents = await readFile(resolveDaemonHandoffPath(options.runtimeDir), "utf8").catch(() => null);
+  if (contents === null) return null;
+  try {
+    const parsed: unknown = JSON.parse(contents);
+    return isDaemonHandoffState(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export async function claimDaemonHandoff(options: DaemonHandoffOptions = {}): Promise<DaemonHandoffClaim> {
+  const runtimeDir = resolveRuntimeDirectory(options.runtimeDir);
+  const statePath = resolveDaemonHandoffPath(runtimeDir);
+  const state: DaemonHandoffState = {
+    schemaVersion: 1,
+    pid: options.pid ?? process.pid,
+    startedAt: (options.now ?? (() => new Date()))().toISOString(),
+    targetVersion: options.targetVersion ?? ASTROGRAPH_PACKAGE_VERSION,
+    ownerId: options.ownerId ?? randomBytes(16).toString("hex"),
+  };
+  await mkdir(runtimeDir, { recursive: true, mode: 0o700 });
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      const handle = await open(statePath, "wx", 0o600);
+      await handle.writeFile(`${JSON.stringify(state)}\n`);
+      await handle.close();
+      return { kind: "claimed", state, statePath };
+    } catch (error) {
+      if (!error || typeof error !== "object" || !("code" in error) || error.code !== "EEXIST") throw error;
+    }
+    const existing = await readDaemonHandoff({ runtimeDir });
+    if (!existing) return { kind: "invalid", statePath };
+    if ((options.isProcessAlive ?? defaultIsProcessAlive)(existing.pid)) {
+      return { kind: "occupied", state: existing, statePath };
+    }
+    await rm(statePath, { force: true });
+  }
+  return { kind: "invalid", statePath };
+}
+
+export async function releaseDaemonHandoff(
+  claim: Extract<DaemonHandoffClaim, { kind: "claimed" }>,
+): Promise<void> {
+  const existing = await readDaemonHandoff({ runtimeDir: path.dirname(claim.statePath) });
+  if (existing?.ownerId === claim.state.ownerId) await rm(claim.statePath, { force: true });
 }
 
 async function writeState(statePath: string, state: DaemonState): Promise<void> {

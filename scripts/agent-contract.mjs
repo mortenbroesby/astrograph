@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
@@ -41,17 +41,8 @@ function commandFor(event, matcher) {
 }
 
 function checkContract() {
-  const packageVersion = JSON.parse(readFileSync(path.join(repoRoot, "package.json"), "utf8")).version;
-  const config = readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
-  const managed = config.match(/# BEGIN ASTROGRAPH[\s\S]*?# END ASTROGRAPH/);
-  const expectedInvocation = `"astrograph@${packageVersion}"`;
-
-  if (!managed) throw new Error("Missing managed Astrograph MCP block.");
-  if (!managed[0].includes(expectedInvocation)) {
-    throw new Error(`Tracked Codex MCP version must match package.json (${packageVersion}).`);
-  }
-  if (/^\[mcp_servers\.(?!astrograph\])/m.test(config.replace(managed[0], ""))) {
-    throw new Error("Repo-local Codex config must contain only the managed Astrograph MCP server.");
+  if (existsSync(path.join(repoRoot, ".codex", "config.toml"))) {
+    throw new Error("Repo-local Codex MCP config shadows the device runtime and must not be tracked.");
   }
   for (const [event, matcher] of [["SessionStart", "startup|resume|clear|compact"], ["PreToolUse", "^Bash$"], ["PreToolUse", "^apply_patch$"], ["PostToolUse", "^apply_patch$"]]) {
     if (!commandFor(event, matcher)) throw new Error(`Missing ${event} hook for ${matcher}.`);

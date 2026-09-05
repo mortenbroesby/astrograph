@@ -1,11 +1,4 @@
-# repository-workflow Specification
-
-## Purpose
-
-Define the repository-wide agreement for proposing, implementing, tracking,
-and archiving durable Astrograph changes with OpenSpec.
-
-## Requirements
+## MODIFIED Requirements
 
 ### Requirement: Durable changes use lightweight priority and selected OpenSpec contracts
 
@@ -43,9 +36,9 @@ design, task tracker, and completed-change history for selected durable work.
 
 ### Requirement: Migrated work preserves its state without setting priority
 
-The repository SHALL preserve every legacy in-progress, planned, deferred,
-parked, completed, and superseded work record without treating their presence
-or names as the live priority queue.
+The repository SHALL preserve legacy in-progress, planned, deferred, parked,
+completed, and superseded work records without treating their presence or
+names as the live priority queue.
 
 #### Scenario: Agent inspects migrated work
 
@@ -54,6 +47,8 @@ or names as the live priority queue.
   historical planning context
 - **AND** only selection and ordering in `BACKLOG.md` authorizes current focus
 - **AND** completed records remain available under the OpenSpec archive
+
+## ADDED Requirements
 
 ### Requirement: Repository changes use isolated linked worktrees
 
@@ -104,14 +99,3 @@ and a Definition of Done before reporting a task delivered.
 - **AND** external mutations are read back from their target systems
 - **AND** required documentation, specifications, backlog state, versioning,
   diagnostics, and rollback guidance are current
-
-### Requirement: Legacy specs are read-only source material
-
-The repository SHALL retain incompatible legacy specs as read-only brownfield
-context and SHALL NOT update them as current requirements or task trackers.
-
-#### Scenario: Legacy context is relevant to a new change
-
-- **WHEN** a legacy document describes the area being changed
-- **THEN** the agent may use it during exploration
-- **AND** captures only the verified behavior being changed in an OpenSpec delta

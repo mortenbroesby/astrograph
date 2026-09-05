@@ -15,6 +15,9 @@ export interface AstrographVersionBumpAssessment {
 const ASTROGRAPH_VERSION_PATTERN =
   /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)-alpha\.(?<increment>\d+)$/;
 
+const ASTROGRAPH_SNAPSHOT_VERSION_PATTERN =
+  /^(?<base>\d+\.\d+\.\d+-alpha\.\d+)\.snapshot\.[1-9]\d*\.g[0-9a-f]{12}$/;
+
 const LEGACY_VERSION_PATTERN =
   /^(?<major>\d+)\.(?<minor>\d+)\.(?<patch>\d+)$/;
 
@@ -55,6 +58,11 @@ export function parseAstrographVersion(version: string): AstrographVersionParts 
     patch: parseIntegerComponent(match.groups.patch, "patch"),
     increment: parseIntegerComponent(match.groups.increment, "increment"),
   };
+}
+
+export function parseRuntimeAstrographVersion(version: string): AstrographVersionParts {
+  const snapshotBase = version.match(ASTROGRAPH_SNAPSHOT_VERSION_PATTERN)?.groups?.base;
+  return parseAstrographVersion(snapshotBase ?? version);
 }
 
 function parseLegacyAstrographVersion(version: string): AstrographVersionParts | null {
@@ -218,4 +226,4 @@ function readPackageVersion() {
 
 export const ASTROGRAPH_PACKAGE_VERSION = readPackageVersion();
 export const ASTROGRAPH_VERSION_PARTS =
-  parseAstrographVersion(ASTROGRAPH_PACKAGE_VERSION);
+  parseRuntimeAstrographVersion(ASTROGRAPH_PACKAGE_VERSION);

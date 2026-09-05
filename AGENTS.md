@@ -2,8 +2,9 @@
 
 ## OpenSpec Workflow
 
-OpenSpec is the only live specification and work-tracking system in this
-repository. Current behavioral truth lives in `openspec/specs/`; proposed and
+`BACKLOG.md` is the only live source of priority and execution order. OpenSpec
+is the detailed specification and work-tracking system for selected durable
+work. Current behavioral truth lives in `openspec/specs/`; proposed and
 in-progress work lives in `openspec/changes/`; completed changes live in
 `openspec/changes/archive/`.
 
@@ -17,11 +18,11 @@ Use the generated OpenSpec skills for durable changes:
 5. Sync or archive with `$openspec-sync-specs` and
    `$openspec-archive-change` after verification.
 
-Run `openspec list` to see all open work. Migrated names beginning with
-`active-` were in progress; names beginning with `backlog-` were planned,
-parked, or deferred. Do not implement a backlog change until the user selects
-it. `specs-legacy/` is read-only source material from the retired workflow; do
-not add or update work there.
+Read `BACKLOG.md` before selecting work, then run `openspec list` for the
+detailed state of selected changes. Migrated names beginning with `active-` or
+`backlog-` are historical planning context and do not set current priority by
+their presence. `specs-legacy/` is read-only source material from the retired
+workflow; do not add or update work there.
 
 For general agent tasks, use the repo-local commands in `.agents/commands/` and shared guidance in `.agents/references/`.
 For any repository change, follow the always-on Ponytail policy in
@@ -29,9 +30,26 @@ For any repository change, follow the always-on Ponytail policy in
 
 Keep durable policy in `.agents/rules/`.
 
+Before starting or completing work, apply the repository Definitions of Ready
+and Done in `.agents/rules/task-lifecycle.md`. Do not call partial, uncommitted,
+unpushed, unverified, or unread-back work done.
+
 Keep user-facing setup docs in `README.md`, the docs compendium in `docs/README.md`,
 release workflow in `docs/reference/release.md`, and performance workflow in
 `docs/guides/performance.md`.
+
+## Worktree Workflow
+
+Perform repository-changing work in an isolated linked Git worktree. Before
+editing, reuse the worktree already assigned to the task or load
+`.skills/using-git-worktrees/SKILL.md` and create one from the intended base.
+Use the repository's ignored `.worktrees/` directory by default.
+
+The primary checkout is for read-only inspection and worktree administration,
+not implementation. Exceptions require an explicit reason, such as the user
+requesting the current checkout, repairing worktree metadata, or working in a
+non-Git location. State the exception before editing. Never move unrelated
+dirty changes into a new worktree.
 
 ## Release Workflow
 

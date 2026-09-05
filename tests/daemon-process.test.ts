@@ -12,6 +12,7 @@ import { getDaemonRuntimeSummary, readDaemonRuntime, resolveDaemonStatePath } fr
 
 const temporaryPaths: string[] = [];
 const daemonPids: number[] = [];
+const PROCESS_TEST_TIMEOUT_MS = 80_000;
 
 async function supportsUnixSockets(): Promise<boolean> {
   const runtimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-daemon-capability-"));
@@ -107,7 +108,7 @@ describeDaemonProcess("daemon process", () => {
     });
 
     await stopDaemon(runtimeDir);
-  });
+  }, PROCESS_TEST_TIMEOUT_MS);
 
   it("recovers from a crashed daemon record without creating a competing owner", async () => {
     const runtimeDir = await createTempPath("astrograph-daemon-runtime-");
@@ -137,7 +138,7 @@ describeDaemonProcess("daemon process", () => {
     expect(recovered?.pid).not.toBe(crashed.pid);
 
     await stopDaemon(runtimeDir);
-  });
+  }, PROCESS_TEST_TIMEOUT_MS);
 
   it("replaces a reachable incompatible daemon before the next command", async () => {
     const runtimeDir = await createTempPath("astrograph-daemon-runtime-");
@@ -149,16 +150,17 @@ describeDaemonProcess("daemon process", () => {
     if (!previous) throw new Error("expected a running daemon");
     await writeFile(resolveDaemonStatePath(runtimeDir), JSON.stringify({ ...previous, version: "previous-version" }));
 
-    await expect(executeDaemonCommand("search_symbols", {
+    const results = await Promise.all(Array.from({ length: 6 }, () => executeDaemonCommand("search_symbols", {
       repoRoot,
       query: "replacementProof",
-    }, { runtimeDir })).resolves.toMatchObject({
-      items: [expect.objectContaining({ name: "replacementProof" })],
-    });
-    await expect(readDaemonRuntime({ runtimeDir })).resolves.toMatchObject({
-      version: expect.not.stringMatching("previous-version"),
-    });
+    }, { runtimeDir })));
+    for (const result of results) {
+      expect(result).toMatchObject({ items: [expect.objectContaining({ name: "replacementProof" })] });
+    }
+    const replacement = await readDaemonRuntime({ runtimeDir });
+    expect(replacement?.pid).not.toBe(previous.pid);
+    expect(replacement?.version).not.toBe("previous-version");
 
     await stopDaemon(runtimeDir);
-  });
+  }, PROCESS_TEST_TIMEOUT_MS);
 });

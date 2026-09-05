@@ -47,9 +47,14 @@ lockfile changes publish when the commit signals warrant it.
 4. Confirm the package is public and publishes to the `latest` dist-tag.
 
 If a tag was created but its npm publication failed, correct the trusted
-publisher binding first, then dispatch **CI** with that exact tag. Do not create
-another tag or change the version: the retry checks out the immutable tagged
-commit and republishes only that package version.
+publisher binding first, then dispatch **CI** with `mode=retry` and that exact
+tag. Do not create another tag or change the version: the retry checks out the
+immutable tagged commit, rebuilds one tarball, verifies it, and publishes that
+same file only when the version is still absent from npm.
+
+```bash
+gh workflow run ci.yml --ref <tag> -f mode=retry -f tag=<tag>
+```
 
 ## Local Plan and Apply
 
@@ -74,25 +79,60 @@ pnpm release:apply
 2. The path-scoped `CI` workflow completes Fast checks on the merge candidate.
 3. After Fast succeeds on `main`, one release job evaluates the merged SHA,
    package version, matching tag, npm registry, and `no-release` exception.
-4. When accepted, that same job pushes `v<package.version>` and publishes the
-   checked-out merge candidate to npm with provenance. It never writes a
-   version commit to `main`, creates a release PR, or starts another workflow.
+4. When accepted, that job stages the exact version, builds once, packs once,
+   records SHA-256 metadata, and runs the package/MCP smoke against that file.
+5. Only after the smoke passes does the job push `v<package.version>`, publish
+   the same tarball under `latest`, download it from npm, and compare its digest.
 
-The release decision performs no install, build, lint, or test steps. It relies
-on the successful CI gate and only decides whether the already-versioned merge
-may be tagged and published. npm's normal package lifecycle may still build the
-tarball during `npm publish`.
+The release decision itself only decides whether the already-versioned merge
+may be tagged and published. The release job owns the exact artifact proof; npm
+does not rebuild from the checkout during publication.
 
 This replaces the prior release-agent plus tag-publisher pair with one
 post-Fast `ubuntu-latest` job for qualifying `main` merges. It adds no broad
 trigger, runner, matrix, schedule, or hosted Windows usage.
 
-`pnpm release:plan` remains the local, non-mutating inspection command. The
-manual **CI** workflow is retry-only: dispatch it with an existing matching tag
-after a failed npm publication; it checks out that tag and cannot create or
-bump a version. It deliberately shares `ci.yml` with the automatic publisher,
-because npm permits only one trusted-publisher workflow per package. The retry
-does not rerun the Fast test suite; the tagged candidate has already passed it.
+`pnpm release:plan` remains the local, non-mutating inspection command. Manual
+**CI** dispatch supports `mode=retry` for an existing tag and `mode=snapshot`
+for registry-based dogfooding. Both deliberately share `ci.yml` with the
+automatic publisher because npm permits only one trusted-publisher workflow per
+package.
+
+## Snapshot Dogfooding
+
+Dispatch one snapshot from the branch or tag containing the exact commit:
+
+```bash
+gh workflow run ci.yml --ref <branch-or-tag> -f mode=snapshot
+```
+
+The dispatch-only Ubuntu job is serialized and capped at 20 minutes. It derives
+an immutable version such as
+`0.13.0-alpha.225.snapshot.<run>.g<sha>`, builds and packs once in an isolated
+staging directory, then smokes and publishes that same tarball under
+`snapshot`. It records the selected commit, immutable version, and SHA-256 in
+the run summary. The job also verifies that `latest` did not move and that the
+tarball downloaded from npm has the recorded digest.
+
+`snapshot` is for device dogfooding; `latest` remains the separately guarded
+production channel. Never promote a snapshot by moving `latest` to it.
+
+Inspect the published channels and immutable snapshot:
+
+```bash
+npm view astrograph dist-tags
+version="$(npm view astrograph@snapshot version)"
+npm view "astrograph@$version" version dist.tarball
+```
+
+For a local no-publish rehearsal, use a unique numeric run id and the exact
+commit SHA, then pass the emitted tarball path and version to the same smoke
+script used by CI:
+
+```bash
+pnpm release:artifact --output-dir /tmp/astrograph-snapshot --run-id 12345 --sha <commit-sha>
+node --import=tsx ./src/scripts/smoke-package-bin.ts --prebuilt --tarball <tarball-path> --expected-version <snapshot-version>
+```
 
 ## Manual Release Flow
 
@@ -113,15 +153,15 @@ pnpm test:package-bin
 4. Merge the verified pull request. The guarded CI job tags and publishes that
    exact merge candidate; do not create a competing manual tag.
 
-The merge publisher installs locked dependencies and runs `npm publish` with
-provenance. It deliberately does not repeat build, lint, or test gates;
-package lifecycle preparation remains npm's responsibility for the tarball.
+The merge publisher installs locked dependencies, creates one versioned
+artifact, smokes it, and passes its exact path to `npm publish` with provenance.
+The registry download must match the recorded SHA-256 before the job is green.
 
 The retry publisher accepts only a tag matching the checked-out package version
 (`v<package.json version>`). New releases must therefore pass through a
-guarded merge of the pull request that owns the version bump. A manual **CI**
-dispatch is a retry only: select the existing matching tag when a prior
-publication did not reach npm; it never creates or bumps a version.
+guarded merge of the pull request that owns the version bump. A manual retry
+selects `mode=retry` and the existing matching tag when a prior publication did
+not reach npm; it never creates or bumps a version.
 
 After publish, verify:
 
@@ -129,3 +169,15 @@ After publish, verify:
 npm view astrograph dist-tags
 npm view astrograph@latest version
 ```
+
+## Rollback
+
+- Bad snapshot: do not delete a published version or touch `latest`. Dispatch
+  `mode=snapshot` from the last known-good commit; its new immutable version
+  becomes the `snapshot` target. Devices pinned to an older immutable version
+  remain unchanged.
+- Failed production publication after the tag exists: fix the trusted
+  publisher, then dispatch `mode=retry` with that tag. The retry fails closed if
+  npm already contains the version.
+- Bad production release: ship a reviewed patch through the normal `main`
+  release path. Do not unpublish or manually move `latest` backward.

@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from "vitest";
 
-import { fetchLatestNpmVersion } from "../src/lib/npm-registry.ts";
+import {
+  fetchLatestNpmVersion,
+  npmPackageVersionExists,
+} from "../src/lib/npm-registry.ts";
 
 describe("fetchLatestNpmVersion", () => {
   it("reads the latest dist-tag from the default registry", async () => {
@@ -80,5 +83,32 @@ describe("fetchLatestNpmVersion", () => {
 
     await expect(fetchLatestNpmVersion({ packageName: "astrograph", timeoutMs: 1, fetchImplementation }))
       .rejects.toThrow("npm registry lookup timed out after 1ms");
+  });
+});
+
+describe("npmPackageVersionExists", () => {
+  it("distinguishes an existing exact version from a missing one", async () => {
+    await expect(npmPackageVersionExists({
+      packageName: "astrograph",
+      version: "1.2.3-snapshot.4.gabcdef0",
+      timeoutMs: 20,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(new Response("{}", { status: 200 })),
+    })).resolves.toBe(true);
+
+    await expect(npmPackageVersionExists({
+      packageName: "astrograph",
+      version: "1.2.3-snapshot.5.gabcdef0",
+      timeoutMs: 20,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(new Response("not found", { status: 404 })),
+    })).resolves.toBe(false);
+  });
+
+  it("fails closed when registry state cannot be established", async () => {
+    await expect(npmPackageVersionExists({
+      packageName: "astrograph",
+      version: "1.2.3-snapshot.4.gabcdef0",
+      timeoutMs: 20,
+      fetchImplementation: vi.fn<typeof fetch>().mockResolvedValue(new Response("unavailable", { status: 503 })),
+    })).rejects.toThrow("npm registry returned HTTP 503");
   });
 });

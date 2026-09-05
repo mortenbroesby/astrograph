@@ -1,9 +1,8 @@
 #!/usr/bin/env node
 
 import { randomUUID } from "node:crypto";
-import { spawn } from "node:child_process";
 import { existsSync } from "node:fs";
-import { chmod, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { access, chmod, mkdir, readFile, realpath, rename, rm, writeFile } from "node:fs/promises";
 import {
   isCancel,
   intro,
@@ -25,11 +24,19 @@ import { diagnostics, indexFolder } from "../index.ts";
 import { resetAstrographStorage } from "../storage.ts";
 import { MCP_TOOL_DEFINITIONS } from "../mcp-contract.ts";
 import { resolveGlobalCacheRoot, resolveGlobalConfigPath } from "../config.ts";
-import { runProcess } from "../lib/process.ts";
+import { runProcess, runProcessAsync } from "../lib/process.ts";
+import { normalizeGenericPackageVersion } from "../version.ts";
+import {
+  getDaemonRuntimeSummary,
+  readDaemonRuntime,
+  resolveVersionedRuntimeDirectory,
+} from "../daemon-runtime.ts";
+import { redactSecretLikeString } from "../privacy.ts";
 import type { StoragePathEnvironment } from "../types.ts";
 
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
+const MANAGED_RUNTIME_MARKER = "# ASTROGRAPH MANAGED RUNTIME v1";
 const AGENTS_POLICY_BEGIN = "<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->";
 const AGENTS_POLICY_END = "<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->";
 const GIT_HOOK_BEGIN = "# BEGIN ASTROGRAPH GIT REFRESH";
@@ -50,6 +57,7 @@ const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
+const MCP_STARTUP_VERIFICATION_TIMEOUT_MS = 32_000;
 const ISSUE_URL = "https://github.com/mortenbroesby/astrograph/issues/new";
 const TROUBLESHOOTING_URL = "https://github.com/mortenbroesby/astrograph/blob/main/docs/guides/troubleshooting.md";
 
@@ -60,6 +68,7 @@ type InstalledObject = Record<string, unknown>;
 interface ParsedArgs {
   ides: RequestedIde[] | null;
   scope: "global" | "repository" | null;
+  channel: ManagedRuntimeChannel;
   repo: string;
   dryRun: boolean;
   json: boolean;
@@ -110,6 +119,7 @@ interface SetupResult {
 interface CliOptions {
   ide?: string;
   scope?: string;
+  channel?: string;
   dryRun?: boolean;
   json?: boolean;
   repo?: string;
@@ -169,6 +179,10 @@ export interface GitHookResult {
 export interface SetupGlobalClientOptions {
   dryRun?: boolean;
   reset?: boolean;
+  channel?: ManagedRuntimeChannel;
+  /** Internal coordination so multiple client adapters use one selected runtime. */
+  runtime?: ManagedRuntimeDescriptor;
+  repoRoot?: string;
   environment?: StoragePathEnvironment;
   nodeVersion?: string;
   executableAvailable?: boolean;
@@ -180,13 +194,76 @@ export interface GlobalSetupResult {
   engineConfigPath: string;
   configPreview: string;
   engineConfigPreview: string;
+  runtime: ManagedRuntimeDescriptor;
   backups: string[];
+}
+
+export type ManagedRuntimeChannel = "latest" | "snapshot";
+
+export interface ManagedRuntimeDescriptor {
+  schemaVersion: 1;
+  packageName: "astrograph";
+  packageVersion: string;
+  packageSpecifier: string;
+  channel: ManagedRuntimeChannel;
+  registry: string;
+  nodePath: string;
+  entrypoint: string;
+  installedAt: string;
+}
+
+interface ManagedRuntimeRunnerOptions {
+  cwd: string;
+}
+
+type ManagedRuntimeRunner = (
+  command: string,
+  args: readonly string[],
+  options: ManagedRuntimeRunnerOptions,
+) => { stdout: string };
+
+export interface InstallManagedRuntimeOptions {
+  channel: ManagedRuntimeChannel;
+  dryRun?: boolean;
+  environment?: StoragePathEnvironment;
+  nodePath?: string;
+  now?: () => Date;
+  runner?: ManagedRuntimeRunner;
+  verify?: (descriptor: ManagedRuntimeDescriptor) => Promise<void>;
+}
+
+export interface ManagedRuntimePaths {
+  activeDescriptorPath: string;
+  previousDescriptorPath: string;
+  root: string;
+  versionsRoot: string;
 }
 
 export interface GlobalInstallationDiagnostics {
   schemaVersion: 1;
   package: { name: string; version: string };
   runtime: { nodeVersion: string; minimumNodeVersion: string; supported: boolean };
+  managedRuntime: {
+    descriptorPath: string;
+    previousDescriptorPath: string;
+    status: "ready" | "missing" | "broken";
+    selectedVersion: string | null;
+    effectiveVersion: string | null;
+    packageSpecifier: string | null;
+    channel: ManagedRuntimeChannel | null;
+    registry: string | null;
+    nodePath: string | null;
+    entrypoint: string | null;
+    previousVersion: string | null;
+    error: string | null;
+  };
+  daemon: {
+    status: "running" | "starting" | "stale" | "unavailable";
+    version: string | null;
+    pid: number | null;
+    endpoint: string | null;
+    compatible: boolean | null;
+  };
   defaultGlobalIde: "copilot-cli";
   storage: {
     location: "global" | "repo-local" | "not-configured";
@@ -194,7 +271,17 @@ export interface GlobalInstallationDiagnostics {
     cacheRoot: string;
     cacheRootExists: boolean;
   };
-  clients: Array<{ ide: "copilot-cli" | "codex"; configPath: string; configured: boolean }>;
+  clients: Array<{
+    ide: "copilot-cli" | "codex";
+    configPath: string;
+    configured: boolean;
+    commandPath: string | null;
+    entrypointPath: string | null;
+    configuredVersion: string | null;
+    effectiveVersion: string | null;
+    healthy: boolean;
+  }>;
+  reloadGuidance: string;
   nextStep: string;
 }
 
@@ -295,6 +382,7 @@ type SetupClient = "codex" | "copilot" | "copilot-cli";
 export interface SetupReadinessResult {
   schemaVersion: 1;
   repoRoot: string;
+  canonicalProjectRoot: string;
   local: {
     clients: Array<{ ide: SetupClient; configPath: string; configured: boolean }>;
     agentGuidance: Array<{ path: string; configured: boolean }>;
@@ -401,13 +489,24 @@ export function formatSetupReadiness(result: SetupReadinessResult): string {
   return [
     "Astrograph Setup Doctor",
     `Repository: ${result.repoRoot}`,
+    `Canonical project root: ${result.canonicalProjectRoot}`,
     `Local clients: ${configuredClients.length ? configuredClients.join(", ") : "none"}`,
     `Global clients: ${result.global.clients.filter((client) => client.configured).map((client) => client.ide).join(", ") || "none"}`,
+    `Managed runtime: ${result.global.managedRuntime.status} (selected ${result.global.managedRuntime.selectedVersion ?? "none"}; effective ${result.global.managedRuntime.effectiveVersion ?? "none"})`,
+    `Runtime descriptor: ${result.global.managedRuntime.descriptorPath}`,
+    `Runtime Node: ${result.global.managedRuntime.nodePath ?? "none"}`,
+    `Runtime entrypoint: ${result.global.managedRuntime.entrypoint ?? "none"}`,
+    ...result.global.clients.filter((client) => client.configured).map((client) =>
+      `${client.ide}: ${client.healthy ? "healthy" : "unhealthy"}; command ${client.commandPath ?? "unknown"}; entrypoint ${client.entrypointPath ?? "unknown"}; configured ${client.configuredVersion ?? "unknown"}; effective ${client.effectiveVersion ?? "unknown"}`,
+    ),
+    `Daemon: ${result.global.daemon.status} (version ${result.global.daemon.version ?? "none"}; pid ${result.global.daemon.pid ?? "none"})`,
+    `Daemon endpoint: ${result.global.daemon.endpoint ?? "none"}`,
     `Agent guidance: ${result.local.agentGuidance.some((entry) => entry.configured) ? "configured" : "not configured"}`,
     `Git refresh hooks: ${managedHooks.length ? managedHooks.join(", ") : "not configured"}`,
     `Index: ${result.index.status} (${result.index.indexedFiles} files; retrieval ${result.index.retrievalHealth ?? "unavailable"})`,
     `Ready: ${result.ready ? "yes" : "not yet"}`,
     ...(result.actions.length ? ["", "Next:", ...result.actions.map((action) => `  • ${action}`)] : []),
+    `Reload: ${result.global.reloadGuidance}`,
     "",
     "For machine-readable output, add `--json`.",
   ].join("\n");
@@ -424,7 +523,7 @@ function usage(): void {
   process.stderr.write(
     [
       "Usage:",
-      "  npx astrograph install [--verbose] [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--repo /abs/repo] [--dry-run] [--json]",
+      "  npx astrograph install [--verbose] [--yes] [--agents] [--git-hooks] [--ide codex|copilot|copilot-cli|all|codex,copilot,...] [--scope global|repository] [--channel latest|snapshot] [--repo /abs/repo] [--dry-run] [--json]",
       "",
       "Defaults:",
       "  - repo: current git worktree, or current directory",
@@ -435,7 +534,8 @@ function usage(): void {
       "      copilot     → .github/copilot-instructions.md",
       "      copilot-cli → AGENTS.md",
       "  - optional: --git-hooks adds non-blocking post-commit, post-checkout, and post-merge index refresh hooks when those hooks are not owned by another tool",
-      "  - never changes package.json or installs dependencies",
+      "  - repository setup never changes package.json or installs dependencies",
+      "  - global setup installs and verifies astrograph@latest by default; use --channel snapshot to dogfood a snapshot",
       "",
       "Examples:",
       "  npx astrograph install",
@@ -454,6 +554,154 @@ function nodeVersionSupported(nodeVersion: string): boolean {
   return (major === 20 && minor >= 19) || major > 22 || (major === 22 && minor >= 12);
 }
 
+interface ConfiguredRuntimeInvocation {
+  commandPath: string | null;
+  entrypointPath: string | null;
+  configuredVersion: string | null;
+}
+
+function safeRegistryLocation(value: string): string | null {
+  try {
+    const registry = new URL(value);
+    if (registry.protocol !== "https:" && registry.protocol !== "http:") return null;
+    return `${registry.protocol}//${registry.host}${registry.pathname}${registry.search}${registry.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+function versionFromManagedEntrypoint(entrypoint: string | null, versionsRoot: string): string | null {
+  if (!entrypoint || !path.isAbsolute(entrypoint)) return null;
+  const relative = path.relative(versionsRoot, entrypoint);
+  if (relative.startsWith("..") || path.isAbsolute(relative)) return null;
+  const version = relative.split(path.sep)[0] ?? "";
+  return normalizeGenericPackageVersion(version) === version ? version : null;
+}
+
+function configuredCodexRuntime(contents: string, versionsRoot: string): ConfiguredRuntimeInvocation {
+  const block = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0];
+  if (!block) return { commandPath: null, entrypointPath: null, configuredVersion: null };
+  try {
+    const commandPath = JSON.parse(block.match(/^command = (.+)$/m)?.[1] ?? "null") as unknown;
+    const args = JSON.parse(block.match(/^args = (\[.*\])$/m)?.[1] ?? "[]") as unknown;
+    const entrypointPath = Array.isArray(args) && args[0] === "--no-warnings" && typeof args[1] === "string"
+      ? args[1]
+      : null;
+    const packageSpecifier = Array.isArray(args)
+      ? args.find((entry): entry is string => typeof entry === "string" && entry.startsWith(`${PACKAGE_NAME}@`))
+      : null;
+    return {
+      commandPath: typeof commandPath === "string" ? commandPath : null,
+      entrypointPath,
+      configuredVersion: versionFromManagedEntrypoint(entrypointPath, versionsRoot)
+        ?? packageSpecifier?.slice(`${PACKAGE_NAME}@`.length)
+        ?? null,
+    };
+  } catch {
+    return { commandPath: null, entrypointPath: null, configuredVersion: null };
+  }
+}
+
+function configuredCopilotRuntime(contents: string, configPath: string, versionsRoot: string): ConfiguredRuntimeInvocation {
+  try {
+    const parsed = parseJsonConfig(contents, configPath);
+    const servers = parsed.mcpServers;
+    const server = servers && typeof servers === "object" && !Array.isArray(servers)
+      ? (servers as InstalledObject)[MCP_SERVER_NAME]
+      : null;
+    if (!server || typeof server !== "object" || Array.isArray(server)) {
+      return { commandPath: null, entrypointPath: null, configuredVersion: null };
+    }
+    const commandPath = typeof (server as InstalledObject).command === "string"
+      ? (server as InstalledObject).command as string
+      : null;
+    const args = (server as InstalledObject).args;
+    const entrypointPath = Array.isArray(args) && args[0] === "--no-warnings" && typeof args[1] === "string"
+      ? args[1]
+      : null;
+    const packageSpecifier = Array.isArray(args)
+      ? args.find((entry): entry is string => typeof entry === "string" && entry.startsWith(`${PACKAGE_NAME}@`))
+      : null;
+    return {
+      commandPath,
+      entrypointPath,
+      configuredVersion: versionFromManagedEntrypoint(entrypointPath, versionsRoot)
+        ?? packageSpecifier?.slice(`${PACKAGE_NAME}@`.length)
+        ?? null,
+    };
+  } catch {
+    return { commandPath: null, entrypointPath: null, configuredVersion: null };
+  }
+}
+
+async function inspectManagedRuntime(
+  environment: StoragePathEnvironment,
+): Promise<GlobalInstallationDiagnostics["managedRuntime"]> {
+  const paths = resolveManagedRuntimePaths(environment);
+  let descriptor: ManagedRuntimeDescriptor | null = null;
+  let previous: ManagedRuntimeDescriptor | null = null;
+  try {
+    [descriptor, previous] = await Promise.all([
+      readManagedRuntimeDescriptor(paths.activeDescriptorPath),
+      readManagedRuntimeDescriptor(paths.previousDescriptorPath),
+    ]);
+    if (!descriptor) {
+      return {
+        descriptorPath: redactSecretLikeString(paths.activeDescriptorPath),
+        previousDescriptorPath: redactSecretLikeString(paths.previousDescriptorPath),
+        status: "missing",
+        selectedVersion: null,
+        effectiveVersion: null,
+        packageSpecifier: null,
+        channel: null,
+        registry: null,
+        nodePath: null,
+        entrypoint: null,
+        previousVersion: previous?.packageVersion ?? null,
+        error: null,
+      };
+    }
+    await Promise.all([access(descriptor.nodePath), access(descriptor.entrypoint)]);
+    const effectiveVersion = runProcess(descriptor.nodePath, [descriptor.entrypoint, "--version"], {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: MCP_STARTUP_VERIFICATION_TIMEOUT_MS,
+    }).stdout.trim();
+    if (effectiveVersion !== descriptor.packageVersion) {
+      throw new Error(`Expected ${descriptor.packageVersion}; runtime reported ${effectiveVersion || "no version"}`);
+    }
+    return {
+      descriptorPath: redactSecretLikeString(paths.activeDescriptorPath),
+      previousDescriptorPath: redactSecretLikeString(paths.previousDescriptorPath),
+      status: "ready",
+      selectedVersion: descriptor.packageVersion,
+      effectiveVersion,
+      packageSpecifier: descriptor.packageSpecifier,
+      channel: descriptor.channel,
+      registry: safeRegistryLocation(descriptor.registry),
+      nodePath: redactSecretLikeString(descriptor.nodePath),
+      entrypoint: redactSecretLikeString(descriptor.entrypoint),
+      previousVersion: previous?.packageVersion ?? null,
+      error: null,
+    };
+  } catch (error) {
+    return {
+      descriptorPath: redactSecretLikeString(paths.activeDescriptorPath),
+      previousDescriptorPath: redactSecretLikeString(paths.previousDescriptorPath),
+      status: "broken",
+      selectedVersion: descriptor?.packageVersion ?? null,
+      effectiveVersion: null,
+      packageSpecifier: descriptor?.packageSpecifier ?? null,
+      channel: descriptor?.channel ?? null,
+      registry: descriptor ? safeRegistryLocation(descriptor.registry) : null,
+      nodePath: descriptor ? redactSecretLikeString(descriptor.nodePath) : null,
+      entrypoint: descriptor ? redactSecretLikeString(descriptor.entrypoint) : null,
+      previousVersion: previous?.packageVersion ?? null,
+      error: redactSecretLikeString(error instanceof Error ? error.message : String(error)),
+    };
+  }
+}
+
 export async function getGlobalInstallationDiagnostics(
   environment: StoragePathEnvironment = {},
 ): Promise<GlobalInstallationDiagnostics> {
@@ -467,6 +715,40 @@ export async function getGlobalInstallationDiagnostics(
   }
   const copilotConfigPath = resolveGlobalCopilotCliConfigPath(environment);
   const codexConfigPath = resolveGlobalCodexConfigPath(environment);
+  const runtimePaths = resolveManagedRuntimePaths(environment);
+  const managedRuntime = await inspectManagedRuntime(environment);
+  const daemonRuntimeDir = managedRuntime.selectedVersion
+    ? resolveVersionedRuntimeDirectory(runtimePaths.root, managedRuntime.selectedVersion)
+    : runtimePaths.root;
+  const [daemonState, daemonSummary, copilotContents, codexContents] = await Promise.all([
+    readDaemonRuntime({ runtimeDir: daemonRuntimeDir }),
+    getDaemonRuntimeSummary({ runtimeDir: daemonRuntimeDir }),
+    readOptionalConfig(copilotConfigPath),
+    readOptionalConfig(codexConfigPath),
+  ]);
+  const configuredRuntime = {
+    "copilot-cli": configuredCopilotRuntime(copilotContents, copilotConfigPath, runtimePaths.versionsRoot),
+    codex: configuredCodexRuntime(codexContents, runtimePaths.versionsRoot),
+  };
+  const clients = (["copilot-cli", "codex"] as const).map((ide) => {
+    const configured = ide === "codex"
+      ? codexContents.includes(MARKER_BEGIN)
+      : Boolean(configuredRuntime[ide].commandPath);
+    const invocation = configuredRuntime[ide];
+    const selectsActiveRuntime = invocation.commandPath === managedRuntime.nodePath
+      && invocation.entrypointPath === managedRuntime.entrypoint;
+    return {
+      ide,
+      configPath: redactSecretLikeString(ide === "codex" ? codexConfigPath : copilotConfigPath),
+      configured,
+      commandPath: invocation.commandPath ? redactSecretLikeString(invocation.commandPath) : null,
+      entrypointPath: invocation.entrypointPath ? redactSecretLikeString(invocation.entrypointPath) : null,
+      configuredVersion: invocation.configuredVersion,
+      effectiveVersion: selectsActiveRuntime ? managedRuntime.effectiveVersion : null,
+      healthy: configured && selectsActiveRuntime && managedRuntime.status === "ready",
+    };
+  });
+  const reloadGuidance = "If Astrograph is absent from a running client's MCP catalog after the configured command is healthy, reload that client once.";
 
   return {
     schemaVersion: 1,
@@ -476,19 +758,29 @@ export async function getGlobalInstallationDiagnostics(
       minimumNodeVersion: "20.19.0",
       supported: nodeVersionSupported(process.versions.node),
     },
+    managedRuntime,
+    daemon: {
+      status: daemonSummary.status,
+      version: daemonSummary.version,
+      pid: daemonState?.pid ?? null,
+      endpoint: daemonState?.endpoint ? redactSecretLikeString(daemonState.endpoint) : null,
+      compatible: daemonSummary.version && managedRuntime.selectedVersion
+        ? daemonSummary.version === managedRuntime.selectedVersion
+        : null,
+    },
     defaultGlobalIde: DEFAULT_GLOBAL_INSTALL_IDE,
     storage: {
       location: storageLocation,
-      configPath: engineConfigPath,
-      cacheRoot,
+      configPath: redactSecretLikeString(engineConfigPath),
+      cacheRoot: redactSecretLikeString(cacheRoot),
       cacheRootExists: existsSync(cacheRoot),
     },
-    clients: [
-      { ide: "copilot-cli", configPath: copilotConfigPath, configured: await managedJsonServerExists(copilotConfigPath, "mcpServers") },
-      { ide: "codex", configPath: codexConfigPath, configured: (await readOptionalConfig(codexConfigPath)).includes(MARKER_BEGIN) },
-    ],
-    nextStep: storageLocation === "global" && await managedJsonServerExists(copilotConfigPath, "mcpServers")
-      ? "Open Copilot CLI in a repository and use Astrograph normally; run index_folder when that repository has no index."
+    clients,
+    reloadGuidance,
+    nextStep: managedRuntime.status !== "ready"
+      ? "Run astrograph repair --yes --scope global --ide copilot-cli to reinstall and verify the managed runtime."
+      : storageLocation === "global" && clients.some((client) => client.ide === "copilot-cli" && client.healthy)
+        ? "Open Copilot CLI in a repository and use Astrograph normally; run index_folder when that repository has no index."
       : "Run astrograph install --yes --scope global --ide copilot-cli to register Astrograph and enable isolated global cache storage.",
   };
 }
@@ -506,6 +798,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     return {
       ides: null,
       scope: null,
+      channel: "latest",
       repo: process.cwd(),
       dryRun: false,
       json: false,
@@ -527,6 +820,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     "--repo",
     "--ide",
     "--scope",
+    "--channel",
     "--reset",
     "--verbose",
     "--help",
@@ -566,6 +860,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     .addOption(new Option("--repo <path>", "Repository root path for setup.").default(process.cwd()))
     .addOption(new Option("--ide <ide-list>", "Comma-separated IDE list.").default(undefined))
     .addOption(new Option("--scope <scope>", "Setup scope: global or repository.").choices(["global", "repository"]))
+    .addOption(new Option("--channel <channel>", "Managed runtime channel for global setup.").choices(["latest", "snapshot"]).default("latest"))
     .addOption(new Option("--reset", "Confirm clean replacement of obsolete Astrograph setup and state."))
     .addOption(new Option("--verbose", "Show detailed npm output during guided global command installation."));
 
@@ -579,6 +874,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       return {
         ides: null,
         scope: null,
+        channel: "latest",
         repo: process.cwd(),
         dryRun: false,
         json: false,
@@ -597,6 +893,7 @@ function parseArgs(argv: string[]): ParsedArgs {
     return {
       ides: null,
       scope: null,
+      channel: "latest",
       repo: process.cwd(),
       dryRun: false,
       json: false,
@@ -617,6 +914,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       ? parseIdeSelections(options.ide)
       : null,
     scope: options.scope === "global" || options.scope === "repository" ? options.scope : null,
+    channel: options.channel === "snapshot" ? "snapshot" : "latest",
     repo: options.repo ?? process.cwd(),
     dryRun: Boolean(options.dryRun),
     json: Boolean(options.json),
@@ -632,6 +930,7 @@ function parseArgs(argv: string[]): ParsedArgs {
       hasFlag("repo") ||
       hasFlag("ide") ||
       hasFlag("scope") ||
+      hasFlag("channel") ||
       hasFlag("reset"),
     showHelp: false,
   };
@@ -970,11 +1269,12 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
   const globalPreviews = [] as GlobalSetupResult[];
   const resetIdes = new Set<"codex" | "copilot-cli">();
   verboseLine(options.verbose, `Previewing global setup for ${ides.join(", ")}…`);
+  const previewRuntime = await selectManagedRuntime({ dryRun: true });
   for (const ide of ides) {
     try {
       globalPreviews.push(ide === "codex"
-        ? await setupGlobalForCodex({ dryRun: true })
-        : await setupGlobalForCopilotCli({ dryRun: true }));
+        ? await setupGlobalForCodex({ dryRun: true, runtime: previewRuntime })
+        : await setupGlobalForCopilotCli({ dryRun: true, runtime: previewRuntime }));
     } catch (error) {
       const resetReason = resetRequirementFromError(error);
       if (!resetReason) throw error;
@@ -988,8 +1288,8 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
       }
       resetIdes.add(ide);
       globalPreviews.push(ide === "codex"
-        ? await setupGlobalForCodex({ dryRun: true, reset: true })
-        : await setupGlobalForCopilotCli({ dryRun: true, reset: true }));
+        ? await setupGlobalForCodex({ dryRun: true, reset: true, runtime: previewRuntime })
+        : await setupGlobalForCopilotCli({ dryRun: true, reset: true, runtime: previewRuntime }));
     }
   }
   process.stdout.write(`\nReview (no files changed):\n${globalPreviews.map((result) => `- ${result.configPath}\n- ${result.engineConfigPath}`).join("\n")}\n`);
@@ -1038,10 +1338,11 @@ async function runGuidedInstall(options: { verbose?: boolean; agentsPolicy?: boo
   }
   const results = [] as GlobalSetupResult[];
   verboseLine(options.verbose, `Writing global registrations for ${ides.join(", ")}…`);
+  const runtime = await selectManagedRuntime({});
   for (const ide of ides) {
     results.push(ide === "codex"
-      ? await setupGlobalForCodex({ reset: resetIdes.has(ide) })
-      : await setupGlobalForCopilotCli({ reset: resetIdes.has(ide) }));
+      ? await setupGlobalForCodex({ reset: resetIdes.has(ide), runtime })
+      : await setupGlobalForCopilotCli({ reset: resetIdes.has(ide), runtime }));
   }
   const output = results.map((result) => formatGlobalInstallation(result)).join("\n\n");
   progress.stop("Global setup ready");
@@ -1208,16 +1509,16 @@ ${toolApprovals}
 ${MARKER_END}`;
 }
 
-function globalAstrographConfigBlock(): string {
+function globalAstrographConfigBlock(runtime: ManagedRuntimeDescriptor): string {
   const enabledTools = MCP_TOOLS.map((tool) => `"${tool}"`).join(", ");
   const toolApprovals = MCP_TOOLS.map((tool) =>
     `[mcp_servers.astrograph.tools.${tool}]\napproval_mode = "approve"`,
   ).join("\n\n");
-  const invocation = resolveManagedInvocation();
-  const args = invocation.args.map((arg) => `"${arg}"`).join(", ");
+  const args = ["--no-warnings", runtime.entrypoint, "mcp"].map((arg) => JSON.stringify(arg)).join(", ");
   return `${MARKER_BEGIN}
+${MANAGED_RUNTIME_MARKER}
 [mcp_servers.astrograph]
-command = "${invocation.command}"
+command = ${JSON.stringify(runtime.nodePath)}
 args = [${args}]
 startup_timeout_sec = 90
 enabled_tools = [${enabledTools}]
@@ -1231,6 +1532,202 @@ function resolveGlobalCodexConfigPath(
 ): string {
   const homeDir = environment.homeDir ?? os.homedir;
   return path.join(homeDir(), ".codex", "config.toml");
+}
+
+export function resolveManagedRuntimePaths(
+  environment: StoragePathEnvironment = {},
+): ManagedRuntimePaths {
+  const root = path.join(path.dirname(resolveGlobalConfigPath(environment)), "runtime");
+  return {
+    activeDescriptorPath: path.join(root, "active.json"),
+    previousDescriptorPath: path.join(root, "previous.json"),
+    root,
+    versionsRoot: path.join(root, "versions"),
+  };
+}
+
+function parseManagedRuntimeDescriptor(raw: string, descriptorPath: string): ManagedRuntimeDescriptor {
+  const value = JSON.parse(raw) as Partial<ManagedRuntimeDescriptor>;
+  const expectedEntrypoint = typeof value.packageVersion === "string"
+    ? path.join(path.dirname(descriptorPath), "versions", value.packageVersion, "node_modules", PACKAGE_NAME, "dist", "astrograph.js")
+    : null;
+  if (
+    value.schemaVersion !== 1
+    || value.packageName !== PACKAGE_NAME
+    || typeof value.packageVersion !== "string"
+    || normalizeGenericPackageVersion(value.packageVersion) !== value.packageVersion
+    || typeof value.packageSpecifier !== "string"
+    || (value.channel !== "latest" && value.channel !== "snapshot")
+    || value.packageSpecifier !== `${PACKAGE_NAME}@${value.channel}`
+    || typeof value.registry !== "string"
+    || safeRegistryLocation(value.registry) === null
+    || typeof value.nodePath !== "string"
+    || !path.isAbsolute(value.nodePath)
+    || typeof value.entrypoint !== "string"
+    || !path.isAbsolute(value.entrypoint)
+    || value.entrypoint !== expectedEntrypoint
+    || typeof value.installedAt !== "string"
+    || !Number.isFinite(Date.parse(value.installedAt))
+  ) {
+    throw new Error(`Invalid managed Astrograph runtime descriptor: ${descriptorPath}`);
+  }
+  return value as ManagedRuntimeDescriptor;
+}
+
+export async function readManagedRuntimeDescriptor(
+  descriptorPath: string,
+): Promise<ManagedRuntimeDescriptor | null> {
+  const raw = await readOptionalConfig(descriptorPath);
+  return raw ? parseManagedRuntimeDescriptor(raw, descriptorPath) : null;
+}
+
+async function writeJsonAtomic(filePath: string, value: unknown): Promise<void> {
+  await mkdir(path.dirname(filePath), { recursive: true, mode: 0o700 });
+  const temporaryPath = `${filePath}.${randomUUID()}.tmp`;
+  await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
+    encoding: "utf8",
+    mode: 0o600,
+  });
+  await rename(temporaryPath, filePath);
+}
+
+function defaultManagedRuntimeRunner(
+  command: string,
+  args: readonly string[],
+  options: ManagedRuntimeRunnerOptions,
+): { stdout: string } {
+  const result = runProcess(command, args, {
+    cwd: options.cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 300_000,
+  });
+  return { stdout: result.stdout };
+}
+
+export async function installManagedRuntime(
+  options: InstallManagedRuntimeOptions,
+): Promise<ManagedRuntimeDescriptor> {
+  const environment = options.environment ?? {};
+  const paths = resolveManagedRuntimePaths(environment);
+  const runner = options.runner ?? defaultManagedRuntimeRunner;
+  const packageSpecifier = `${PACKAGE_NAME}@${options.channel}`;
+  const registry = runner("npm", ["config", "get", "registry"], { cwd: packageRoot }).stdout.trim();
+  const registryUrl = new URL(registry);
+  if (registryUrl.protocol !== "https:" && registryUrl.protocol !== "http:") {
+    throw new Error(`Astrograph managed runtime requires an npm registry URL; received ${registry}`);
+  }
+  const registryLocation = `${registryUrl.protocol}//${registryUrl.host}${registryUrl.pathname}${registryUrl.search}${registryUrl.hash}`;
+
+  if (options.dryRun) {
+    const resolvedVersion = JSON.parse(
+      runner("npm", ["view", packageSpecifier, "version", "--json"], { cwd: packageRoot }).stdout,
+    ) as unknown;
+    if (
+      typeof resolvedVersion !== "string"
+      || normalizeGenericPackageVersion(resolvedVersion) !== resolvedVersion
+    ) {
+      throw new Error(`npm did not resolve ${packageSpecifier} to one immutable version`);
+    }
+    const nodePath = await realpath(options.nodePath ?? process.execPath);
+    return {
+      schemaVersion: 1,
+      packageName: "astrograph",
+      packageVersion: resolvedVersion,
+      packageSpecifier,
+      channel: options.channel,
+      registry: registryLocation,
+      nodePath,
+      entrypoint: path.join(paths.versionsRoot, resolvedVersion, "node_modules", PACKAGE_NAME, "dist", "astrograph.js"),
+      installedAt: (options.now ?? (() => new Date()))().toISOString(),
+    };
+  }
+
+  await mkdir(paths.versionsRoot, { recursive: true, mode: 0o700 });
+  const stagingPath = path.join(paths.versionsRoot, `.staging-${randomUUID()}`);
+  await mkdir(stagingPath, { mode: 0o700 });
+  try {
+    runner("npm", [
+      "install",
+      "--prefix",
+      stagingPath,
+      "--ignore-scripts",
+      "--no-audit",
+      "--no-fund",
+      packageSpecifier,
+    ], { cwd: packageRoot });
+
+    const stagedPackageRoot = path.join(stagingPath, "node_modules", PACKAGE_NAME);
+    const stagedManifest = JSON.parse(
+      await readFile(path.join(stagedPackageRoot, "package.json"), "utf8"),
+    ) as { name?: unknown; version?: unknown };
+    if (
+      stagedManifest.name !== PACKAGE_NAME
+      || typeof stagedManifest.version !== "string"
+      || normalizeGenericPackageVersion(stagedManifest.version) !== stagedManifest.version
+    ) {
+      throw new Error(`Registry install did not resolve a valid ${PACKAGE_NAME} package`);
+    }
+
+    const versionPath = path.join(paths.versionsRoot, stagedManifest.version);
+    if (existsSync(versionPath)) {
+      const existingManifest = JSON.parse(
+        await readFile(path.join(versionPath, "node_modules", PACKAGE_NAME, "package.json"), "utf8"),
+      ) as { name?: unknown; version?: unknown };
+      if (existingManifest.name !== PACKAGE_NAME || existingManifest.version !== stagedManifest.version) {
+        throw new Error(`Managed runtime directory does not match ${PACKAGE_NAME}@${stagedManifest.version}`);
+      }
+      await rm(stagingPath, { recursive: true, force: true });
+    } else {
+      await rename(stagingPath, versionPath);
+    }
+    runner("npm", ["rebuild", "--prefix", versionPath, "better-sqlite3"], {
+      cwd: packageRoot,
+    });
+
+    const nodePath = await realpath(options.nodePath ?? process.execPath);
+    const entrypoint = path.join(versionPath, "node_modules", PACKAGE_NAME, "dist", "astrograph.js");
+    await Promise.all([access(nodePath), access(entrypoint)]);
+    const descriptor: ManagedRuntimeDescriptor = {
+      schemaVersion: 1,
+      packageName: "astrograph",
+      packageVersion: stagedManifest.version,
+      packageSpecifier,
+      channel: options.channel,
+      registry: registryLocation,
+      nodePath,
+      entrypoint,
+      installedAt: (options.now ?? (() => new Date()))().toISOString(),
+    };
+
+    await (options.verify ?? verifyManagedRuntime)(descriptor);
+    const current = await readManagedRuntimeDescriptor(paths.activeDescriptorPath);
+    if (current && current.packageVersion !== descriptor.packageVersion) {
+      await writeJsonAtomic(paths.previousDescriptorPath, current);
+    }
+    await writeJsonAtomic(paths.activeDescriptorPath, descriptor);
+    return descriptor;
+  } catch (error) {
+    await rm(stagingPath, { recursive: true, force: true });
+    throw error;
+  }
+}
+
+let managedRuntimeInstaller = installManagedRuntime;
+
+/** Test seam for global client serialization without registry access. */
+export function setManagedRuntimeInstallerForTest(
+  installer: ((options: InstallManagedRuntimeOptions) => Promise<ManagedRuntimeDescriptor>) | null,
+): void {
+  managedRuntimeInstaller = installer ?? installManagedRuntime;
+}
+
+async function selectManagedRuntime(options: SetupGlobalClientOptions): Promise<ManagedRuntimeDescriptor> {
+  return options.runtime ?? managedRuntimeInstaller({
+    channel: options.channel ?? "latest",
+    dryRun: options.dryRun,
+    environment: options.environment,
+  });
 }
 
 function parseGlobalConfig(contents: string, configPath: string): Record<string, unknown> {
@@ -1295,9 +1792,18 @@ interface ManagedConfigWrite {
   mode?: number;
 }
 
+let managedConfigDaemonReconciler = reconcileLocalDaemon;
+
+/** Test seam that keeps config serialization tests independent of the live device daemon. */
+export function setManagedConfigDaemonReconcilerForTest(
+  reconciler: (() => Promise<void>) | null,
+): void {
+  managedConfigDaemonReconciler = reconciler ?? reconcileLocalDaemon;
+}
+
 async function writeManagedConfigs(entries: ManagedConfigWrite[], verify?: () => Promise<void>): Promise<string[]> {
   const changedEntries = entries.filter((entry) => entry.current !== entry.next);
-  await reconcileLocalDaemon();
+  await managedConfigDaemonReconciler();
   const backups = await backupChangedConfigs(changedEntries);
   const written: ManagedConfigWrite[] = [];
   try {
@@ -1375,30 +1881,57 @@ function assertTomlStructurallyValid(contents: string, configPath: string): void
   }
 }
 
-async function verifyLocalMcpStartup(): Promise<void> {
-  const builtEntry = path.join(packageRoot, "dist", "mcp.js");
-  const sourceEntry = path.join(packageRoot, "src", "mcp.ts");
-  const child = spawn(
-    process.execPath,
-    existsSync(builtEntry)
-      ? ["--no-warnings", builtEntry]
-      : ["--no-warnings", "--import=tsx", sourceEntry],
-    { stdio: ["pipe", "pipe", "pipe"] },
-  );
-  const result = await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Astrograph MCP startup verification timed out after 2 seconds")), 2_000);
+async function verifyMcpStartup(
+  command: string,
+  args: string[],
+  clientVersion: string,
+): Promise<void> {
+  const child = runProcessAsync(command, args, {
+    stdin: "pipe",
+    stdout: "pipe",
+    stderr: "pipe",
+    reject: false,
+  });
+  await new Promise<void>((resolve, reject) => {
+    let settled = false;
+    let timer: ReturnType<typeof setTimeout>;
     const finish = (error?: Error) => {
+      if (settled) return;
+      settled = true;
       clearTimeout(timer);
       child.kill();
-      error ? reject(error) : resolve();
+      if (error) reject(error);
+      else resolve();
     };
+    timer = setTimeout(
+      () => finish(new Error(`Astrograph MCP startup verification timed out after ${MCP_STARTUP_VERIFICATION_TIMEOUT_MS / 1_000} seconds`)),
+      MCP_STARTUP_VERIFICATION_TIMEOUT_MS,
+    );
     let stdout = "";
+    let initialized = false;
     child.stdout.on("data", (chunk: Buffer) => {
       stdout += chunk.toString();
-      for (const line of stdout.split("\n")) {
+      const lines = stdout.split("\n");
+      stdout = lines.pop() ?? "";
+      for (const line of lines) {
         try {
-          const message = JSON.parse(line) as { id?: number; result?: unknown };
-          if (message.id === 1 && message.result) finish();
+          const message = JSON.parse(line) as { id?: number; result?: { tools?: unknown } };
+          if (message.id === 1 && message.result && !initialized) {
+            initialized = true;
+            child.stdin.write(`${JSON.stringify({
+              jsonrpc: "2.0",
+              method: "notifications/initialized",
+              params: {},
+            })}\n`);
+            child.stdin.write(`${JSON.stringify({
+              jsonrpc: "2.0",
+              id: 2,
+              method: "tools/list",
+              params: {},
+            })}\n`);
+          } else if (message.id === 2 && Array.isArray(message.result?.tools)) {
+            finish();
+          }
         } catch {
           // Wait for a complete JSON-RPC line.
         }
@@ -1412,10 +1945,46 @@ async function verifyLocalMcpStartup(): Promise<void> {
       jsonrpc: "2.0",
       id: 1,
       method: "initialize",
-      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "astrograph-installer", version: PACKAGE_VERSION } },
+      params: { protocolVersion: "2024-11-05", capabilities: {}, clientInfo: { name: "astrograph-installer", version: clientVersion } },
     })}\n`);
   });
-  await result;
+}
+
+async function verifyManagedRuntime(descriptor: ManagedRuntimeDescriptor): Promise<void> {
+  const version = runProcess(descriptor.nodePath, [descriptor.entrypoint, "--version"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: MCP_STARTUP_VERIFICATION_TIMEOUT_MS,
+  }).stdout.trim();
+  if (version !== descriptor.packageVersion) {
+    throw new Error(`Managed Astrograph runtime version mismatch: expected ${descriptor.packageVersion}, received ${version}`);
+  }
+  runProcess(descriptor.nodePath, [
+    "--input-type=module",
+    "--eval",
+    `import { createRequire } from "node:module"; const Database = createRequire(${JSON.stringify(descriptor.entrypoint)})("better-sqlite3"); const database = new Database(":memory:"); database.close();`,
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: MCP_STARTUP_VERIFICATION_TIMEOUT_MS,
+  });
+  await verifyMcpStartup(
+    descriptor.nodePath,
+    ["--no-warnings", descriptor.entrypoint, "mcp"],
+    descriptor.packageVersion,
+  );
+}
+
+async function verifyLocalMcpStartup(): Promise<void> {
+  const builtEntry = path.join(packageRoot, "dist", "mcp.js");
+  const sourceEntry = path.join(packageRoot, "src", "mcp.ts");
+  await verifyMcpStartup(
+    process.execPath,
+    existsSync(builtEntry)
+      ? ["--no-warnings", builtEntry]
+      : ["--no-warnings", "--import=tsx", sourceEntry],
+    PACKAGE_VERSION,
+  );
 }
 
 let localMcpStartupVerifier: () => Promise<void> = verifyLocalMcpStartup;
@@ -1423,6 +1992,34 @@ let localMcpStartupVerifier: () => Promise<void> = verifyLocalMcpStartup;
 /** Test seam for proving managed writes roll back when the local server cannot start. */
 export function setLocalMcpStartupVerifierForTest(verifier: (() => Promise<void>) | null): void {
   localMcpStartupVerifier = verifier ?? verifyLocalMcpStartup;
+}
+
+export async function findShadowingProjectRegistration(
+  ide: "codex" | "copilot-cli",
+  repoRoot = process.cwd(),
+): Promise<string | null> {
+  const root = resolveRepoRoot(repoRoot);
+  const configPath = ide === "codex"
+    ? path.join(root, ".codex", "config.toml")
+    : path.join(root, ".mcp.json");
+  const contents = await readOptionalConfig(configPath);
+  if (!contents) return null;
+  if (ide === "codex") {
+    return contents.includes("[mcp_servers.astrograph]") ? configPath : null;
+  }
+  return await managedJsonServerExists(configPath, "mcpServers") ? configPath : null;
+}
+
+async function assertNoShadowingProjectRegistration(
+  ide: "codex" | "copilot-cli",
+  repoRoot: string | undefined,
+): Promise<void> {
+  const configPath = await findShadowingProjectRegistration(ide, repoRoot);
+  if (configPath) {
+    throw new Error(
+      `Project Astrograph registration ${configPath} shadows the device runtime. Remove that project registration before global setup.`,
+    );
+  }
 }
 
 export async function setupGlobalForCodex(
@@ -1434,9 +2031,13 @@ export async function setupGlobalForCodex(
   const engineConfigPath = resolveGlobalConfigPath(environment);
   const currentCodexConfig = await readOptionalConfig(configPath);
   const currentEngineConfig = await readOptionalConfig(engineConfigPath);
-  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock(), reset);
+  assertTomlStructurallyValid(currentCodexConfig, configPath);
+  const currentEngine = parseGlobalConfig(currentEngineConfig, engineConfigPath);
+  await assertNoShadowingProjectRegistration("codex", options.repoRoot);
+  const runtime = await selectManagedRuntime(options);
+  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock(runtime), reset);
   const engineConfigPreview = `${JSON.stringify({
-    ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
+    ...currentEngine,
     storageLocation: "global",
   }, null, 2)}\n`;
 
@@ -1454,7 +2055,6 @@ export async function setupGlobalForCodex(
       ], async () => {
         parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
         await verifyManagedRegistration(configPath, "codex");
-        await localMcpStartupVerifier();
       });
       return {
         ide: "codex",
@@ -1462,6 +2062,7 @@ export async function setupGlobalForCodex(
         engineConfigPath,
         configPreview,
         engineConfigPreview,
+        runtime,
         backups,
       };
     } catch (error) {
@@ -1475,6 +2076,7 @@ export async function setupGlobalForCodex(
     engineConfigPath,
     configPreview,
     engineConfigPreview,
+    runtime,
     backups: [],
   };
 }
@@ -1493,13 +2095,11 @@ function resolveGlobalCopilotCliConfigPath(
   return path.join(homeDir(), ".copilot", "mcp-config.json");
 }
 
-function globalCopilotCliServer(): InstalledObject {
-  const invocation = resolveManagedInvocation();
+function globalCopilotCliServer(runtime: ManagedRuntimeDescriptor): InstalledObject {
   return {
     type: "local",
-    command: invocation.command,
-    args: invocation.args,
-    cwd: ".",
+    command: runtime.nodePath,
+    args: ["--no-warnings", runtime.entrypoint, "mcp"],
     env: {},
     tools: MCP_TOOLS,
   };
@@ -1514,15 +2114,19 @@ export async function setupGlobalForCopilotCli(
   const engineConfigPath = resolveGlobalConfigPath(environment);
   const currentCopilotConfig = await readOptionalConfig(configPath);
   const currentEngineConfig = await readOptionalConfig(engineConfigPath);
+  parseJsonConfig(currentCopilotConfig, configPath);
+  const currentEngine = parseGlobalConfig(currentEngineConfig, engineConfigPath);
+  await assertNoShadowingProjectRegistration("copilot-cli", options.repoRoot);
+  const runtime = await selectManagedRuntime(options);
   const configPreview = replaceManagedServerInJson(
     currentCopilotConfig,
     configPath,
     "mcpServers",
-    globalCopilotCliServer(),
+    globalCopilotCliServer(runtime),
     reset,
   );
   const engineConfigPreview = `${JSON.stringify({
-    ...parseGlobalConfig(currentEngineConfig, engineConfigPath),
+    ...currentEngine,
     storageLocation: "global",
   }, null, 2)}\n`;
 
@@ -1540,7 +2144,6 @@ export async function setupGlobalForCopilotCli(
       ], async () => {
         parseGlobalConfig(await readFile(engineConfigPath, "utf8"), engineConfigPath);
         await verifyManagedRegistration(configPath, "copilot-cli");
-        await localMcpStartupVerifier();
       });
       return {
         ide: "copilot-cli",
@@ -1548,6 +2151,7 @@ export async function setupGlobalForCopilotCli(
         engineConfigPath,
         configPreview,
         engineConfigPreview,
+        runtime,
         backups,
       };
     } catch (error) {
@@ -1561,6 +2165,7 @@ export async function setupGlobalForCopilotCli(
     engineConfigPath,
     configPreview,
     engineConfigPreview,
+    runtime,
     backups: [],
   };
 }
@@ -1574,7 +2179,11 @@ function replaceManagedBlock(contents: string, block: string, reset = false): st
   }
   if (contents.includes(MARKER_BEGIN) && contents.includes(MARKER_END)) {
     const currentBlock = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0] ?? "";
-    if (!currentBlock.includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
+    if (
+      !currentBlock.includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`)
+      && !currentBlock.includes(MANAGED_RUNTIME_MARKER)
+      && !reset
+    ) {
       throw new ResetRequiredError("Astrograph setup version does not match this package. It is not migrated.");
     }
     return contents.replace(
@@ -1815,6 +2424,7 @@ export async function getSetupReadiness(
   options: { environment?: StoragePathEnvironment; scanFreshness?: boolean } = {},
 ): Promise<SetupReadinessResult> {
   const resolvedRepoRoot = resolveRepoRoot(repoRoot);
+  const canonicalProjectRoot = await realpath(resolvedRepoRoot).catch(() => resolvedRepoRoot);
   const codexConfigPath = path.join(resolvedRepoRoot, ".codex", "config.toml");
   const copilotConfigPath = path.join(resolvedRepoRoot, ".vscode", "mcp.json");
   const copilotCliConfigPath = path.join(resolvedRepoRoot, ".mcp.json");
@@ -1866,6 +2476,8 @@ export async function getSetupReadiness(
   const hasClient = clients.some((client) => client.configured) || global.clients.some((client) => client.configured);
   const actions: string[] = [];
   if (!hasClient) actions.push("Run `astrograph install` to connect an MCP client.");
+  if (global.managedRuntime.status === "broken") actions.push(`Repair the managed runtime: ${global.managedRuntime.error ?? "unknown runtime error"}`);
+  if (global.clients.some((client) => client.configured && !client.healthy)) actions.push("Re-run global setup for each unhealthy client, then reload its MCP catalog once.");
   if (index.status === "not-indexed") actions.push(`Run \`astrograph cli index-folder --repo ${resolvedRepoRoot}\` to create the first index.`);
   if (index.status === "stale") actions.push(`Run \`astrograph cli index-folder --repo ${resolvedRepoRoot}\` to refresh the index.`);
   if (index.status === "unavailable") actions.push(`Fix the index health error: ${index.error ?? "unknown error"}`);
@@ -1876,6 +2488,7 @@ export async function getSetupReadiness(
   return {
     schemaVersion: 1,
     repoRoot: resolvedRepoRoot,
+    canonicalProjectRoot,
     local: {
       clients,
       agentGuidance,
@@ -1940,7 +2553,20 @@ function replaceManagedServerInJson(
   const currentServer = existing && typeof existing === "object" && !Array.isArray(existing)
     ? (existing as InstalledObject)[MCP_SERVER_NAME]
     : undefined;
-  if (currentServer && !JSON.stringify(currentServer).includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`) && !reset) {
+  const managedRuntimeServer = currentServer
+    && typeof currentServer === "object"
+    && !Array.isArray(currentServer)
+    && typeof (currentServer as InstalledObject).command === "string"
+    && path.isAbsolute((currentServer as InstalledObject).command as string)
+    && Array.isArray((currentServer as InstalledObject).args)
+    && JSON.stringify((currentServer as InstalledObject).args).startsWith('["--no-warnings",')
+    && ((currentServer as InstalledObject).args as unknown[]).at(-1) === "mcp";
+  if (
+    currentServer
+    && !JSON.stringify(currentServer).includes(`${PACKAGE_NAME}@${PACKAGE_VERSION}`)
+    && !managedRuntimeServer
+    && !reset
+  ) {
     throw new ResetRequiredError("Astrograph setup version does not match this package. It is not migrated.");
   }
 
@@ -2206,8 +2832,8 @@ async function runLifecycle(action: "update" | "repair" | "reconfigure" | "unins
   }
   const result = parsed.scope === "global"
     ? parsed.ides[0] === "codex"
-      ? await setupGlobalForCodex({ dryRun: parsed.dryRun, reset: parsed.reset })
-      : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun, reset: parsed.reset })
+      ? await setupGlobalForCodex({ dryRun: parsed.dryRun, reset: parsed.reset, channel: parsed.channel })
+      : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun, reset: parsed.reset, channel: parsed.channel })
     : await setupForAllIdes(repo, {
       ides: parsed.ides,
       dryRun: parsed.dryRun,
@@ -2314,8 +2940,8 @@ async function main(): Promise<void> {
       throw new Error("Global setup supports exactly one --ide value: codex or copilot-cli.");
     }
     const result = parsed.ides[0] === "codex"
-      ? await setupGlobalForCodex({ dryRun: parsed.dryRun, reset: parsed.reset })
-      : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun, reset: parsed.reset });
+      ? await setupGlobalForCodex({ dryRun: parsed.dryRun, reset: parsed.reset, channel: parsed.channel })
+      : await setupGlobalForCopilotCli({ dryRun: parsed.dryRun, reset: parsed.reset, channel: parsed.channel });
     if (parsed.json) {
       process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     } else {
