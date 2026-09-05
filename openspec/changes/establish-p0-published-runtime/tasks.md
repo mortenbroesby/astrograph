@@ -38,12 +38,12 @@
 
 ## 3. Stable device runtime
 
-- [ ] 3.1 Add a versioned runtime descriptor and managed install location to
+- [x] 3.1 Add a versioned runtime descriptor and managed install location to
   `src/scripts/install.ts`, including registry-only snapshot resolution,
   absolute Node and package entrypoint capture, atomic activation, and retained
   rollback; verify installer unit tests use no checkout link, local tarball,
   `npx`, PATH lookup, or shim in the activated command.
-- [ ] 3.2 Generate Codex TOML and Copilot JSON from the same selected runtime
+- [x] 3.2 Generate Codex TOML and Copilot JSON from the same selected runtime
   descriptor while preserving separate stdio bridges and dry-run previews;
   verify exact config serialization tests for both clients.
 - [ ] 3.3 Remove Astrograph's repository-local MCP version override and add a
