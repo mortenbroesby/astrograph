@@ -22,6 +22,7 @@ const wasmGrammarNames = [
 ] as const;
 
 export interface SmokePackageOptions {
+  expectedVersion: string | null;
   prebuiltPackage: boolean;
   tarballPath: string | null;
   wasmOnly: boolean;
@@ -32,6 +33,7 @@ export function parseSmokePackageArgs(
   cwd = process.cwd(),
 ): SmokePackageOptions {
   let tarballPath: string | null = null;
+  let expectedVersion: string | null = null;
   let prebuiltPackage = false;
   let wasmOnly = false;
 
@@ -41,6 +43,16 @@ export function parseSmokePackageArgs(
       prebuiltPackage = true;
     } else if (arg === "--wasm-only") {
       wasmOnly = true;
+    } else if (arg === "--expected-version") {
+      const value = argv[index + 1];
+      if (!value || value.startsWith("--")) {
+        throw new Error("--expected-version requires a value");
+      }
+      expectedVersion = value;
+      index += 1;
+    } else if (arg.startsWith("--expected-version=")) {
+      expectedVersion = arg.slice("--expected-version=".length);
+      if (!expectedVersion) throw new Error("--expected-version requires a value");
     } else if (arg === "--tarball") {
       const value = argv[index + 1];
       if (!value || value.startsWith("--")) {
@@ -63,7 +75,7 @@ export function parseSmokePackageArgs(
     throw new Error("--tarball requires a .tgz path");
   }
 
-  return { prebuiltPackage, tarballPath, wasmOnly };
+  return { expectedVersion, prebuiltPackage, tarballPath, wasmOnly };
 }
 
 export function assertPackageIdentity(
@@ -122,7 +134,7 @@ async function run(
 }
 
 async function main(): Promise<void> {
-  const { prebuiltPackage, tarballPath: suppliedTarballPath, wasmOnly } =
+  const { expectedVersion, prebuiltPackage, tarballPath: suppliedTarballPath, wasmOnly } =
     parseSmokePackageArgs(process.argv.slice(2));
   const packageManifest = JSON.parse(
     await readFile(path.join(packageRoot, "package.json"), "utf8"),
@@ -237,12 +249,16 @@ async function main(): Promise<void> {
     const installedManifest = JSON.parse(
       await readFile(path.join(globalNodeModules.trim(), "astrograph", "package.json"), "utf8"),
     ) as { name?: unknown; version?: unknown };
-    assertPackageIdentity(installedManifest, packageManifest);
+    const expectedPackageVersion = expectedVersion ?? packageManifest.version;
+    assertPackageIdentity(installedManifest, {
+      name: packageManifest.name,
+      version: expectedPackageVersion,
+    });
     const globalBin = process.platform === "win32"
       ? path.join(npmGlobalPrefix, "node_modules", ".bin", "astrograph.cmd")
       : path.join(npmGlobalPrefix, "bin", "astrograph");
     const { stdout: globalVersion } = await run(globalBin, ["--version"], installDir);
-    if (!packageManifest.version || globalVersion.trim() !== packageManifest.version) {
+    if (!expectedPackageVersion || globalVersion.trim() !== expectedPackageVersion) {
       throw new Error(`Unexpected globally installed package version: ${globalVersion}`);
     }
     await run(

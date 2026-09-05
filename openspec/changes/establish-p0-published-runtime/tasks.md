@@ -20,7 +20,7 @@
 - [x] 2.1 Extend `src/scripts/smoke-package-bin.ts` with an explicit existing
   tarball input that skips packing and rejects missing or mismatched packages;
   verify focused script tests and a prebuilt package smoke pass.
-- [ ] 2.2 Add a minimal release-artifact helper that stages a unique snapshot
+- [x] 2.2 Add a minimal release-artifact helper that stages a unique snapshot
   SemVer, packs once, records its SHA-256 and metadata, and fails on an existing
   npm version; verify unit tests cover version generation, paths, and fail-closed
   behavior without publishing.

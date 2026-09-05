@@ -7,6 +7,14 @@ export interface FetchLatestNpmVersionOptions {
   fetchImplementation?: typeof fetch;
 }
 
+export interface NpmPackageVersionExistsOptions {
+  packageName: string;
+  version: string;
+  timeoutMs: number;
+  registryUrl?: string;
+  fetchImplementation?: typeof fetch;
+}
+
 function registryDistTagsUrl(packageName: string, registryUrl: string): string {
   return `${registryUrl.replace(/\/$/, "")}/-/package/${encodeURIComponent(packageName)}/dist-tags`;
 }
@@ -46,6 +54,34 @@ export async function fetchLatestNpmVersion({
     }
 
     return latestVersionFromDistTags(await response.json());
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+export async function npmPackageVersionExists({
+  packageName,
+  version,
+  timeoutMs,
+  registryUrl = process.env.npm_config_registry ?? DEFAULT_NPM_REGISTRY_URL,
+  fetchImplementation = fetch,
+}: NpmPackageVersionExistsOptions): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(
+    () => controller.abort(new Error(`npm registry lookup timed out after ${timeoutMs}ms`)),
+    timeoutMs,
+  );
+
+  try {
+    const response = await fetchImplementation(
+      `${registryUrl.replace(/\/$/, "")}/${encodeURIComponent(packageName)}/${encodeURIComponent(version)}`,
+      { headers: { accept: "application/json" }, signal: controller.signal },
+    );
+    if (response.status === 404) return false;
+    if (!response.ok) {
+      throw new Error(`npm registry returned HTTP ${response.status}`);
+    }
+    return true;
   } finally {
     clearTimeout(timeout);
   }

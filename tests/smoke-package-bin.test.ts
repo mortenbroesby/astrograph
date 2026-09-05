@@ -10,9 +10,16 @@ import {
 describe("package smoke arguments", () => {
   it("resolves a supplied tarball without changing the other modes", () => {
     expect(parseSmokePackageArgs(
-      ["--prebuilt", "--tarball", "artifacts/astrograph.tgz", "--wasm-only"],
+      [
+        "--prebuilt",
+        "--tarball",
+        "artifacts/astrograph.tgz",
+        "--expected-version=1.2.3-snapshot.4.gabcdef0",
+        "--wasm-only",
+      ],
       "/workspace",
     )).toEqual({
+      expectedVersion: "1.2.3-snapshot.4.gabcdef0",
       prebuiltPackage: true,
       tarballPath: path.resolve("/workspace/artifacts/astrograph.tgz"),
       wasmOnly: true,
@@ -23,6 +30,7 @@ describe("package smoke arguments", () => {
     [["--tarball"], "requires a .tgz path"],
     [["--tarball="], "requires a .tgz path"],
     [["--tarball", "artifact.zip"], "requires a .tgz path"],
+    [["--expected-version"], "requires a value"],
     [["--unknown"], "Unknown package smoke argument"],
   ] as const)("rejects invalid arguments %j", (args, message) => {
     expect(() => parseSmokePackageArgs(args)).toThrow(message);
