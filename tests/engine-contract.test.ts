@@ -1041,11 +1041,16 @@ describe("ai-context-engine contract", () => {
       env: { XDG_CONFIG_HOME: configHome },
       homeDir: () => homeDir,
     };
-    let resolvedVersion = "0.13.0-alpha.231.snapshot.1.gabcdef012345";
+    let resolvedVersion = "0.13.0-alpha.232.snapshot.1.gabcdef012345";
     const installSpecifiers: string[] = [];
+    const rebuiltPackages: string[] = [];
     const runner = (command: string, args: readonly string[]) => {
       if (command !== "npm") throw new Error(`Unexpected command: ${command}`);
       if (args[0] === "config") return { stdout: "https://registry.npmjs.org/\n" };
+      if (args[0] === "rebuild") {
+        rebuiltPackages.push(args.at(-1)!);
+        return { stdout: "" };
+      }
       const prefixIndex = args.indexOf("--prefix");
       const prefix = args[prefixIndex + 1]!;
       const packageRoot = path.join(prefix, "node_modules", "astrograph");
@@ -1079,7 +1084,7 @@ describe("ai-context-engine contract", () => {
     expect(path.isAbsolute(first.entrypoint)).toBe(true);
     expect(JSON.stringify(first)).not.toMatch(/\bnpx\b|file:|link:|workspace:|\.asdf\/shims/u);
 
-    resolvedVersion = "0.13.0-alpha.231.snapshot.2.gfedcba987654";
+    resolvedVersion = "0.13.0-alpha.232.snapshot.2.gfedcba987654";
     await expect(installManagedRuntime({
       channel: "snapshot",
       environment,
@@ -1105,6 +1110,7 @@ describe("ai-context-engine contract", () => {
       "astrograph@snapshot",
       "astrograph@snapshot",
     ]);
+    expect(rebuiltPackages).toEqual(["better-sqlite3", "better-sqlite3", "better-sqlite3"]);
   });
 
   it("resolves a managed runtime preview without changing runtime state", async () => {
@@ -1123,12 +1129,12 @@ describe("ai-context-engine contract", () => {
       environment,
       runner: (command, args) => {
         calls.push([command, ...args]);
-        return { stdout: args[0] === "config" ? "https://registry.npmjs.org/\n" : '"0.13.0-alpha.231.snapshot.7.gabcdef012345"\n' };
+        return { stdout: args[0] === "config" ? "https://registry.npmjs.org/\n" : '"0.13.0-alpha.232.snapshot.7.gabcdef012345"\n' };
       },
     });
 
     expect(runtime).toMatchObject({
-      packageVersion: "0.13.0-alpha.231.snapshot.7.gabcdef012345",
+      packageVersion: "0.13.0-alpha.232.snapshot.7.gabcdef012345",
       packageSpecifier: "astrograph@snapshot",
       channel: "snapshot",
     });
@@ -1151,7 +1157,7 @@ describe("ai-context-engine contract", () => {
     const runtime = {
       schemaVersion: 1 as const,
       packageName: "astrograph" as const,
-      packageVersion: "0.13.0-alpha.231.snapshot.7.gabcdef012345",
+      packageVersion: "0.13.0-alpha.232.snapshot.7.gabcdef012345",
       packageSpecifier: "astrograph@snapshot",
       channel: "snapshot" as const,
       registry: "https://registry.npmjs.org/",
@@ -1210,7 +1216,7 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(neutral, node20Repo, node24Repo, runtimeRoot);
     await writeFile(path.join(node20Repo, ".tool-versions"), "nodejs 20.19.0\n");
     await writeFile(path.join(node24Repo, ".tool-versions"), "nodejs 24.7.0\n");
-    const version = "0.13.0-alpha.231.snapshot.7.gabcdef012345";
+    const version = "0.13.0-alpha.232.snapshot.7.gabcdef012345";
     const entrypoint = path.join(runtimeRoot, "astrograph.mjs");
     await writeFile(entrypoint, `process.stdout.write(${JSON.stringify(version)});\n`);
     const runtime = {
@@ -1401,7 +1407,7 @@ describe("ai-context-engine contract", () => {
       homeDir: () => homeDir,
     };
     const paths = resolveManagedRuntimePaths(environment);
-    const version = "0.13.0-alpha.231.snapshot.9.gabcdef012345";
+    const version = "0.13.0-alpha.232.snapshot.9.gabcdef012345";
     const entrypoint = path.join(paths.versionsRoot, version, "node_modules", "astrograph", "dist", "astrograph.js");
     await mkdir(path.dirname(entrypoint), { recursive: true });
     await writeFile(entrypoint, `process.stdout.write(${JSON.stringify(version)});\n`);
@@ -1419,8 +1425,8 @@ describe("ai-context-engine contract", () => {
     await writeFile(paths.activeDescriptorPath, `${JSON.stringify(runtime)}\n`);
     await writeFile(paths.previousDescriptorPath, `${JSON.stringify({
       ...runtime,
-      packageVersion: "0.13.0-alpha.231.snapshot.8.gfedcba987654",
-      entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.231.snapshot.8.gfedcba987654", "node_modules", "astrograph", "dist", "astrograph.js"),
+      packageVersion: "0.13.0-alpha.232.snapshot.8.gfedcba987654",
+      entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.232.snapshot.8.gfedcba987654", "node_modules", "astrograph", "dist", "astrograph.js"),
       installedAt: "2026-09-05T11:00:00.000Z",
     })}\n`);
     const daemonClaim = await claimDaemonRuntime({ runtimeDir: paths.root, pid: process.pid, version });
@@ -1435,7 +1441,7 @@ describe("ai-context-engine contract", () => {
       status: "ready",
       selectedVersion: version,
       effectiveVersion: version,
-      previousVersion: "0.13.0-alpha.231.snapshot.8.gfedcba987654",
+      previousVersion: "0.13.0-alpha.232.snapshot.8.gfedcba987654",
       channel: "snapshot",
     });
     expect(result.global.clients).toEqual(expect.arrayContaining([
@@ -1467,12 +1473,12 @@ describe("ai-context-engine contract", () => {
     await writeFile(paths.activeDescriptorPath, `${JSON.stringify({
       schemaVersion: 1,
       packageName: "astrograph",
-      packageVersion: "0.13.0-alpha.231.snapshot.9.gabcdef012345",
+      packageVersion: "0.13.0-alpha.232.snapshot.9.gabcdef012345",
       packageSpecifier: "astrograph@snapshot",
       channel: "snapshot",
       registry: "https://local-user@registry.npmjs.org/",
       nodePath: process.execPath,
-      entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.231.snapshot.9.gabcdef012345", "node_modules", "astrograph", "dist", "astrograph.js"),
+      entrypoint: path.join(paths.versionsRoot, "0.13.0-alpha.232.snapshot.9.gabcdef012345", "node_modules", "astrograph", "dist", "astrograph.js"),
       installedAt: "2026-09-05T12:00:00.000Z",
     })}\n`);
 

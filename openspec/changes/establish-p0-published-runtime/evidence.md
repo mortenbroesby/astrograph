@@ -46,6 +46,28 @@ the downloaded tarball SHA-256
 matched CI exactly. Registry verification now retries the expected dist-tag for
 up to 10 seconds before failing; `latest` remained `0.12.1-alpha.223`.
 
+Snapshot run `33979146118` passed the corrected exact-artifact workflow in 1
+minute 33 seconds and published
+`0.13.0-alpha.231.snapshot.33979146118.g2d0b8b76c285` with SHA-256
+`67ce07baff94dd3c1fd2f4af225cab97a0defe8fd43c404785bec6f941e8cd14`.
+Fresh `codex mcp list` and `copilot mcp list` processes discovered the managed
+registration, but the first real `get_project_status` call exposed a missing
+`better-sqlite3.node`: the managed install had suppressed all dependency
+scripts and its activation probe only listed tools. A targeted
+`npm rebuild better-sqlite3` restored the tool immediately. Managed installs
+now rebuild only that native dependency in the final version directory and
+open an in-memory database before activation. The exact local `.232` runtime
+tarball then passed the full package smoke after aligning its global-install
+command budget with the existing bounded 16-second MCP startup budget.
+
+A laptop-wide read-only scan also found clean tracked project overrides pinned
+to `astrograph@0.3.1-alpha.74` in Playground and two of its worktrees, plus an
+untracked Playground Copilot CLI override. These explain the separately
+reported live daemon/client mismatch: project configuration takes precedence
+over the new global registration. They remain device-migration work for the
+published `.232` snapshot rather than being silently edited in unrelated
+worktrees.
+
 ## Pre-publication gates
 
 Required task 5.1 evidence recorded 2026-09-05:

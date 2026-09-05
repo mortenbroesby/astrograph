@@ -468,6 +468,7 @@ async function main(): Promise<void> {
           .filter((entry): entry is string => Boolean(entry))
           .join(path.delimiter),
       },
+      120_000,
     );
     const globalInstalled = JSON.parse(globalInstall.stdout) as {
       configPreview?: string;
@@ -505,6 +506,7 @@ async function main(): Promise<void> {
           .filter((entry): entry is string => Boolean(entry))
           .join(path.delimiter),
       },
+      120_000,
     );
     const globalCopilotInstalled = JSON.parse(globalCopilotInstall.stdout) as {
       configPath?: string;

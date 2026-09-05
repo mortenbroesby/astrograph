@@ -53,7 +53,7 @@ const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
-const MCP_STARTUP_VERIFICATION_TIMEOUT_MS = 5_000;
+const MCP_STARTUP_VERIFICATION_TIMEOUT_MS = 16_000;
 const ISSUE_URL = "https://github.com/mortenbroesby/astrograph/issues/new";
 const TROUBLESHOOTING_URL = "https://github.com/mortenbroesby/astrograph/blob/main/docs/guides/troubleshooting.md";
 
@@ -1674,6 +1674,9 @@ export async function installManagedRuntime(
     } else {
       await rename(stagingPath, versionPath);
     }
+    runner("npm", ["rebuild", "--prefix", versionPath, "better-sqlite3"], {
+      cwd: packageRoot,
+    });
 
     const nodePath = await realpath(options.nodePath ?? process.execPath);
     const entrypoint = path.join(versionPath, "node_modules", PACKAGE_NAME, "dist", "astrograph.js");
@@ -1949,6 +1952,15 @@ async function verifyManagedRuntime(descriptor: ManagedRuntimeDescriptor): Promi
   if (version !== descriptor.packageVersion) {
     throw new Error(`Managed Astrograph runtime version mismatch: expected ${descriptor.packageVersion}, received ${version}`);
   }
+  runProcess(descriptor.nodePath, [
+    "--input-type=module",
+    "--eval",
+    `import { createRequire } from "node:module"; const Database = createRequire(${JSON.stringify(descriptor.entrypoint)})("better-sqlite3"); const database = new Database(":memory:"); database.close();`,
+  ], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: MCP_STARTUP_VERIFICATION_TIMEOUT_MS,
+  });
   await verifyMcpStartup(
     descriptor.nodePath,
     ["--no-warnings", descriptor.entrypoint, "mcp"],
