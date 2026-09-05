@@ -25,9 +25,15 @@ import {
 import { ASTROGRAPH_PACKAGE_VERSION } from "./version.ts";
 
 const DEFAULT_DAEMON_REQUEST_TIMEOUT_MS = 10_000;
-const DAEMON_START_TIMEOUT_MS = 5_000;
+const INDEX_FOLDER_DAEMON_REQUEST_TIMEOUT_MS = 240_000;
+const DAEMON_START_TIMEOUT_MS = 32_000;
 const DAEMON_START_RETRY_MS = 50;
-export const DAEMON_HANDOFF_TIMEOUT_MS = 16_000;
+export const DAEMON_HANDOFF_TIMEOUT_MS = 32_000;
+
+export function daemonRequestTimeoutMs(command: string, configuredTimeoutMs?: number): number {
+  return configuredTimeoutMs
+    ?? (command === "index_folder" ? INDEX_FOLDER_DAEMON_REQUEST_TIMEOUT_MS : DEFAULT_DAEMON_REQUEST_TIMEOUT_MS);
+}
 
 const clientModulePath = fileURLToPath(import.meta.url);
 const clientModuleDir = path.dirname(clientModulePath);
@@ -228,7 +234,7 @@ export async function requestDaemon(
     const timeout = setTimeout(() => {
       socket.destroy();
       reject(new Error("Timed out waiting for the local Astrograph daemon"));
-    }, options.timeoutMs ?? DEFAULT_DAEMON_REQUEST_TIMEOUT_MS);
+    }, daemonRequestTimeoutMs(command, options.timeoutMs));
     const finish = (callback: () => void) => {
       clearTimeout(timeout);
       socket.destroy();

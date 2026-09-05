@@ -12,6 +12,7 @@ import { getDaemonRuntimeSummary, readDaemonRuntime, resolveDaemonStatePath } fr
 
 const temporaryPaths: string[] = [];
 const daemonPids: number[] = [];
+const PROCESS_TEST_TIMEOUT_MS = 80_000;
 
 async function supportsUnixSockets(): Promise<boolean> {
   const runtimeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-daemon-capability-"));
@@ -107,7 +108,7 @@ describeDaemonProcess("daemon process", () => {
     });
 
     await stopDaemon(runtimeDir);
-  }, 20_000);
+  }, PROCESS_TEST_TIMEOUT_MS);
 
   it("recovers from a crashed daemon record without creating a competing owner", async () => {
     const runtimeDir = await createTempPath("astrograph-daemon-runtime-");
@@ -137,7 +138,7 @@ describeDaemonProcess("daemon process", () => {
     expect(recovered?.pid).not.toBe(crashed.pid);
 
     await stopDaemon(runtimeDir);
-  }, 20_000);
+  }, PROCESS_TEST_TIMEOUT_MS);
 
   it("replaces a reachable incompatible daemon before the next command", async () => {
     const runtimeDir = await createTempPath("astrograph-daemon-runtime-");
@@ -161,5 +162,5 @@ describeDaemonProcess("daemon process", () => {
     expect(replacement?.version).not.toBe("previous-version");
 
     await stopDaemon(runtimeDir);
-  }, 20_000);
+  }, PROCESS_TEST_TIMEOUT_MS);
 });

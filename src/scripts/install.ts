@@ -53,7 +53,7 @@ const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
-const MCP_STARTUP_VERIFICATION_TIMEOUT_MS = 16_000;
+const MCP_STARTUP_VERIFICATION_TIMEOUT_MS = 32_000;
 const ISSUE_URL = "https://github.com/mortenbroesby/astrograph/issues/new";
 const TROUBLESHOOTING_URL = "https://github.com/mortenbroesby/astrograph/blob/main/docs/guides/troubleshooting.md";
 

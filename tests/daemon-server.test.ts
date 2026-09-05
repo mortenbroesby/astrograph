@@ -6,7 +6,12 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 
 import { DAEMON_PROTOCOL_VERSION, encodeDaemonMessage } from "../src/daemon-protocol.ts";
-import { DAEMON_HANDOFF_TIMEOUT_MS, reconcileLocalDaemon, requestDaemon } from "../src/daemon-client.ts";
+import {
+  DAEMON_HANDOFF_TIMEOUT_MS,
+  daemonRequestTimeoutMs,
+  reconcileLocalDaemon,
+  requestDaemon,
+} from "../src/daemon-client.ts";
 import { readDaemonRuntime } from "../src/daemon-runtime.ts";
 import { startDaemonServer, type DaemonServer } from "../src/daemon-server.ts";
 
@@ -44,6 +49,12 @@ afterEach(async () => {
 });
 
 describe("daemon server", () => {
+  it("gives full-folder hydration a bounded long-running request budget", () => {
+    expect(daemonRequestTimeoutMs("get_project_status")).toBe(10_000);
+    expect(daemonRequestTimeoutMs("index_folder")).toBe(240_000);
+    expect(daemonRequestTimeoutMs("index_folder", 42)).toBe(42);
+  });
+
   it("serves only capability-authenticated local requests", async () => {
     const runtimeDir = await createRuntimeDir();
     const server = await startDaemonServer({

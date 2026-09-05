@@ -76,6 +76,14 @@ identity information instead of disappearing silently.
   index state
 - **AND** state whether the client must reload its MCP catalog
 
+#### Scenario: Initial repository hydration exceeds a short query deadline
+
+- **WHEN** `index_folder` needs longer than the ordinary retrieval request
+  budget to hydrate a real repository
+- **THEN** the daemon bridge keeps that request connected for its documented
+  bounded hydration budget
+- **AND** ordinary status and retrieval calls retain their shorter failure bound
+
 ### Requirement: The shared daemon remains conditional on reliability
 
 The implementation SHALL retain the shared daemon only while concurrency and

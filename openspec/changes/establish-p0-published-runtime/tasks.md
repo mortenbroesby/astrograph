@@ -73,6 +73,9 @@
   the daemon passes, verify the shared-process efficiency assertion, otherwise
   replace shared ownership behind the unchanged bridge contract and rerun the
   same harness.
+- [ ] 4.5 Give `index_folder` a bounded long-running IPC budget without slowing
+  failure feedback for ordinary queries; verify the timeout policy and the live
+  published-runtime hydration path.
 
 ## 5. Publish and device proof
 

@@ -152,10 +152,13 @@ registration.
 
 `src/daemon-runtime.ts` gives each immutable package version deterministic
 daemon state and endpoint names. Same-version bridges retain one lock-
-coordinated startup, stale-owner recovery, one retry, and a documented deadline.
+coordinated startup, stale-owner recovery, one retry, and a 32-second deadline
+that also covers loaded developer machines.
 The legacy incompatible-daemon handoff remains for explicitly shared runtime
 directories, but normal device operation never asks old and new live clients
-to replace one another.
+to replace one another. Full-folder hydration receives a separate bounded
+four-minute IPC budget; ordinary status and retrieval calls retain the short
+ten-second failure bound.
 
 Failure output and `doctor --json` will include the client adapter, configured
 and effective paths and versions, daemon record, project/worktree identity,

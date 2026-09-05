@@ -96,12 +96,27 @@ install process exited without output while another machine-wide `npm ci` was
 consuming substantial CPU and memory. That attempt is not counted as passing;
 the exact-head CI package smoke remains required before publication.
 
+Exact-head CI run `33983223966` passed `.233` commit `b936cb5` in 1 minute 20
+seconds, including package and MCP smoke. Snapshot run `33983308867` then
+passed in 1 minute 27 seconds and published
+`0.13.0-alpha.233.snapshot.33983308867.gb936cb5ddf63`; registry readback matched
+SHA-256 `20396149eeb459f98d74f44a4af73061ae6c4ab9ab55e1986ebf568f2a4fcedb`.
+Both clients activated it while the old `.217` processes remained live. The
+next real device proof no longer reported any version mismatch and reached
+`index_folder`, directly proving version-namespace coexistence. Hydration then
+exposed a separate uniform 10-second daemon request limit. The next candidate
+keeps ordinary queries at 10 seconds and gives full-folder hydration a bounded
+240-second IPC budget. Under concurrent machine load, a spawned daemon also
+crossed the old 5-second startup ceiling; `.235` uses a 32-second bounded
+startup/handoff/activation budget. Package-smoke managed installs likewise have
+a 240-second process budget. Final publication and device proof remain required.
+
 A laptop-wide read-only scan also found clean tracked project overrides pinned
 to `astrograph@0.3.1-alpha.74` in Playground and two of its worktrees, plus an
 untracked Playground Copilot CLI override. These explain the separately
 reported live daemon/client mismatch: project configuration takes precedence
 over the new global registration. They remain device-migration work for the
-published `.232` snapshot rather than being silently edited in unrelated
+published snapshot rather than being silently edited in unrelated
 worktrees.
 
 ## Pre-publication gates
