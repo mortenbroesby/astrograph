@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  assertSnapshotVersionAvailable,
+  assertArtifactVersionAvailable,
   releaseArtifactPaths,
+  releaseArtifactVersion,
   snapshotVersion,
 } from "../src/scripts/release-artifact.ts";
 
@@ -29,7 +30,21 @@ describe("snapshot release artifacts", () => {
   });
 
   it("fails closed when the snapshot version already exists", () => {
-    expect(() => assertSnapshotVersionAvailable(true, "0.12.2-alpha.224.snapshot.1.gabcdef0"))
+    expect(() => assertArtifactVersionAvailable(true, "0.12.2-alpha.224.snapshot.1.gabcdef0"))
       .toThrow("already exists on npm");
+  });
+
+  it("uses the exact package version for production artifacts", () => {
+    expect(releaseArtifactVersion("0.13.0-alpha.225", "0.13.0-alpha.225", null, "abcdef0"))
+      .toBe("0.13.0-alpha.225");
+  });
+
+  it("rejects a production version that differs from package.json", () => {
+    expect(() => releaseArtifactVersion(
+      "0.13.0-alpha.225",
+      "0.13.0-alpha.226",
+      null,
+      "abcdef0",
+    )).toThrow("does not match package.json");
   });
 });

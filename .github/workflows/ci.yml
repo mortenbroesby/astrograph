@@ -210,9 +210,6 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
-      - name: Build release agent
-        run: pnpm build
-
       - name: Read merged PR release exception
         id: release_exception
         env:
@@ -232,7 +229,7 @@ jobs:
           if [ "${{ steps.release_exception.outputs.no_release }}" = "true" ]; then
             args+=(--no-release)
           fi
-          node ./dist/scripts/release-agent.js "${args[@]}" \
+          node --import=tsx ./src/scripts/release-agent.ts "${args[@]}" \
             | tee "$RUNNER_TEMP/astrograph-release-decision.json"
           {
             echo "## Astrograph release decision"
@@ -248,6 +245,23 @@ jobs:
             echo "Release candidate was rejected before tag or npm publication."
             exit 1
           fi
+
+      - name: Build exact release artifact
+        id: artifact
+        if: steps.release.outputs.should_release == 'true'
+        run: >-
+          pnpm release:artifact
+          --output-dir "$RUNNER_TEMP/astrograph-release"
+          --version "${{ steps.release.outputs.target_version }}"
+          --sha "$GITHUB_SHA"
+
+      - name: Smoke exact release artifact
+        if: steps.release.outputs.should_release == 'true'
+        run: >-
+          node --import=tsx ./src/scripts/smoke-package-bin.ts
+          --prebuilt
+          --tarball "${{ steps.artifact.outputs.tarball_path }}"
+          --expected-version "${{ steps.release.outputs.target_version }}"
 
       - name: Push release tag
         if: steps.release.outputs.should_release == 'true'
@@ -265,7 +279,24 @@ jobs:
 
       - name: Publish trusted npm release
         if: steps.release.outputs.should_release == 'true'
-        run: npm publish --provenance --access public --tag latest
+        run: >-
+          npm publish "${{ steps.artifact.outputs.tarball_path }}"
+          --provenance
+          --access public
+          --tag latest
+
+      - name: Verify npm release artifact
+        if: steps.release.outputs.should_release == 'true'
+        env:
+          EXPECTED_DIGEST: ${{ steps.artifact.outputs.sha256 }}
+          EXPECTED_VERSION: ${{ steps.release.outputs.target_version }}
+        run: |
+          latest_version="$(npm view astrograph@latest version)"
+          test "$latest_version" = "$EXPECTED_VERSION"
+          tarball_url="$(npm view "astrograph@$EXPECTED_VERSION" dist.tarball)"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/astrograph-release-readback.tgz" "$tarball_url"
+          actual_digest="$(sha256sum "$RUNNER_TEMP/astrograph-release-readback.tgz" | cut -d ' ' -f 1)"
+          test "$actual_digest" = "$EXPECTED_DIGEST"
 
       - name: Record publication result
         if: steps.release.outputs.should_release == 'true'
@@ -273,6 +304,7 @@ jobs:
           {
             echo
             echo "npm published: \`astrograph@${{ steps.release.outputs.target_version }}\`"
+            echo "SHA-256: \`${{ steps.artifact.outputs.sha256 }}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   retry_publish:
@@ -299,6 +331,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: pnpm
           registry-url: https://registry.npmjs.org
 
       - name: Upgrade npm for trusted publishing
@@ -321,8 +354,39 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Build exact retry artifact
+        id: artifact
+        run: |
+          pnpm release:artifact \
+            --output-dir "$RUNNER_TEMP/astrograph-release" \
+            --version "$(node -p "require('./package.json').version")" \
+            --sha "$(git rev-parse HEAD)"
+
+      - name: Smoke exact retry artifact
+        run: >-
+          node --import=tsx ./src/scripts/smoke-package-bin.ts
+          --prebuilt
+          --tarball "${{ steps.artifact.outputs.tarball_path }}"
+          --expected-version "${{ steps.artifact.outputs.package_version }}"
+
       - name: Publish trusted npm release
-        run: npm publish --provenance --access public --tag latest
+        run: >-
+          npm publish "${{ steps.artifact.outputs.tarball_path }}"
+          --provenance
+          --access public
+          --tag latest
+
+      - name: Verify retried npm release artifact
+        env:
+          EXPECTED_DIGEST: ${{ steps.artifact.outputs.sha256 }}
+          EXPECTED_VERSION: ${{ steps.artifact.outputs.package_version }}
+        run: |
+          latest_version="$(npm view astrograph@latest version)"
+          test "$latest_version" = "$EXPECTED_VERSION"
+          tarball_url="$(npm view "astrograph@$EXPECTED_VERSION" dist.tarball)"
+          curl --fail --location --retry 3 --output "$RUNNER_TEMP/astrograph-release-readback.tgz" "$tarball_url"
+          actual_digest="$(sha256sum "$RUNNER_TEMP/astrograph-release-readback.tgz" | cut -d ' ' -f 1)"
+          test "$actual_digest" = "$EXPECTED_DIGEST"
 
   snapshot_publish:
     name: Publish npm snapshot

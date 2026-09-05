@@ -26,7 +26,8 @@ export interface ReleaseArtifactPaths {
 interface ReleaseArtifactOptions {
   commitSha: string;
   outputDir: string;
-  runId: string;
+  runId: string | null;
+  version: string | null;
 }
 
 export function snapshotVersion(baseVersion: string, runId: string, commitSha: string): string {
@@ -49,15 +50,33 @@ export function releaseArtifactPaths(outputDir: string): ReleaseArtifactPaths {
   };
 }
 
-export function assertSnapshotVersionAvailable(exists: boolean, version: string): void {
-  if (exists) throw new Error(`Snapshot version already exists on npm: astrograph@${version}`);
+export function releaseArtifactVersion(
+  baseVersion: string,
+  explicitVersion: string | null,
+  runId: string | null,
+  commitSha: string,
+): string {
+  if (explicitVersion !== null) {
+    parseAstrographVersion(explicitVersion);
+    if (explicitVersion !== baseVersion) {
+      throw new Error(`Release artifact version ${explicitVersion} does not match package.json ${baseVersion}`);
+    }
+    return explicitVersion;
+  }
+  if (runId === null) throw new Error("Snapshot artifacts require a run id");
+  return snapshotVersion(baseVersion, runId, commitSha);
+}
+
+export function assertArtifactVersionAvailable(exists: boolean, version: string): void {
+  if (exists) throw new Error(`Package version already exists on npm: astrograph@${version}`);
 }
 
 function parseArgs(argv: readonly string[]): ReleaseArtifactOptions {
   const values = new Map<string, string>();
+  const allowed = new Set(["--output-dir", "--run-id", "--sha", "--version"]);
   for (let index = 0; index < argv.length; index += 1) {
     const key = argv[index];
-    if (!key?.startsWith("--")) throw new Error(`Unknown release-artifact argument: ${key}`);
+    if (!key || !allowed.has(key)) throw new Error(`Unknown release-artifact argument: ${key}`);
     const value = argv[index + 1];
     if (!value || value.startsWith("--")) throw new Error(`${key} requires a value`);
     values.set(key, value);
@@ -65,12 +84,15 @@ function parseArgs(argv: readonly string[]): ReleaseArtifactOptions {
   }
 
   const outputDir = values.get("--output-dir");
-  const runId = values.get("--run-id") ?? process.env.GITHUB_RUN_ID;
+  const version = values.get("--version") ?? null;
+  const runId = version === null
+    ? values.get("--run-id") ?? process.env.GITHUB_RUN_ID ?? null
+    : null;
   const commitSha = values.get("--sha") ?? process.env.GITHUB_SHA;
-  if (!outputDir || !runId || !commitSha) {
-    throw new Error("Usage: release-artifact --output-dir <path> [--run-id <id>] [--sha <commit>]");
+  if (!outputDir || (!runId && !version) || !commitSha) {
+    throw new Error("Usage: release-artifact --output-dir <path> (--run-id <id> | --version <version>) [--sha <commit>]");
   }
-  return { commitSha, outputDir, runId };
+  return { commitSha, outputDir, runId, version };
 }
 
 function writeGithubOutput(values: Record<string, string>): void {
@@ -92,8 +114,13 @@ async function main(): Promise<void> {
     throw new Error("package.json must identify a versioned astrograph package");
   }
 
-  const version = snapshotVersion(manifest.version, options.runId, options.commitSha);
-  assertSnapshotVersionAvailable(await npmPackageVersionExists({
+  const version = releaseArtifactVersion(
+    manifest.version,
+    options.version,
+    options.runId,
+    options.commitSha,
+  );
+  assertArtifactVersionAvailable(await npmPackageVersionExists({
     packageName: manifest.name,
     version,
     timeoutMs: 15_000,
@@ -139,6 +166,7 @@ async function main(): Promise<void> {
   const tarballPath = path.join(paths.artifactDir, tarballs[0]!);
   const sha256 = createHash("sha256").update(readFileSync(tarballPath)).digest("hex");
   const metadata = {
+    channel: options.version === null ? "snapshot" : "latest",
     commitSha: options.commitSha.toLowerCase(),
     packageName: manifest.name,
     runId: options.runId,

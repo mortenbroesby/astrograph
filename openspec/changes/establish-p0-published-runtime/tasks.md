@@ -29,10 +29,10 @@
   generated tarball under the `snapshot` tag using trusted publishing; verify
   workflow syntax, scoped triggers, caching, permissions, concurrency, and the
   documented cost comparison.
-- [ ] 2.4 Change the guarded main release to pass one tarball plus digest from
+- [x] 2.4 Change the guarded main release to pass one tarball plus digest from
   package verification to `npm publish <tarball>` without rebuilding; verify
   release-agent tests, `pnpm release:plan`, and artifact identity assertions.
-- [ ] 2.5 Update `docs/reference/release.md` with snapshot invocation,
+- [x] 2.5 Update `docs/reference/release.md` with snapshot invocation,
   immutable version/digest evidence, `snapshot` versus `latest`, and rollback;
   verify every documented command matches the workflow inputs and scripts.
 
