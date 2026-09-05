@@ -17,7 +17,7 @@
 
 ## 2. Exact-artifact package channels
 
-- [ ] 2.1 Extend `src/scripts/smoke-package-bin.ts` with an explicit existing
+- [x] 2.1 Extend `src/scripts/smoke-package-bin.ts` with an explicit existing
   tarball input that skips packing and rejects missing or mismatched packages;
   verify focused script tests and a prebuilt package smoke pass.
 - [ ] 2.2 Add a minimal release-artifact helper that stages a unique snapshot

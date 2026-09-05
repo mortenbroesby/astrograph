@@ -21,6 +21,67 @@ const wasmGrammarNames = [
   "json", "html", "css", "c", "cpp", "php", "ruby", "embedded_template", "scala",
 ] as const;
 
+export interface SmokePackageOptions {
+  prebuiltPackage: boolean;
+  tarballPath: string | null;
+  wasmOnly: boolean;
+}
+
+export function parseSmokePackageArgs(
+  argv: readonly string[],
+  cwd = process.cwd(),
+): SmokePackageOptions {
+  let tarballPath: string | null = null;
+  let prebuiltPackage = false;
+  let wasmOnly = false;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const arg = argv[index];
+    if (arg === "--prebuilt") {
+      prebuiltPackage = true;
+    } else if (arg === "--wasm-only") {
+      wasmOnly = true;
+    } else if (arg === "--tarball") {
+      const value = argv[index + 1];
+      if (!value || value.startsWith("--")) {
+        throw new Error("--tarball requires a .tgz path");
+      }
+      tarballPath = path.resolve(cwd, value);
+      index += 1;
+    } else if (arg.startsWith("--tarball=")) {
+      const value = arg.slice("--tarball=".length);
+      if (!value) {
+        throw new Error("--tarball requires a .tgz path");
+      }
+      tarballPath = path.resolve(cwd, value);
+    } else {
+      throw new Error(`Unknown package smoke argument: ${arg}`);
+    }
+  }
+
+  if (tarballPath && path.extname(tarballPath) !== ".tgz") {
+    throw new Error("--tarball requires a .tgz path");
+  }
+
+  return { prebuiltPackage, tarballPath, wasmOnly };
+}
+
+export function assertPackageIdentity(
+  actual: { name?: unknown; version?: unknown },
+  expected: { name?: unknown; version?: unknown },
+): void {
+  if (
+    typeof expected.name !== "string"
+    || typeof expected.version !== "string"
+    || actual.name !== expected.name
+    || actual.version !== expected.version
+  ) {
+    throw new Error(
+      `Package tarball identity mismatch: expected ${String(expected.name)}@${String(expected.version)}, received ${String(actual.name)}@${String(actual.version)}`,
+    );
+  }
+}
+
 async function run(
   command: string,
   args: readonly string[],
@@ -61,11 +122,16 @@ async function run(
 }
 
 async function main(): Promise<void> {
-  const prebuiltPackage = process.argv.includes("--prebuilt");
-  const wasmOnly = process.argv.includes("--wasm-only");
+  const { prebuiltPackage, tarballPath: suppliedTarballPath, wasmOnly } =
+    parseSmokePackageArgs(process.argv.slice(2));
   const packageManifest = JSON.parse(
     await readFile(path.join(packageRoot, "package.json"), "utf8"),
-  ) as { packageManager?: string; version?: string };
+  ) as { name?: string; packageManager?: string; version?: string };
+  if (suppliedTarballPath) {
+    await access(suppliedTarballPath).catch(() => {
+      throw new Error(`Package tarball does not exist: ${suppliedTarballPath}`);
+    });
+  }
   const tempRoot = await mkdtemp(path.join(os.tmpdir(), "astrograph-pack-"));
   const packDir = path.join(tempRoot, "pack");
   const installDir = path.join(tempRoot, "install");
@@ -134,25 +200,27 @@ async function main(): Promise<void> {
       secondFixtureRepo,
     );
 
-    await run(
-      "pnpm",
-      ["pack", "--pack-destination", packDir],
-      packageRoot,
-      prebuiltPackage ? { npm_config_ignore_scripts: "true" } : {},
-    );
-    const tarballs = (await readdir(packDir)).filter((entry) => entry.endsWith(".tgz"));
-    const tarball = tarballs[0];
-
-    if (!tarball) {
-      throw new Error("Expected pnpm pack to produce a tarball");
+    let tarballPath = suppliedTarballPath;
+    if (!tarballPath) {
+      await run(
+        "pnpm",
+        ["pack", "--pack-destination", packDir],
+        packageRoot,
+        prebuiltPackage ? { npm_config_ignore_scripts: "true" } : {},
+      );
+      const tarballs = (await readdir(packDir)).filter((entry) => entry.endsWith(".tgz"));
+      if (tarballs.length !== 1) {
+        throw new Error(`Expected pnpm pack to produce exactly one tarball, received ${tarballs.length}`);
+      }
+      tarballPath = path.join(packDir, tarballs[0]!);
     }
 
     const npmGlobalInstall = await run(
       "npm",
-      ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
+      ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, tarballPath],
       installDir,
       {},
-      180_000,
+      300_000,
     );
     // Resolver and engine warnings mean users may not get a usable install.
     // Third-party deprecation notices are maintained upstream and do not change
@@ -161,6 +229,15 @@ async function main(): Promise<void> {
     if (/npm warn (ERESOLVE|EBADENGINE)\b/iu.test(npmGlobalInstall.stderr)) {
       throw new Error(`Unexpected npm global-install integrity warning: ${npmGlobalInstall.stderr}`);
     }
+    const { stdout: globalNodeModules } = await run(
+      "npm",
+      ["root", "--global", "--prefix", npmGlobalPrefix],
+      installDir,
+    );
+    const installedManifest = JSON.parse(
+      await readFile(path.join(globalNodeModules.trim(), "astrograph", "package.json"), "utf8"),
+    ) as { name?: unknown; version?: unknown };
+    assertPackageIdentity(installedManifest, packageManifest);
     const globalBin = process.platform === "win32"
       ? path.join(npmGlobalPrefix, "node_modules", ".bin", "astrograph.cmd")
       : path.join(npmGlobalPrefix, "bin", "astrograph");
@@ -168,11 +245,6 @@ async function main(): Promise<void> {
     if (!packageManifest.version || globalVersion.trim() !== packageManifest.version) {
       throw new Error(`Unexpected globally installed package version: ${globalVersion}`);
     }
-    const { stdout: globalNodeModules } = await run(
-      "npm",
-      ["root", "--global", "--prefix", npmGlobalPrefix],
-      installDir,
-    );
     await run(
       process.execPath,
       [
@@ -196,8 +268,8 @@ async function main(): Promise<void> {
       console.error("package smoke: WASM asset coverage completed successfully");
       return;
     }
-    await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
-    await run("pnpm", ["add", "-D", "@types/node"], installDir);
+    await run("pnpm", ["add", tarballPath], installDir, {}, 180_000);
+    await run("pnpm", ["add", "-D", "@types/node"], installDir, {}, 180_000);
     await writeFile(
       path.join(installDir, "package-types.ts"),
       [
@@ -226,6 +298,8 @@ async function main(): Promise<void> {
       process.execPath,
       [path.join(packageRoot, "node_modules", "typescript", "bin", "tsc"), "-p", "tsconfig.json"],
       installDir,
+      {},
+      180_000,
     );
     const { stdout } = await run(
       "pnpm",
@@ -349,7 +423,7 @@ async function main(): Promise<void> {
       throw new Error(`Expected astrograph doctor to verify the selected setup: ${doctorOutput}`);
     }
 
-    await run("pnpm", ["add", path.join(packDir, tarball)], fixtureRepo);
+    await run("pnpm", ["add", tarballPath], fixtureRepo, {}, 180_000);
     const { stdout: typedConfigOutput } = await run(
       "pnpm",
       [
@@ -536,7 +610,9 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exit(1);
-});
+if (path.resolve(process.argv[1] ?? "") === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}

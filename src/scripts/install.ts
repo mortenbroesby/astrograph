@@ -50,6 +50,7 @@ const MCP_TOOLS = MCP_TOOL_DEFINITIONS.map((tool) => tool.name);
 const DEFAULT_INSTALL_IDES: RequestedIde[] = ["codex"];
 const DEFAULT_GLOBAL_INSTALL_IDE = "copilot-cli" as const;
 export const DEFAULT_GUIDED_INSTALL_SCOPE = "global" as const;
+const MCP_STARTUP_VERIFICATION_TIMEOUT_MS = 5_000;
 const ISSUE_URL = "https://github.com/mortenbroesby/astrograph/issues/new";
 const TROUBLESHOOTING_URL = "https://github.com/mortenbroesby/astrograph/blob/main/docs/guides/troubleshooting.md";
 
@@ -1386,7 +1387,10 @@ async function verifyLocalMcpStartup(): Promise<void> {
     { stdio: ["pipe", "pipe", "pipe"] },
   );
   const result = await new Promise<void>((resolve, reject) => {
-    const timer = setTimeout(() => reject(new Error("Astrograph MCP startup verification timed out after 2 seconds")), 2_000);
+    const timer = setTimeout(
+      () => reject(new Error(`Astrograph MCP startup verification timed out after ${MCP_STARTUP_VERIFICATION_TIMEOUT_MS / 1_000} seconds`)),
+      MCP_STARTUP_VERIFICATION_TIMEOUT_MS,
+    );
     const finish = (error?: Error) => {
       clearTimeout(timer);
       child.kill();
