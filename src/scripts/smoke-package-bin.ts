@@ -464,10 +464,6 @@ async function main(): Promise<void> {
       {
         HOME: globalHome,
         ASTROGRAPH_CACHE_HOME: globalCacheHome,
-        // The global installer deliberately verifies that the `astrograph`
-        // command written to Codex configuration will resolve in a later
-        // session. This fixture installs the packed package locally, so model
-        // that global command discovery by exposing its bin directory.
         PATH: [path.join(installDir, "node_modules", ".bin"), process.env.PATH]
           .filter((entry): entry is string => Boolean(entry))
           .join(path.delimiter),
@@ -476,12 +472,25 @@ async function main(): Promise<void> {
     const globalInstalled = JSON.parse(globalInstall.stdout) as {
       configPreview?: string;
       engineConfigPreview?: string;
+      runtime?: { packageVersion?: string; packageSpecifier?: string; nodePath?: string; entrypoint?: string };
     };
     if (!globalInstalled.configPreview?.includes('[mcp_servers.astrograph]')) {
       throw new Error(`Expected packaged global install to register Codex: ${globalInstall.stdout}`);
     }
     if (!globalInstalled.engineConfigPreview?.includes('"storageLocation": "global"')) {
       throw new Error(`Expected packaged global install to opt into global storage: ${globalInstall.stdout}`);
+    }
+    if (
+      globalInstalled.runtime?.packageSpecifier !== "astrograph@latest"
+      || !globalInstalled.runtime.packageVersion
+      || !globalInstalled.runtime.nodePath
+      || !path.isAbsolute(globalInstalled.runtime.nodePath)
+      || !globalInstalled.runtime.entrypoint
+      || !path.isAbsolute(globalInstalled.runtime.entrypoint)
+      || !globalInstalled.configPreview.includes(globalInstalled.runtime.nodePath)
+      || !globalInstalled.configPreview.includes(globalInstalled.runtime.entrypoint)
+    ) {
+      throw new Error(`Expected packaged global install to select one absolute registry runtime: ${globalInstall.stdout}`);
     }
 
     const globalCopilotInstall = await run(
@@ -501,6 +510,7 @@ async function main(): Promise<void> {
       configPath?: string;
       configPreview?: string;
       engineConfigPreview?: string;
+      runtime?: { packageVersion?: string; nodePath?: string; entrypoint?: string };
     };
     if (globalCopilotInstalled.configPath !== path.join(globalCopilotHome, "mcp-config.json")) {
       throw new Error(`Expected packaged global install to use COPILOT_HOME: ${globalCopilotInstall.stdout}`);
@@ -514,11 +524,14 @@ async function main(): Promise<void> {
     const installedCopilotConfig = JSON.parse(
       await readFile(path.join(globalCopilotHome, "mcp-config.json"), "utf8"),
     ) as { mcpServers?: Record<string, { command?: string; args?: string[] }> };
+    const installedCopilotServer = installedCopilotConfig.mcpServers?.astrograph;
     if (
-      installedCopilotConfig.mcpServers?.astrograph?.command !== "npx"
-      || installedCopilotConfig.mcpServers.astrograph.args?.join(" ") !== `-y --package astrograph@${packageManifest.version} astrograph mcp`
+      globalCopilotInstalled.runtime?.packageVersion !== globalInstalled.runtime.packageVersion
+      || installedCopilotServer?.command !== globalCopilotInstalled.runtime.nodePath
+      || installedCopilotServer?.args?.join("\0")
+        !== ["--no-warnings", globalCopilotInstalled.runtime.entrypoint, "mcp"].join("\0")
     ) {
-      throw new Error("Expected packaged global install to persist the Copilot CLI Astrograph server");
+      throw new Error("Expected packaged global install to persist the same absolute runtime for Copilot CLI");
     }
     await access(path.join(secondFixtureRepo, ".codex", "config.toml"))
       .then(() => { throw new Error("Global setup must not write repository configuration without an index opt-in"); })

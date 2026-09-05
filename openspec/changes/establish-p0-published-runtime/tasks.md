@@ -46,7 +46,7 @@
 - [x] 3.2 Generate Codex TOML and Copilot JSON from the same selected runtime
   descriptor while preserving separate stdio bridges and dry-run previews;
   verify exact config serialization tests for both clients.
-- [ ] 3.3 Remove Astrograph's repository-local MCP version override and add a
+- [x] 3.3 Remove Astrograph's repository-local MCP version override and add a
   migration check for shadowing project registrations; verify launches from
   neutral directories and repositories with different `.tool-versions` report
   the same immutable version.

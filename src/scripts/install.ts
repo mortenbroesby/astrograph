@@ -177,6 +177,7 @@ export interface SetupGlobalClientOptions {
   channel?: ManagedRuntimeChannel;
   /** Internal coordination so multiple client adapters use one selected runtime. */
   runtime?: ManagedRuntimeDescriptor;
+  repoRoot?: string;
   environment?: StoragePathEnvironment;
   nodeVersion?: string;
   executableAvailable?: boolean;
@@ -1728,6 +1729,34 @@ export function setLocalMcpStartupVerifierForTest(verifier: (() => Promise<void>
   localMcpStartupVerifier = verifier ?? verifyLocalMcpStartup;
 }
 
+export async function findShadowingProjectRegistration(
+  ide: "codex" | "copilot-cli",
+  repoRoot = process.cwd(),
+): Promise<string | null> {
+  const root = resolveRepoRoot(repoRoot);
+  const configPath = ide === "codex"
+    ? path.join(root, ".codex", "config.toml")
+    : path.join(root, ".mcp.json");
+  const contents = await readOptionalConfig(configPath);
+  if (!contents) return null;
+  if (ide === "codex") {
+    return contents.includes("[mcp_servers.astrograph]") ? configPath : null;
+  }
+  return await managedJsonServerExists(configPath, "mcpServers") ? configPath : null;
+}
+
+async function assertNoShadowingProjectRegistration(
+  ide: "codex" | "copilot-cli",
+  repoRoot: string | undefined,
+): Promise<void> {
+  const configPath = await findShadowingProjectRegistration(ide, repoRoot);
+  if (configPath) {
+    throw new Error(
+      `Project Astrograph registration ${configPath} shadows the device runtime. Remove that project registration before global setup.`,
+    );
+  }
+}
+
 export async function setupGlobalForCodex(
   options: SetupGlobalClientOptions = {},
 ): Promise<GlobalSetupResult> {
@@ -1739,6 +1768,7 @@ export async function setupGlobalForCodex(
   const currentEngineConfig = await readOptionalConfig(engineConfigPath);
   assertTomlStructurallyValid(currentCodexConfig, configPath);
   const currentEngine = parseGlobalConfig(currentEngineConfig, engineConfigPath);
+  await assertNoShadowingProjectRegistration("codex", options.repoRoot);
   const runtime = await selectManagedRuntime(options);
   const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock(runtime), reset);
   const engineConfigPreview = `${JSON.stringify({
@@ -1821,6 +1851,7 @@ export async function setupGlobalForCopilotCli(
   const currentEngineConfig = await readOptionalConfig(engineConfigPath);
   parseJsonConfig(currentCopilotConfig, configPath);
   const currentEngine = parseGlobalConfig(currentEngineConfig, engineConfigPath);
+  await assertNoShadowingProjectRegistration("copilot-cli", options.repoRoot);
   const runtime = await selectManagedRuntime(options);
   const configPreview = replaceManagedServerInJson(
     currentCopilotConfig,
