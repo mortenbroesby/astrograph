@@ -4,6 +4,7 @@ export default {
   observability: {
     retentionDays: 14,
     redactSourceText: false,
+    verbosePerformance: true,
   },
   performance: {
     exclude: [

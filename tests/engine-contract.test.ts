@@ -684,7 +684,7 @@ describe("ai-context-engine contract", () => {
       JSON.stringify({
         summaryStrategy: "signature-only", storageMode: "wal",
         ranking: { exactName: 0, filePathContains: 2000, pathPresets: { generationCode: ["tools/**"] } },
-        observability: { retentionDays: 5, redactSourceText: false },
+        observability: { retentionDays: 5, redactSourceText: false, verbosePerformance: true },
         performance: { include: ["src/**/*.ts"], exclude: ["**/*.test.ts"], fileProcessingConcurrency: 1, workerPool: { enabled: true, maxWorkers: 2 } },
         watch: { backend: "polling", debounceMs: 175 },
         limits: { maxFilesDiscovered: 1234, maxFileBytes: 4321, maxSymbolsPerFile: 7, maxSymbolResults: 9, maxTextResults: 8, maxChildProcessOutputBytes: 7654, maxLiveSearchMatches: 3 },
@@ -708,6 +708,7 @@ describe("ai-context-engine contract", () => {
     expect(config.observability).toMatchObject({
       retentionDays: 5,
       redactSourceText: false,
+      verbosePerformance: true,
     });
     expect(config.performance.fileProcessingConcurrency).toBe(1);
     expect(config.performance.include).toEqual(["src/**/*.ts"]);
@@ -982,6 +983,7 @@ describe("ai-context-engine contract", () => {
     expect(autoConfig.observability).toEqual({
       retentionDays: DEFAULT_OBSERVABILITY_RETENTION_DAYS,
       redactSourceText: true,
+      verbosePerformance: false,
     });
     expect(autoConfig.watch).toEqual({
       backend: "auto",

@@ -107,6 +107,7 @@ cache recovery, or verbose global-command installation output, see
 astrograph report
 astrograph report --repo /repo
 astrograph report --repo /repo --reset --yes
+astrograph report --repo /repo --verbose
 ```
 
 The report is local, source-free JSON. Without `--repo`, it reports the current
@@ -114,6 +115,10 @@ repository when Astrograph uses repository-local storage, or aggregates the
 existing Astrograph stores for all local repositories when global storage is
 selected. `--repo` always selects one repository. Reset is deliberately more
 strict: it requires both `--repo` and `--yes`.
+
+`--verbose` includes bounded, local index-phase and operation timing detail
+when `observability.verbosePerformance` is enabled. It excludes source, raw
+queries, file paths, session IDs, and child-process output.
 
 ## Cache Archive and Recovery Commands
 

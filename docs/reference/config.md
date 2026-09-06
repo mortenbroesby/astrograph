@@ -17,6 +17,7 @@ export default defineConfig({
   observability: {
     retentionDays: 3,
     redactSourceText: true,
+    verbosePerformance: false,
   },
   ranking: {
     exactName: 1000,
@@ -102,9 +103,14 @@ Available fields:
 
 - `retentionDays`
 - `redactSourceText`
+- `verbosePerformance`
 
 The most important setting for most users is `redactSourceText`, which defaults
 to `true`.
+
+Set `verbosePerformance: true` only while investigating local indexing
+performance. It defaults to `false` and retains bounded phase timings without
+source text, raw queries, file paths, session IDs, or child-process output.
 
 ### `performance`
 

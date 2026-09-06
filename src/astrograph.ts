@@ -19,6 +19,7 @@ function usage() {
     "",
     "Usage:",
     "  astrograph cli <args...>",
+    "  astrograph report [--repo /abs/repo] [--verbose]",
     "  astrograph cli index-folder --repo /abs/repo [--storage-location repo-local|global]",
     "  astrograph cache status --repo /abs/repo",
     "  astrograph cache remove --repo /abs/repo [--yes]",
@@ -50,7 +51,7 @@ if (mode === "--version" || mode === "-v") {
 }
 
 const sourceTarget =
-  mode === "cli" || mode === "cache"
+  mode === "cli" || mode === "cache" || mode === "report"
     ? path.join(packageRoot, "src", "cli.ts")
     : mode === "mcp"
       ? path.join(packageRoot, "src", "mcp.ts")
@@ -60,7 +61,7 @@ const sourceTarget =
           ? path.join(packageRoot, "src", "scripts", "install.ts")
           : null;
 const distTarget =
-  mode === "cli" || mode === "cache"
+  mode === "cli" || mode === "cache" || mode === "report"
     ? path.join(packageRoot, "dist", "cli.js")
     : mode === "mcp"
       ? path.join(packageRoot, "dist", "mcp.js")
@@ -82,6 +83,8 @@ const useBuiltTarget = existsSync(distTarget) && (!preferSource || !existsSync(s
 const nodeArgs = mode === "mcp" ? ["--no-warnings"] : [];
 const commandArgs = mode === "cache"
   ? [`cache-${args[0] ?? ""}`, ...args.slice(1)]
+  : mode === "report"
+    ? ["report", ...args]
   : mode === "--diagnostics"
     ? ["--diagnostics"]
   : mode === "doctor"

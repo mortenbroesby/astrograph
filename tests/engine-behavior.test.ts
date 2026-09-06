@@ -176,7 +176,8 @@ describe("ai-context-engine behavior", () => {
     const child = spawn(
       process.execPath,
       [
-        path.join(packageRoot, "scripts", "astrograph.mjs"),
+        "--import=tsx",
+        path.join(packageRoot, "src", "astrograph.ts"),
         "cli",
         "index-folder",
         "--repo",
@@ -2041,7 +2042,7 @@ export function circleArea(radius: number): number {
     ).rejects.toThrow(/getTaskContext requires a non-empty query or symbolIds/i);
   });
 
-  it("extracts symbols from a large file when single-pass tree-sitter parsing fails", async () => {
+  it("extracts symbols from a large file without unnecessary chunk recovery", async () => {
     const repoRoot = await createFixtureRepo();
     const largeModule = Array.from({ length: 900 }, (_, index) =>
       `export function helper${index}(value: number): number { return value + ${index}; }`,
@@ -2088,8 +2089,8 @@ export function circleArea(radius: number): number {
         expect.objectContaining({
           path: "src/large.ts",
           parser_backend: "tree-sitter",
-          parser_fallback_used: 1,
-          parser_fallback_reason: "tree-sitter-chunk-recovery",
+          parser_fallback_used: 0,
+          parser_fallback_reason: null,
           symbol_count: 900,
         }),
       ]),
