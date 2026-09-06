@@ -70,6 +70,11 @@ turns those focuses into an exclusive execution gate.
 
 ## Ready — detailed, but not selected
 
+1. [Node 20–24 Runtime Compatibility](./planned/1_node-20-to-24-runtime-compatibility-epic.md)
+   is a high-priority follow-up, deliberately separate from Runtime
+   Acceleration. It must reproduce the reported Node 24 failure, prove clean
+   package behavior on Node 20/22/24, and only then widen the current
+   `>=22.12.0` package contract.
 2. [npm-module adoption](./planned/2_npm-module-adoption-epic.md) has Stories
    1–3 complete; Stories 4–6 remain parked behind their CI-cost and
    third-party-command evidence gates. Preserve product-specific behavior;
