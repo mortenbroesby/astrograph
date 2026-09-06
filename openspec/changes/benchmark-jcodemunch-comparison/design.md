@@ -40,7 +40,7 @@ The deterministic layer compares tool-schema cost and matched MCP retrieval work
 
 ### Land reviewed evidence through the test branch
 
-Keep implementation, local-only configuration, OpenSpec artifacts, and draft evidence on `codex/jcodemunch-benchmark`. After focused verification and review, update `docs/guides/benchmarks.md` and add a dated review with reproduction commands, limitations, raw-evidence locations, and uninstall steps. Merge that branch to `main` through GitHub, leave the remote branch available for repeat runs, and verify the exact merged commit. No npm release is expected because runtime/package behavior is unchanged; confirm with the repository release-decision workflow before completion.
+Keep implementation, local-only configuration, OpenSpec artifacts, and draft evidence on `codex/jcodemunch-benchmark`. After focused verification and review, update `docs/guides/benchmarks.md` and add a dated review with reproduction commands, limitations, raw-evidence locations, and uninstall steps. Merge that branch to `main` through GitHub, leave the remote branch available for repeat runs, and verify the exact merged commit. Runtime/package behavior is unchanged, so apply the repository's `no-release` PR policy and confirm that override with the release-decision workflow before completion.
 
 ## Risks / Trade-offs
 
