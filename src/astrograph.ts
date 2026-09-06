@@ -15,6 +15,8 @@ const packageVersion = JSON.parse(readFileSync(path.join(packageRoot, "package.j
 function usage() {
   process.stderr.write(
   [
+    `Astrograph v${packageVersion}`,
+    "",
     "Usage:",
     "  astrograph cli <args...>",
     "  astrograph cli index-folder --repo /abs/repo [--storage-location repo-local|global]",
