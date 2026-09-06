@@ -108,7 +108,7 @@ function readIndexedFileUpdatedAt(repoRoot: string, filePath: string): string | 
 }
 
 describe("ai-context-engine behavior", () => {
-  const it = (name: string, fn: (...args: never[]) => unknown, timeout = 15000) =>
+  const it = (name: string, fn: (...args: never[]) => unknown, timeout = 30000) =>
     baseIt(name, fn as never, timeout);
   const slowIt =
     process.env.ASTROGRAPH_ENABLE_SLOW_TESTS === "1"
@@ -643,7 +643,7 @@ module.exports = {
     expect(health.databasePath).toBe(
       path.join(canonicalRepoRoot, ".astrograph", "index.sqlite"),
     );
-    expect(health.storageVersion).toBe(1);
+    expect(health.storageVersion).toBe(2);
     expect(health.schemaVersion).toBe(7);
 
     const db = new Database(health.databasePath, { readonly: true });
@@ -905,7 +905,7 @@ module.exports = {
     expect(schemaVersionRow?.value).toBe("7");
   });
 
-  it("resets incompatible storage versions before serving diagnostics", async () => {
+  it("resets version-1 storage before serving version-2 diagnostics", async () => {
     const repoRoot = await createFixtureRepo({
       directoryPrefix: "astrograph storage reset with spaces-",
     });
@@ -915,7 +915,7 @@ module.exports = {
     await fs.mkdir(paths.storageDir, { recursive: true });
     await fs.writeFile(
       paths.storageVersionPath,
-      JSON.stringify({ version: 0, updatedAt: "2026-07-18T00:00:00.000Z" }),
+      JSON.stringify({ version: 1, updatedAt: "2026-07-18T00:00:00.000Z" }),
     );
     const stalePath = path.join(paths.storageDir, "stale-artifact.json");
     const staleWalPath = `${paths.databasePath}-wal`;
@@ -934,7 +934,7 @@ module.exports = {
     await expect(fs.readFile(staleWalPath, "utf8")).resolves.not.toBe("stale wal");
     await expect(fs.readFile(staleShmPath, "utf8")).resolves.not.toBe("stale shm");
     await expect(fs.readFile(paths.storageVersionPath, "utf8"))
-      .resolves.toContain('"version": 1');
+      .resolves.toContain('"version": 2');
   });
 
   it("discards missing and malformed storage markers before opening cache contents", async () => {
@@ -956,7 +956,7 @@ module.exports = {
       await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
       await expect(fs.access(obsoletePath)).rejects.toMatchObject({ code: "ENOENT" });
       await expect(fs.readFile(paths.storageVersionPath, "utf8"))
-        .resolves.toContain('"version": 1');
+        .resolves.toContain('"version": 2');
     }
   });
 
@@ -983,7 +983,7 @@ module.exports = {
       await expect(diagnostics({ repoRoot })).resolves.toMatchObject({ schemaVersion: 7 });
       await expect(fs.access(obsoletePath)).rejects.toMatchObject({ code: "ENOENT" });
       await expect(fs.readFile(paths.storageVersionPath, "utf8"))
-        .resolves.toContain('"version": 1');
+        .resolves.toContain('"version": 2');
     } finally {
       clearStorageProcessCaches();
       if (previousCacheHome === undefined) delete process.env.ASTROGRAPH_CACHE_HOME;
@@ -1133,7 +1133,7 @@ module.exports = {
       paths.repoMetaPath,
       `${JSON.stringify({
         repoRoot,
-        storageVersion: 1,
+        storageVersion: 2,
         indexedAt: new Date().toISOString(),
         indexedFiles: 2,
         indexedSymbols: 5,

@@ -66,3 +66,17 @@ across eight calls, repeated five symbol searches, overflowed one broad result,
 and cited a neighboring hash helper instead of the parser implementation. This
 direct observation caused the final limit-5, exact/file-scoped, one-or-two-source
 guidance above; the review itself is not counted in the four-call benchmark.
+
+## Published Runtime Upgrade Observation
+
+The first immutable `0.14.1-alpha.237` proof connected through the managed
+Copilot CLI registration and completed four sequential calls without a timeout
+or re-index. It used 35,750 model input tokens in 23,898 ms, but symbol search
+and file outline still overflowed at 37,231 and 41,641 bytes. The installed
+runtime had reused version-1 index records created before structural signatures,
+so the release could still serve legacy full-body metadata.
+
+The follow-up increments the existing persisted-storage compatibility marker to
+version 2. Opening a version-1 cache now uses the established reversible archive
+path before the upgraded runtime rebuilds and serves retrieval. Raw proof output
+remains in temporary storage.

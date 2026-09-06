@@ -8,6 +8,7 @@ A real Astrograph-only Copilot CLI trial spent 181 seconds on 38 calls, includin
 - Make ordinary MCP JSON responses compact on the wire without changing their parsed v1 envelope.
 - Tell MCP clients and generated Copilot/Codex guidance to sequence requests for one repository so the existing per-repository daemon safety queue does not turn parallel bursts into timeouts.
 - Guide clients to begin with small search/context bounds, make routine MCP project status omit the verbose support matrix, and tolerate imperfect optional content-reference cache hints.
+- Invalidate persisted indexes when a release changes their stored symbol representation so an upgraded runtime cannot keep serving legacy full-body signatures.
 - Add a repeatable, privacy-safe Copilot CLI trial that records usage, latency, failures, and response size without retaining source text or raw prompts in the repository.
 - Keep the 14-tool surface, shared daemon, result validation, source provenance, and explicit token budgets unchanged.
 
@@ -25,4 +26,4 @@ A real Astrograph-only Copilot CLI trial spent 181 seconds on 38 calls, includin
 
 ## Impact
 
-The change affects parser signature extraction, MCP JSON serialization, MCP initialization and generated agent guidance, focused parser/MCP/installer tests, and performance documentation. It adds no dependency, removes no tool, does not change source byte ranges, and does not replace the daemon.
+The change affects parser signature extraction, persisted-index compatibility, MCP JSON serialization, MCP initialization and generated agent guidance, focused parser/MCP/installer tests, and performance documentation. It adds no dependency, removes no tool, does not change source byte ranges, and does not replace the daemon.

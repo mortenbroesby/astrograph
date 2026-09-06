@@ -13,6 +13,7 @@
 - [x] 2.5 Guide Copilot to start exact/file-scoped symbol search at limit 5, task context at 1,200 payload tokens, and exact source with one or two symbols; verify tool, MCP, and generated-policy descriptions preserve larger explicit requests
 - [x] 2.6 Accept Copilot-sized session identifiers and ignore malformed optional content-reference hints within existing resource limits; verify retrieval still executes
 - [x] 2.7 Omit verbose support matrices from routine MCP project status unless explicitly requested; verify the CLI/library contract remains complete
+- [x] 2.8 Increment persisted-index compatibility after the signature semantic change; verify an old cache is archived and cannot serve legacy full-body signatures after upgrade
 
 ## 3. Real-client proof and delivery
 
@@ -20,4 +21,4 @@
 - [x] 3.2 Update the performance guide with the bounded Copilot trial method and explicit ephemeral-artifact rules; verify no prompt, source, raw log, or session identifier is committed
 - [x] 3.3 Run relevant retrieval benchmarks, `pnpm verify:fast`, `pnpm check:version-bump --base origin/main`, and `openspec validate optimize-copilot-retrieval-efficiency --strict`; fix or explicitly report every failure
 - [x] 3.4 Use Copilot as a bounded Luna-style review agent that relies on Astrograph; assess both its engineering findings and its tool-call efficiency before integration
-- [ ] 3.5 Apply the release decision, commit and push the branch, verify exact-head CI, and prove the selected immutable device runtime through a fresh Copilot CLI session before marking the backlog entry complete
+- [ ] 3.5 Apply the release decision, commit and push the branch, verify exact-head CI, and prove the selected immutable device runtime rebuilds incompatible persisted indexes through a fresh Copilot CLI session before marking the backlog entry complete

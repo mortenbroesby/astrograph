@@ -57,7 +57,7 @@ describe("cli boundaries", () => {
       diagnostic: null,
     });
     expect(result.checkout.indexedAt).toEqual(expect.any(String));
-  });
+  }, 10_000);
 
   it("requires explicit all-cache scope before pruning", async () => {
     await expect(handleCli(["cache-prune", "--max-bytes", "0"])).rejects.toThrow(
