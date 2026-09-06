@@ -1,7 +1,7 @@
 # Astrograph Project Specifications
 
 This directory is the source of truth for Astrograph architecture, public
-contracts, implementation plans, and architectural decisions.
+contracts, implementation plans, roadmap, and architectural decisions.
 
 ## Documentation Index
 
@@ -21,14 +21,19 @@ External contracts for agents, CLIs, libraries, and MCP clients.
 - [CLI API](./api-design/cli-api.md) - JSON command surface and bin behavior.
 - [Library API](./api-design/library-api.md) - TypeScript entry points and stability rules.
 
+### [Roadmap](./roadmap/README.md)
+
+Current product and implementation sequencing derived from raw investigation docs.
+
+- [Agent Parity Roadmap](./roadmap/agent-parity-roadmap.md) - Next jCodeMunch-parity chunks and later lanes.
+
 ### [Implementation](./implementation/README.md)
 
 Implementation specs, refactor plans, and internal subsystem ownership.
 
-- [Source Architecture Refactor Plan](./implementation/src-architecture-refactor-plan.md) - Canonical refactor plan for storage, parser, CLI/MCP, observability, and type ownership.
 - [Spec System](./implementation/spec-system.md) - How this spec tree and agent skills are maintained.
 - [GitHub Actions Cost Policy](./implementation/github-actions-cost-policy.md) - CI cost controls and review checklist.
-- [MCP v1 Hard-Switch Plan](./implementation/mcp-v1-hard-switch-plan.md) - Remove MCP `query_code`, ship strict `ok`/`data`/`meta`/`error` envelopes with `toolVersion: "1"`, keep MCP cache behavior out of v1, and define the explicit `search_symbols`/`get_symbol_source`/`get_context_bundle`/`get_ranked_context` retrieval surface.
+- [Completed Implementation Plans](./implementation/done/README.md) - Archived plans whose execution work is complete.
 
 ### [Templates](./templates/README.md)
 
@@ -43,41 +48,35 @@ Reusable starting points for agent-created docs.
 
 ## Specification Roadmap
 
-### Phase 1: Spec System Bootstrap (In Progress)
-
-**Goal:** Make spec authoring predictable for agents.
+### Completed Foundations
 
 - [x] Create top-level `specs/` index.
 - [x] Add architecture, API design, implementation, and template sections.
 - [x] Add repo-local agent skills for specs, ADRs, and plans.
-- [ ] Backfill core subsystem specs from existing README and tests.
-
-### Phase 2: Architecture Baseline (Planned)
-
-**Goal:** Capture stable design rules before larger refactors.
-
-- [ ] Document storage/index ownership boundaries.
-- [ ] Record ADRs for SQLite-only local storage and MCP-first retrieval.
-- [ ] Document freshness/readiness lifecycle.
-- [ ] Document privacy and event-retention model.
-
-### Phase 3: API Contract Baseline (Planned)
-
-**Goal:** Make public surfaces explicit and testable.
-
-- [ ] Document MCP tools and result stability.
-- [ ] Document CLI command shapes and JSON output expectations.
-- [ ] Document TypeScript API stability levels.
-- [ ] Link contract tests to each public API spec.
 - [x] Complete and merge MCP v1 hard-switch plan.
+- [x] Complete source architecture refactor plan.
+- [x] Establish release-agent workflow and version policy docs.
+- [x] Split completed implementation plans into `specs/implementation/done/`.
+- [x] Add `specs/roadmap/` as the active future-work queue.
 
-### Phase 4: Implementation Plans (Planned)
+### Active Roadmap
 
-**Goal:** Keep refactors task-sized, test-first, and reviewable.
+The current next chunks are tracked in
+[Agent Parity Roadmap](./roadmap/agent-parity-roadmap.md):
 
-- [x] Move storage refactor plan into `specs/implementation/`.
-- [x] Split future plans by subsystem.
-- [ ] Require baseline verification and commit checkpoints in each plan.
+- [ ] Retrieval quality upgrade.
+- [ ] Stable symbol identity.
+- [ ] Reference and dependency graph tools.
+- [ ] Compact output and detail levels.
+
+### Backlog Themes
+
+- [ ] Runtime profiles and compact schemas.
+- [ ] Python language adapter pilot.
+- [ ] Agent guidance, hooks, sessions, and edit lifecycle.
+- [ ] Cache reintroduction after stable IDs and index generation.
+- [ ] Edit-safety and impact tools.
+- [ ] Optional semantic search.
 
 ---
 
@@ -87,3 +86,4 @@ Reusable starting points for agent-created docs.
 - Release procedure belongs in [docs/release.md](../docs/release.md).
 - Performance profiling procedure belongs in [docs/performance.md](../docs/performance.md).
 - Specs do not replace tests. Each public contract spec must point to verification.
+- Raw investigation material under `specs/raw/` is source material, not the active queue.

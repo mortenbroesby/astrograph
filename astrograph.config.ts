@@ -1,4 +1,4 @@
-import { defineConfig } from "@mortenbroesby/astrograph";
+import { defineConfig } from "astrograph";
 
 export default defineConfig({
   summaryStrategy: "doc-comments-first",

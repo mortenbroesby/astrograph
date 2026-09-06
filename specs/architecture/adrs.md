@@ -138,7 +138,7 @@ For the MCP v1 hard-switch, active parser execution is tree-sitter-only.
 
 ## Verification
 
-- `specs/implementation/mcp-v1-hard-switch-plan.md` Phase A tracks the cutover.
+- `specs/implementation/done/mcp-v1-hard-switch-plan.md` Phase A tracks the cutover.
 - Parser regression tests must assert tree-sitter-only metadata and
   deterministic symbols for representative JS/TS/JSX/TSX fixtures.
 - Targeted verification remains:
