@@ -32,7 +32,7 @@ import {
 } from "./types.ts";
 
 export const ENGINE_STORAGE_DIRNAME = ".astrograph";
-export const ENGINE_STORAGE_VERSION = 1;
+export const ENGINE_STORAGE_VERSION = 2;
 export const ENGINE_SCHEMA_VERSION = 7;
 export const ENGINE_CONFIG_FILENAME = "astrograph.config.ts";
 export const ENGINE_LEGACY_CONFIG_FILENAME = "astrograph.config.json";

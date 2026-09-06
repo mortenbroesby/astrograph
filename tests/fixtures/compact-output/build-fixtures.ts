@@ -67,5 +67,10 @@ export async function createCompactOutputFixture(name: CompactOutputFixtureName)
 
 export async function cleanupCompactOutputFixtures() {
   clearStorageProcessCaches();
-  await Promise.all(created.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
+  await Promise.all(created.splice(0).map((directory) => rm(directory, {
+    recursive: true,
+    force: true,
+    maxRetries: 5,
+    retryDelay: 50,
+  })));
 }

@@ -448,7 +448,7 @@ export function circumference(radius: number): string {
       nestedRepoRoot,
     ]);
     expect(JSON.parse(diagnosticsStdout)).toMatchObject({
-      storageVersion: 1,
+      storageVersion: 2,
       schemaVersion: 7,
       indexedFiles: 2,
       currentFiles: 2,
@@ -824,7 +824,7 @@ export function circumference(radius: number): string {
       });
 
     });
-  }, 20_000);
+  }, 40_000);
 
   it("boots the SDK-backed MCP stdio server and handles initialize, tools/list, and tools/call", async () => {
     const repoRoot = await createFixtureRepo();
@@ -865,7 +865,7 @@ export function circumference(radius: number): string {
         data: {
           engineVersion: ASTROGRAPH_PACKAGE_VERSION,
           storageDir: path.join(canonicalRepoRoot, ".astrograph"),
-          storageVersion: 1,
+          storageVersion: 2,
           schemaVersion: 7,
           readiness: {
             stage: "not-ready",

@@ -35,6 +35,8 @@ The per-repository queue in `src/daemon-tenants.ts` is an intentional storage-sa
 
 7. **Keep routine MCP status focused on readiness.** Omit the 9.5 KB language support matrix unless `includeSupportTiers` is explicitly true. Changing the engine result was rejected because the CLI and library retain the complete diagnostic contract.
 
+8. **Version persisted parser semantics with the existing storage compatibility marker.** Increment the storage version when structural signatures replace legacy full-body signatures. The existing reversible obsolete-storage path archives the prior cache and creates a clean index, so every caller receives the new representation after a runtime upgrade. Leaving the marker unchanged was rejected after the published-runtime proof reused old records and overflowed two otherwise bounded Copilot calls.
+
 Focused verification links:
 
 - Structural signature requirement: parser regression plus search/outline/source assertions in `tests/parser.golden.test.ts` or the narrowest existing parser boundary.
@@ -42,6 +44,7 @@ Focused verification links:
 - Sequencing requirement: MCP initialize assertion in `tests/interface.test.ts` and generated policy assertions in `tests/engine-contract.test.ts`.
 - Health-aware hydration requirement: generated policy assertions plus a real deep-ready/degraded candidate status that does not trigger repeated indexing.
 - Client evidence requirement: three equivalent packaged-runtime Copilot runs summarized in a privacy-safe review; `pnpm verify:fast`, `pnpm check:version-bump --base origin/main`, and strict OpenSpec validation.
+- Upgrade compatibility requirement: a storage-version regression proves prior cache records are archived before the upgraded runtime serves retrieval.
 
 ## Risks / Trade-offs
 
@@ -50,7 +53,8 @@ Focused verification links:
 - [Some clients ignore MCP server instructions] -> Mirror the sequencing rule in generated agent policy.
 - [An index can be stale for either content drift or degraded dependency health] -> Tell the agent to use readiness, safe operations, and recommended action rather than interpreting the word `stale` alone.
 - [Minified JSON is less pleasant for humans reading raw MCP frames] -> CLI commands remain the human-readable surface; parsed MCP compatibility is unchanged.
+- [A storage-version bump causes a one-time rebuild] -> Reuse the existing reversible archive flow; the rebuild cost is preferable to silently serving incompatible persisted semantics.
 
 ## Migration Plan
 
-Ship through the existing snapshot/package workflow, run the same Copilot scenario against the installed immutable artifact, then merge and promote only after exact-head CI and real-client evidence pass. Rollback selects the previous immutable device runtime; indexes and storage schemas are unchanged.
+Ship through the existing package workflow, run the same Copilot scenario against the installed immutable artifact, then merge and publish only after exact-head CI and real-client evidence pass. The upgraded runtime archives version-1 indexes and rebuilds them as version 2. Rollback selects the previous immutable device runtime; archived prior indexes remain recoverable through the existing cache receipt.
