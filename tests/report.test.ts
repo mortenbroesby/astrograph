@@ -75,6 +75,61 @@ describe("Astrograph report", () => {
     await expect(getReport(repoRoot)).resolves.toMatchObject({ eventCount: 0 });
   });
 
+  it("adds only bounded, sanitized verbose operation and profile detail on request", async () => {
+    const repoRoot = await createFixtureRepo();
+    await appendEngineEvent({
+      repoRoot,
+      source: "mcp",
+      event: "mcp.tool.started",
+      level: "debug",
+      correlationId: "session-secret",
+      data: { toolName: "index_folder", query: "do not retain", filePath: "/private/file.ts" },
+    });
+    await appendEngineEvent({
+      repoRoot,
+      source: "mcp",
+      event: "mcp.tool.failed",
+      level: "error",
+      correlationId: "failed-call",
+      data: { durationMs: 25, message: "do not retain" },
+    });
+    await appendEngineEvent({
+      repoRoot,
+      source: "index-worker",
+      event: "index.profile",
+      level: "info",
+      data: {
+        outcome: "success",
+        durationMs: 100,
+        discoveryMs: 10,
+        analysisMs: 20,
+        persistenceMs: 30,
+        finalizationMs: 40,
+        discoveredFiles: 2,
+        indexedFiles: 1,
+        fileProcessingConcurrency: 4,
+        workerPoolEnabled: true,
+        workerPoolMaxWorkers: 2,
+        source: "do not retain",
+        filePath: "/private/file.ts",
+      },
+    });
+
+    const report = await getReport(repoRoot, { verbose: true });
+
+    expect(report).toMatchObject({
+      verbose: {
+        failedOperations: 1,
+        incompleteOperations: 1,
+        recentOperations: [{ outcome: "started", toolName: "index_folder" }, { outcome: "failed", durationMs: 25 }],
+        indexProfiles: [expect.objectContaining({ durationMs: 100, discoveryMs: 10, workerPoolMaxWorkers: 2 })],
+      },
+    });
+    expect(JSON.stringify(report)).not.toContain("do not retain");
+    expect(JSON.stringify(report)).not.toContain("/private/file.ts");
+    expect(JSON.stringify(report)).not.toContain("session-secret");
+  });
+
   it("aggregates only registered global repository storage directories", async () => {
     const globalHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-events-"));
     const environment = { platform: "darwin" as const, env: { ASTROGRAPH_HOME: globalHome }, homeDir: () => globalHome };

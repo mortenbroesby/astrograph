@@ -82,6 +82,7 @@
     "test:package-bin": "node --import=tsx ./src/scripts/smoke-package-bin.ts",
     "test:package-bin:prebuilt": "node --import=tsx ./src/scripts/smoke-package-bin.ts --prebuilt",
     "test:package-bin:wasm": "node --import=tsx ./src/scripts/smoke-package-bin.ts --prebuilt --wasm-only",
+    "verify:fast": "pnpm agents:check && pnpm exec vitest run tests/agent-contract.test.ts && pnpm build && pnpm type-lint && node ./dist/scripts/release-agent.js --base HEAD && pnpm test:package-bin && pnpm exec vitest run tests/interface.test.ts -t \"boots the SDK-backed MCP stdio server\"",
     "check:version-bump": "node --import=tsx ./src/scripts/check-version-bump.ts",
     "release": "pnpm release:apply && pnpm test",
     "release:plan": "node ./dist/scripts/release-agent.js",

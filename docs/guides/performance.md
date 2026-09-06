@@ -69,6 +69,7 @@ completion aggregates:
 astrograph report
 astrograph report --repo /abs/repo
 astrograph report --repo /abs/repo --reset --yes
+astrograph report --repo /abs/repo --verbose
 ```
 
 The JSON report groups local MCP calls into latency bands and reports exact
@@ -81,6 +82,34 @@ repository and global storage aggregates existing Astrograph repository stores;
 or create a dashboard. Retention follows `observability.retentionDays` (three
 days by default); reset is explicit and only clears the named repository's
 local event log.
+
+## Verification Tiers
+
+Run the same fast signal as required CI before pushing:
+
+```bash
+pnpm verify:fast
+```
+
+Pull requests also run `pnpm check:version-bump --base origin/main` against the
+actual base branch. Full-suite, packed-artifact, daemon-reliability, and
+performance checks remain separate because they are slower or depend on a
+specific runtime setup; use `pnpm test`, `pnpm test:package-bin`, the focused
+daemon tests, or the matching `pnpm bench:*` command when that risk is in scope.
+
+For a managed dogfood runtime, enable verbose capture in that repository's
+`astrograph.config.ts`:
+
+```ts
+export default { observability: { verbosePerformance: true } };
+```
+
+Restart the client so it loads the managed runtime, then run
+`astrograph report --repo /abs/repo --verbose`. For startup diagnosis, set
+`AI_CONTEXT_ENGINE_LOG_LEVEL=debug` in the managed MCP launch environment and
+capture that process's stderr; it is not retained by the report. Verbose timing
+rows remain local, bounded to recent events, and follow the same retention and
+privacy exclusions as the aggregate report.
 
 ## Explicit Bookmarks
 

@@ -8,6 +8,7 @@ tests/.ai-context-engine/
 .stryker-tmp/
 .vite/
 .profiles/
+.benchmarks/
 *.tsbuildinfo
 *.log
 .DS_Store

@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { realpath, writeFile } from "node:fs/promises";
 import path from "node:path";
 
@@ -18,6 +18,19 @@ describe("cli boundaries", () => {
     await appendEngineEvent({ repoRoot, source: "mcp", event: "mcp.tool.finished", level: "info", data: {} });
     const result = JSON.parse(await handleCli(["report", "--repo", repoRoot]));
     expect(result).toMatchObject({ scope: "repository", repositoryCount: 1, eventCount: 1 });
+  });
+
+  it("routes the top-level report command and accepts verbose detail", async () => {
+    const repoRoot = await createFixtureRepo();
+    const entry = path.join(process.cwd(), "src", "astrograph.ts");
+    const result = spawnSync(
+      process.execPath,
+      ["--import=tsx", entry, "report", "--repo", repoRoot, "--verbose"],
+      { encoding: "utf8", env: { ...process.env, ASTROGRAPH_USE_SOURCE: "1" } },
+    );
+
+    expect(result.status).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ scope: "repository", verbose: expect.any(Object) });
   });
 
   it("returns a versioned JSON cache status for the explicit repository", async () => {

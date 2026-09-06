@@ -378,6 +378,11 @@ export function shouldUseIndexWorker(environment: NodeJS.ProcessEnv = process.en
     && environment[DAEMON_PROCESS_ENV] !== "1";
 }
 
+export function shouldEmitIndexProfile(environment: NodeJS.ProcessEnv = process.env) {
+  return environment[DAEMON_PROCESS_ENV] === "1"
+    && environment[INDEX_WORKER_CHILD_ENV] !== "1";
+}
+
 async function runIndexCommandInChild(
   command: "index-folder" | "index-file",
   input: {
@@ -594,6 +599,7 @@ async function resolveStorageConfig(repoRoot: string, summaryStrategy?: SummaryS
     storageLocation: repoConfig.storageLocation,
     indexInclude: repoConfig.performance.include,
     indexExclude: repoConfig.performance.exclude,
+    verbosePerformance: repoConfig.observability.verbosePerformance,
     rankingWeights: repoConfig.ranking,
     rankingPathPresets: repoConfig.ranking.pathPresets,
     fileProcessingConcurrency: repoConfig.performance.fileProcessingConcurrency,
@@ -1080,17 +1086,12 @@ function matchesFilePattern(filePath: string, pattern?: string): boolean {
   );
 }
 
-async function persistCheckoutArtifactMapping(
+async function registerCheckoutForRepo(
   db: IndexBackendConnection,
   repoRoot: string,
-  analyzed: AnalyzedFileIndexResult,
 ) {
-  if (analyzed.kind !== "content-unchanged" && analyzed.kind !== "reindexed") {
-    return;
-  }
-
   const gitCheckout = await probeGitCheckout({ repoRoot });
-  const checkout = registerCheckout(db, {
+  return registerCheckout(db, {
     canonicalRoot: repoRoot,
     gitMode: gitCheckout.mode,
     repositoryId: null,
@@ -1099,8 +1100,22 @@ async function persistCheckoutArtifactMapping(
     worktreePath: gitCheckout.mode === "filesystem" ? null : gitCheckout.repoRoot,
     gitDiagnostic: gitCheckout.diagnostic,
   });
+}
+
+async function persistCheckoutArtifactMapping(
+  db: IndexBackendConnection,
+  repoRoot: string,
+  analyzed: AnalyzedFileIndexResult,
+  checkoutId?: string,
+) {
+  if (analyzed.kind !== "content-unchanged" && analyzed.kind !== "reindexed") {
+    return;
+  }
+
+  const resolvedCheckoutId = checkoutId
+    ?? (await registerCheckoutForRepo(db, repoRoot)).checkoutId;
   upsertCheckoutPathMapping(db, {
-    checkoutId: checkout.checkoutId,
+    checkoutId: resolvedCheckoutId,
     relativePath: analyzed.file.relativePath,
     artifactKey: analyzed.artifactKey,
     observedContentHash: analyzed.reparsed.contentHash,
@@ -1418,19 +1433,60 @@ async function indexFolderDirect(input: {
   repoRoot: string;
   summaryStrategy?: SummaryStrategy;
 }): Promise<IndexSummary> {
+  const startedAt = Date.now();
   const config = await ensureStorage(input.repoRoot, input.summaryStrategy);
   const db = openDatabase(config.paths.databasePath);
-    const repoRoot = config.repoRoot;
+  const repoRoot = config.repoRoot;
+  const profileEnabled = config.verbosePerformance && shouldEmitIndexProfile();
+  let discoveryMs = 0;
+  let analysisMs = 0;
+  let persistenceMs = 0;
+  let finalizationMs = 0;
+  let discoveredFiles = 0;
+  let phase = "discovery";
+
+  const emitProfile = (outcome: "success" | "failure", summary?: IndexSummary) => {
+    if (!profileEnabled) return;
+    emitEngineEvent({
+      repoRoot,
+      source: "index-worker",
+      event: "index.profile",
+      level: outcome === "success" ? "info" : "error",
+      data: {
+        outcome,
+        phase: outcome === "failure" ? phase : "complete",
+        durationMs: Date.now() - startedAt,
+        discoveryMs,
+        analysisMs,
+        persistenceMs,
+        finalizationMs,
+        discoveredFiles,
+        indexedFiles: summary?.indexedFiles ?? 0,
+        indexedSymbols: summary?.indexedSymbols ?? 0,
+        reusedFiles: summary?.reusedFiles ?? 0,
+        parsedFiles: summary?.parsedFiles ?? 0,
+        removedFiles: summary?.removedFiles ?? 0,
+        fileProcessingConcurrency: config.fileProcessingConcurrency,
+        workerPoolEnabled: config.workerPoolEnabled,
+        workerPoolMaxWorkers: config.workerPoolMaxWorkers,
+      },
+    });
+  };
 
   try {
     const meta = await readRepoMeta(config.paths.repoMetaPath);
     const forceRefresh = meta?.summaryStrategy !== config.summaryStrategy;
+    const discoveryStartedAt = Date.now();
     const supportedFiles = await listSupportedFiles(repoRoot, repoRoot, {
       include: config.indexInclude,
       exclude: config.indexExclude,
       maxFilesDiscovered: config.maxFilesDiscovered,
       maxFileBytes: config.maxFileBytes,
     });
+    discoveryMs = Date.now() - discoveryStartedAt;
+    discoveredFiles = supportedFiles.length;
+    phase = "persistence";
+    const persistenceStartedAt = Date.now();
     const tracked = db.prepare(
       `
         SELECT id, path, content_hash, integrity_hash, size_bytes, mtime_ms
@@ -1455,11 +1511,14 @@ async function indexFolderDirect(input: {
       deepIndexedAt: meta?.readiness?.deepIndexedAt ?? null,
       deepIndexedFiles: countRows(db, "SELECT COUNT(*) AS count FROM files"),
     });
+    persistenceMs += Date.now() - persistenceStartedAt;
 
     let indexedFiles = 0;
     let indexedSymbols = 0;
     let reusedFiles = 0;
     let parsedFiles = 0;
+    phase = "analysis";
+    const analysisStartedAt = Date.now();
     const analyzedFiles = await pMap(
       supportedFiles,
       async (filePath) => {
@@ -1483,10 +1542,19 @@ async function indexFolderDirect(input: {
       },
       { concurrency: config.fileProcessingConcurrency },
     );
+    analysisMs = Date.now() - analysisStartedAt;
 
+    phase = "persistence";
+    const resultsPersistenceStartedAt = Date.now();
+    const mapsCheckoutArtifacts = analyzedFiles.some(
+      (analyzed) => analyzed.kind === "content-unchanged" || analyzed.kind === "reindexed",
+    );
+    const checkoutId = mapsCheckoutArtifacts
+      ? (await registerCheckoutForRepo(db, repoRoot)).checkoutId
+      : undefined;
     for (const analyzed of analyzedFiles) {
       const result = persistFileIndexResult(db, analyzed);
-      await persistCheckoutArtifactMapping(db, repoRoot, analyzed);
+      await persistCheckoutArtifactMapping(db, repoRoot, analyzed, checkoutId);
       if (result.indexed) {
         indexedFiles += 1;
         indexedSymbols += result.symbolCount;
@@ -1495,8 +1563,11 @@ async function indexFolderDirect(input: {
       parsedFiles += result.parsedFiles;
       removedFiles += result.removedFiles;
     }
+    persistenceMs += Date.now() - resultsPersistenceStartedAt;
 
     const indexedAt = new Date().toISOString();
+    phase = "finalization";
+    const finalizationStartedAt = Date.now();
     const staleStatus = await finalizeIndex({
       db,
       repoRoot,
@@ -1507,8 +1578,9 @@ async function indexFolderDirect(input: {
       loadDependencyGraphHealth,
       writeSidecars,
     });
+    finalizationMs = Date.now() - finalizationStartedAt;
 
-    return {
+    const summary = {
       indexedFiles,
       indexedSymbols,
       reusedFiles,
@@ -1516,6 +1588,11 @@ async function indexFolderDirect(input: {
       removedFiles,
       staleStatus,
     };
+    emitProfile("success", summary);
+    return summary;
+  } catch (error) {
+    emitProfile("failure");
+    throw error;
   } finally {
     db.close();
   }

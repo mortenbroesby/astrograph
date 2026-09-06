@@ -97,33 +97,9 @@ jobs:
         if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
         run: pnpm install --frozen-lockfile
 
-      - name: Agent contract
+      - name: Fast verification
         if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: pnpm agents:check
-
-      - name: Agent contract smoke
-        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: pnpm exec vitest run tests/agent-contract.test.ts
-
-      - name: Build
-        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: pnpm build
-
-      - name: Type lint
-        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: pnpm type-lint
-
-      - name: Node runtime script smoke
-        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: node ./dist/scripts/release-agent.js --base HEAD
-
-      - name: Node package smoke
-        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: pnpm test:package-bin
-
-      - name: MCP stdio smoke
-        if: github.event_name == 'push' || steps.changes.outputs.fast == 'true'
-        run: pnpm exec vitest run tests/interface.test.ts -t "boots the SDK-backed MCP stdio server"
+        run: pnpm verify:fast
 
       - name: Version policy
         if: github.event_name == 'pull_request' && steps.changes.outputs.fast == 'true'

@@ -77,6 +77,7 @@ export interface EngineConfig {
   summaryStrategy: SummaryStrategy;
   indexInclude: string[];
   indexExclude: string[];
+  verbosePerformance: boolean;
   fileProcessingConcurrency: number;
   workerPoolEnabled: boolean;
   workerPoolMaxWorkers: number;
@@ -97,6 +98,8 @@ export interface RepoObservabilityConfig {
   retentionDays?: number;
   /** Excludes source excerpts from locally stored observability events. */
   redactSourceText?: boolean;
+  /** Retains bounded index-phase timings for local performance investigation. */
+  verbosePerformance?: boolean;
 }
 
 export interface RepoOutputPrivacyConfig {
@@ -199,6 +202,7 @@ export interface GlobalEngineConfig {
 export interface ResolvedObservabilityConfig {
   retentionDays: number;
   redactSourceText: boolean;
+  verbosePerformance: boolean;
 }
 
 export interface ResolvedOutputPrivacyConfig {

@@ -97,6 +97,7 @@ export const ENGINE_TOOLS: EngineToolName[] = [
 const repoObservabilityConfigSchema = z.object({
   retentionDays: z.number().int().positive().optional(),
   redactSourceText: z.boolean().optional(),
+  verbosePerformance: z.boolean().optional(),
 });
 const repoOutputPrivacyConfigSchema = z.object({
   redactSecretLikeValues: z.boolean().optional(),
@@ -354,6 +355,7 @@ async function createDefaultResolvedRepoEngineConfig(
     observability: {
       retentionDays: DEFAULT_OBSERVABILITY_RETENTION_DAYS,
       redactSourceText: true,
+      verbosePerformance: false,
     },
     outputPrivacy: { redactSecretLikeValues: false },
     performance: {
@@ -429,6 +431,8 @@ function resolveEngineConfigFromParsed(
     observability: {
       retentionDays: data.observability?.retentionDays ?? defaults.observability.retentionDays,
       redactSourceText: data.observability?.redactSourceText ?? defaults.observability.redactSourceText,
+      verbosePerformance: data.observability?.verbosePerformance
+        ?? defaults.observability.verbosePerformance,
     },
     outputPrivacy: {
       redactSecretLikeValues: data.outputPrivacy?.redactSecretLikeValues ?? defaults.outputPrivacy.redactSecretLikeValues,
@@ -610,6 +614,7 @@ export function createDefaultEngineConfig(input: {
   storageLocation?: StorageLocation;
   indexInclude?: string[];
   indexExclude?: string[];
+  verbosePerformance?: boolean;
   rankingWeights?: RankingWeights;
   rankingPathPresets?: RankingPathPresets;
   fileProcessingConcurrency?: number;
@@ -636,6 +641,7 @@ export function createDefaultEngineConfig(input: {
         : parseSummaryStrategy(input.summaryStrategy),
     indexInclude: [...(input.indexInclude ?? [])],
     indexExclude: [...(input.indexExclude ?? [])],
+    verbosePerformance: input.verbosePerformance ?? false,
     fileProcessingConcurrency:
       input.fileProcessingConcurrency ?? defaultFileProcessingConcurrency(),
     workerPoolEnabled: input.workerPoolEnabled ?? false,

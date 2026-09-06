@@ -1,9 +1,7 @@
 import path from "node:path";
-import { execFile } from "node:child_process";
 import { mkdtemp, readdir, realpath, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import { setTimeout as delay } from "node:timers/promises";
-import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -19,7 +17,6 @@ import { dispatchTool, setMcpCommandExecutorForTest } from "../src/mcp.ts";
 import { ASTROGRAPH_PACKAGE_VERSION, indexFolder } from "../src/index.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
-const execFileAsync = promisify(execFile);
 const packageRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   "..",
@@ -68,6 +65,7 @@ async function withMcpClient<T>(
       ...process.env,
       HOME: isolatedHome,
       XDG_CONFIG_HOME: path.join(isolatedHome, ".config"),
+      ASTROGRAPH_RUNTIME_DIR: path.join(isolatedHome, "runtime"),
       ASTROGRAPH_USE_SOURCE: "1",
       ...options.env,
     },
@@ -1225,24 +1223,6 @@ export class Greeter {
     } finally {
       restore();
     }
-  }, 15_000);
-
-  it("exposes a workspace bin wrapper for cli commands", async () => {
-    const repoRoot = await createFixtureRepo();
-    const binPath = path.join(packageRoot, "scripts", "astrograph.mjs");
-
-    const { stdout } = await execFileAsync(process.execPath, [
-      binPath,
-      "cli",
-      "diagnostics",
-      "--repo",
-      repoRoot,
-    ]);
-
-    expect(JSON.parse(stdout)).toMatchObject({
-      storageMode: "wal",
-      storageBackend: "sqlite",
-    });
   }, 15_000);
 
   it("marks bounded broad MCP symbol results as truncated", async () => {

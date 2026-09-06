@@ -32,6 +32,7 @@ const BOOLEAN_FLAGS = new Set([
   "dry-run",
   "reset",
   "all",
+  "verbose",
 ]);
 
 const commands: Record<string, CliHandler> = {
@@ -115,14 +116,16 @@ const commands: Record<string, CliHandler> = {
       if (args.yes !== "true") throw new Error("report --reset requires --yes.");
       return engine.resetReport(repoRoot);
     }
-    if (repoRoot) return engine.getReport(repoRoot);
+    if (repoRoot) return engine.getReport(repoRoot, { verbose: args.verbose === "true" });
     try {
       const config = await engine.loadRepoEngineConfig(process.cwd());
-      if (config.storageLocation === "repo-local") return engine.getReport(config.repoRoot);
+      if (config.storageLocation === "repo-local") {
+        return engine.getReport(config.repoRoot, { verbose: args.verbose === "true" });
+      }
     } catch {
       // Outside a repository, global storage is the only meaningful default.
     }
-    return engine.getGlobalReport();
+    return engine.getGlobalReport({}, { verbose: args.verbose === "true" });
   },
   "bookmark-add": async (args) => engine.createBookmark({
     repoRoot: required(args, "repo"),
