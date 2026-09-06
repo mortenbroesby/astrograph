@@ -25,7 +25,7 @@
     "url": "https://github.com/mortenbroesby/astrograph/issues"
   },
   "engines": {
-    "node": "^20.19.0 || >=22.12.0"
+    "node": ">=22.12.0"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -131,7 +131,7 @@
     "@node-rs/xxhash": "^1.7.6",
     "@parcel/watcher": "^2.5.6",
     "@vscode/ripgrep": "^1.17.1",
-    "better-sqlite3": "^12.11.1",
+    "better-sqlite3": "^13.0.3",
     "commander": "^14.0.3",
     "execa": "9.6.1",
     "fdir": "^6.5.0",

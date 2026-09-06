@@ -585,7 +585,7 @@ describe("ai-context-engine contract", () => {
       url: "https://github.com/mortenbroesby/astrograph/issues",
     });
     expect(packageJson.engines).toEqual({
-      node: "^20.19.0 || >=22.12.0",
+      node: ">=22.12.0",
     });
     expect(packageJson.dependencies).toMatchObject({
       "tree-sitter-wasm": "1.0.7",
@@ -1753,8 +1753,8 @@ describe("ai-context-engine contract", () => {
     tempDirs.push(homeDir, configHome);
     const environment = { platform: "linux" as const, env: { XDG_CONFIG_HOME: configHome }, homeDir: () => homeDir };
 
-    await expect(setupGlobalForCodex({ environment, nodeVersion: "20.11.0", executableAvailable: true }))
-      .rejects.toThrow(/requires Node\.js 20\.19\+ or >=22\.12\.0.*Install a supported Node/i);
+    await expect(setupGlobalForCodex({ environment, nodeVersion: "20.19.0", executableAvailable: true }))
+      .rejects.toThrow(/requires Node\.js 22\.12\+.*Install a supported Node/i);
     const compatibleHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-compatible-"));
     const compatibleConfigHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-prerequisites-compatible-config-"));
     tempDirs.push(compatibleHome, compatibleConfigHome);
@@ -1764,7 +1764,7 @@ describe("ai-context-engine contract", () => {
         env: { XDG_CONFIG_HOME: compatibleConfigHome },
         homeDir: () => compatibleHome,
       },
-      nodeVersion: "20.19.0",
+      nodeVersion: "22.12.0",
       executableAvailable: true,
     }))
       .resolves.toMatchObject({ ide: "codex" });

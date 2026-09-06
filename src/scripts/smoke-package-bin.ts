@@ -241,6 +241,9 @@ async function main(): Promise<void> {
     if (/npm warn (ERESOLVE|EBADENGINE)\b/iu.test(npmGlobalInstall.stderr)) {
       throw new Error(`Unexpected npm global-install integrity warning: ${npmGlobalInstall.stderr}`);
     }
+    if (/deprecated prebuild-install/iu.test(npmGlobalInstall.stderr)) {
+      throw new Error(`Unexpected deprecated native installer: ${npmGlobalInstall.stderr}`);
+    }
     const { stdout: globalNodeModules } = await run(
       "npm",
       ["root", "--global", "--prefix", npmGlobalPrefix],
