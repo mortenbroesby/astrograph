@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 // @ts-expect-error This test is the typed contract for the JavaScript benchmark runner.
-import { firstAstrographSymbolId, parseComparisonOptions, renderComparisonReport, summarizeComparisonRuns } from "../scripts/jcodemunch-comparison.mjs";
+import { assertSuccessfulIndexResult, firstAstrographSymbolId, parseComparisonOptions, renderComparisonReport, summarizeComparisonRuns } from "../scripts/jcodemunch-comparison.mjs";
 
 describe("jCodeMunch comparison benchmark", () => {
   it("accepts the package-manager separator", () => {
@@ -13,6 +13,13 @@ describe("jCodeMunch comparison benchmark", () => {
       ok: true,
       data: { items: [{ id: "symbol-1" }] },
     }))).toBe("symbol-1");
+  });
+
+  it("rejects a fast jCodeMunch index error instead of measuring it as warm", () => {
+    expect(() => assertSuccessfulIndexResult("jcodemunch", {
+      success: false,
+      error: "identity collision",
+    })).toThrow("identity collision");
   });
 
   it("summarizes matched runs without mixing schema and retrieval tokens", () => {

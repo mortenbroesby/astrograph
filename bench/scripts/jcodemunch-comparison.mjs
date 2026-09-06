@@ -118,6 +118,14 @@ function parseJsonResult(result, label) {
   }
 }
 
+export function assertSuccessfulIndexResult(server, value) {
+  const success = server === "astrograph" ? value?.ok === true : value?.success === true;
+  if (!success) {
+    const detail = value?.error?.message ?? value?.error ?? "unknown error";
+    throw new Error(`${server} index failed: ${detail}`);
+  }
+}
+
 async function timed(run) {
   const startedAt = performance.now();
   const value = await run();
@@ -203,9 +211,10 @@ async function runServer({ server, repoRoot, storeRoot }) {
         name: "index_folder",
         arguments: isAstrograph
           ? { repoRoot }
-          : { path: repoRoot, use_ai_summaries: false, incremental: false },
+          : { path: repoRoot, use_ai_summaries: false, identity_mode: "local" },
       }, 240_000));
       const coldResult = parseJsonResult(cold.value, `${server} cold index`);
+      assertSuccessfulIndexResult(server, coldResult.value);
       const repo = isAstrograph ? repoRoot : coldResult.value.repo;
       if (typeof repo !== "string") throw new Error(`${server} did not identify its index`);
 
@@ -213,9 +222,10 @@ async function runServer({ server, repoRoot, storeRoot }) {
         name: "index_folder",
         arguments: isAstrograph
           ? { repoRoot }
-          : { path: repoRoot, use_ai_summaries: false, incremental: true },
+          : { path: repoRoot, use_ai_summaries: false, identity_mode: "local" },
       }, 240_000));
       const warmResult = parseJsonResult(warm.value, `${server} warm index`);
+      assertSuccessfulIndexResult(server, warmResult.value);
 
       const search = await timed(() => callTool(client, {
         name: "search_symbols",
@@ -253,6 +263,12 @@ async function runServer({ server, repoRoot, storeRoot }) {
         retrievalTokens: countTokens(searchText) + countTokens(sourceText),
         coldIndexMs: cold.elapsedMs,
         warmIndexMs: warm.elapsedMs,
+        coldIndexState: isAstrograph
+          ? { parsedFiles: coldResult.value.data.parsedFiles, reusedFiles: coldResult.value.data.reusedFiles }
+          : { performedIncremental: coldResult.value.performed_incremental },
+        warmIndexState: isAstrograph
+          ? { parsedFiles: warmResult.value.data.parsedFiles, reusedFiles: warmResult.value.data.reusedFiles }
+          : { performedIncremental: warmResult.value.performed_incremental },
         retrievalMs: round(search.elapsedMs + source.elapsedMs),
         toolCalls: 2,
         success: TASK.targets.every((target) => combined.includes(target)),
