@@ -14,6 +14,9 @@
 - [x] 2.6 Accept Copilot-sized session identifiers and ignore malformed optional content-reference hints within existing resource limits; verify retrieval still executes
 - [x] 2.7 Omit verbose support matrices from routine MCP project status unless explicitly requested; verify the CLI/library contract remains complete
 - [x] 2.8 Increment persisted-index compatibility after the signature semantic change; verify an old cache is archived and cannot serve legacy full-body signatures after upgrade
+- [x] 2.9 Reuse the active managed Node and run npm lifecycle subprocesses through its bin directory; verify mixed client Node environments cannot produce a native ABI mismatch
+- [x] 2.10 Recover a markerless but structurally managed Codex registration without reset; verify unrelated MCP registrations and user configuration remain intact
+- [x] 2.11 Exclude variable initializers from structural signatures while retaining exact source ranges; verify a large exported constant cannot pollute symbol search metadata
 
 ## 3. Real-client proof and delivery
 

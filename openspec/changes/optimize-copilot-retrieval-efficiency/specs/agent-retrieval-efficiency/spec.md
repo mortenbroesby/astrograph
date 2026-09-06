@@ -6,12 +6,17 @@ Make Astrograph materially reduce the context and retries consumed by coding age
 
 ### Requirement: Structural responses exclude implementation bodies
 
-Astrograph SHALL represent indexed symbol signatures as structural declarations and SHALL preserve the complete symbol byte range for explicit source retrieval.
+Astrograph SHALL represent indexed symbol signatures as structural declarations without function bodies or variable initializers and SHALL preserve the complete symbol byte range for explicit source retrieval.
 
 #### Scenario: Agent inspects a file outline
 - **WHEN** a function, method, or class contains an implementation body
 - **THEN** its outline and symbol-search signature excludes that body
 - **AND** `get_symbol_source` can still return the complete indexed symbol source
+
+#### Scenario: Agent searches near a large exported constant
+- **WHEN** a variable declaration has an object, array, or expression initializer
+- **THEN** its indexed signature excludes the initializer
+- **AND** its exact source range still includes the complete declaration
 
 ### Requirement: MCP JSON is token-efficient and semantically compatible
 
