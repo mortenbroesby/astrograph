@@ -359,7 +359,7 @@ describe("ai-context-engine contract", () => {
 
     expect(config.paths.databasePath).toContain(".astrograph/index.sqlite");
     expect(config.fileProcessingConcurrency).toBeGreaterThanOrEqual(2);
-    expect(ENGINE_STORAGE_VERSION).toBe(2);
+    expect(ENGINE_STORAGE_VERSION).toBe(3);
     expect(ENGINE_SCHEMA_VERSION).toBe(7);
   });
 
@@ -1049,10 +1049,14 @@ describe("ai-context-engine contract", () => {
       env: { XDG_CONFIG_HOME: configHome },
       homeDir: () => homeDir,
     };
+    const managedNodePath = path.join(homeDir, "managed-node");
+    await writeFile(managedNodePath, "");
     let resolvedVersion = "0.13.0-alpha.232.snapshot.1.gabcdef012345";
     const installSpecifiers: string[] = [];
     const rebuiltPackages: string[] = [];
-    const runner = (command: string, args: readonly string[]) => {
+    const runnerNodePaths: Array<string | undefined> = [];
+    const runner = (command: string, args: readonly string[], runnerOptions: { nodePath?: string }) => {
+      runnerNodePaths.push(runnerOptions.nodePath);
       if (command !== "npm") throw new Error(`Unexpected command: ${command}`);
       if (args[0] === "config") return { stdout: "https://registry.npmjs.org/\n" };
       if (args[0] === "rebuild") {
@@ -1075,7 +1079,7 @@ describe("ai-context-engine contract", () => {
     const first = await installManagedRuntime({
       channel: "snapshot",
       environment,
-      nodePath: process.execPath,
+      nodePath: managedNodePath,
       now: () => new Date("2026-09-05T12:00:00.000Z"),
       runner,
       verify: async () => {},
@@ -1088,7 +1092,7 @@ describe("ai-context-engine contract", () => {
       registry: "https://registry.npmjs.org/",
       installedAt: "2026-09-05T12:00:00.000Z",
     });
-    expect(first.nodePath).toBe(await realpath(process.execPath));
+    expect(first.nodePath).toBe(await realpath(managedNodePath));
     expect(path.isAbsolute(first.entrypoint)).toBe(true);
     expect(JSON.stringify(first)).not.toMatch(/\bnpx\b|file:|link:|workspace:|\.asdf\/shims/u);
 
@@ -1119,6 +1123,7 @@ describe("ai-context-engine contract", () => {
       "astrograph@snapshot",
     ]);
     expect(rebuiltPackages).toEqual(["better-sqlite3", "better-sqlite3", "better-sqlite3"]);
+    expect(new Set(runnerNodePaths)).toEqual(new Set([await realpath(managedNodePath)]));
   });
 
   it("resolves a managed runtime preview without changing runtime state", async () => {
@@ -1190,6 +1195,51 @@ describe("ai-context-engine contract", () => {
     });
     await expect(stat(codex.configPath)).rejects.toMatchObject({ code: "ENOENT" });
     await expect(stat(copilot.configPath)).rejects.toMatchObject({ code: "ENOENT" });
+  });
+
+  it("repairs markerless managed Codex registration without resetting unrelated config", async () => {
+    const homeDir = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-marker-repair-home-"));
+    const configHome = await mkdtemp(path.join(os.tmpdir(), "astrograph-global-marker-repair-config-"));
+    tempDirs.push(homeDir, configHome);
+    const environment = {
+      platform: "linux" as const,
+      env: { XDG_CONFIG_HOME: configHome },
+      homeDir: () => homeDir,
+    };
+    const paths = resolveManagedRuntimePaths(environment);
+    const oldEntrypoint = path.join(paths.versionsRoot, "0.14.1-alpha.238", "node_modules", "astrograph", "dist", "astrograph.js");
+    const configPath = path.join(homeDir, ".codex", "config.toml");
+    await mkdir(path.dirname(configPath), { recursive: true });
+    await writeFile(configPath, [
+      "[mcp_servers.astrograph]",
+      `command = ${JSON.stringify(process.execPath)}`,
+      `args = [\"--no-warnings\", ${JSON.stringify(oldEntrypoint)}, \"mcp\"]`,
+      "",
+      "[mcp_servers.other]",
+      'command = "other-mcp"',
+      "",
+      "# END ASTROGRAPH",
+      "",
+    ].join("\n"));
+    const runtime = {
+      schemaVersion: 1 as const,
+      packageName: "astrograph" as const,
+      packageVersion: ASTROGRAPH_PACKAGE_VERSION,
+      packageSpecifier: "astrograph@latest",
+      channel: "latest" as const,
+      registry: "https://registry.npmjs.org/",
+      nodePath: process.execPath,
+      entrypoint: path.join(paths.versionsRoot, ASTROGRAPH_PACKAGE_VERSION, "node_modules", "astrograph", "dist", "astrograph.js"),
+      installedAt: "2026-09-06T19:00:00.000Z",
+    };
+
+    const result = await setupGlobalForCodex({ environment, runtime });
+
+    expect(result.configPreview.match(/# BEGIN ASTROGRAPH/g)).toHaveLength(1);
+    expect(result.configPreview.match(/# END ASTROGRAPH/g)).toHaveLength(1);
+    expect(result.configPreview).toContain(runtime.entrypoint);
+    expect(result.configPreview).not.toContain(oldEntrypoint);
+    expect(result.configPreview).toContain('[mcp_servers.other]\ncommand = "other-mcp"');
   });
 
   it("rejects project registrations that would shadow a global runtime", async () => {

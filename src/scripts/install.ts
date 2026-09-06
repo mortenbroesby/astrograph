@@ -37,6 +37,8 @@ import type { StoragePathEnvironment } from "../types.ts";
 const MARKER_BEGIN = "# BEGIN ASTROGRAPH";
 const MARKER_END = "# END ASTROGRAPH";
 const MANAGED_RUNTIME_MARKER = "# ASTROGRAPH MANAGED RUNTIME v1";
+const LEGACY_CODEX_BLOCK_PATTERN =
+  /^\[mcp_servers\.astrograph\][\s\S]*?(?=^\[(?!mcp_servers\.astrograph\b).+\]|\Z)/m;
 const AGENTS_POLICY_BEGIN = "<!-- BEGIN ASTROGRAPH CODE EXPLORATION POLICY -->";
 const AGENTS_POLICY_END = "<!-- END ASTROGRAPH CODE EXPLORATION POLICY -->";
 const GIT_HOOK_BEGIN = "# BEGIN ASTROGRAPH GIT REFRESH";
@@ -214,6 +216,7 @@ export interface ManagedRuntimeDescriptor {
 
 interface ManagedRuntimeRunnerOptions {
   cwd: string;
+  nodePath: string;
 }
 
 type ManagedRuntimeRunner = (
@@ -579,7 +582,8 @@ function versionFromManagedEntrypoint(entrypoint: string | null, versionsRoot: s
 }
 
 function configuredCodexRuntime(contents: string, versionsRoot: string): ConfiguredRuntimeInvocation {
-  const block = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0];
+  const block = contents.match(new RegExp(`${MARKER_BEGIN}[\\s\\S]*?${MARKER_END}`, "m"))?.[0]
+    ?? contents.match(LEGACY_CODEX_BLOCK_PATTERN)?.[0];
   if (!block) return { commandPath: null, entrypointPath: null, configuredVersion: null };
   try {
     const commandPath = JSON.parse(block.match(/^command = (.+)$/m)?.[1] ?? "null") as unknown;
@@ -732,7 +736,7 @@ export async function getGlobalInstallationDiagnostics(
   };
   const clients = (["copilot-cli", "codex"] as const).map((ide) => {
     const configured = ide === "codex"
-      ? codexContents.includes(MARKER_BEGIN)
+      ? Boolean(configuredRuntime.codex.commandPath)
       : Boolean(configuredRuntime[ide].commandPath);
     const invocation = configuredRuntime[ide];
     const selectsActiveRuntime = invocation.commandPath === managedRuntime.nodePath
@@ -1596,8 +1600,14 @@ function defaultManagedRuntimeRunner(
   args: readonly string[],
   options: ManagedRuntimeRunnerOptions,
 ): { stdout: string } {
+  const pathKey = Object.keys(process.env).find((key) => key.toLowerCase() === "path") ?? "PATH";
+  const currentPath = process.env[pathKey] ?? "";
   const result = runProcess(command, args, {
     cwd: options.cwd,
+    env: {
+      ...process.env,
+      [pathKey]: [path.dirname(options.nodePath), currentPath].filter(Boolean).join(path.delimiter),
+    },
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 300_000,
@@ -1611,8 +1621,10 @@ export async function installManagedRuntime(
   const environment = options.environment ?? {};
   const paths = resolveManagedRuntimePaths(environment);
   const runner = options.runner ?? defaultManagedRuntimeRunner;
+  const activeRuntime = await readManagedRuntimeDescriptor(paths.activeDescriptorPath);
+  const nodePath = await realpath(options.nodePath ?? activeRuntime?.nodePath ?? process.execPath);
   const packageSpecifier = `${PACKAGE_NAME}@${options.channel}`;
-  const registry = runner("npm", ["config", "get", "registry"], { cwd: packageRoot }).stdout.trim();
+  const registry = runner("npm", ["config", "get", "registry"], { cwd: packageRoot, nodePath }).stdout.trim();
   const registryUrl = new URL(registry);
   if (registryUrl.protocol !== "https:" && registryUrl.protocol !== "http:") {
     throw new Error(`Astrograph managed runtime requires an npm registry URL; received ${registry}`);
@@ -1621,7 +1633,7 @@ export async function installManagedRuntime(
 
   if (options.dryRun) {
     const resolvedVersion = JSON.parse(
-      runner("npm", ["view", packageSpecifier, "version", "--json"], { cwd: packageRoot }).stdout,
+      runner("npm", ["view", packageSpecifier, "version", "--json"], { cwd: packageRoot, nodePath }).stdout,
     ) as unknown;
     if (
       typeof resolvedVersion !== "string"
@@ -1629,7 +1641,6 @@ export async function installManagedRuntime(
     ) {
       throw new Error(`npm did not resolve ${packageSpecifier} to one immutable version`);
     }
-    const nodePath = await realpath(options.nodePath ?? process.execPath);
     return {
       schemaVersion: 1,
       packageName: "astrograph",
@@ -1655,7 +1666,7 @@ export async function installManagedRuntime(
       "--no-audit",
       "--no-fund",
       packageSpecifier,
-    ], { cwd: packageRoot });
+    ], { cwd: packageRoot, nodePath });
 
     const stagedPackageRoot = path.join(stagingPath, "node_modules", PACKAGE_NAME);
     const stagedManifest = JSON.parse(
@@ -1683,9 +1694,9 @@ export async function installManagedRuntime(
     }
     runner("npm", ["rebuild", "--prefix", versionPath, "better-sqlite3"], {
       cwd: packageRoot,
+      nodePath,
     });
 
-    const nodePath = await realpath(options.nodePath ?? process.execPath);
     const entrypoint = path.join(versionPath, "node_modules", PACKAGE_NAME, "dist", "astrograph.js");
     await Promise.all([access(nodePath), access(entrypoint)]);
     const descriptor: ManagedRuntimeDescriptor = {
@@ -2035,7 +2046,16 @@ export async function setupGlobalForCodex(
   const currentEngine = parseGlobalConfig(currentEngineConfig, engineConfigPath);
   await assertNoShadowingProjectRegistration("codex", options.repoRoot);
   const runtime = await selectManagedRuntime(options);
-  const configPreview = replaceManagedBlock(currentCodexConfig, globalAstrographConfigBlock(runtime), reset);
+  const currentRuntime = configuredCodexRuntime(
+    currentCodexConfig,
+    resolveManagedRuntimePaths(environment).versionsRoot,
+  );
+  const configPreview = replaceManagedBlock(
+    currentCodexConfig,
+    globalAstrographConfigBlock(runtime),
+    reset,
+    currentRuntime.configuredVersion !== null,
+  );
   const engineConfigPreview = `${JSON.stringify({
     ...currentEngine,
     storageLocation: "global",
@@ -2170,7 +2190,12 @@ export async function setupGlobalForCopilotCli(
   };
 }
 
-function replaceManagedBlock(contents: string, block: string, reset = false): string {
+function replaceManagedBlock(
+  contents: string,
+  block: string,
+  reset = false,
+  allowManagedLegacy = false,
+): string {
   try {
     assertTomlStructurallyValid(contents, "config.toml");
   } catch (error) {
@@ -2192,14 +2217,14 @@ function replaceManagedBlock(contents: string, block: string, reset = false): st
     );
   }
 
-  const legacyBlockPattern =
-    /^\[mcp_servers\.astrograph\][\s\S]*?(?=^\[(?!mcp_servers\.astrograph\b).+\]|\Z)/m;
-
-  if (legacyBlockPattern.test(contents)) {
-    if (!reset) {
+  if (LEGACY_CODEX_BLOCK_PATTERN.test(contents)) {
+    if (!reset && !allowManagedLegacy) {
       throw new ResetRequiredError("Found obsolete unmarked Astrograph setup. It is not migrated.");
     }
-    return contents.replace(legacyBlockPattern, `${block}\n\n`);
+    const normalized = allowManagedLegacy
+      ? contents.replace(/^# (?:BEGIN ASTROGRAPH|END ASTROGRAPH|ASTROGRAPH MANAGED RUNTIME v1)\s*$/gm, "")
+      : contents;
+    return normalized.replace(LEGACY_CODEX_BLOCK_PATTERN, `${block}\n\n`);
   }
 
   const normalized = contents.trimEnd();

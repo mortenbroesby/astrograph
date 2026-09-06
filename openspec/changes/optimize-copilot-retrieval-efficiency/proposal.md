@@ -9,6 +9,8 @@ A real Astrograph-only Copilot CLI trial spent 181 seconds on 38 calls, includin
 - Tell MCP clients and generated Copilot/Codex guidance to sequence requests for one repository so the existing per-repository daemon safety queue does not turn parallel bursts into timeouts.
 - Guide clients to begin with small search/context bounds, make routine MCP project status omit the verbose support matrix, and tolerate imperfect optional content-reference cache hints.
 - Invalidate persisted indexes when a release changes their stored symbol representation so an upgraded runtime cannot keep serving legacy full-body signatures.
+- Keep npm install and native rebuild subprocesses on the managed Node selected for the device, including when Codex and Copilot launch setup from different Node environments.
+- Recover a structurally managed Codex runtime block when another config writer drops or moves Astrograph's comment markers, without requiring a destructive reset.
 - Add a repeatable, privacy-safe Copilot CLI trial that records usage, latency, failures, and response size without retaining source text or raw prompts in the repository.
 - Keep the 14-tool surface, shared daemon, result validation, source provenance, and explicit token budgets unchanged.
 

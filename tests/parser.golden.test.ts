@@ -37,6 +37,15 @@ describe("astrograph parser golden coverage", () => {
     });
     expect(parsedClass.symbols.find((entry) => entry.name === "Service")?.signature).toBe("export class Service");
     expect(parsedClass.symbols.find((entry) => entry.name === "run")?.signature).toBe("run(): string");
+
+    const parsedConstant = await parseSourceFile({
+      relativePath: "src/routes.ts",
+      language: "ts",
+      content: "export const routes: Record<string, string> = { status: 'getProjectStatus' };\n",
+    });
+    const routes = parsedConstant.symbols.find((entry) => entry.name === "routes");
+    expect(routes?.signature).toBe("export const routes: Record<string, string>");
+    expect(routes?.endByte).toBe(Buffer.byteLength("export const routes: Record<string, string> = { status: 'getProjectStatus' };"));
   });
 
   it("extracts the accepted tree-sitter-only parser baseline", async () => {

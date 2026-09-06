@@ -80,3 +80,16 @@ The follow-up increments the existing persisted-storage compatibility marker to
 version 2. Opening a version-1 cache now uses the established reversible archive
 path before the upgraded runtime rebuilds and serves retrieval. Raw proof output
 remains in temporary storage.
+
+Installing that follow-up from two client environments exposed a second runtime
+boundary: the descriptor selected Node 22 (ABI 127), while an ambient Node 24
+package lifecycle rebuilt `better-sqlite3` for ABI 137. The final follow-up keeps
+the active managed Node across upgrades and places its bin directory first on
+`PATH` for every npm install and rebuild before runtime verification.
+
+After storage-v2 hydration, the six-call recovery proof completed without a
+timeout but `search_symbols` still overflowed at 33,966 bytes because the large
+`MCP_TOOL_DEFINITIONS` constant retained its full array initializer. The final
+parser boundary therefore excludes variable initializers as well as function
+and class bodies, retains the exact source range, and advances persisted storage
+compatibility to version 3.

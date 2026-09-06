@@ -85,12 +85,15 @@ function extractStructuralSignature(
   rangeNode: Node,
   sourceText: string,
 ): string {
-  const body = node.childForFieldName("body")
-    ?? node.childForFieldName("value")?.childForFieldName("body");
+  const value = node.childForFieldName("value");
+  const body = node.type === "variable_declarator"
+    ? value
+    : node.childForFieldName("body") ?? value?.childForFieldName("body");
   const endIndex = body && body.startIndex > rangeNode.startIndex
     ? body.startIndex
     : rangeNode.endIndex;
-  return normalizeWhitespace(nodeText(sourceText, rangeNode.startIndex, endIndex));
+  const signature = normalizeWhitespace(nodeText(sourceText, rangeNode.startIndex, endIndex));
+  return node.type === "variable_declarator" ? signature.replace(/\s*=\s*$/, "") : signature;
 }
 
 const NAME_NODE_TYPES = new Set([
