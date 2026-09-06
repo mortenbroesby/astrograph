@@ -13,13 +13,13 @@
 
 ## 3. Correct the Comparison Record
 
-- [ ] 3.1 Run three isolated successful comparison trials per server on one exact commit and verify all source-producing responses contain both requested implementations with raw source-bearing evidence only under ignored `.benchmarks/`.
-- [ ] 3.2 Update `docs/reviews/jcodemunch-comparison-2026-09-06.md` and `docs/guides/benchmarks.md` with corrected workflow/source-response metrics, the invalid earlier-run explanation, alias semantics, versions, SHA, and reproduction commands; verify every reported aggregate recomputes from the ignored evidence.
-- [ ] 3.3 Decide whether the corrected evidence justifies a separate warm-index optimization change and record that decision without adding index work to this change.
+- [x] 3.1 Run three isolated successful comparison trials per server on one exact commit and verify all source-producing responses contain both requested implementations with raw source-bearing evidence only under ignored `.benchmarks/`.
+- [x] 3.2 Update `docs/reviews/jcodemunch-comparison-2026-09-06.md` and `docs/guides/benchmarks.md` with corrected workflow/source-response metrics, the invalid earlier-run explanation, alias semantics, versions, SHA, and reproduction commands; verify every reported aggregate recomputes from the ignored evidence.
+- [x] 3.3 Decide whether the corrected evidence justifies a separate warm-index optimization change and record that decision without adding index work to this change.
 
 ## 4. Verification and Delivery
 
-- [ ] 4.1 Run the focused benchmark/compact/interface tests, `pnpm build`, and `pnpm type-lint`; fix scoped failures and record unrelated baseline failures separately.
-- [ ] 4.2 Bump the monotonic package version, run `pnpm check:version-bump --base origin/main`, `pnpm verify:fast`, the repository release-decision workflow, and `pnpm exec openspec validate improve-exact-source-parity --strict`; verify every required gate passes.
+- [x] 4.1 Run the focused benchmark/compact/interface tests, `pnpm build`, and `pnpm type-lint`; fix scoped failures and record unrelated baseline failures separately.
+- [x] 4.2 Bump the monotonic package version, run `pnpm check:version-bump --base origin/main`, `pnpm verify:fast`, the repository release-decision workflow, and `pnpm exec openspec validate improve-exact-source-parity --strict`; verify every required gate passes.
 - [ ] 4.3 Review the minimal diff, secret-scan changed files, commit and push the implementation branch, and verify its remote SHA and exact-head required CI before merge.
 - [ ] 4.4 Merge through GitHub, verify `origin/main` and main CI at the exact merged commit, sync the delta spec, and archive the completed OpenSpec change.
