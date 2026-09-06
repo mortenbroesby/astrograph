@@ -146,12 +146,20 @@ describe("ai-context-engine interfaces", () => {
             extensions: [".ts"],
             tiers: ["discovery", "structured", "graph"],
             summaryStrategies: ["doc-comments-first", "signature-only"],
+            parserBackend: "tree-sitter",
+            parseBehavior: {
+              chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+            },
           }),
           expect.objectContaining({
             language: "js",
             extensions: [".js", ".cjs", ".mjs"],
             tiers: ["discovery", "structured", "graph"],
             summaryStrategies: ["doc-comments-first", "signature-only"],
+            parserBackend: "tree-sitter",
+            parseBehavior: {
+              chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+            },
           }),
         ]),
         byFallbackExtension: expect.arrayContaining([
@@ -736,6 +744,10 @@ export function circumference(radius: number): string {
               extensions: [".ts"],
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
+              parserBackend: "tree-sitter",
+              parseBehavior: {
+                chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+              },
               toolAvailability: expect.objectContaining({
                 graph: expect.arrayContaining([
                   "search_symbols",
@@ -753,6 +765,10 @@ export function circumference(radius: number): string {
               extensions: [".js", ".cjs", ".mjs"],
               tiers: ["discovery", "structured", "graph"],
               summaryStrategies: ["doc-comments-first", "signature-only"],
+              parserBackend: "tree-sitter",
+              parseBehavior: {
+                chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+              },
               toolAvailability: expect.objectContaining({
                 graph: expect.arrayContaining([
                   "search_symbols",

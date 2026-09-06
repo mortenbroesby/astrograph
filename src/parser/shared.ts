@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import { hashString } from "../hash.ts";
+import type { ParserBackendId } from "../languages/types.ts";
 import type {
   ImportSpecifier,
   SummarySource,
@@ -36,7 +37,7 @@ export interface ParsedFile {
   integrityHash: string;
   symbols: ParsedSymbol[];
   imports: ParsedImport[];
-  backend: "tree-sitter";
+  backend: ParserBackendId;
   fallbackUsed: boolean;
   fallbackReason: string | null;
 }
@@ -117,7 +118,7 @@ export function buildParsedFile(input: {
   content: string;
   symbols: ParsedSymbol[];
   imports: ParsedImport[];
-  backend: "tree-sitter";
+  backend: ParserBackendId;
   fallbackUsed: boolean;
   fallbackReason: string | null;
 }): ParsedFile {

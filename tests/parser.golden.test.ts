@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
 
+import { getLanguageAdapter } from "../src/languages/index.ts";
+import { TREE_SITTER_JS_FAMILY_ADAPTERS } from "../src/languages/tree-sitter-js-family.ts";
 import { parseSourceFile } from "../src/parser.ts";
 import { parseWithTreeSitter } from "../src/parser/tree-sitter.ts";
 
@@ -229,5 +231,48 @@ export const render = () => <button>run</button>;
         }),
       ]),
     );
+  });
+
+  it("dispatches current js family parsing through language adapters", () => {
+    const parsed = parseSourceFile({
+      relativePath: "src/adapter-fixture.ts",
+      language: "ts",
+      content: `
+export function greet(name: string) {
+  return name.trim();
+}
+`,
+    });
+
+    const adapterParsed = getLanguageAdapter("ts").parse({
+      relativePath: "src/adapter-fixture.ts",
+      language: "ts",
+      content: `
+export function greet(name: string) {
+  return name.trim();
+}
+`,
+    });
+
+    expect(getLanguageAdapter("ts")).toMatchObject({
+      language: "ts",
+      extensions: [".ts"],
+      tiers: ["discovery", "structured", "graph"],
+      parserBackend: "tree-sitter",
+      parseBehavior: {
+        chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+      },
+    });
+    expect(adapterParsed).toEqual(parsed);
+  });
+
+  it("registers the concrete js-family adapter implementation directly", () => {
+    const tsAdapter = TREE_SITTER_JS_FAMILY_ADAPTERS.find(
+      (adapter: (typeof TREE_SITTER_JS_FAMILY_ADAPTERS)[number]) => adapter.language === "ts",
+    );
+
+    expect(tsAdapter).toBeDefined();
+    expect(getLanguageAdapter("ts")).toBe(tsAdapter);
+    expect(getLanguageAdapter("ts").parse).toBe(parseWithTreeSitter);
   });
 });

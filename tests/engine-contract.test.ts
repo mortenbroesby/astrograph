@@ -35,6 +35,7 @@ import {
 } from "../src/command-registry.ts";
 import { MCP_TOOL_DEFINITIONS } from "../src/mcp-contract.ts";
 import { getMcpToolsForProfile } from "../src/mcp-profiles.ts";
+import { getLanguageRegistrySnapshot, getSupportedLanguages } from "../src/language-registry.ts";
 import { setupForAllIdes, setupForCodex, setupForIde } from "../src/scripts/install.ts";
 import { dispatchTool } from "../src/mcp.ts";
 
@@ -89,9 +90,57 @@ describe("ai-context-engine contract", () => {
     });
 
     expect(config.paths.databasePath).toContain(".astrograph/index.sqlite");
+    expect(config.languages).toEqual(getSupportedLanguages());
     expect(config.fileProcessingConcurrency).toBeGreaterThanOrEqual(2);
     expect(ENGINE_STORAGE_VERSION).toBe(1);
     expect(ENGINE_SCHEMA_VERSION).toBe(5);
+  });
+
+  it("exposes adapter-backed language registry metadata for the current js family", () => {
+    expect(getLanguageRegistrySnapshot().byLanguage).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          language: "ts",
+          extensions: [".ts"],
+          tiers: ["discovery", "structured", "graph"],
+          summaryStrategies: ["doc-comments-first", "signature-only"],
+          parserBackend: "tree-sitter",
+          parseBehavior: {
+            chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+          },
+        }),
+        expect.objectContaining({
+          language: "tsx",
+          extensions: [".tsx"],
+          tiers: ["discovery", "structured", "graph"],
+          summaryStrategies: ["doc-comments-first", "signature-only"],
+          parserBackend: "tree-sitter",
+          parseBehavior: {
+            chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+          },
+        }),
+        expect.objectContaining({
+          language: "js",
+          extensions: [".js", ".cjs", ".mjs"],
+          tiers: ["discovery", "structured", "graph"],
+          summaryStrategies: ["doc-comments-first", "signature-only"],
+          parserBackend: "tree-sitter",
+          parseBehavior: {
+            chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+          },
+        }),
+        expect.objectContaining({
+          language: "jsx",
+          extensions: [".jsx"],
+          tiers: ["discovery", "structured", "graph"],
+          summaryStrategies: ["doc-comments-first", "signature-only"],
+          parserBackend: "tree-sitter",
+          parseBehavior: {
+            chunkRecoveryFallbackReason: "tree-sitter-chunk-recovery",
+          },
+        }),
+      ]),
+    );
   });
 
   it("advertises the required engine tools", () => {

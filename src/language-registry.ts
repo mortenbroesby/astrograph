@@ -1,82 +1,39 @@
 import path from "node:path";
 
+import {
+  DISCOVERY_TOOL_AVAILABILITY,
+  TREE_SITTER_JS_FAMILY_ADAPTERS,
+} from "./languages/tree-sitter-js-family.ts";
 import type {
   FallbackSupportDescriptor,
   FileSupportProfile,
   LanguageSupportDescriptor,
-  SummaryStrategy,
   SupportedLanguage,
   SupportTier,
-  TierToolAvailability,
 } from "./types.ts";
-import { SUMMARY_STRATEGIES, SUPPORT_TIERS } from "./types.ts";
-
-const DISCOVERY_TOOL_AVAILABILITY: TierToolAvailability = {
-  discovery: [
-    "find_files",
-    "search_text",
-    "get_file_summary",
-    "get_project_status",
-    "diagnostics",
-  ],
-  structured: [],
-  graph: [],
-};
-
-const GRAPH_TOOL_AVAILABILITY: TierToolAvailability = {
-  discovery: [...DISCOVERY_TOOL_AVAILABILITY.discovery],
-  structured: ["get_file_summary"],
-  graph: [
-    "index_folder",
-    "index_file",
-    "get_repo_outline",
-    "get_file_tree",
-    "get_file_outline",
-    "suggest_initial_queries",
-    "search_symbols",
-    "find_importers",
-    "find_references",
-    "get_symbol_source",
-    "get_dependency_graph",
-    "get_context_bundle",
-    "get_ranked_context",
-  ],
-};
-
-const GRAPH_SUMMARY_STRATEGIES: SummaryStrategy[] = [...SUMMARY_STRATEGIES];
+import { SUPPORT_TIERS } from "./types.ts";
 const SUPPORT_TIER_RANK = new Map(
   SUPPORT_TIERS.map((tier, index) => [tier, index] as const),
 );
 
 export const LANGUAGE_SUPPORT_REGISTRY: LanguageSupportDescriptor[] = [
-  {
-    language: "ts",
-    extensions: [".ts"],
-    tiers: ["discovery", "structured", "graph"],
-    summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
-    toolAvailability: GRAPH_TOOL_AVAILABILITY,
-  },
-  {
-    language: "tsx",
-    extensions: [".tsx"],
-    tiers: ["discovery", "structured", "graph"],
-    summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
-    toolAvailability: GRAPH_TOOL_AVAILABILITY,
-  },
-  {
-    language: "js",
-    extensions: [".js", ".cjs", ".mjs"],
-    tiers: ["discovery", "structured", "graph"],
-    summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
-    toolAvailability: GRAPH_TOOL_AVAILABILITY,
-  },
-  {
-    language: "jsx",
-    extensions: [".jsx"],
-    tiers: ["discovery", "structured", "graph"],
-    summaryStrategies: GRAPH_SUMMARY_STRATEGIES,
-    toolAvailability: GRAPH_TOOL_AVAILABILITY,
-  },
+  ...TREE_SITTER_JS_FAMILY_ADAPTERS.map(
+    (adapter: (typeof TREE_SITTER_JS_FAMILY_ADAPTERS)[number]) => ({
+    language: adapter.language,
+    extensions: [...adapter.extensions],
+    tiers: [...adapter.tiers],
+    summaryStrategies: [...adapter.summaryStrategies],
+    toolAvailability: {
+      discovery: [...adapter.toolAvailability.discovery],
+      structured: [...adapter.toolAvailability.structured],
+      graph: [...adapter.toolAvailability.graph],
+    },
+    parserBackend: adapter.parserBackend,
+    parseBehavior: {
+      ...adapter.parseBehavior,
+    },
+    }),
+  ),
 ];
 
 export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
@@ -130,16 +87,16 @@ export const FALLBACK_SUPPORT_REGISTRY: FallbackSupportDescriptor[] = [
   },
 ];
 
+const LANGUAGE_SUPPORT_BY_LANGUAGE = new Map(
+  LANGUAGE_SUPPORT_REGISTRY.map((entry) => [entry.language, entry] as const),
+);
+
 const LANGUAGE_BY_EXTENSION = new Map<string, SupportedLanguage>();
 for (const entry of LANGUAGE_SUPPORT_REGISTRY) {
   for (const extension of entry.extensions) {
     LANGUAGE_BY_EXTENSION.set(extension, entry.language);
   }
 }
-
-const LANGUAGE_SUPPORT_BY_LANGUAGE = new Map(
-  LANGUAGE_SUPPORT_REGISTRY.map((entry) => [entry.language, entry] as const),
-);
 
 const FALLBACK_SUPPORT_BY_EXTENSION = new Map(
   FALLBACK_SUPPORT_REGISTRY.map((entry) => [entry.extension, entry] as const),
@@ -160,6 +117,7 @@ export function getLanguageSupport(
   if (!support) {
     throw new Error(`Missing language support registry entry for ${language}`);
   }
+
   return support;
 }
 
@@ -219,6 +177,9 @@ export function getLanguageRegistrySnapshot(): {
       extensions: [...entry.extensions],
       tiers: [...entry.tiers],
       summaryStrategies: [...entry.summaryStrategies],
+      parseBehavior: {
+        ...entry.parseBehavior,
+      },
       toolAvailability: {
         discovery: [...entry.toolAvailability.discovery],
         structured: [...entry.toolAvailability.structured],

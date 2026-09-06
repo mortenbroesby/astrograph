@@ -5,12 +5,11 @@ import type {
   SummaryStrategy,
   SupportedLanguage,
 } from "./config.ts";
+import type { ParserBackendId } from "../languages/types.ts";
 import type {
   FileSummarySource,
   FallbackSupportDescriptor,
   LanguageSupportDescriptor,
-  SupportTier,
-  TierToolAvailability,
   SummarySource,
 } from "./retrieval.ts";
 import type { WatchDiagnostics } from "./watch.ts";
@@ -37,7 +36,7 @@ export interface ReadinessStatus {
 }
 
 export interface ParserHealthDiagnostics {
-  primaryBackend: "tree-sitter";
+  primaryBackend: ParserBackendId;
   fallbackBackend: null;
   indexedFileCount: number;
   fallbackFileCount: number;
@@ -131,13 +130,7 @@ export interface ProjectStatusResult {
     graph: {
       languages: SupportedLanguage[];
     };
-    byLanguage: Array<{
-      language: SupportedLanguage;
-      extensions: string[];
-      tiers: SupportTier[];
-      summaryStrategies: SummaryStrategy[];
-      toolAvailability: TierToolAvailability;
-    }>;
+    byLanguage: LanguageSupportDescriptor[];
     byFallbackExtension: FallbackSupportDescriptor[];
   };
   watch: WatchDiagnostics;

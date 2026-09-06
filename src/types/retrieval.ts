@@ -1,4 +1,5 @@
 import type { EngineToolName, SupportedLanguage, SummaryStrategy } from "./config.ts";
+import type { ParseBehaviorDescriptor, ParserBackendId } from "../languages/types.ts";
 
 export type SymbolKind =
   | "function"
@@ -214,6 +215,8 @@ export interface LanguageSupportDescriptor {
   extensions: string[];
   tiers: SupportTier[];
   summaryStrategies: SummaryStrategy[];
+  parserBackend: ParserBackendId;
+  parseBehavior: ParseBehaviorDescriptor;
   toolAvailability: TierToolAvailability;
 }
 

@@ -1,4 +1,6 @@
-export type SupportedLanguage = "ts" | "tsx" | "js" | "jsx";
+import type { TREE_SITTER_JS_FAMILY_ADAPTERS } from "../languages/tree-sitter-js-family.ts";
+
+export type SupportedLanguage = (typeof TREE_SITTER_JS_FAMILY_ADAPTERS)[number]["language"];
 
 export type StorageMode = "wal";
 export type IndexBackendName = "sqlite";
