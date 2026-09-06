@@ -2,20 +2,21 @@
 
 ## Outcome
 
-On the bounded corpus-loader task, jCodeMunch produced a much smaller
-deterministic retrieval payload and indexed faster. Astrograph used fewer total
-model input tokens, fewer tool calls, and less wall time in the fresh-agent
-trials. Both products completed every accepted run correctly.
+On the bounded corpus-loader task, Astrograph's new compact exact-source format
+reduced its source response from 1,139 to 626 tokens and brought it within 46
+tokens of jCodeMunch's 580-token response. jCodeMunch still used fewer tokens
+across the complete two-call workflow and indexed substantially faster. Both
+products returned both requested implementations in all three corrected runs.
 
 These results do not establish a general winner. They show why payload evidence
 and end-to-end agent evidence must be reported separately.
 
 ## Deterministic MCP Results
 
-Three isolated runs used commit `15e931d1968841f2cab618801d84ca580b032254`,
-Astrograph `0.14.1-alpha.241`, jCodeMunch `1.108.317`, and the repository's
+Three isolated runs used commit `af029d5a0e85bb8281e56b10506780a7f91c2ffb`,
+Astrograph `1.0.0-alpha.246`, jCodeMunch `1.108.317`, and the repository's
 `cl100k_base` counter. Each run used a new index store, called `index_folder`
-twice, then used `search_symbols` and `get_symbol_source` to retrieve
+twice, then used compact `search_symbols` and batched `get_symbol_source` to retrieve
 `loadBenchmarkCorpus` and `loadBenchmarkTaskCard` from `bench/src/corpus.ts`.
 
 | Measure | Astrograph | jCodeMunch |
@@ -23,28 +24,46 @@ twice, then used `search_symbols` and `get_symbol_source` to retrieve
 | Task success | 3/3 | 3/3 |
 | Advertised tools | 14 | 20 |
 | Tool-schema tokens | 2,849 | 4,204 |
-| Retrieval tokens, median | 1,129 | 181 |
-| Reduction from 2,929-token read-all baseline | 61.5% | 93.8% |
-| Cold index, median | 40.78 s | 6.48 s |
-| Warm index, median | 11.14 s | 0.85 s |
-| Retrieval latency, median | 1.39 s | 1.33 s |
+| Complete two-call workflow tokens, median | 922 | 742 |
+| Exact-source response tokens, median | 626 | 580 |
+| Exact-source response bytes | 2,156 | 2,142 |
+| Reduction from 2,929-token read-all baseline | 68.5% | 74.7% |
+| Cold index, median | 20.06 s | 3.30 s |
+| Warm index, median | 5.40 s | 0.44 s |
+| Retrieval latency, median | 0.73 s | 0.65 s |
 | Retrieval calls | 2 | 2 |
 
-jCodeMunch used 84.0% fewer retrieval tokens and indexed 84.1% faster cold and
-92.4% faster warm. Its complete advertised schema was 47.6% larger. Hosts may
-defer or cache schema blocks, so schema cost is not added to retrieval tokens.
+jCodeMunch used 19.5% fewer complete-workflow tokens and 7.3% fewer source-response
+tokens. Astrograph advertised 31.6% fewer schema tokens. jCodeMunch indexed
+83.6% faster cold and 91.8% faster warm. Hosts may defer or cache schema blocks,
+so schema cost is not added to retrieval tokens.
+
+Astrograph ordinary JSON remains the compatibility default. A separate valid
+three-run diagnostic at `401f7e63cfb2f7a57bbdf9aa0a653f09a7baf818`
+measured its default JSON source response at 1,139 tokens; selecting compact at
+the formatting boundary reduced that response by 45.0% without changing the
+decoded v1 envelope.
 
 The warm measurement is a real second index operation: Astrograph reported 217
-reused files; jCodeMunch reported `performed_incremental: true`. An earlier
-draft incorrectly timed a jCodeMunch identity-collision error as a warm run.
-That evidence was rejected, the harness now fails on unsuccessful envelopes,
-and the reported runs use explicit jCodeMunch `identity_mode: local`.
+reused files and zero parsed files; jCodeMunch reported
+`performed_incremental: true`. The remaining warm-index gap is material enough
+for a separate optimization investigation, but no indexing work is included in
+this exact-source change.
 
-## Fresh-Agent Results
+The earlier 181-token jCodeMunch result was invalid. Compact search returned an
+alias such as `@1::loadBenchmarkCorpus#function`; the harness passed that alias
+directly to `get_symbol_source`, received `Symbol not found`, then incorrectly
+counted target names from search as success. The corrected adapter expands the
+alias table to canonical file-qualified IDs, batches both targets, rejects tool
+errors or missing source bodies, and excludes failed runs from aggregates.
 
-The agent layer used clean commit
+## Historical Fresh-Agent Results
+
+These earlier agent-layer trials used clean commit
 `058e2cb902df066540783caa68e378d4d9af10b5`. The target corpus file is unchanged
-between that commit and the final deterministic commit. Every accepted run used
+between that commit and the corrected deterministic commit. They were not rerun
+for the compact exact-source feature and are not part of the deterministic
+payload comparison above. Every accepted run used
 `gpt-5.3-codex-spark`, low reasoning, a read-only sandbox, a fresh ephemeral
 session, and exactly two exposed retrieval tools for the named product.
 
@@ -59,11 +78,12 @@ session, and exactly two exposed retrieval tools for the named product.
 | Tool calls, median | 2 | 4 |
 | Tool-call range | 2–2 | 4–13 |
 
-For this task, Astrograph used 32.7% fewer median input tokens. Astrograph's
-search returned stable literal symbol IDs and its source tool accepted both IDs
-in one request. jCodeMunch's compact search aliases were not accepted by its
-source tool; agents recovered using file-qualified IDs, but one run repeated
-that resolution path enough to become a 291,925-token outlier.
+For this historical task, Astrograph used 32.7% fewer median input tokens.
+Astrograph search returned stable literal symbol IDs. jCodeMunch agents had to
+expand compact search aliases to file-qualified IDs; one run repeated that
+resolution path enough to become a 291,925-token outlier. The deterministic
+harness now performs that expansion directly rather than charging either agent
+for protocol recovery.
 
 One jCodeMunch run was discarded and replaced because the agent invoked a shell
 command despite the retrieval-only prompt. Early protocol-development dry runs
@@ -78,7 +98,11 @@ or changed the repository.
   and 11,543 symbols. jCodeMunch included more languages and configuration
   files, so symbol counts are not comparable measures of recall or quality.
 - Deterministic runs compare the same task outcome, tokenizer, file, and source
-  commit, not identical response formats or ranking algorithms.
+  commit. Each product uses its supported compact discovery encoding;
+  Astrograph's compact exact-source response is decoded and checked against its
+  ordinary v1 contract before success is accepted.
+- Workflow tokens include compact discovery plus exact source. Source-response
+  tokens isolate the call affected by exact-source compaction.
 - Agent runs exposed two tools per product, while the complete deterministic
   schema measurement reflects each configured catalog (14 versus 20 tools).
 - Neither product's self-reported token-savings counter is used as cross-product
@@ -93,8 +117,8 @@ pnpm bench:jcodemunch-comparison -- --runs 3 \
   --output ".benchmarks/jcodemunch-comparison/$(git rev-parse --short HEAD)"
 ```
 
-The ignored output contains `results.json`, `report.md`, and source-bearing raw
-MCP responses. Agent JSONL, stderr timing, and the source-free agent aggregate
+The ignored output contains source-free `results.json` and `report.md`, plus
+source-bearing raw MCP responses. Agent JSONL, stderr timing, and the source-free agent aggregate
 remain under `.benchmarks/jcodemunch-comparison/058e2cb/agent/`. Global install,
 registration, re-index, and removal commands are in the
 [benchmark guide](../guides/benchmarks.md#compare-jcodemunch-with-astrograph).

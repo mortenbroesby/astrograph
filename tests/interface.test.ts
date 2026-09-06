@@ -462,6 +462,9 @@ export function circumference(radius: number): string {
   it("exposes spec-aligned MCP tools", async () => {
     const repoRoot = await createFixtureRepo();
     let symbolSourceResponse: unknown;
+    let compactSymbolSourceResponse: unknown;
+    let sessionSymbolSourceResponse: unknown;
+    let failedSymbolSourceResponse: unknown;
     await writeFile(path.join(repoRoot, "README.md"), "# Fixture Repo\n\n## Start Here\n");
     await withMcpClient(async ({ client, stderr }) => {
       const toolsResult = await client.listTools();
@@ -566,6 +569,29 @@ export function circumference(radius: number): string {
           symbolIds: [greeterId, greetId],
           contextLines: 1,
         },
+      });
+      compactSymbolSourceResponse = await client.callTool({
+        name: "get_symbol_source",
+        arguments: {
+          repoRoot,
+          symbolIds: [greeterId, greetId],
+          contextLines: 1,
+          format: "compact",
+        },
+      });
+      sessionSymbolSourceResponse = await client.callTool({
+        name: "get_symbol_source",
+        arguments: {
+          repoRoot,
+          symbolIds: [greeterId, greetId],
+          contextLines: 1,
+          format: "compact",
+          session: { capability: "content-references-v1", id: "interface_source_session_1234" },
+        },
+      });
+      failedSymbolSourceResponse = await client.callTool({
+        name: "get_symbol_source",
+        arguments: { repoRoot, symbolId: "missing-symbol", format: "compact" },
       });
 
       expect(stderr()).toBe("");
@@ -809,6 +835,26 @@ export function circumference(radius: number): string {
           freshness: "indexed-snapshot",
         },
       });
+      const compactSymbolSource = parseMcpToolResult(
+        compactSymbolSourceResponse as { content: Array<{ type: string; text: string }> },
+      );
+      expect(Array.isArray(compactSymbolSource)).toBe(true);
+      expect(decodeCompactMcpEnvelope(compactSymbolSource)).toEqual(parsedSymbolSource);
+
+      const sessionSymbolSource = parseMcpToolResult(
+        sessionSymbolSourceResponse as { content: Array<{ type: string; text: string }> },
+      );
+      expect(Array.isArray(sessionSymbolSource)).toBe(false);
+      expect(sessionSymbolSource).toMatchObject({
+        ok: true,
+        meta: { contentReference: { representation: "full", reason: "new_content" } },
+      });
+
+      const failedSymbolSource = parseMcpToolResult(
+        failedSymbolSourceResponse as { content: Array<{ type: string; text: string }> },
+      );
+      expect(Array.isArray(failedSymbolSource)).toBe(false);
+      expect(failedSymbolSource).toMatchObject({ ok: false, data: null });
 
       await expect(
         dispatchTool("query_code", {

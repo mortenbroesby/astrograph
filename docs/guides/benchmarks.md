@@ -60,6 +60,15 @@ The project `.jcodemunch.jsonc` carries the same behavioral controls. The
 dedicated global config is still required because project config is unavailable
 during the repository-less initial MCP `tools/list` handshake.
 
+The comparison uses the common `loadBenchmark` query, expands jCodeMunch's
+compact `@N` path aliases to canonical symbol IDs, and batches both requested
+functions into one exact-source call. A run succeeds only when that source
+response structurally succeeds and contains both implementations; search text
+cannot satisfy the check, and failed runs do not enter medians. Results report
+the complete two-call workflow separately from the exact-source response.
+Astrograph requests its opt-in compact format and decodes it losslessly for
+validation; ordinary JSON remains the default for existing clients.
+
 Register the resolved binary with Codex and verify both registrations:
 
 ```bash
@@ -90,8 +99,9 @@ CODE_INDEX_PATH="$JCODEMUNCH_BENCHMARK_INDEX" \
 ```
 
 Read the dated [2026-09-06 comparison](../reviews/jcodemunch-comparison-2026-09-06.md)
-before interpreting results. It separates deterministic payloads from fresh
-agent sessions and documents catalog, indexing, and symbol-ID mismatches.
+before interpreting results. It separates workflow and exact-source payloads
+from historical fresh-agent sessions and documents catalog, indexing, and
+symbol-ID mismatches.
 
 Remove the global test setup without touching Astrograph or an older
 `~/.code-index`:

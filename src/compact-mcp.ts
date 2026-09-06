@@ -24,7 +24,11 @@ const SYMBOL_FIELDS = [
 ] as const;
 
 export type McpOutputFormat = "json" | "compact" | "auto";
-export type CompactMcpToolName = "search_symbols" | "get_file_tree" | "get_file_outline";
+export type CompactMcpToolName =
+  | "search_symbols"
+  | "get_file_tree"
+  | "get_file_outline"
+  | "get_symbol_source";
 export type CompactMcpEnvelope = readonly [
   typeof COMPACT_MCP_VERSION,
   CompactMcpToolName,
@@ -51,7 +55,10 @@ export interface FormattedMcpEnvelope {
 }
 
 function isCompactToolName(value: string): value is CompactMcpToolName {
-  return value === "search_symbols" || value === "get_file_tree" || value === "get_file_outline";
+  return value === "search_symbols"
+    || value === "get_file_tree"
+    || value === "get_file_outline"
+    || value === "get_symbol_source";
 }
 
 function compactSymbol(symbol: Record<string, unknown>): unknown[] {
@@ -63,6 +70,61 @@ function expandSymbol(row: unknown): Record<string, unknown> {
     throw new Error("Invalid compact SymbolSummary row");
   }
   return Object.fromEntries(SYMBOL_FIELDS.map((field, index) => [field, row[index]]));
+}
+
+function compactSourceItem(item: Record<string, unknown>): unknown[] {
+  const provenance = item.provenance as Record<string, unknown>;
+  const range = provenance.range as Record<string, unknown>;
+  const parser = provenance.parser as Record<string, unknown>;
+  return [
+    compactSymbol(item.symbol as Record<string, unknown>),
+    item.source,
+    item.verified,
+    item.startLine,
+    item.endLine,
+    [
+      provenance.filePath,
+      provenance.sourceHash,
+      [range.encoding, range.startByte, range.endByte, range.startLine, range.endLine],
+      [parser.backend, parser.fallbackUsed, parser.fallbackReason],
+      provenance.freshness,
+    ],
+  ];
+}
+
+function expandSourceItem(row: unknown): Record<string, unknown> {
+  if (!Array.isArray(row) || row.length !== 6 || !Array.isArray(row[5]) || row[5].length !== 5) {
+    throw new Error("Invalid compact get_symbol_source row");
+  }
+  const provenance = row[5];
+  if (!Array.isArray(provenance[2]) || provenance[2].length !== 5
+    || !Array.isArray(provenance[3]) || provenance[3].length !== 3) {
+    throw new Error("Invalid compact get_symbol_source provenance row");
+  }
+  return {
+    symbol: expandSymbol(row[0]),
+    source: row[1],
+    verified: row[2],
+    startLine: row[3],
+    endLine: row[4],
+    provenance: {
+      filePath: provenance[0],
+      sourceHash: provenance[1],
+      range: {
+        encoding: provenance[2][0],
+        startByte: provenance[2][1],
+        endByte: provenance[2][2],
+        startLine: provenance[2][3],
+        endLine: provenance[2][4],
+      },
+      parser: {
+        backend: provenance[3][0],
+        fallbackUsed: provenance[3][1],
+        fallbackReason: provenance[3][2],
+      },
+      freshness: provenance[4],
+    },
+  };
 }
 
 function compactSuccessEnvelope(
@@ -104,6 +166,20 @@ function compactSuccessEnvelope(
         const entry = item as Record<string, unknown>;
         return [entry.path, entry.language, entry.symbolCount];
       }),
+      meta,
+    ];
+  }
+
+  if (toolName === "get_symbol_source") {
+    const result = data as Record<string, unknown>;
+    if (!Array.isArray(result.items)) return null;
+    return [
+      COMPACT_MCP_VERSION,
+      toolName,
+      [
+        result.requestedContextLines,
+        result.items.map((item) => compactSourceItem(item as Record<string, unknown>)),
+      ],
       meta,
     ];
   }
@@ -155,11 +231,28 @@ export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<un
       }
       return { path: row[0], language: row[1], symbolCount: row[2] };
     });
-  } else {
+  } else if (toolName === "get_file_outline") {
     if (!Array.isArray(payload) || payload.length !== 2 || !Array.isArray(payload[1])) {
       throw new Error("Invalid compact get_file_outline payload");
     }
     data = { filePath: payload[0], symbols: payload[1].map(expandSymbol) };
+  } else {
+    if (!Array.isArray(payload) || payload.length !== 2 || !Array.isArray(payload[1])) {
+      throw new Error("Invalid compact get_symbol_source payload");
+    }
+    const items = payload[1].map(expandSourceItem);
+    const first = items[0];
+    data = {
+      requestedContextLines: payload[0],
+      items,
+      ...(first ? {
+        symbol: first.symbol,
+        source: first.source,
+        verified: first.verified,
+        startLine: first.startLine,
+        endLine: first.endLine,
+      } : {}),
+    };
   }
 
   return {

@@ -9,11 +9,12 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 
 import { readDaemonRuntime } from "../../src/daemon-runtime.ts";
+import { decodeCompactMcpEnvelope } from "../../src/compact-mcp.ts";
 import { BENCHMARK_TOKENIZER, countTokens } from "../../src/tokenizer.ts";
 
 const TASK = {
   id: "task-corpus-loader",
-  query: "loadBenchmarkCorpus",
+  query: "loadBenchmark",
   filePath: "bench/src/corpus.ts",
   targets: ["loadBenchmarkCorpus", "loadBenchmarkTaskCard"],
 };
@@ -41,24 +42,36 @@ function median(values) {
     : sorted[middle];
 }
 
+function medianOrNull(values) {
+  return values.length === 0 ? null : median(values);
+}
+
 export function summarizeComparisonRuns(runs) {
   return [...Map.groupBy(runs, (run) => run.server)].map(([server, serverRuns]) => {
+    const successfulRuns = serverRuns.filter((run) => run.success);
     const baselineTokens = serverRuns[0].baselineTokens;
-    const medianRetrievalTokens = median(serverRuns.map((run) => run.retrievalTokens));
+    const medianRetrievalTokens = medianOrNull(successfulRuns.map((run) => run.retrievalTokens));
     return {
       server,
       runs: serverRuns.length,
-      successes: serverRuns.filter((run) => run.success).length,
+      successes: successfulRuns.length,
       schemaTokens: serverRuns[0].schemaTokens,
       baselineTokens,
       medianRetrievalTokens,
-      medianTokenReductionPct: round(
-        ((baselineTokens - medianRetrievalTokens) / baselineTokens) * 100,
-      ),
-      medianColdIndexMs: round(median(serverRuns.map((run) => run.coldIndexMs))),
-      medianWarmIndexMs: round(median(serverRuns.map((run) => run.warmIndexMs))),
-      medianRetrievalMs: round(median(serverRuns.map((run) => run.retrievalMs))),
-      medianToolCalls: median(serverRuns.map((run) => run.toolCalls)),
+      medianSourceTokens: medianOrNull(successfulRuns.map((run) => run.sourceTokens)),
+      medianTokenReductionPct: medianRetrievalTokens === null
+        ? null
+        : round(((baselineTokens - medianRetrievalTokens) / baselineTokens) * 100),
+      medianColdIndexMs: successfulRuns.length === 0
+        ? null
+        : round(median(successfulRuns.map((run) => run.coldIndexMs))),
+      medianWarmIndexMs: successfulRuns.length === 0
+        ? null
+        : round(median(successfulRuns.map((run) => run.warmIndexMs))),
+      medianRetrievalMs: successfulRuns.length === 0
+        ? null
+        : round(median(successfulRuns.map((run) => run.retrievalMs))),
+      medianToolCalls: medianOrNull(successfulRuns.map((run) => run.toolCalls)),
     };
   });
 }
@@ -71,10 +84,10 @@ export function renderComparisonReport({ repoSha, tokenizer, taskId, summaries }
     `- Task: \`${taskId}\``,
     `- Tokenizer: \`${tokenizer}\``,
     "",
-    "| Server | Runs | Successes | Schema tokens | Retrieval tokens (median) | Reduction vs read-all | Cold index ms | Warm index ms | Retrieval ms | Calls |",
-    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
+    "| Server | Runs | Successes | Schema tokens | Workflow tokens (median) | Source-response tokens (median) | Reduction vs read-all | Cold index ms | Warm index ms | Retrieval ms | Calls |",
+    "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
     ...summaries.map((summary) =>
-      `| ${summary.server} | ${summary.runs} | ${summary.successes} | ${summary.schemaTokens} | ${summary.medianRetrievalTokens} | ${summary.medianTokenReductionPct}% | ${summary.medianColdIndexMs} | ${summary.medianWarmIndexMs} | ${summary.medianRetrievalMs} | ${summary.medianToolCalls} |`
+      `| ${summary.server} | ${summary.runs} | ${summary.successes} | ${summary.schemaTokens} | ${summary.medianRetrievalTokens ?? "n/a"} | ${summary.medianSourceTokens ?? "n/a"} | ${summary.medianTokenReductionPct === null ? "n/a" : `${summary.medianTokenReductionPct}%`} | ${summary.medianColdIndexMs ?? "n/a"} | ${summary.medianWarmIndexMs ?? "n/a"} | ${summary.medianRetrievalMs ?? "n/a"} | ${summary.medianToolCalls ?? "n/a"} |`
     ),
     "",
     "Schema tokens are reported separately from retrieval tokens because hosts may defer or cache tool definitions. Retrieval reductions use the same read-all file baseline and do not use either server's self-reported savings counter.",
@@ -173,18 +186,63 @@ async function withClient(definition, run) {
   }
 }
 
-export function firstAstrographSymbolId(searchText) {
-  const result = JSON.parse(searchText);
-  const id = result?.data?.items?.[0]?.id;
-  if (typeof id !== "string") throw new Error("Astrograph returned no symbol id");
-  return id;
+export function findAstrographSymbolIds(searchText, targets) {
+  const parsed = JSON.parse(searchText);
+  const result = Array.isArray(parsed) ? decodeCompactMcpEnvelope(parsed) : parsed;
+  if (result?.ok !== true || !Array.isArray(result?.data?.items)) {
+    throw new Error("Astrograph returned no symbol ids");
+  }
+  return targets.map((target) => {
+    const id = result.data.items.find((item) => item?.name === target)?.id;
+    if (typeof id !== "string") throw new Error(`Astrograph returned no id for ${target}`);
+    return id;
+  });
 }
 
-function firstJCodeMunchSymbolId(searchText) {
-  const row = searchText.split("\n").find((line) => line.startsWith("s,"));
-  const id = row?.split(",")[1];
-  if (!id) throw new Error("jCodeMunch returned no symbol id");
-  return id;
+export function findJCodeMunchSymbolIds(searchText, targets) {
+  const lines = searchText.split("\n");
+  const aliases = new Map(lines.flatMap((line) => {
+    const match = line.match(/^(@\d+)=(.*)$/);
+    return match ? [[match[1], match[2]]] : [];
+  }));
+  const ids = lines.filter((line) => line.startsWith("s,")).map((line) => {
+    const id = line.split(",", 2)[1];
+    return id.replace(/^(@\d+)(.*)$/, (_match, alias, suffix) => {
+      const prefix = aliases.get(alias);
+      if (prefix === undefined) throw new Error(`jCodeMunch returned unknown alias ${alias}`);
+      return `${prefix}${suffix}`;
+    });
+  });
+  return targets.map((target) => {
+    const id = ids.find((candidate) => candidate.includes(`::${target}#`));
+    if (!id) throw new Error(`jCodeMunch returned no id for ${target}`);
+    return id;
+  });
+}
+
+export function assertSuccessfulSourceResult(server, sourceText, targets) {
+  const parsed = JSON.parse(sourceText);
+  const value = server === "astrograph" && Array.isArray(parsed)
+    ? decodeCompactMcpEnvelope(parsed)
+    : parsed;
+  if (value?.error) {
+    const detail = value.error?.message ?? value.error;
+    throw new Error(`${server} source failed: ${detail}`);
+  }
+  const items = server === "astrograph" ? value?.data?.items : value?.symbols;
+  const errors = server === "astrograph" ? (value?.ok === true ? [] : [value?.error]) : value?.errors;
+  if (!Array.isArray(items) || !Array.isArray(errors) || errors.length > 0) {
+    throw new Error(`${server} source failed: ${JSON.stringify(errors ?? value)}`);
+  }
+  for (const target of targets) {
+    const item = items.find((candidate) =>
+      (server === "astrograph" ? candidate?.symbol?.name : candidate?.name) === target
+    );
+    if (!item || typeof item.source !== "string" || !item.source.includes(target)) {
+      throw new Error(`${server} source response omitted ${target}`);
+    }
+  }
+  return true;
 }
 
 async function runServer({ server, repoRoot, storeRoot }) {
@@ -250,7 +308,7 @@ async function runServer({ server, repoRoot, storeRoot }) {
       const search = await timed(() => callTool(client, {
         name: "search_symbols",
         arguments: isAstrograph
-          ? { repoRoot, query: TASK.query, filePattern: TASK.filePath, limit: 5 }
+          ? { repoRoot, query: TASK.query, filePattern: TASK.filePath, limit: 5, format: "compact" }
           : {
               repo,
               query: TASK.query,
@@ -260,17 +318,22 @@ async function runServer({ server, repoRoot, storeRoot }) {
             },
       }));
       const searchText = textContent(search.value);
-      const symbolId = isAstrograph
-        ? firstAstrographSymbolId(searchText)
-        : firstJCodeMunchSymbolId(searchText);
+      const symbolIds = isAstrograph
+        ? findAstrographSymbolIds(searchText, TASK.targets)
+        : findJCodeMunchSymbolIds(searchText, TASK.targets);
       const source = await timed(() => callTool(client, {
         name: "get_symbol_source",
         arguments: isAstrograph
-          ? { repoRoot, symbolId, verify: true }
-          : { repo, symbol_id: symbolId, verify: true, context_lines: 0 },
+          ? { repoRoot, symbolIds, verify: true, format: "compact" }
+          : { repo, symbol_ids: symbolIds, verify: true, context_lines: 0 },
       }));
       const sourceText = textContent(source.value);
-      const combined = `${searchText}\n${sourceText}`;
+      let sourceError = null;
+      try {
+        assertSuccessfulSourceResult(server, sourceText, TASK.targets);
+      } catch (error) {
+        sourceError = error instanceof Error ? error.message : String(error);
+      }
 
       return {
         server,
@@ -281,6 +344,8 @@ async function runServer({ server, repoRoot, storeRoot }) {
         baselineTokens: countTokens(await readFile(path.join(repoRoot, TASK.filePath), "utf8")),
         retrievalBytes: Buffer.byteLength(searchText) + Buffer.byteLength(sourceText),
         retrievalTokens: countTokens(searchText) + countTokens(sourceText),
+        sourceBytes: Buffer.byteLength(sourceText),
+        sourceTokens: countTokens(sourceText),
         coldIndexMs: cold.elapsedMs,
         warmIndexMs: warm.elapsedMs,
         coldIndexState: isAstrograph
@@ -291,7 +356,8 @@ async function runServer({ server, repoRoot, storeRoot }) {
           : { performedIncremental: warmResult.value.performed_incremental },
         retrievalMs: round(search.elapsedMs + source.elapsedMs),
         toolCalls: 2,
-        success: TASK.targets.every((target) => combined.includes(target)),
+        success: sourceError === null,
+        sourceError,
         repo,
         raw: {
           coldIndex: coldResult.text,
