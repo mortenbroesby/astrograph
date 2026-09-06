@@ -1,0 +1,9 @@
+{
+  "use_ai_summaries": false,
+  "context_providers": false,
+  "allow_remote_summarizer": false,
+  "share_savings": false,
+  "perf_telemetry_enabled": false,
+  "tool_profile": "core",
+  "compact_schemas": true
+}
