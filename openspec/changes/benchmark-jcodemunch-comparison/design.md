@@ -24,11 +24,11 @@ The untouched `origin/main` baseline at `a6e28cd` currently reports 390 passed, 
 
 ### Pin a device-owned jCodeMunch binary
 
-Install `jcodemunch-mcp==1.108.317` with `uv tool install --python 3.12`, then register the resolved absolute `~/.local/bin/jcodemunch-mcp` path with `codex mcp add`. Record `uv tool list`, `jcodemunch-mcp --version`, `codex mcp get jcodemunch --json`, and the binary path. This avoids mutable `uvx` resolution and first-run stdout during the MCP handshake. A repository virtualenv was rejected because the user requested a global test installation; unpinned `pip install` was rejected because it cannot reproduce the comparison.
+Install `jcodemunch-mcp==1.108.317` with the existing uv-managed Python 3.13, then register the resolved absolute `~/.local/bin/jcodemunch-mcp` path with `codex mcp add`. Record `uv tool list`, `jcodemunch-mcp --version`, `codex mcp get jcodemunch --json`, and the binary path. This avoids mutable `uvx` resolution and first-run stdout during the MCP handshake. A repository virtualenv was rejected because the user requested a global test installation; downloading another interpreter or using unpinned `pip install` was rejected because the installed Python 3.13 already satisfies the package's `>=3.10` requirement and an unpinned package cannot reproduce the comparison.
 
 ### Keep the comparison local and deterministic
 
-Commit `.jcodemunch.jsonc` on the test branch with AI summaries, savings sharing, and performance telemetry disabled. Index the exact linked worktree path and record both products' effective version, repository commit, index state, and cold/warm condition. Remote summarizers were rejected because they add provider, cost, privacy, and model variance.
+Commit `.jcodemunch.jsonc` on the test branch with AI summaries, savings sharing, and performance telemetry disabled. Bind the global Codex registration to a dedicated `/Users/macbook/.code-index-astrograph-benchmark` store containing the same controls plus the core/compact handshake profile, because jCodeMunch's project config cannot shape the repository-less initial `tools/list`. This preserves the user's pre-existing `~/.code-index` config and indexes. Index the exact linked worktree path and record both products' effective version, repository commit, index state, and cold/warm condition. Remote summarizers were rejected because they add provider, cost, privacy, and model variance.
 
 ### Reuse Astrograph's benchmark primitives
 
@@ -59,4 +59,4 @@ Keep implementation, local-only configuration, OpenSpec artifacts, and draft evi
 4. Run repeated fresh-client agent trials, review aggregates, and publish the dated report and guide update.
 5. Validate, commit, push, open and merge the documentation branch, then verify `origin/main` contains the exact result.
 
-Rollback removes the `jcodemunch` Codex registration with `codex mcp remove jcodemunch`, uninstalls the tool with `uv tool uninstall jcodemunch-mcp`, and removes its local index only after resolving the exact jCodeMunch-owned path. The Astrograph registration and cache remain untouched.
+Rollback removes the `jcodemunch` Codex registration with `codex mcp remove jcodemunch`, uninstalls the tool with `uv tool uninstall jcodemunch-mcp`, and removes `/Users/macbook/.code-index-astrograph-benchmark` only after confirming it remains the dedicated benchmark store. The pre-existing `~/.code-index`, preserved pipx venv, Astrograph registration, and Astrograph cache remain untouched.
