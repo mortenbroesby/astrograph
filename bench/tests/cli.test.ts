@@ -52,6 +52,42 @@ describe("benchmark cli", () => {
     }
   });
 
+  it("accepts the package-manager separator before strict mode", () => {
+    const fixture = createBenchmarkFixtureRepo();
+    const cliPath = path.join("bench", "src", "cli.ts");
+
+    try {
+      appendFileSync(
+        path.join(fixture.repoRoot, "bench", "src", "corpus.ts"),
+        "\nexport const dirty = true;\n",
+      );
+      expect(() =>
+        execFileSync(
+          process.execPath,
+          [
+            "--import=tsx",
+            cliPath,
+            "--",
+            "--strict",
+            "--repo-root",
+            fixture.repoRoot,
+            "--corpus",
+            fixture.corpusPath,
+            "--output",
+            ".benchmarks/cli-run",
+            "--task",
+            "task-corpus-loader",
+            "--workflow",
+            "symbol-first",
+          ],
+          { encoding: "utf8", cwd: workspaceRoot, stdio: ["ignore", "pipe", "pipe"] },
+        ),
+      ).toThrow(/clean checkout/i);
+    } finally {
+      fixture.cleanup();
+    }
+  });
+
   it("fails strict mode on a dirty checkout", () => {
     const fixture = createBenchmarkFixtureRepo();
     const cliPath = path.join("bench", "src", "cli.ts");
