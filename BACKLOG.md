@@ -63,7 +63,7 @@ OpenSpec change: `establish-p0-published-runtime`
 
 ## P1 - Fast, safe development feedback loop
 
-**Status:** In progress
+**Status:** Achieved
 
 ### Active work manifest
 
@@ -73,7 +73,7 @@ worktree contains no unique files.
 
 | Goal | State | Branch | Worktree | Base | Verification | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
-| Establish the P1 fast, observable, resumable workflow | Active | `codex/resumable-workflow` | `.worktrees/repair-stale-runtime-discovery` | `origin/main` at `13c35d9` | Focused checks, exact-artifact fast gate, version policy, strict OpenSpec, and diff check pass; cold-index median improved from 52.3s to 21.4s | Push, verify exact-head CI, merge, then prove the published managed runtime |
+| Establish the P1 fast, observable, resumable workflow | Completed; eligible for retirement | `codex/complete-p1-workflow` | `.worktrees/complete-p1-workflow` | `origin/main` at `de001ee` | PR #139 merged; required CI and release passed; published `.236` runtime passed fresh-client hydration/search/profile proof | Merge this documentation-only closeout, then remove the worktree |
 | Preserve retrieval-quality implementation | Preserved remotely; paused | `feat/retrieval-quality-roadmap` at `b9f21d4` | Worktree retired | Remote ref verified at `b9f21d4`; branch remains far behind `origin/main` | Parser and engine-contract tests passed (45 tests); MCP stdio test timed out at its legacy 15-second limit; worktree clean | Resume from the remote branch in a fresh worktree only when reprioritized |
 | Reconcile publishable workflow benchmark | Preserved remotely; paused | `feat/publishable-workflow-benchmark` at `d072267` | Worktrees retired | Remote survivor includes the external-corpus cleanup and v2 `-- --strict` behavior; old v2 local branch remains at `6fa66a7` | Four benchmark files pass (14 tests); generated `.benchmarks/` output discarded; `.benchmarks/` now ignored | Resume from the remote survivor only when reprioritized |
 | Preserve MCP runtime-hygiene work | Preserved remotely; superseded residue | `agent/mcp-runtime-hygiene` at `1d05beb` | Worktree retired | Remote ref verified; branch remains far behind `origin/main` | Exact mixed residue preserved as non-mergeable WIP: stale `npx @latest`, weakened policy, VS Code colors, and README conflict markers | Retain for forensic recovery only; do not merge |
@@ -112,4 +112,7 @@ OpenSpec change: `establish-p1-fast-resumable-workflow`
 
 ## P2
 
-To be prioritized after P1 is defined.
+1. Make exact-version npm execution immune to package-workspace bin shadowing,
+   or provide one canonical neutral-directory published-artifact verifier.
+2. Add a supported command for changing global observability settings so users
+   do not need to edit the global JSON file manually.
