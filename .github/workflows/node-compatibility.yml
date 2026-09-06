@@ -8,7 +8,7 @@ on:
         required: true
         type: choice
         options:
-          - "20"
+          - "22"
           - "24"
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
         with:
           version: 9.15.9
 
-      # tsdown supports Node 22/24, so build once with the repository toolchain.
+      # Build once with the repository's Node 22 toolchain.
       - uses: actions/setup-node@v4
         with:
           node-version: 22

@@ -15,7 +15,7 @@ npx --yes astrograph cli diagnostics --repo /absolute/path/to/repo --scan-freshn
 
 ## Node.js or Package Installation Errors
 
-The published package supports Node 20.19+, 22, and 24. Check the runtime that
+The published package supports Node 22.12 and newer. Check the runtime that
 starts Astrograph:
 
 ```bash

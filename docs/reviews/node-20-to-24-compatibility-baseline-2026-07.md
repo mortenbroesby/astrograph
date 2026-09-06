@@ -1,5 +1,10 @@
 # Node 20–24 Compatibility Baseline — July 2026
 
+> **Superseded 2026-09-06:** Node 20 reached end-of-life, and Astrograph now
+> requires Node 22.12+ so it can use `better-sqlite3`'s maintained N-API release
+> without deprecated `prebuild-install`. The measurements below remain the
+> historical evidence for the earlier compatibility decision.
+
 ## Scope
 
 This review verifies the published Astrograph package on macOS x64. It

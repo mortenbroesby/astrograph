@@ -7,10 +7,10 @@ to dry-run that decision, and how the actual publish flow works.
 
 ## Supported Release Environments
 
-The published package supports Node 20.19+, 22, and 24. Local contributor
-builds require Node 22.18+ or 24.11+ because tsdown does not support Node 20.
+The published package supports Node 22.12 and newer. Local contributor builds
+require Node 22.18+ or 24.11+ because of the current tsdown toolchain.
 The manual **Node package compatibility** workflow builds under Node 22, then
-tests the packed artifact under Node 20 or 24; it adds no automatic Actions
+tests the packed artifact under Node 22 or 24; it adds no automatic Actions
 usage. Git is optional for normal indexing and retrieval: when Git is
 unavailable or a folder is not a checkout, Astrograph safely uses its
 filesystem fallback. Release automation itself runs on GitHub-hosted Linux.

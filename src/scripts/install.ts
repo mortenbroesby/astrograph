@@ -554,7 +554,7 @@ function nodeVersionSupported(nodeVersion: string): boolean {
   const match = nodeVersion.replace(/^v/, "").match(/^(\d+)\.(\d+)\./);
   const major = Number(match?.[1] ?? 0);
   const minor = Number(match?.[2] ?? 0);
-  return (major === 20 && minor >= 19) || major > 22 || (major === 22 && minor >= 12);
+  return major > 22 || (major === 22 && minor >= 12);
 }
 
 interface ConfiguredRuntimeInvocation {
@@ -759,7 +759,7 @@ export async function getGlobalInstallationDiagnostics(
     package: { name: PACKAGE_NAME, version: PACKAGE_VERSION },
     runtime: {
       nodeVersion: process.versions.node,
-      minimumNodeVersion: "20.19.0",
+      minimumNodeVersion: "22.12.0",
       supported: nodeVersionSupported(process.versions.node),
     },
     managedRuntime,
@@ -1763,7 +1763,7 @@ function assertGlobalInstallPrerequisites(
 ): void {
   const nodeVersion = options.nodeVersion ?? process.versions.node;
   if (!nodeVersionSupported(nodeVersion)) {
-    throw new Error(`Astrograph global install requires Node.js 20.19+ or >=22.12.0; found ${nodeVersion}. Install a supported Node release and retry.`);
+    throw new Error(`Astrograph global install requires Node.js 22.12+; found ${nodeVersion}. Install a supported Node release and retry.`);
   }
 }
 
