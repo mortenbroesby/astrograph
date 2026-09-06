@@ -175,7 +175,7 @@ export async function measureParsing(repoRoot, relativePaths) {
     if (!language) {
       continue;
     }
-    const parsed = parseSourceFile({
+    const parsed = await parseSourceFile({
       relativePath,
       content,
       language,

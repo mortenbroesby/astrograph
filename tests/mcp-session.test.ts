@@ -66,4 +66,19 @@ describe("MCP content references", () => {
     })).resolves.toMatchObject({ ok: false, error: { code: "invalid_argument" } });
     expect(executed).toBe(false);
   });
+
+  it("accepts Copilot-sized session ids and ignores malformed optional content hints", () => {
+    expect(parseMcpSession({
+      ...session,
+      id: "mcpfmttrace01",
+      knownContentIds: [
+        "sha256:73757308bb6fc68d96642881c69b244a9d9a4a43fa614e04aa6aa5bc5e4445b",
+        "sha256:77dd04c0f8ca1a7c54906103506afca91d7e14547b3d1b99fb1d157f768631a9",
+      ],
+    })).toEqual({
+      capability: "content-references-v1",
+      id: "mcpfmttrace01",
+      knownContentIds: ["sha256:77dd04c0f8ca1a7c54906103506afca91d7e14547b3d1b99fb1d157f768631a9"],
+    });
+  });
 });

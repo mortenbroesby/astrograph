@@ -394,6 +394,8 @@ describe("ai-context-engine contract", () => {
     expect(getCommandByMcpToolName("search_symbols")).toBe(COMMAND_REGISTRY.searchSymbols);
     expect(getCommandByMcpToolName("get_symbol_source")).toBe(COMMAND_REGISTRY.getSymbolSource);
     expect(getCommandByMcpToolName("get_task_context")).toBe(COMMAND_REGISTRY.getTaskContext);
+    expect(COMMAND_REGISTRY.searchSymbols.description).toContain("limit 5");
+    expect(COMMAND_REGISTRY.getTaskContext.description).toContain("1,200-token");
   });
 
   it("does not track a Codex MCP registration that shadows the device runtime", async () => {
@@ -1959,6 +1961,12 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("merely because an index is absent");
     expect(result.agentsPolicyPreview).toContain("search_symbols");
     expect(result.agentsPolicyPreview).toContain("get_task_context");
+    expect(result.agentsPolicyPreview).toContain("sequentially");
+    expect(result.agentsPolicyPreview).toContain("different repositories");
+    expect(result.agentsPolicyPreview).toContain("safe operations");
+    expect(result.agentsPolicyPreview).toContain("limit 5");
+    expect(result.agentsPolicyPreview).toContain("1,200-token");
+    expect(result.agentsPolicyPreview).not.toContain("missing, stale, or unavailable");
     expect(result.agentsPolicyPreview).not.toContain("query_code");
   });
 
@@ -2099,6 +2107,12 @@ describe("ai-context-engine contract", () => {
     expect(result.agentsPolicyPreview).toContain("index_folder");
     expect(result.agentsPolicyPreview).toContain("then retry the Astrograph request");
     expect(result.agentsPolicyPreview).toContain("merely because an index is absent");
+    expect(result.agentsPolicyPreview).toContain("sequentially");
+    expect(result.agentsPolicyPreview).toContain("different repositories");
+    expect(result.agentsPolicyPreview).toContain("safe operations");
+    expect(result.agentsPolicyPreview).toContain("limit 5");
+    expect(result.agentsPolicyPreview).toContain("1,200-token");
+    expect(result.agentsPolicyPreview).not.toContain("missing, stale, or unavailable");
   });
 
   it("does not add Astrograph as a dependency of itself", async () => {

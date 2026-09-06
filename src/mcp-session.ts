@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { McpEnvelope } from "./mcp-contract.ts";
 
 export const MCP_SESSION_CAPABILITY = "content-references-v1";
-const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{16,128}$/;
+const SESSION_ID_PATTERN = /^[A-Za-z0-9_-]{8,128}$/;
 const CONTENT_ID_PATTERN = /^sha256:[a-f0-9]{64}$/;
 const MAX_SESSIONS = 64;
 const MAX_KNOWN_CONTENT_IDS = 64;
@@ -34,11 +34,15 @@ export function parseMcpSession(value: unknown): McpSessionInput | undefined {
   }
   const knownContentIds = value.knownContentIds ?? [];
   if (!Array.isArray(knownContentIds) || knownContentIds.length > MAX_KNOWN_CONTENT_IDS
-    || !knownContentIds.every(isContentId)
+    || !knownContentIds.every((contentId) => typeof contentId === "string")
     || Buffer.byteLength(knownContentIds.join("\n"), "utf8") > MAX_KNOWN_CONTENT_BYTES) {
     throw new Error("Invalid MCP knownContentIds");
   }
-  return { capability: MCP_SESSION_CAPABILITY, id: value.id, knownContentIds: [...new Set(knownContentIds)] };
+  return {
+    capability: MCP_SESSION_CAPABILITY,
+    id: value.id,
+    knownContentIds: [...new Set(knownContentIds.filter(isContentId))],
+  };
 }
 
 export class McpContentReferenceStore {

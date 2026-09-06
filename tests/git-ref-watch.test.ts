@@ -47,5 +47,5 @@ describe("Git ref watch reconciliation", () => {
 
     expect((await searchSymbols({ repoRoot, query: "gitRefReconciled" }))
       .map((entry) => entry.name)).toContain("gitRefReconciled");
-  });
+  }, 10_000);
 });

@@ -9,10 +9,8 @@ import {
 
 async function main() {
   const options = parsePerfArgs(process.argv.slice(2));
-  const [index, query] = await Promise.all([
-    collectIndexPerfMetrics(options.repoRoot),
-    collectQueryPerfMetrics(options.repoRoot, options.runs),
-  ]);
+  const index = await collectIndexPerfMetrics(options.repoRoot);
+  const query = await collectQueryPerfMetrics(options.repoRoot, options.runs);
 
   const result = {
     schemaVersion: "1.0",

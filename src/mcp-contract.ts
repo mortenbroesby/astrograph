@@ -285,11 +285,12 @@ export const MCP_TOOL_DEFINITIONS = [
   },
   {
     name: COMMAND_REGISTRY.getProjectStatus.mcpToolName,
-    description: COMMAND_REGISTRY.getProjectStatus.description,
+    description: `${COMMAND_REGISTRY.getProjectStatus.description} Language support details are omitted by default; request them only when diagnosing compatibility.`,
     toolVersion: "1",
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
       scanFreshness: booleanSchema("When true, walk and hash the live repository to detect drift").optional(),
+      includeSupportTiers: booleanSchema("Include verbose language and tool support details").optional(),
     },
     execute: async (engine, args) => {
       const input = {

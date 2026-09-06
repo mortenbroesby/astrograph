@@ -372,8 +372,7 @@ describe("ai-context-engine behavior", () => {
       expect.arrayContaining([
         expect.objectContaining({
           name: "area",
-          summary:
-            "export function area(radius: number): string { const value = PI * radius * radius; return formatLabel(value); }",
+          summary: "export function area(radius: number): string",
           summarySource: "signature",
         }),
       ]),

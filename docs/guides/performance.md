@@ -83,6 +83,34 @@ or create a dashboard. Retention follows `observability.retentionDays` (three
 days by default); reset is explicit and only clears the named repository's
 local event log.
 
+## Bounded Copilot CLI Trial
+
+Use a fixed, read-only sequence when measuring agent-visible token cost. Keep
+the prompt and all JSONL, usage, and debug output in a temporary directory; only
+commit aggregate counts and conclusions.
+
+```bash
+trial_dir="$(mktemp -d)"
+copilot -C /abs/repo \
+  --disable-builtin-mcps \
+  --available-tools='astrograph-get_project_status,astrograph-search_symbols,astrograph-get_file_outline,astrograph-get_task_context' \
+  --allow-all-tools --allow-all-mcp-server-instructions \
+  --no-ask-user --no-auto-update --no-remote --no-remote-export \
+  --output-format json --max-ai-credits 30 \
+  --usage-output-file "$trial_dir/usage.json" \
+  --log-dir "$trial_dir/logs" \
+  --prompt '<bounded read-only four-call task>' > "$trial_dir/events.jsonl"
+```
+
+Use the same repository revision, model, tool sequence, result limits, payload
+budget, Node runtime, and packed Astrograph artifact for every comparison. Run
+at least three candidate samples, but do not average invalid native-runtime,
+authentication, or client-startup failures into performance results. Record
+model input/output tokens, API and wall time, tool-call count, failures,
+timeouts, response bytes, and overflow count. Copilot currently enforces a
+minimum `--max-ai-credits` value of 30; the bounded prompt and tool allowlist are
+the actual cost guardrails.
+
 ## Verification Tiers
 
 Run the same fast signal as required CI before pushing:
