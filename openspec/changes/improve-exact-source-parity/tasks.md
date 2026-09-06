@@ -21,5 +21,5 @@
 
 - [x] 4.1 Run the focused benchmark/compact/interface tests, `pnpm build`, and `pnpm type-lint`; fix scoped failures and record unrelated baseline failures separately.
 - [x] 4.2 Bump the monotonic package version, run `pnpm check:version-bump --base origin/main`, `pnpm verify:fast`, the repository release-decision workflow, and `pnpm exec openspec validate improve-exact-source-parity --strict`; verify every required gate passes.
-- [ ] 4.3 Review the minimal diff, secret-scan changed files, commit and push the implementation branch, and verify its remote SHA and exact-head required CI before merge.
+- [x] 4.3 Review the minimal diff, secret-scan changed files, commit and push the implementation branch, and verify its remote SHA and exact-head required CI before merge.
 - [ ] 4.4 Merge through GitHub, verify `origin/main` and main CI at the exact merged commit, sync the delta spec, and archive the completed OpenSpec change.
