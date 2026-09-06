@@ -10,5 +10,5 @@
 ## 3. Verification and Delivery
 
 - [x] 3.1 Run focused installer/package tests, `pnpm build`, `pnpm type-lint`, `pnpm test:package-bin`, and the prebuilt package smoke under local Node 24; verify native database indexing succeeds and install output has no `prebuild-install` warning.
-- [ ] 3.2 Run `pnpm check:version-bump --base origin/main`, the release-decision workflow, and strict OpenSpec validation; apply the breaking alpha version decision and resolve scoped failures.
+- [x] 3.2 Run `pnpm check:version-bump --base origin/main`, the release-decision workflow, and strict OpenSpec validation; apply the breaking alpha version decision and resolve scoped failures.
 - [ ] 3.3 Review and secret-scan the minimal diff, commit and push the branch, verify exact-head required CI, merge through GitHub, close issue #125 with the delivered evidence, and archive the completed OpenSpec change.
