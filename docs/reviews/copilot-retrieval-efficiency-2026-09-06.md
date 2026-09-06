@@ -93,3 +93,33 @@ timeout but `search_symbols` still overflowed at 33,966 bytes because the large
 parser boundary therefore excludes variable initializers as well as function
 and class bodies, retains the exact source range, and advances persisted storage
 compatibility to version 3.
+
+## Immutable Runtime Closeout
+
+Pull requests #141, #142, and #143 merged with exact-head required CI green.
+The release workflow published and verified `astrograph@0.14.1-alpha.239`, and
+both Copilot and Codex now select that immutable managed entrypoint. A Codex
+upgrade launched under Node 24 retained the active Node 22 runtime; its
+`better-sqlite3` dependency loaded successfully with ABI 127.
+
+The fresh Copilot recovery session used `gpt-5.6-luna` and made the required six
+sequential Astrograph calls. Storage v2 was rejected and rebuilt as v3 with 215
+files and 1,754 symbols. All six calls succeeded without timeout or overflow in
+75,176 ms wall time and 12,272 ms API time, using 55,241 input tokens. The
+formerly overflowing exact symbol search returned 787 bytes, 97.7% below the
+33,966-byte v2 result; the file outline returned 9,508 bytes.
+
+The next fresh steady-state session made four sequential calls with zero
+failures, timeouts, overflows, or code changes. It used 29,515 input tokens,
+5,881 ms API time, and 20,722 ms wall time; its four tool results totaled 15,924
+bytes. That input total is 44.4% below the 53,129-token historical baseline,
+but Copilot auto-selected `mai-code-1.1-flash`, so the controlled three-run
+candidate result above remains the attribution-quality comparison.
+
+As a review agent, Copilot found the correct status and MCP implementation
+areas. It also called the required one-time compatibility rebuild, intentional
+1,200-token context truncation, and reported unresolved imports "inefficiency";
+those are expected recovery, budgeting, and repository-health signals rather
+than evidence for more Astrograph code. This bounded pass therefore stops here.
+Raw prompts, logs, source-bearing output, and session identifiers remain only in
+temporary storage.

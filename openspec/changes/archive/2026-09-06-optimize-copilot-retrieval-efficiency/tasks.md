@@ -24,4 +24,4 @@
 - [x] 3.2 Update the performance guide with the bounded Copilot trial method and explicit ephemeral-artifact rules; verify no prompt, source, raw log, or session identifier is committed
 - [x] 3.3 Run relevant retrieval benchmarks, `pnpm verify:fast`, `pnpm check:version-bump --base origin/main`, and `openspec validate optimize-copilot-retrieval-efficiency --strict`; fix or explicitly report every failure
 - [x] 3.4 Use Copilot as a bounded Luna-style review agent that relies on Astrograph; assess both its engineering findings and its tool-call efficiency before integration
-- [ ] 3.5 Apply the release decision, commit and push the branch, verify exact-head CI, and prove the selected immutable device runtime rebuilds incompatible persisted indexes through a fresh Copilot CLI session before marking the backlog entry complete
+- [x] 3.5 Apply the release decision, commit and push the branch, verify exact-head CI, and prove the selected immutable device runtime rebuilds incompatible persisted indexes through a fresh Copilot CLI session before marking the backlog entry complete
