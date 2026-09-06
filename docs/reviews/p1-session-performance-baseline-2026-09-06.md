@@ -1,7 +1,7 @@
 # P1 session-flow performance evidence
 
-Measured on Node.js `v22.23.1` from the `codex/resumable-workflow` candidate
-based on `944a25a`. Each run used a fresh isolated daemon runtime and cleared
+Measured on Node.js `v22.23.1` from the `codex/resumable-workflow` runtime
+candidate committed as `f7fcbbd`. Each run used a fresh isolated daemon runtime and cleared
 only this checkout's global index before calling status, hydrate, status,
 symbol search, and diagnostics. The repository config used global storage,
 file concurrency 4, and worker-pool concurrency 3.
