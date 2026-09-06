@@ -29,7 +29,7 @@ The per-repository queue in `src/daemon-tenants.ts` is an intentional storage-sa
 
 4. **Keep raw trials ephemeral.** Copilot JSONL, debug logs, and usage files remain under a temporary directory. `docs/reviews/` receives only aggregate counts and conclusions; `docs/guides/performance.md` receives the reproducible bounded command pattern without raw prompts or identifiers.
 
-5. **Guide clients to small initial retrieval bounds instead of silently capping valid requests.** `search_symbols` starts at limit 10 and `get_task_context` at 1,200 payload tokens in tool, server, and generated-policy guidance. Hard server caps were rejected because callers may deliberately need larger responses after refinement.
+5. **Guide clients to small initial retrieval bounds instead of silently capping valid requests.** `search_symbols` starts with an exact or file-scoped query at limit 5, `get_task_context` at 1,200 payload tokens, and `get_symbol_source` with one or two ids in tool, server, and generated-policy guidance. Hard server caps were rejected because callers may deliberately need larger responses after refinement.
 
 6. **Treat content-reference identifiers as optional cache hints.** Accept eight-character-or-longer session identifiers and discard malformed known-content identifiers after enforcing the existing count and byte limits. Failing the retrieval was rejected because a client-generated cache hint must not make source access unavailable.
 

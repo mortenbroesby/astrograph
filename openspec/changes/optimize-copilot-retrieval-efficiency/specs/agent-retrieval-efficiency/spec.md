@@ -37,12 +37,13 @@ Astrograph SHALL tell agents to issue operations for the same repository sequent
 
 ### Requirement: Client guidance starts with bounded retrieval
 
-Astrograph SHALL tell agents to start symbol discovery with at most 10 results and task-context assembly with a 1,200-token payload budget, then increase those bounds only after refining the query.
+Astrograph SHALL tell agents to start exact or file-scoped symbol discovery with at most 5 results, task-context assembly with a 1,200-token payload budget, and exact-source retrieval with at most two symbols, then increase those bounds only after refining the query.
 
 #### Scenario: Agent begins broad code discovery
 - **WHEN** an agent does not yet know the exact symbol or file
-- **THEN** it starts `search_symbols` with limit 10
+- **THEN** it starts `search_symbols` with an exact or file-scoped query and limit 5
 - **AND** starts `get_task_context` with a 1,200-token payload budget
+- **AND** retrieves source for at most two exact symbols initially
 - **AND** refines the query before requesting more results or context
 
 ### Requirement: Real-client efficiency is regression tested

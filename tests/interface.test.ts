@@ -837,7 +837,7 @@ export function circumference(radius: number): string {
       expect(client.getInstructions()).toContain("sequentially");
       expect(client.getInstructions()).toContain("different repositories");
       expect(client.getInstructions()).toContain("safe operations");
-      expect(client.getInstructions()).toContain("limit 10");
+      expect(client.getInstructions()).toContain("limit 5");
       expect(client.getInstructions()).toContain("1,200-token");
       expect(client.getInstructions()).not.toContain("missing, stale, or unavailable");
 

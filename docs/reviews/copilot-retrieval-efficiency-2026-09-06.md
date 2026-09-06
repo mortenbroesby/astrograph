@@ -32,8 +32,10 @@ wall-clock speedup.
   tool. The candidate reduced the result from 10,829 to 1,238 bytes (88.6%) by
   making that matrix opt-in.
 - Broad symbol discovery and large task-context budgets were chosen without
-  refinement. Candidate instructions consistently produced limit 10 and 1,200
-  token starting bounds.
+  refinement. Candidate instructions produced bounded calls, and a subsequent
+  Luna-style review showed that limit 10 could still overflow. Final guidance
+  starts with exact or file-scoped limit 5 searches, 1,200 context tokens, and
+  one or two exact source symbols.
 - Copilot occasionally supplied an 8–15 character session identifier or a
   malformed optional known-content hash. Rejecting those cache hints caused
   avoidable retries before retrieval reached the daemon.
@@ -55,3 +57,12 @@ The pass keeps the shared daemon, per-repository safety queue, 14-tool surface,
 exact source ranges, output validation, and explicit larger retrieval requests.
 Raw prompts, source-bearing outputs, logs, temporary paths, and session
 identifiers remain outside the repository.
+
+## Copilot Reviewer Observation
+
+A separate bounded Copilot review used Astrograph as its only repository tool.
+It correctly reported no blocking regression, but consumed 112,903 input tokens
+across eight calls, repeated five symbol searches, overflowed one broad result,
+and cited a neighboring hash helper instead of the parser implementation. This
+direct observation caused the final limit-5, exact/file-scoped, one-or-two-source
+guidance above; the review itself is not counted in the four-call benchmark.

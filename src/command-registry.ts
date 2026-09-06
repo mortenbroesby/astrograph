@@ -144,7 +144,7 @@ export const COMMAND_REGISTRY = {
     id: "search_symbols",
     cliCommand: "search-symbols",
     mcpToolName: "search_symbols",
-    description: "Search indexed symbols by name, kind, language, or file pattern. Start with limit 10 and refine before increasing it.",
+    description: "Search indexed symbols by name, kind, language, or file pattern. Start with an exact or file-scoped query and limit 5; refine before increasing it.",
     normalizedOptions: [
       "repoRoot",
       "query",
@@ -184,7 +184,7 @@ export const COMMAND_REGISTRY = {
     id: "get_symbol_source",
     cliCommand: "get-symbol-source",
     mcpToolName: "get_symbol_source",
-    description: "Return source snippets for one or more indexed symbols.",
+    description: "Return source snippets for indexed symbols. Start with one or two exact symbol ids.",
     normalizedOptions: ["repoRoot", "symbolId", "symbolIds", "contextLines", "verify"],
     execute: (engine, input: SymbolSourceInput): Promise<SymbolSourceResult> =>
       engine.getSymbolSource(input),

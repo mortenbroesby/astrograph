@@ -30,7 +30,7 @@ import { redactSecretLikeValue } from "./privacy.ts";
 import { MCP_SESSION_CAPABILITY, mcpContentReferenceStore, parseMcpSession } from "./mcp-session.ts";
 
 const logger = getLogger({ component: "mcp" });
-const MCP_SERVER_INSTRUCTIONS = "Start with get_project_status. If the index is missing or unavailable, run index_folder once and retry. If it is deep-ready but degraded, use its safe operations and recommended action instead of repeating index_folder. Call tools for one repository sequentially; calls for different repositories may run concurrently. Start search_symbols with limit 10 and get_task_context with a 1,200-token budget; increase only after refining the query.";
+const MCP_SERVER_INSTRUCTIONS = "Start with get_project_status. If the index is missing or unavailable, run index_folder once and retry. If it is deep-ready but degraded, use its safe operations and recommended action instead of repeating index_folder. Call tools for one repository sequentially; calls for different repositories may run concurrently. Start search_symbols with an exact or file-scoped query and limit 5, get_task_context with a 1,200-token budget, and get_symbol_source with one or two ids; increase only after refining.";
 
 type McpCommandExecutor = typeof executeDaemonCommand;
 
