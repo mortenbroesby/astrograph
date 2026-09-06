@@ -110,7 +110,42 @@ Exit criteria:
 
 OpenSpec change: `establish-p1-fast-resumable-workflow`
 
-## P2
+## P2 - Retrieval correctness and trustworthy evidence
+
+**Status:** Selected
+
+1. Fix UTF-8 byte-range extraction for task context and context bundles, with
+   source/provenance/token agreement across Unicode, emoji, CRLF, and same-line
+   symbols. OpenSpec: `fix-context-source-byte-ranges`.
+2. Correct FTS candidate selection, BM25 column weights, scoped filtering, and
+   exact/heuristic ordering.
+3. Report file-level imports and symbol-level references honestly, with evidence
+   and confidence instead of representative-symbol inference.
+4. Bound JSON/config discovery records while preserving lossless explicit source.
+
+Roadmap: `docs/roadmaps/astrograph-codebase-roadmap.md`.
+
+## P3 - Retrieval foundations
+
+1. Selectively recover identifier segmentation and ranking-debug work from
+   `feat/retrieval-quality-roadmap`; do not merge the stale branch wholesale.
+2. Introduce stable symbol identities only after current storage-v3 migration,
+   collision, and compatibility behavior is revalidated.
+3. Support TypeScript path aliases and workspace/package resolution.
+4. Reconcile overlapping context, budgets, startup profile size, content
+   references, and compact encoding with measured evidence.
+
+## P4 - Trustworthy TypeScript symbol graph
+
+Build evidence-backed, confidence-labelled symbol relationships only after
+stable identity and honest import/reference semantics are proven.
+
+## P5 - Change-aware context and impact
+
+Add changed-symbol, blast-radius, rename-safety, and impact-preview workflows
+only after the TypeScript graph is trustworthy.
+
+## P6 - Developer workflow follow-ups
 
 1. Make exact-version npm execution immune to package-workspace bin shadowing,
    or provide one canonical neutral-directory published-artifact verifier.

@@ -50,6 +50,7 @@ New to Astrograph? Start here:
 ## For Contributors
 
 - [Contributing](../CONTRIBUTING.md)
+- [Codebase roadmap](./roadmaps/astrograph-codebase-roadmap.md)
 - [Local container verification](./guides/local-container-verification.md)
 - [Release reference](./reference/release.md)
 - [Ralph runner](./guides/ralph-runner.md)
