@@ -63,7 +63,17 @@ OpenSpec change: `establish-p0-published-runtime`
 
 ## P1 - Fast, safe development feedback loop
 
-**Status:** Next
+**Status:** In progress
+
+### Active work manifest
+
+Update an entry whenever its work starts, pauses, resumes, or completes. Remove
+it only after the branch is merged or otherwise remotely recoverable and its
+worktree contains no unique files.
+
+| Goal | State | Branch | Worktree | Base | Verification | Next action |
+| --- | --- | --- | --- | --- | --- | --- |
+| Establish the P1 fast, observable, resumable workflow | Active | `codex/resumable-workflow` | `.worktrees/repair-stale-runtime-discovery` | `origin/main` at `13c35d9` | OpenSpec proposal strict-valid; hydration spec synced and change archived | Implement observability, fast verification, bounded measurement, then preservation-first cleanup |
 
 Make the shortest trustworthy local verification path match required CI, reuse
 the same packed artifact throughout a run, and keep slow or resource-sensitive
@@ -93,7 +103,7 @@ Exit criteria:
 - Known stale tests and benchmark error handling no longer obscure real
   regressions.
 
-OpenSpec change: create after `establish-p0-published-runtime` is archived.
+OpenSpec change: `establish-p1-fast-resumable-workflow`
 
 ## P2
 

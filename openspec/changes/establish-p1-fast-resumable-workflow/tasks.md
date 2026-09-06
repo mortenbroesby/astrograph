@@ -1,7 +1,7 @@
 ## 1. Close and record existing work
 
-- [ ] 1.1 Sync the completed `hydrate-missing-repository-index` delta into the main spec and archive the change; verify `openspec list --json` no longer reports it as active and strict validation passes.
-- [ ] 1.2 Add the P1 active-work manifest to `BACKLOG.md` with this goal, branch, worktree, base, current verification state, and next action; verify it remains the only live priority/workstream source.
+- [x] 1.1 Sync the completed `hydrate-missing-repository-index` delta into the main spec and archive the change; verify `openspec list --json` no longer reports it as active and strict validation passes.
+- [x] 1.2 Add the P1 active-work manifest to `BACKLOG.md` with this goal, branch, worktree, base, current verification state, and next action; verify it remains the only live priority/workstream source.
 - [ ] 1.3 Classify every current Astrograph worktree and stash as active, remotely recoverable, superseded, generated residue, or blocked/unknown; verify every dirty or unique item has an owner and recovery location before cleanup.
 
 ## 2. Add minimal performance visibility
