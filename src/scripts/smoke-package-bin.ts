@@ -16,11 +16,17 @@ const packageRoot = path.resolve(
   "..",
 );
 
+const wasmGrammarNames = [
+  "typescript", "tsx", "javascript", "python", "bash", "powershell", "c_sharp", "java", "go", "rust",
+  "json", "html", "css", "c", "cpp", "php", "ruby", "embedded_template", "scala",
+] as const;
+
 async function run(
   command: string,
   args: readonly string[],
   cwd: string,
   environment: NodeJS.ProcessEnv = {},
+  timeout = 60_000,
 ): Promise<{ stdout: string; stderr: string }> {
   const displayCommand = [command, ...args].map((value) => JSON.stringify(value)).join(" ");
   console.error(`package smoke: ${displayCommand}`);
@@ -35,7 +41,7 @@ async function run(
         ...environment,
         CI: "1",
       },
-      timeout: 60_000,
+      timeout,
       maxBuffer: 10 * 1024 * 1024,
     });
     return {
@@ -145,6 +151,8 @@ async function main(): Promise<void> {
       "npm",
       ["install", "--global", "--prefix", npmGlobalPrefix, "--cache", npmCache, path.join(packDir, tarball)],
       installDir,
+      {},
+      180_000,
     );
     // Resolver and engine warnings mean users may not get a usable install.
     // Third-party deprecation notices are maintained upstream and do not change
@@ -162,6 +170,25 @@ async function main(): Promise<void> {
     }
 
     await run("pnpm", ["add", path.join(packDir, tarball)], installDir);
+    await run(
+      process.execPath,
+      [
+        "--input-type=module",
+        "--eval",
+        [
+          'import { access } from "node:fs/promises";',
+          'import { createRequire } from "node:module";',
+          'import { getWasmPath } from "tree-sitter-wasm";',
+          "const require = createRequire(import.meta.url);",
+          `await Promise.all([require.resolve("web-tree-sitter/tree-sitter.wasm"), ...${JSON.stringify(wasmGrammarNames)}.map(getWasmPath)].map((asset) => access(asset)));`,
+          'for (const packageName of ["tree-sitter", "@astrograph/tree-sitter"]) {',
+          '  try { require.resolve(packageName); throw new Error(`Unexpected native Tree-sitter package: ${packageName}`); }',
+          '  catch (error) { if (!(error instanceof Error) || error.code !== "MODULE_NOT_FOUND") throw error; }',
+          "}",
+        ].join("\n"),
+      ],
+      path.join(installDir, "node_modules", "astrograph"),
+    );
     await run("pnpm", ["add", "-D", "@types/node"], installDir);
     await writeFile(
       path.join(installDir, "package-types.ts"),
