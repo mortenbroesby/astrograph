@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
@@ -134,6 +135,25 @@ async function timed(run) {
 
 function callTool(client, request, timeout = 60_000) {
   return client.callTool(request, undefined, { timeout });
+}
+
+async function stopAstrographDaemon(runtimeDir) {
+  const daemon = await readDaemonRuntime({ runtimeDir });
+  if (!daemon) return;
+  try {
+    process.kill(daemon.pid, "SIGTERM");
+  } catch {
+    return;
+  }
+  for (let attempt = 0; attempt < 100; attempt += 1) {
+    try {
+      process.kill(daemon.pid, 0);
+    } catch {
+      return;
+    }
+    await delay(50);
+  }
+  throw new Error(`Astrograph daemon ${daemon.pid} did not stop after SIGTERM`);
 }
 
 async function withClient(definition, run) {
@@ -283,14 +303,7 @@ async function runServer({ server, repoRoot, storeRoot }) {
     });
   } finally {
     if (isAstrograph) {
-      const daemon = await readDaemonRuntime({ runtimeDir });
-      if (daemon) {
-        try {
-          process.kill(daemon.pid, "SIGTERM");
-        } catch {
-          // The stdio session already stopped it.
-        }
-      }
+      await stopAstrographDaemon(runtimeDir);
       await rm(runtimeDir, { recursive: true, force: true });
     }
   }
@@ -306,7 +319,7 @@ export async function runComparison({ repoRoot, outputDir, runs }) {
     for (const server of ["astrograph", "jcodemunch"]) {
       const storeRoot = await mkdtemp(path.join(os.tmpdir(), `${server}-bench-`));
       const result = await runServer({ server, repoRoot, storeRoot })
-        .finally(() => rm(storeRoot, { recursive: true, force: true }));
+        .finally(() => rm(storeRoot, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }));
       const { raw, ...metrics } = result;
       runResults.push(metrics);
       await writeFile(
