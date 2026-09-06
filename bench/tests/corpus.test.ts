@@ -132,7 +132,7 @@ describe("ai-context-engine-bench corpus loader", () => {
     const corpus = loadBenchmarkCorpus(checkedInCorpusPath);
 
     expect(corpus.manifest.repoSha).toBe(
-      "74f79fa02cb2956dfce8dcef4333dfeb0de1a1bf",
+      "7c59a965a26c9840e388155f2e30989e6b559390",
     );
     expect(corpus.manifest.tasks).toHaveLength(6);
     expect(corpus.tasks).toHaveLength(6);

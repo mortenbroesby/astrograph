@@ -1,5 +1,5 @@
 import { execFileSync } from "node:child_process";
-import { appendFileSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -9,12 +9,7 @@ import { createBenchmarkFixtureRepo, workspaceRoot } from "./benchmark-fixture.t
 describe("benchmark cli", () => {
   it("runs the checked-in corpus using repo-root-relative paths", () => {
     const fixture = createBenchmarkFixtureRepo();
-    const cliPath = path.resolve(
-      workspaceRoot,
-      "bench",
-      "src",
-      "cli.ts",
-    );
+    const cliPath = path.join("bench", "src", "cli.ts");
 
     try {
       const stdout = execFileSync(
@@ -24,8 +19,8 @@ describe("benchmark cli", () => {
           cliPath,
           "--repo-root",
           fixture.repoRoot,
-          "--corpus",
-          ".specs/benchmarks/ai-context-engine-benchmark-corpus.json",
+            "--corpus",
+            fixture.corpusPath,
           "--output",
           ".benchmarks/cli-run",
           "--task",
@@ -34,8 +29,9 @@ describe("benchmark cli", () => {
           "symbol-first",
         ],
         {
-          encoding: "utf8",
-          stdio: ["ignore", "pipe", "pipe"],
+            encoding: "utf8",
+            cwd: workspaceRoot,
+            stdio: ["ignore", "pipe", "pipe"],
         },
       );
 
@@ -52,18 +48,13 @@ describe("benchmark cli", () => {
         success: true,
       });
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
   it("fails strict mode on a dirty checkout", () => {
     const fixture = createBenchmarkFixtureRepo();
-    const cliPath = path.resolve(
-      workspaceRoot,
-      "bench",
-      "src",
-      "cli.ts",
-    );
+    const cliPath = path.join("bench", "src", "cli.ts");
 
     try {
       appendFileSync(
@@ -78,8 +69,8 @@ describe("benchmark cli", () => {
             cliPath,
             "--repo-root",
             fixture.repoRoot,
-            "--corpus",
-            ".specs/benchmarks/ai-context-engine-benchmark-corpus.json",
+          "--corpus",
+          fixture.corpusPath,
             "--output",
             ".benchmarks/cli-run",
             "--task",
@@ -89,13 +80,14 @@ describe("benchmark cli", () => {
             "--strict",
           ],
           {
-            encoding: "utf8",
-            stdio: ["ignore", "pipe", "pipe"],
+          encoding: "utf8",
+          cwd: workspaceRoot,
+          stdio: ["ignore", "pipe", "pipe"],
           },
         ),
       ).toThrow(/clean checkout/i);
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 });

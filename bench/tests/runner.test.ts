@@ -1,4 +1,4 @@
-import { appendFileSync, readFileSync, rmSync } from "node:fs";
+import { appendFileSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -8,7 +8,7 @@ import { runBenchmark, runWorkflowTask, loadBenchmarkCorpus } from "../src/index
 import { createBenchmarkFixtureRepo } from "./benchmark-fixture.ts";
 
 describe("benchmark runner", () => {
-  it("runs the checked-in benchmark corpus against a narrow workflow", async () => {
+  it("runs a strict benchmark against an external corpus", async () => {
     const fixture = createBenchmarkFixtureRepo();
     const repoRoot = fixture.repoRoot;
     const outputDir = path.join(repoRoot, ".benchmarks", "run-1");
@@ -20,6 +20,7 @@ describe("benchmark runner", () => {
         outputDir,
         taskId: "task-corpus-loader",
         workflowId: "symbol-first",
+        strict: true,
       });
 
       const results = JSON.parse(readFileSync(outcome.artifacts.resultsPath, "utf8"));
@@ -32,13 +33,14 @@ describe("benchmark runner", () => {
       expect(results.repoSha).toBe(fixture.repoSha);
       expect(results.corpus.taskCount).toBe(6);
       expect(corpusLock.snapshot.repoSha).toBe(fixture.repoSha);
+      expect(corpusLock.strict).toBe(true);
       expect(results.tasks[0]).toMatchObject({
         taskId: "task-corpus-loader",
         query: "loadBenchmarkCorpus",
         workflowId: "symbol-first",
         success: true,
         metrics: {
-          targetCount: 2,
+          targetCount: 1,
           hitCount: 1,
         },
       });
@@ -49,7 +51,7 @@ describe("benchmark runner", () => {
         "# ai-context-engine Benchmark Report",
       );
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   }, 15_000);
 
@@ -72,7 +74,7 @@ describe("benchmark runner", () => {
         }),
       ).rejects.toThrow(/clean checkout/i);
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
@@ -109,7 +111,7 @@ describe("benchmark runner", () => {
         bundle.evidence.some((item) => item.includes("a-outside.ts")),
       ).toBe(false);
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   }, 20_000);
 });

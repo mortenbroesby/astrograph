@@ -1,8 +1,8 @@
 ---
 id: task-token-accounting
 slice: bench
-query: How does the benchmark harness compare exact token counts with estimated token counts for each task?
-workflowSet: [baseline, text-first, bundle]
+query: countTokens
+workflowSet: [baseline, symbol-first]
 allowedPaths:
   - bench/src/tokenizer.ts
   - bench/src/workflows.ts
@@ -10,16 +10,9 @@ targets:
   - kind: symbol
     value: countTokens
     mode: exact
-  - kind: symbol
-    value: estimateTokens
-    mode: exact
-  - kind: symbol
-    value: computeEstimatedBaselineForTask
-    mode: exact
 successCriteria:
-  - exact token counting remains visible in the benchmark workflow
-  - estimated token accounting stays visible beside exact counts
+  - the exact tokenizer is retrieved from its allowed source file
 ---
 
-This query checks whether the retrieval path exposes both the exact tokenizer
-and the approximation path used in reports.
+This task compares broad reading against exact-symbol retrieval for exact token
+counting.

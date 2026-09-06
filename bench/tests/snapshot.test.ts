@@ -1,4 +1,4 @@
-import { appendFileSync, rmSync } from "node:fs";
+import { appendFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
@@ -18,7 +18,7 @@ describe("benchmark snapshot", () => {
         assertStrictSnapshot(snapshot, snapshot.repoSha ?? ""),
       ).not.toThrow();
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
@@ -38,7 +38,7 @@ describe("benchmark snapshot", () => {
         assertStrictSnapshot(snapshot, fixture.repoSha),
       ).toThrow(/clean checkout/i);
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 
@@ -52,7 +52,7 @@ describe("benchmark snapshot", () => {
         assertStrictSnapshot(snapshot, "deadbeef"),
       ).toThrow(/requires repo SHA/i);
     } finally {
-      rmSync(fixture.repoRoot, { recursive: true, force: true });
+      fixture.cleanup();
     }
   });
 });

@@ -1,4 +1,4 @@
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
@@ -13,14 +13,16 @@ export interface BenchmarkFixtureRepo {
   repoRoot: string;
   corpusPath: string;
   repoSha: string;
+  cleanup(): void;
 }
 
 export function createBenchmarkFixtureRepo(options: {
   includeOutOfScopeDuplicate?: boolean;
 } = {}): BenchmarkFixtureRepo {
-  const repoRoot = mkdtempSync(path.join(os.tmpdir(), "aice-bench-"));
+  const fixtureRoot = mkdtempSync(path.join(os.tmpdir(), "aice-bench-"));
+  const repoRoot = path.join(fixtureRoot, "repo");
   const corpusSourceDir = benchmarkFixtureRoot;
-  const corpusTargetDir = path.join(repoRoot, ".specs", "benchmarks");
+  const corpusTargetDir = path.join(fixtureRoot, "corpus");
 
   cpSync(corpusSourceDir, corpusTargetDir, { recursive: true });
   mkdirSync(path.join(repoRoot, "bench", "src"), {
@@ -72,71 +74,22 @@ export function createBenchmarkFixtureRepo(options: {
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
   }).trim();
-  const manifest = JSON.parse(readFileSync(path.join(
-    repoRoot,
-    ".specs",
-    "benchmarks",
+  const manifestPath = path.join(
+    corpusTargetDir,
     "ai-context-engine-benchmark-corpus.json",
-  ), "utf8")) as { repoSha: string };
+  );
+  const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+    repoSha: string;
+  };
   manifest.repoSha = repoSha;
-  writeFileSync(
-    path.join(
-      repoRoot,
-      ".specs",
-      "benchmarks",
-      "ai-context-engine-benchmark-corpus.json",
-    ),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
-  execFileSync("git", ["add", ".specs/benchmarks/ai-context-engine-benchmark-corpus.json"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  execFileSync("git", ["commit", "--amend", "--no-edit"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const amendedRepoSha = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
-  manifest.repoSha = amendedRepoSha;
-  writeFileSync(
-    path.join(
-      repoRoot,
-      ".specs",
-      "benchmarks",
-      "ai-context-engine-benchmark-corpus.json",
-    ),
-    `${JSON.stringify(manifest, null, 2)}\n`,
-  );
-  execFileSync("git", ["add", ".specs/benchmarks/ai-context-engine-benchmark-corpus.json"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  execFileSync("git", ["commit", "--amend", "--no-edit"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  });
-  const finalRepoSha = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: repoRoot,
-    encoding: "utf8",
-    stdio: ["ignore", "pipe", "pipe"],
-  }).trim();
+  writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
 
   return {
     repoRoot,
-    corpusPath: path.join(
-      repoRoot,
-      ".specs",
-      "benchmarks",
-      "ai-context-engine-benchmark-corpus.json",
-    ),
-    repoSha: finalRepoSha,
+    corpusPath: manifestPath,
+    repoSha,
+    cleanup() {
+      rmSync(fixtureRoot, { recursive: true, force: true });
+    },
   };
 }
