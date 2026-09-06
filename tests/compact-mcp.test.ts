@@ -27,6 +27,25 @@ function searchEnvelope(items: Array<Record<string, unknown>>): McpEnvelope<unkn
   };
 }
 
+function sourceEnvelope(items: Array<Record<string, unknown>>): McpEnvelope<unknown> {
+  const first = items[0];
+  return {
+    ok: true,
+    data: {
+      requestedContextLines: 0,
+      items,
+      ...(first ? {
+        symbol: first.symbol,
+        source: first.source,
+        verified: first.verified,
+        startLine: first.startLine,
+        endLine: first.endLine,
+      } : {}),
+    },
+    meta: { toolVersion: "1", tokenBudgetUsed: null, dataFreshness: "fresh" },
+  };
+}
+
 const unicodeSymbol = {
   id: "sym-π",
   name: "area✨",
@@ -43,6 +62,27 @@ const unicodeSymbol = {
   exported: true,
 };
 
+const unicodeSourceItem = {
+  symbol: unicodeSymbol,
+  source: "export function area✨(radius: number) { return `π=${radius ** 2}`; }",
+  verified: true,
+  startLine: 1,
+  endLine: 3,
+  provenance: {
+    filePath: "src/数学.ts",
+    sourceHash: "hash-π",
+    range: {
+      encoding: "utf8",
+      startByte: 0,
+      endByte: 78,
+      startLine: 1,
+      endLine: 3,
+    },
+    parser: { backend: "tree-sitter", fallbackUsed: false, fallbackReason: null },
+    freshness: "indexed-snapshot",
+  },
+};
+
 describe("compact MCP output", () => {
   it("keeps JSON as the exact default envelope", () => {
     const envelope = searchEnvelope([unicodeSymbol]);
@@ -53,6 +93,14 @@ describe("compact MCP output", () => {
     expect(formatted.serialized).not.toContain("\n");
   });
 
+  it("keeps exact-source JSON as the exact default envelope", () => {
+    const envelope = sourceEnvelope([unicodeSourceItem]);
+    const formatted = formatMcpEnvelope("get_symbol_source", undefined, envelope);
+
+    expect(formatted.metrics.selectedFormat).toBe("json");
+    expect(JSON.parse(formatted.serialized)).toEqual(envelope);
+  });
+
   it("losslessly round-trips selected Unicode and empty search results", () => {
     for (const envelope of [searchEnvelope([unicodeSymbol]), searchEnvelope([])]) {
       const formatted = formatMcpEnvelope("search_symbols", "compact", envelope);
@@ -61,6 +109,33 @@ describe("compact MCP output", () => {
       expect(formatted.metrics.savedTokens).toBeGreaterThan(0);
       expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(envelope);
     }
+  });
+
+  it("losslessly round-trips single, batched, and empty exact-source results", () => {
+    const second = {
+      ...unicodeSourceItem,
+      symbol: { ...unicodeSymbol, id: "sym-二", name: "double✨" },
+      source: "export const double✨ = (value: number) => value * 2;",
+    };
+    for (const envelope of [
+      sourceEnvelope([unicodeSourceItem]),
+      sourceEnvelope([unicodeSourceItem, second]),
+      sourceEnvelope([]),
+    ]) {
+      const formatted = formatMcpEnvelope("get_symbol_source", "compact", envelope);
+
+      expect(formatted.metrics.selectedFormat).toBe("compact");
+      expect(decodeCompactMcpEnvelope(JSON.parse(formatted.serialized))).toEqual(envelope);
+    }
+  });
+
+  it("applies the existing auto thresholds to exact-source output", () => {
+    const small = formatMcpEnvelope("get_symbol_source", "auto", sourceEnvelope([]));
+    const largeItem = { ...unicodeSourceItem, source: unicodeSourceItem.source.repeat(20) };
+    const large = formatMcpEnvelope("get_symbol_source", "auto", sourceEnvelope([largeItem]));
+
+    expect(small.metrics.selectedFormat).toBe("json");
+    expect(large.metrics.selectedFormat).toBe("compact");
   });
 
   it("uses JSON for errors and unsupported auto requests", () => {
@@ -109,6 +184,12 @@ describe("compact MCP output", () => {
       "get_file_tree",
       [["src/a.ts"]],
       ["1", 0, "fresh"],
+    ])).toThrow("row");
+    expect(() => decodeCompactMcpEnvelope([
+      "agc1",
+      "get_symbol_source",
+      [0, [["incomplete"]]],
+      ["1", null, "fresh"],
     ])).toThrow("row");
   });
 });

@@ -385,6 +385,7 @@ export const MCP_TOOL_DEFINITIONS = [
     toolVersion: "1",
     inputSchema: {
       repoRoot: stringSchema("Repository root path"),
+      format: outputFormatSchema.optional(),
       symbolId: stringSchema("Optional indexed symbol id").optional(),
       symbolIds: stringArraySchema("Optional indexed symbol ids").optional(),
       contextLines: numberSchema("Optional surrounding context line count").optional(),

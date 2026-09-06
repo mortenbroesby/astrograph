@@ -1,15 +1,15 @@
 ## 1. Establish Trustworthy Comparison Evidence
 
-- [ ] 1.1 Add the selected change to the `BACKLOG.md` active manifest in an isolated implementation worktree and verify the recorded branch, base SHA, ownership, and next action match the live task.
-- [ ] 1.2 Add focused failing tests for jCodeMunch alias expansion, tool-error rejection, missing source bodies, and successful two-symbol batches; verify the new cases fail against the current harness for the intended reasons.
-- [ ] 1.3 Update `bench/scripts/jcodemunch-comparison.mjs` to resolve canonical ids, batch both declared targets, validate structured source success, and exclude failures from aggregates; verify `bench/tests/jcodemunch-comparison.test.ts` passes.
-- [ ] 1.4 Record source-response bytes and tokens separately from total workflow cost and verify generated source-free JSON/report aggregates distinguish both measures without committing raw responses.
+- [x] 1.1 Add the selected change to the `BACKLOG.md` active manifest in an isolated implementation worktree and verify the recorded branch, base SHA, ownership, and next action match the live task.
+- [x] 1.2 Add focused failing tests for jCodeMunch alias expansion, tool-error rejection, missing source bodies, and successful two-symbol batches; verify the new cases fail against the current harness for the intended reasons.
+- [x] 1.3 Update `bench/scripts/jcodemunch-comparison.mjs` to resolve canonical ids, batch both declared targets, validate structured source success, and exclude failures from aggregates; verify `bench/tests/jcodemunch-comparison.test.ts` passes.
+- [x] 1.4 Record source-response bytes and tokens separately from total workflow cost and verify generated source-free JSON/report aggregates distinguish both measures without committing raw responses.
 
 ## 2. Compact Exact-Source Output
 
-- [ ] 2.1 Add focused characterization and failing compact-format tests for default JSON, single and batched Unicode source items, empty results, error fallback, auto thresholds, malformed rows, and exact decode equality; verify failures identify only missing `get_symbol_source` support.
-- [ ] 2.2 Expose the existing `format` option on the `get_symbol_source` MCP schema and extend `src/compact-mcp.ts` with the smallest positional `agc1` encoding that retains each item once; verify compact decoder round trips restore the complete validated v1 envelope including compatibility fields.
-- [ ] 2.3 Extend the live MCP interface/stdio coverage to prove omitted format remains ordinary JSON, explicit compact output decodes losslessly, content-reference sessions remain JSON, and unsupported or failed output falls back safely; verify `tests/interface.test.ts` passes.
+- [x] 2.1 Add focused characterization and failing compact-format tests for default JSON, single and batched Unicode source items, empty results, error fallback, auto thresholds, malformed rows, and exact decode equality; verify failures identify only missing `get_symbol_source` support.
+- [x] 2.2 Expose the existing `format` option on the `get_symbol_source` MCP schema and extend `src/compact-mcp.ts` with the smallest positional `agc1` encoding that retains each item once; verify compact decoder round trips restore the complete validated v1 envelope including compatibility fields.
+- [x] 2.3 Extend the live MCP interface/stdio coverage to prove omitted format remains ordinary JSON, explicit compact output decodes losslessly, content-reference sessions remain JSON, and unsupported or failed output falls back safely; verify `tests/interface.test.ts` passes.
 
 ## 3. Correct the Comparison Record
 
