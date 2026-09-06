@@ -73,6 +73,7 @@ worktree contains no unique files.
 
 | Goal | State | Branch | Worktree | Base | Verification | Next action |
 | --- | --- | --- | --- | --- | --- | --- |
+| Consolidate the codebase roadmap and select the first retrieval fix | Ready for delivery | `codex/codebase-roadmap` | `.worktrees/codebase-roadmap` | `origin/main` at `e009ac5` | Current-main audit reconciled; comparison branch inspected at `15e931d`; strict OpenSpec and fast repository gate pass | Commit, push, and merge the roadmap; then apply `fix-context-source-byte-ranges` in a fresh worktree |
 | Establish the P1 fast, observable, resumable workflow | Completed; eligible for retirement | `codex/complete-p1-workflow` | `.worktrees/complete-p1-workflow` | `origin/main` at `de001ee` | PR #139 merged; required CI and release passed; published `.236` runtime passed fresh-client hydration/search/profile proof | Merge this documentation-only closeout, then remove the worktree |
 | Preserve retrieval-quality implementation | Preserved remotely; paused | `feat/retrieval-quality-roadmap` at `b9f21d4` | Worktree retired | Remote ref verified at `b9f21d4`; branch remains far behind `origin/main` | Parser and engine-contract tests passed (45 tests); MCP stdio test timed out at its legacy 15-second limit; worktree clean | Resume from the remote branch in a fresh worktree only when reprioritized |
 | Reconcile publishable workflow benchmark | Preserved remotely; paused | `feat/publishable-workflow-benchmark` at `d072267` | Worktrees retired | Remote survivor includes the external-corpus cleanup and v2 `-- --strict` behavior; old v2 local branch remains at `6fa66a7` | Four benchmark files pass (14 tests); generated `.benchmarks/` output discarded; `.benchmarks/` now ignored | Resume from the remote survivor only when reprioritized |
@@ -110,7 +111,42 @@ Exit criteria:
 
 OpenSpec change: `establish-p1-fast-resumable-workflow`
 
-## P2
+## P2 - Retrieval correctness and trustworthy evidence
+
+**Status:** Selected
+
+1. Fix UTF-8 byte-range extraction for task context and context bundles, with
+   source/provenance/token agreement across Unicode, emoji, CRLF, and same-line
+   symbols. OpenSpec: `fix-context-source-byte-ranges`.
+2. Correct FTS candidate selection, BM25 column weights, scoped filtering, and
+   exact/heuristic ordering.
+3. Report file-level imports and symbol-level references honestly, with evidence
+   and confidence instead of representative-symbol inference.
+4. Bound JSON/config discovery records while preserving lossless explicit source.
+
+Roadmap: `docs/roadmaps/astrograph-codebase-roadmap.md`.
+
+## P3 - Retrieval foundations
+
+1. Selectively recover identifier segmentation and ranking-debug work from
+   `feat/retrieval-quality-roadmap`; do not merge the stale branch wholesale.
+2. Introduce stable symbol identities only after current storage-v3 migration,
+   collision, and compatibility behavior is revalidated.
+3. Support TypeScript path aliases and workspace/package resolution.
+4. Reconcile overlapping context, budgets, startup profile size, content
+   references, and compact encoding with measured evidence.
+
+## P4 - Trustworthy TypeScript symbol graph
+
+Build evidence-backed, confidence-labelled symbol relationships only after
+stable identity and honest import/reference semantics are proven.
+
+## P5 - Change-aware context and impact
+
+Add changed-symbol, blast-radius, rename-safety, and impact-preview workflows
+only after the TypeScript graph is trustworthy.
+
+## P6 - Developer workflow follow-ups
 
 1. Make exact-version npm execution immune to package-workspace bin shadowing,
    or provide one canonical neutral-directory published-artifact verifier.
