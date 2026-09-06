@@ -17,13 +17,11 @@ roadmap explains everything else.
 
 ## Active — do this now
 
-1. [Tree-Sitter Polyglot Language Support](./active/1_tree-sitter-polyglot-language-support-delivery-checklist.md)
-   - Goal: expand from JavaScript-family parsing to the bounded set of parsers
-     listed by Tree-sitter's upstream organization.
-   - First action: freeze the package/ABI/extension/licence inventory and the
-     current four-language baseline before adding a grammar dependency.
-   - Architecture: adapters and explicit `structured`/`graph` support tiers;
-     do not claim the open-ended community grammar ecosystem.
+1. [Git Ref Watch Reconciliation](./active/3_git-ref-watch-reconciliation-delivery-checklist.md)
+   - Goal: reconcile an active watch session when its Git checkout identity
+     advances or changes without dependable filesystem events.
+   - Architecture: a session-bound 30-second checkout probe queues existing
+     folder reconciliation; no daemon, Git-diff planner, or cache migration.
 
 ## Ready — detailed, but not selected
 

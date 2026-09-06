@@ -23,6 +23,8 @@ import {
   upsertCheckoutPathMapping,
 } from "./checkout-mapping.ts";
 import { probeGitCheckout } from "./git-checkout.ts";
+import { createGitRefMonitor } from "./git-ref-monitor.ts";
+import type { GitRefMonitor } from "./git-ref-monitor.ts";
 import { hashString } from "./hash.ts";
 import {
   ANALYSIS_DEPENDENCY_VERSION,
@@ -1707,6 +1709,7 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
   const pendingChangedPaths = new Set<string>();
   let debounceTimer: NodeJS.Timeout | null = null;
   let refreshQueue = Promise.resolve();
+  let gitRefMonitor: GitRefMonitor | null = null;
 
   const persistWatchEvent = async (event: WatchEvent) => {
     lastEventType = event.type;
@@ -2068,6 +2071,34 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
     });
   };
 
+  const queueFolderReconciliation = () => {
+    if (closed) {
+      return;
+    }
+    refreshQueue = refreshQueue.then(async () => {
+      try {
+        const event = {
+          type: "reindex",
+          changedPaths: [],
+          summary: await indexFolder({
+            repoRoot,
+            summaryStrategy: input.summaryStrategy,
+          }),
+        } satisfies WatchEvent;
+        await persistWatchEvent(event);
+        await emitWatchEvent(input.onEvent, event);
+      } catch (error) {
+        const event = {
+          type: "error",
+          changedPaths: [],
+          message: error instanceof Error ? error.message : String(error),
+        } satisfies WatchEvent;
+        await persistWatchEvent(event);
+        await emitWatchEvent(input.onEvent, event);
+      }
+    });
+  };
+
   const initialSummary = await indexFolder({
     repoRoot,
     summaryStrategy: input.summaryStrategy,
@@ -2087,6 +2118,17 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
   await startNativeWatcher();
   await persistWatchEvent(readyEvent);
   await emitWatchEvent(input.onEvent, readyEvent);
+  gitRefMonitor = createGitRefMonitor({
+    repoRoot,
+    onChange: queueFolderReconciliation,
+    onError(error) {
+      watchLogger.warn({
+        event: "watch_git_ref_monitor_error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    },
+  });
+  await gitRefMonitor.start();
 
   return {
     async close() {
@@ -2094,6 +2136,8 @@ export async function watchFolder(input: WatchOptions): Promise<WatchHandle> {
         return;
       }
       closed = true;
+      gitRefMonitor?.close();
+      gitRefMonitor = null;
       if (nativeWatchTimer) {
         clearTimeout(nativeWatchTimer);
         nativeWatchTimer = null;

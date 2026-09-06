@@ -8,10 +8,10 @@ For the full active/ready/parked/descoped/idea/done map, read the
 
 ## Current goal
 
-Execute the active [MCP Runtime Hygiene Delivery
-Checklist](./specs/implementation/active/mcp-runtime-hygiene-delivery-checklist.md),
-making abandoned stdio MCP processes visible and ensuring normal shutdown
-releases process-lifetime resources.
+Execute the active [Git Ref Watch Reconciliation Delivery
+Checklist](./specs/implementation/active/3_git-ref-watch-reconciliation-delivery-checklist.md),
+keeping an active watch session correct when Git checkout state changes without
+dependable filesystem events.
 
 ## Completion and update rule
 
