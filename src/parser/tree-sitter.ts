@@ -80,6 +80,19 @@ function resolveSummary(input: {
   };
 }
 
+function extractStructuralSignature(
+  node: Node,
+  rangeNode: Node,
+  sourceText: string,
+): string {
+  const body = node.childForFieldName("body")
+    ?? node.childForFieldName("value")?.childForFieldName("body");
+  const endIndex = body && body.startIndex > rangeNode.startIndex
+    ? body.startIndex
+    : rangeNode.endIndex;
+  return normalizeWhitespace(nodeText(sourceText, rangeNode.startIndex, endIndex));
+}
+
 const NAME_NODE_TYPES = new Set([
   "identifier",
   "property_identifier",
@@ -144,9 +157,7 @@ function createSymbol(
     return null;
   }
 
-  const signature = normalizeWhitespace(
-    nodeText(sourceText, rangeNode.startIndex, rangeNode.endIndex),
-  );
+  const signature = extractStructuralSignature(node, rangeNode, sourceText);
   const { summary, summarySource } = resolveSummary({
     node: rangeNode,
     sourceText,

@@ -30,6 +30,7 @@ import { redactSecretLikeValue } from "./privacy.ts";
 import { MCP_SESSION_CAPABILITY, mcpContentReferenceStore, parseMcpSession } from "./mcp-session.ts";
 
 const logger = getLogger({ component: "mcp" });
+const MCP_SERVER_INSTRUCTIONS = "Start with get_project_status. If the index is missing or unavailable, run index_folder once and retry. If it is deep-ready but degraded, use its safe operations and recommended action instead of repeating index_folder. Call tools for one repository sequentially; calls for different repositories may run concurrently. Start search_symbols with limit 10 and get_task_context with a 1,200-token budget; increase only after refining the query.";
 
 type McpCommandExecutor = typeof executeDaemonCommand;
 
@@ -37,8 +38,8 @@ let executeMcpCommand: McpCommandExecutor = executeDaemonCommand;
 
 const mcpSessionSchema = zod.object({
   capability: zod.literal(MCP_SESSION_CAPABILITY),
-  id: zod.string().min(16).max(128).regex(/^[A-Za-z0-9_-]+$/),
-  knownContentIds: zod.array(zod.string().regex(/^sha256:[a-f0-9]{64}$/)).max(64).optional(),
+  id: zod.string().min(8).max(128).regex(/^[A-Za-z0-9_-]+$/),
+  knownContentIds: zod.array(zod.string().max(128)).max(64).optional(),
 }).strict().optional();
 
 /** Test seam for strict MCP-envelope validation; production always uses local IPC. */
@@ -457,7 +458,17 @@ export async function dispatchTool(
     if (!parsedInput.success) {
       throw new Error(`Invalid arguments: ${parsedInput.error.issues[0]?.message ?? "validation failed"}`);
     }
-    const result = await executeMcpCommand(name, parsedInput.data);
+    let result = await executeMcpCommand(name, parsedInput.data);
+    if (
+      name === "get_project_status"
+      && parsedInput.data.includeSupportTiers !== true
+      && typeof result === "object"
+      && result !== null
+      && !Array.isArray(result)
+    ) {
+      const { supportTiers: _supportTiers, ...conciseStatus } = result as Record<string, unknown>;
+      result = conciseStatus;
+    }
     validateToolOutput(name, result);
     const envelope: McpResponseEnvelope<unknown> = {
       ok: true,
@@ -533,6 +544,8 @@ export function createMcpServer() {
   const server = new McpServer({
     name: MCP_SERVER_NAME,
     version: MCP_SERVER_VERSION,
+  }, {
+    instructions: MCP_SERVER_INSTRUCTIONS,
   });
 
   for (const tool of MCP_TOOL_DEFINITIONS) {

@@ -50,6 +50,7 @@ describe("compact MCP output", () => {
 
     expect(formatted.metrics.selectedFormat).toBe("json");
     expect(JSON.parse(formatted.serialized)).toEqual(envelope);
+    expect(formatted.serialized).not.toContain("\n");
   });
 
   it("losslessly round-trips selected Unicode and empty search results", () => {

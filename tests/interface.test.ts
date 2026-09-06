@@ -538,6 +538,13 @@ export function circumference(radius: number): string {
           repoRoot,
         },
       });
+      const projectSupportStatusResult = await client.callTool({
+        name: "get_project_status",
+        arguments: {
+          repoRoot,
+          includeSupportTiers: true,
+        },
+      });
       const bundleResult = await client.callTool({
         name: "get_task_context",
         arguments: {
@@ -685,6 +692,11 @@ export function circumference(radius: number): string {
           content: Array<{ type: string; text: string }>;
         },
       );
+      const projectSupportStatusPayload = parseMcpToolResult(
+        projectSupportStatusResult as {
+          content: Array<{ type: string; text: string }>;
+        },
+      );
       expect(projectStatusPayload.data).toMatchObject({
         readiness: {
           stage: "deep-retrieval-ready",
@@ -702,6 +714,9 @@ export function circumference(radius: number): string {
           status: "safe",
           safeOperations: ["discovery", "exact_source", "ranked_context", "dependency_graph"],
         },
+      });
+      expect(projectStatusPayload.data).not.toHaveProperty("supportTiers");
+      expect(projectSupportStatusPayload.data).toMatchObject({
         supportTiers: {
           discovery: {
             summarySources: expect.arrayContaining(["markdown-headings", "yaml-top-level-keys"]),
@@ -819,6 +834,12 @@ export function circumference(radius: number): string {
         name: MCP_SERVER_NAME,
         version: ASTROGRAPH_PACKAGE_VERSION,
       });
+      expect(client.getInstructions()).toContain("sequentially");
+      expect(client.getInstructions()).toContain("different repositories");
+      expect(client.getInstructions()).toContain("safe operations");
+      expect(client.getInstructions()).toContain("limit 10");
+      expect(client.getInstructions()).toContain("1,200-token");
+      expect(client.getInstructions()).not.toContain("missing, stale, or unavailable");
 
       const tools = await client.listTools();
       expect(tools.tools.map((tool) => tool.name)).toEqual(
@@ -1026,8 +1047,11 @@ export class Greeter {
       intent: "discover",
       query: "sharedUtility",
     });
-    expect(discoverResult.symbolMatches).toHaveLength(2);
+    expect(discoverResult.symbolMatches).toHaveLength(1);
     expect(discoverResult.symbolMatches.map((entry: { filePath: string }) => entry.filePath)).toEqual([
+      "src/math.ts",
+    ]);
+    expect(discoverResult.matches.map((entry: { symbol: { filePath: string } }) => entry.symbol.filePath)).toEqual([
       "src/math.ts",
       "src/strings.ts",
     ]);

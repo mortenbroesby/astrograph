@@ -1,0 +1,56 @@
+## Context
+
+See `proposal.md` for motivation. The measured cold Copilot trial issued 38 Astrograph calls in 181 seconds; six-call parallel bursts against one repository produced 11 ordinary 10-second request timeouts. A warm sequential four-call trial finished in 22 seconds but consumed 53,129 model input tokens. Its 35.4 KB `get_file_outline` overflowed Copilot's inline tool-result limit, and `search_symbols` returned complete function bodies duplicated as signatures and fallback summaries.
+
+The per-repository queue in `src/daemon-tenants.ts` is an intentional storage-safety boundary, and `openspec/specs/device-runtime/spec.md` deliberately keeps ordinary retrieval deadlines shorter than hydration deadlines.
+
+## Goals / Non-Goals
+
+**Goals:**
+
+- Reduce structural response size at the shared parser boundary.
+- Remove presentation whitespace from MCP JSON without changing parsed data.
+- Prevent Copilot's normal parallel tool behavior from fighting the per-repository queue.
+- Compare the same bounded client scenario before and after the packaged change.
+
+**Non-Goals:**
+
+- Do not remove tools, add a router, change token budgets, weaken validation, or capture source-bearing telemetry.
+- Do not replace the daemon or make SQLite concurrency assumptions in this pass.
+- Do not change symbol byte ranges or the exact-source retrieval contract.
+
+## Decisions
+
+1. **Derive signatures from the declaration before the syntax-tree body node.** `src/parser/tree-sitter.ts` will keep the original range for provenance and source retrieval but build `signature` from the declaration prefix when a direct declaration body exists. This fixes every search and outline caller once. Truncating responses later was rejected because it would hide valid structure and leave ranking polluted by implementation bodies.
+
+2. **Minify the ordinary MCP JSON representation.** `src/compact-mcp.ts` will use semantic JSON rather than pretty-printed JSON. The parsed v1 envelope remains identical, so callers and validators need no version negotiation. Extending `agc1` to carry content references was rejected because it would introduce a new compatibility surface before the simpler lossless saving is measured.
+
+3. **Document same-repository sequencing and health-aware hydration at both runtime and generated-policy boundaries.** `src/mcp.ts` will advertise concise server instructions, and `src/scripts/install.ts` will generate the same durable rules for clients that ignore MCP initialization instructions. A deep-ready index degraded only by unresolved imports remains useful for discovery and source retrieval, so guidance follows `retrievalHealth.safeOperations` and `recommendedAction` instead of blindly re-indexing. Relaxing `src/daemon-tenants.ts` was rejected because its safety invariant spans indexing, refresh, watcher, and cached connection state.
+
+4. **Keep raw trials ephemeral.** Copilot JSONL, debug logs, and usage files remain under a temporary directory. `docs/reviews/` receives only aggregate counts and conclusions; `docs/guides/performance.md` receives the reproducible bounded command pattern without raw prompts or identifiers.
+
+5. **Guide clients to small initial retrieval bounds instead of silently capping valid requests.** `search_symbols` starts at limit 10 and `get_task_context` at 1,200 payload tokens in tool, server, and generated-policy guidance. Hard server caps were rejected because callers may deliberately need larger responses after refinement.
+
+6. **Treat content-reference identifiers as optional cache hints.** Accept eight-character-or-longer session identifiers and discard malformed known-content identifiers after enforcing the existing count and byte limits. Failing the retrieval was rejected because a client-generated cache hint must not make source access unavailable.
+
+7. **Keep routine MCP status focused on readiness.** Omit the 9.5 KB language support matrix unless `includeSupportTiers` is explicitly true. Changing the engine result was rejected because the CLI and library retain the complete diagnostic contract.
+
+Focused verification links:
+
+- Structural signature requirement: parser regression plus search/outline/source assertions in `tests/parser.golden.test.ts` or the narrowest existing parser boundary.
+- JSON compatibility requirement: `tests/compact-mcp.test.ts` parsed equality plus serialized-whitespace assertion.
+- Sequencing requirement: MCP initialize assertion in `tests/interface.test.ts` and generated policy assertions in `tests/engine-contract.test.ts`.
+- Health-aware hydration requirement: generated policy assertions plus a real deep-ready/degraded candidate status that does not trigger repeated indexing.
+- Client evidence requirement: three equivalent packaged-runtime Copilot runs summarized in a privacy-safe review; `pnpm verify:fast`, `pnpm check:version-bump --base origin/main`, and strict OpenSpec validation.
+
+## Risks / Trade-offs
+
+- [Some languages expose bodies through nonstandard syntax-tree fields] -> Apply declaration-prefix extraction only when a direct body node is present and retain current behavior otherwise; cover representative TypeScript, Python, and class/method cases.
+- [Implementation-text symbol searches may return fewer results] -> This is intentional separation: `search_symbols` searches symbol metadata, while `search_text` remains the body-text fallback. Validate existing retrieval benchmarks before delivery.
+- [Some clients ignore MCP server instructions] -> Mirror the sequencing rule in generated agent policy.
+- [An index can be stale for either content drift or degraded dependency health] -> Tell the agent to use readiness, safe operations, and recommended action rather than interpreting the word `stale` alone.
+- [Minified JSON is less pleasant for humans reading raw MCP frames] -> CLI commands remain the human-readable surface; parsed MCP compatibility is unchanged.
+
+## Migration Plan
+
+Ship through the existing snapshot/package workflow, run the same Copilot scenario against the installed immutable artifact, then merge and promote only after exact-head CI and real-client evidence pass. Rollback selects the previous immutable device runtime; indexes and storage schemas are unchanged.

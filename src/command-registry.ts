@@ -144,7 +144,7 @@ export const COMMAND_REGISTRY = {
     id: "search_symbols",
     cliCommand: "search-symbols",
     mcpToolName: "search_symbols",
-    description: "Search indexed symbols by name, kind, language, or file pattern.",
+    description: "Search indexed symbols by name, kind, language, or file pattern. Start with limit 10 and refine before increasing it.",
     normalizedOptions: [
       "repoRoot",
       "query",
@@ -193,7 +193,7 @@ export const COMMAND_REGISTRY = {
     id: "get_task_context",
     cliCommand: "get-task-context",
     mcpToolName: "get_task_context",
-    description: "Assemble deterministic, source-attributed task context within a payload-token budget.",
+    description: "Assemble deterministic, source-attributed task context within a payload-token budget. Start with a 1,200-token budget and increase only when needed.",
     normalizedOptions: [
       "repoRoot",
       "query",

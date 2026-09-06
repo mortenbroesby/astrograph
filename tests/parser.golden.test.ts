@@ -4,6 +4,41 @@ import { parseSourceFile } from "../src/parser.ts";
 import { parseWithTreeSitter } from "../src/parser/tree-sitter.ts";
 
 describe("astrograph parser golden coverage", () => {
+  it("keeps implementation bodies out of structural signatures without narrowing source ranges", async () => {
+    const fixtures = [
+      {
+        relativePath: "src/service.ts",
+        language: "ts" as const,
+        content: "export function serve(value: string): string {\n  return value.trim();\n}\n",
+        name: "serve",
+      },
+      {
+        relativePath: "src/service.py",
+        language: "python" as const,
+        content: "def serve(value: str) -> str:\n  return value.strip()\n",
+        name: "serve",
+      },
+    ];
+
+    for (const fixture of fixtures) {
+      const parsed = await parseSourceFile(fixture);
+      const symbol = parsed.symbols.find((entry) => entry.name === fixture.name);
+
+      expect(symbol?.signature).not.toContain("return");
+      expect(symbol?.summary).not.toContain("return");
+      expect(symbol?.endByte).toBe(Buffer.byteLength(fixture.content.trimEnd()));
+      expect(symbol?.endLine).toBeGreaterThan(1);
+    }
+
+    const parsedClass = await parseSourceFile({
+      relativePath: "src/service.ts",
+      language: "ts",
+      content: "export class Service {\n  run(): string {\n    return 'ok';\n  }\n}\n",
+    });
+    expect(parsedClass.symbols.find((entry) => entry.name === "Service")?.signature).toBe("export class Service");
+    expect(parsedClass.symbols.find((entry) => entry.name === "run")?.signature).toBe("run(): string");
+  });
+
   it("extracts the accepted tree-sitter-only parser baseline", async () => {
     const parsed = await parseSourceFile({
       relativePath: "src/parser-fixture.ts",

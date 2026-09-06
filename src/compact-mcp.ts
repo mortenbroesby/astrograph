@@ -170,7 +170,7 @@ export function decodeCompactMcpEnvelope(value: unknown): McpResponseEnvelope<un
 }
 
 function serializeJson(envelope: McpEnvelope<unknown>): string {
-  return JSON.stringify(envelope, null, 2);
+  return JSON.stringify(envelope);
 }
 
 function metricsForJson(
