@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "0.14.1-alpha.238",
+  "version": "0.14.1-alpha.239",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -75,6 +75,8 @@
     "bench:mcp-envelopes": "node --import=tsx ./bench/scripts/measure-mcp-envelopes.mjs",
     "prebench:agc1-compact-output": "pnpm build",
     "bench:agc1-compact-output": "node --import=tsx ./bench/scripts/measure-agc1-compact-output-matrix.mjs",
+    "prebench:jcodemunch-comparison": "pnpm build",
+    "bench:jcodemunch-comparison": "node --import=tsx ./bench/scripts/jcodemunch-comparison.mjs",
     "profile:index:clinic": "clinic flame --dest .profiles/clinic/index --name astrograph-index -- node --import=tsx ./bench/scripts/perf-index.mjs",
     "profile:query:clinic": "clinic doctor --dest .profiles/clinic/query --name astrograph-query -- node --import=tsx ./bench/scripts/perf-query.mjs",
     "profile:index:0x": "0x --output-dir .profiles/0x/index -- node --import=tsx ./bench/scripts/perf-index.mjs",
