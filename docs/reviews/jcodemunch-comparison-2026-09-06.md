@@ -13,7 +13,7 @@ and end-to-end agent evidence must be reported separately.
 
 ## Deterministic MCP Results
 
-Three isolated runs used commit `af029d5a0e85bb8281e56b10506780a7f91c2ffb`,
+Three isolated runs used merged commit `6a9335169bf013d5a2a21b3c98fe0de9c2096603`,
 Astrograph `1.0.0-alpha.246`, jCodeMunch `1.108.317`, and the repository's
 `cl100k_base` counter. Each run used a new index store, called `index_folder`
 twice, then used compact `search_symbols` and batched `get_symbol_source` to retrieve
@@ -28,21 +28,20 @@ twice, then used compact `search_symbols` and batched `get_symbol_source` to ret
 | Exact-source response tokens, median | 626 | 580 |
 | Exact-source response bytes | 2,156 | 2,142 |
 | Reduction from 2,929-token read-all baseline | 68.5% | 74.7% |
-| Cold index, median | 20.06 s | 3.30 s |
-| Warm index, median | 5.40 s | 0.44 s |
-| Retrieval latency, median | 0.73 s | 0.65 s |
+| Cold index, median | 21.15 s | 3.42 s |
+| Warm index, median | 5.40 s | 0.46 s |
+| Retrieval latency, median | 0.78 s | 0.67 s |
 | Retrieval calls | 2 | 2 |
 
 jCodeMunch used 19.5% fewer complete-workflow tokens and 7.3% fewer source-response
 tokens. Astrograph advertised 31.6% fewer schema tokens. jCodeMunch indexed
-83.6% faster cold and 91.8% faster warm. Hosts may defer or cache schema blocks,
+83.8% faster cold and 91.4% faster warm. Hosts may defer or cache schema blocks,
 so schema cost is not added to retrieval tokens.
 
-Astrograph ordinary JSON remains the compatibility default. A separate valid
-three-run diagnostic at `401f7e63cfb2f7a57bbdf9aa0a653f09a7baf818`
-measured its default JSON source response at 1,139 tokens; selecting compact at
-the formatting boundary reduced that response by 45.0% without changing the
-decoded v1 envelope.
+Astrograph ordinary JSON remains the compatibility default. Decoding each
+compact source response from the same merged-main trials and serializing its
+ordinary v1 envelope measured 1,139 tokens; selecting compact at the formatting
+boundary reduced that response by 45.0% without changing the decoded fields.
 
 The warm measurement is a real second index operation: Astrograph reported 217
 reused files and zero parsed files; jCodeMunch reported
