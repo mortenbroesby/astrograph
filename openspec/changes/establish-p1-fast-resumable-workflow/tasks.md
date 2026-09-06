@@ -31,6 +31,6 @@
 
 ## 6. Verify and deliver
 
-- [ ] 6.1 Run focused tests, the authoritative fast command, build, `git diff --check`, and strict OpenSpec validation; verify all selected gates pass and separately report any expensive optional gate not run.
+- [x] 6.1 Run focused tests, the authoritative fast command, build, `git diff --check`, and strict OpenSpec validation; verify all selected gates pass and separately report any expensive optional gate not run.
 - [ ] 6.2 Use `.skills/release-decision/SKILL.md`, run `pnpm check:version-bump --base origin/main` for package behavior changes, commit and push the scoped branch, and verify the remote ref and exact-head CI when applicable.
 - [ ] 6.3 Read back the enabled managed-runtime config and run the fresh-client bounded status/hydrate/search proof; verify the installed runtime emits the safe profile and the reported version/path match the intended artifact.
