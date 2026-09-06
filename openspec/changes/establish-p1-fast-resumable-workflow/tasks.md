@@ -27,7 +27,7 @@
 - [ ] 5.2 Reconcile `feat/publishable-workflow-benchmark` with `feat/publishable-workflow-benchmark-v2`, commit/push the coherent surviving state on one named branch, and record superseded content; verify remote recovery before cleanup.
 - [ ] 5.3 Review the dirty `agent/mcp-runtime-hygiene` checkout and the recent Copilot reliability stash independently; commit/push recoverable work on named branches or record a concrete unsafe/ownership blocker, then verify any removed stash has an equivalent remote commit.
 - [ ] 5.4 Remove only clean, merged, or remotely recoverable Astrograph worktrees, then prune stale metadata; verify no unique file is lost, the remaining worktree list matches the active-work manifest, and the primary checkout is clean on current `origin/main`.
-- [ ] 5.5 Update committed worktree policy so completed sessions perform the same preserve-push-record-remove sequence; verify a documented interrupted and completed example satisfies the repository-workflow scenarios.
+- [x] 5.5 Update committed worktree policy so completed sessions perform the same preserve-push-record-remove sequence; verify a documented interrupted and completed example satisfies the repository-workflow scenarios.
 
 ## 6. Verify and deliver
 
