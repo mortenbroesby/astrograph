@@ -10,4 +10,4 @@
 ## 3. Delivery
 
 - [x] 3.1 Run `pnpm build`, `pnpm type-lint`, the focused UTF-8 behavior test, `pnpm check:version-bump --base origin/main`, and `pnpm exec openspec validate fix-context-source-byte-ranges --strict`; resolve scoped failures and record unrelated baseline failures separately.
-- [ ] 3.2 Apply the patch release decision, review and secret-scan the minimal diff, commit and push the implementation branch, and verify the remote SHA and exact-head required CI before archive.
+- [x] 3.2 Apply the patch release decision, review and secret-scan the minimal diff, commit and push the implementation branch, and verify the remote SHA and exact-head required CI before archive.
