@@ -49,6 +49,24 @@ reused files and zero parsed files; jCodeMunch reported
 for a separate optimization investigation, but no indexing work is included in
 this exact-source change.
 
+### Warm-index follow-up
+
+Three isolated runs on candidate `af3ee2ab6bd700995a196ced82c8e82a6f7c2699`
+removed redundant per-file Git ignore checks after path discovery had already
+validated each file. Both products completed 3/3 runs with unchanged retrieval
+results.
+
+| Warm index, median | Before | Candidate |
+| --- | ---: | ---: |
+| Astrograph | 5.40 s | 0.75 s |
+| jCodeMunch | 0.46 s | 0.43 s |
+
+Astrograph's warm median improved by 86.1%, reducing the gap from about 11.8x
+to 1.75x. A separate direct 217-file run measured 5.61 s before and 0.88 s
+after; the candidate still reported all 217 files reused and zero parsed files.
+Cold-index median also improved from 21.15 s to 5.32 s because the same
+redundant subprocesses affected first-time indexing.
+
 The earlier 181-token jCodeMunch result was invalid. Compact search returned an
 alias such as `@1::loadBenchmarkCorpus#function`; the harness passed that alias
 directly to `get_symbol_source`, received `Symbol not found`, then incorrectly

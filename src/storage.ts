@@ -927,9 +927,6 @@ async function readRepoFile(repoRoot: string, filePath: string) {
   if (!language) {
     throw new Error(`Unsupported source file: ${filePath}`);
   }
-  if (isGitIgnored(repoRoot, relativePath)) {
-    throw new Error(`Ignored source file: ${relativePath}`);
-  }
   await assertInsideRepoRoot(repoRoot, absolutePath);
 
   const content = await readFile(absolutePath, "utf8");
@@ -949,9 +946,6 @@ async function readRepoFileMetadata(repoRoot: string, filePath: string) {
   const language = supportedLanguageForFile(relativePath);
   if (!language) {
     throw new Error(`Unsupported source file: ${filePath}`);
-  }
-  if (isGitIgnored(repoRoot, relativePath)) {
-    throw new Error(`Ignored source file: ${relativePath}`);
   }
   await assertInsideRepoRoot(repoRoot, absolutePath);
 
