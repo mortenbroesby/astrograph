@@ -1,11 +1,11 @@
 ## 1. Regression Proof
 
-- [ ] 1.1 Add one indexed fixture covering Unicode, emoji, CRLF, and same-line symbols; verify the focused test fails for current task-context or context-bundle source extraction.
+- [x] 1.1 Add one indexed fixture covering Unicode, emoji, CRLF, and same-line symbols; verify the focused test fails for current task-context or context-bundle source extraction.
 
 ## 2. Shared Range Extraction
 
-- [ ] 2.1 Add one internal UTF-8 byte-range extraction helper in `src/retrieval.ts`, route every persisted exact-range assembly call site through it, and verify the focused regression test passes.
-- [ ] 2.2 Verify `get_symbol_source`, task context, and context bundles return matching source, hashes, ranges, and token counts without changing their public response shapes.
+- [x] 2.1 Add one internal UTF-8 byte-range extraction helper in `src/retrieval.ts`, route every persisted exact-range assembly call site through it, and verify the focused regression test passes.
+- [x] 2.2 Verify `get_symbol_source`, task context, and context bundles return matching source, hashes, ranges, and token counts without changing their public response shapes.
 
 ## 3. Delivery
 

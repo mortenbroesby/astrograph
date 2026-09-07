@@ -31,7 +31,10 @@ import {
   suggestInitialQueries,
   watchFolder,
 } from "../src/index.ts";
+import { getContextBundle } from "../src/storage.ts";
 import { ENGINE_SCHEMA_VERSION, resolveEnginePaths } from "../src/config.ts";
+import { hashString } from "../src/hash.ts";
+import { countTokens } from "../src/tokenizer.ts";
 import { cleanupFixtureRepos, createFixtureRepo } from "./fixture-repo.ts";
 
 const packageRoot = path.resolve(
@@ -2353,6 +2356,64 @@ export function circleArea(radius: number): number {
         fallbackReason: null,
       },
       freshness: "indexed-snapshot",
+    });
+  });
+
+  it("returns exact UTF-8 byte ranges across source and context retrieval", async () => {
+    const repoRoot = await createFixtureRepo();
+    const expectedSource = [
+      "export function target(value: string) {",
+      "  return `héllo 😀 ${value}`;",
+      "}",
+    ].join("\r\n");
+    const content = [
+      "// π 😀 precedes the selected symbol.",
+      `${expectedSource} export function neighbor() { return "fin"; }`,
+      "",
+    ].join("\r\n");
+    await writeFile(path.join(repoRoot, "src", "utf8-ranges.ts"), content);
+    await indexFolder({ repoRoot });
+
+    const symbol = (await searchSymbols({ repoRoot, query: "target" }))[0]!;
+    const expectedRange = {
+      encoding: "utf8",
+      startByte: Buffer.from(content).indexOf(expectedSource),
+      endByte: Buffer.from(content).indexOf(expectedSource)
+        + Buffer.byteLength(expectedSource),
+      startLine: 2,
+      endLine: 4,
+    } as const;
+    const symbolSource = (await getSymbolSource({
+      repoRoot,
+      symbolId: symbol.id,
+    })).items[0]!;
+    const contextItem = (await getContextBundle({
+      repoRoot,
+      symbolIds: [symbol.id],
+      tokenBudget: 1_200,
+      includeDependencies: false,
+    })).items[0]!;
+    const taskItem = (await getTaskContext({
+      repoRoot,
+      symbolIds: [symbol.id],
+      payloadTokenBudget: 1_200,
+      includeDependencies: false,
+    })).items[0]!;
+
+    expect(symbolSource.source).toBe(expectedSource);
+    expect(symbolSource.provenance).toMatchObject({
+      sourceHash: hashString(expectedSource, "integrity"),
+      range: expectedRange,
+    });
+    expect(contextItem.source).toBe(expectedSource);
+    expect(contextItem.tokenCount).toBe(Math.max(1, Math.ceil(expectedSource.length / 4)) + 8);
+    expect(taskItem).toMatchObject({
+      source: expectedSource,
+      sourceTokens: countTokens(expectedSource),
+      provenance: {
+        sourceHash: hashString(expectedSource, "integrity"),
+        range: expectedRange,
+      },
     });
   });
 
