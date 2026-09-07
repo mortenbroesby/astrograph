@@ -17,5 +17,5 @@
 
 - [x] 4.1 Apply the release-decision workflow, update the package version when required, and verify `pnpm check:version-bump --base origin/main` passes.
 - [x] 4.2 Run `pnpm verify:fast` and `pnpm exec openspec validate optimize-warm-index-noop --strict`; verify the minimal diff contains no unrelated changes or secrets.
-- [ ] 4.3 Commit and push the implementation branch, verify the remote SHA and exact-head required CI, merge through GitHub, then verify `origin/main` and main CI at the exact merge commit.
-- [ ] 4.4 Sync or archive the completed OpenSpec change only after all implementation and delivery evidence is green.
+- [x] 4.3 Commit and push the implementation branch, verify the remote SHA and exact-head required CI, merge through GitHub, then verify `origin/main` and main CI at the exact merge commit.
+- [x] 4.4 Sync or archive the completed OpenSpec change only after all implementation and delivery evidence is green.
