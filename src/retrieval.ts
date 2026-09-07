@@ -674,6 +674,10 @@ function makeContextBundleItem(
   };
 }
 
+function sliceUtf8Bytes(content: string, startByte: number, endByte: number): string {
+  return Buffer.from(content, "utf8").subarray(startByte, endByte).toString("utf8");
+}
+
 function buildSymbolSourceItem(
   row: DbFileContentRow,
   verify: boolean,
@@ -683,10 +687,13 @@ function buildSymbolSourceItem(
   const lines = row.content.split("\n");
   const startLine = Math.max(1, row.start_line - normalizedContextLines);
   const endLine = Math.min(lines.length, row.end_line + normalizedContextLines);
-  const source = lines.slice(startLine - 1, endLine).join("\n");
-  const prefix = startLine > 1 ? `${lines.slice(0, startLine - 1).join("\n")}\n` : "";
-  const startByte = Buffer.byteLength(prefix, "utf8");
-  const endByte = startByte + Buffer.byteLength(source, "utf8");
+  const exact = normalizedContextLines === 0;
+  const source = exact
+    ? sliceUtf8Bytes(row.content, row.start_byte, row.end_byte)
+    : lines.slice(startLine - 1, endLine).join("\n");
+  const prefix = exact || startLine === 1 ? "" : `${lines.slice(0, startLine - 1).join("\n")}\n`;
+  const startByte = exact ? row.start_byte : Buffer.byteLength(prefix, "utf8");
+  const endByte = exact ? row.end_byte : startByte + Buffer.byteLength(source, "utf8");
   return {
     symbol: mapSymbolRow(row),
     source,
@@ -825,7 +832,7 @@ function buildContextBundleFromSeeds(
     bundleCandidates.push(
       makeContextBundleItem(
         seed.row,
-        seed.row.content.slice(seed.row.start_byte, seed.row.end_byte),
+        sliceUtf8Bytes(seed.row.content, seed.row.start_byte, seed.row.end_byte),
         "target",
         seed.reason,
       ),
@@ -861,7 +868,7 @@ function buildContextBundleFromSeeds(
         bundleCandidates.push(
           makeContextBundleItem(
             related.row,
-            sourceRow.content.slice(sourceRow.start_byte, sourceRow.end_byte),
+            sliceUtf8Bytes(sourceRow.content, sourceRow.start_byte, sourceRow.end_byte),
             "dependency",
             related.reason,
           ),
@@ -1264,7 +1271,7 @@ function makeTaskContextItem(
   role: TaskContextItemRole,
   reason: string,
 ): TaskContextItem {
-  const source = row.content.slice(row.start_byte, row.end_byte);
+  const source = sliceUtf8Bytes(row.content, row.start_byte, row.end_byte);
   return {
     role,
     reason,
