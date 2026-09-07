@@ -11,11 +11,11 @@
 ## 3. Measure Apples to Apples
 
 - [x] 3.1 Re-run the direct phase profile on an equivalent clean repository copy; verify zero parsed files, unchanged reuse counts, and a material reduction in warm analysis time.
-- [ ] 3.2 Run three isolated matched Astrograph/jCodeMunch comparison samples on one exact commit; verify every run succeeds and update `docs/reviews/jcodemunch-comparison-2026-09-06.md` with source-free before/after warm-index medians and the candidate SHA.
+- [x] 3.2 Run three isolated matched Astrograph/jCodeMunch comparison samples on one exact commit; verify every run succeeds and update `docs/reviews/jcodemunch-comparison-2026-09-06.md` with source-free before/after warm-index medians and the candidate SHA.
 
 ## 4. Verify and Deliver
 
-- [ ] 4.1 Apply the release-decision workflow, update the package version when required, and verify `pnpm check:version-bump --base origin/main` passes.
-- [ ] 4.2 Run `pnpm verify:fast` and `pnpm exec openspec validate optimize-warm-index-noop --strict`; verify the minimal diff contains no unrelated changes or secrets.
+- [x] 4.1 Apply the release-decision workflow, update the package version when required, and verify `pnpm check:version-bump --base origin/main` passes.
+- [x] 4.2 Run `pnpm verify:fast` and `pnpm exec openspec validate optimize-warm-index-noop --strict`; verify the minimal diff contains no unrelated changes or secrets.
 - [ ] 4.3 Commit and push the implementation branch, verify the remote SHA and exact-head required CI, merge through GitHub, then verify `origin/main` and main CI at the exact merge commit.
 - [ ] 4.4 Sync or archive the completed OpenSpec change only after all implementation and delivery evidence is green.
