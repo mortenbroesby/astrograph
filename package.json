@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "1.0.2-alpha.250",
+  "version": "1.0.3-alpha.251",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
@@ -59,6 +59,7 @@
     "bench:cli": "node --import=tsx ./bench/scripts/benchmark-cli.mjs",
     "prebench:corpus": "pnpm build",
     "bench:corpus": "node --import=tsx ./bench/src/cli.ts",
+    "bench:search-ranking": "node --import=tsx ./bench/scripts/measure-search-selection-ranking.mjs",
     "prebench:tokenizer-research": "pnpm build",
     "bench:tokenizer-research": "node --import=tsx ./bench/src/tokenizer-research.ts",
     "prebench:perf": "pnpm build",

@@ -287,7 +287,6 @@ function loadSymbolRows(
     GENERATION_INTENT_TERMS.has(token),
   );
   const hasPresetIntent = hasRankingPathPresetIntent(tokens);
-  let candidateIds: string[] | null = null;
   let bm25Scores: Map<string, number> | null = null;
 
   if (input.kind) {
@@ -303,31 +302,42 @@ function loadSymbolRows(
   const queryTerms = uniqueQueryTerms(input.query ?? "");
 
   if (ftsQuery && !hasGenerationIntent && !hasPresetIntent) {
-    const ftsParams: IndexBackendValue[] = [ftsQuery, ...params];
-
-    const ftsRows = typedAll<{ symbol_id: string; bm25_score: number }>(
-      db.prepare(
-        `
-          SELECT DISTINCT symbol_search.symbol_id,
-            bm25(symbol_search, 10.0, 7.0, 3.0, 2.0) AS bm25_score
-          FROM symbol_search
-          INNER JOIN symbols ON symbols.id = symbol_search.symbol_id
-          INNER JOIN files ON files.id = symbols.file_id
-          WHERE symbol_search MATCH ?
-          ${whereClauses.length > 0 ? `AND ${whereClauses.join(" AND ")}` : ""}
-          ORDER BY bm25_score ASC, symbol_search.symbol_id ASC
-          LIMIT 400
-        `,
-      ),
-      ...ftsParams,
+    const pageSize = 400;
+    const statement = db.prepare(
+      `
+        SELECT DISTINCT symbol_search.symbol_id, symbols.file_path,
+          bm25(symbol_search, 0.0, 0.0, 10.0, 7.0, 3.0, 2.0, 0.0, 0.0) AS bm25_score
+        FROM symbol_search
+        INNER JOIN symbols ON symbols.id = symbol_search.symbol_id
+        INNER JOIN files ON files.id = symbols.file_id
+        WHERE symbol_search MATCH ?
+        ${whereClauses.length > 0 ? `AND ${whereClauses.join(" AND ")}` : ""}
+        ORDER BY bm25_score ASC, symbol_search.symbol_id ASC
+        LIMIT ? OFFSET ?
+      `,
     );
+    bm25Scores = new Map();
 
-    candidateIds = ftsRows
-      .map((row) => row.symbol_id)
-      .filter(Boolean);
-    bm25Scores = new Map(
-      ftsRows.map((row) => [row.symbol_id, row.bm25_score]),
-    );
+    for (let offset = 0; bm25Scores.size < 400; offset += pageSize) {
+      const ftsRows = typedAll<{
+        symbol_id: string;
+        file_path: string;
+        bm25_score: number;
+      }>(statement, ftsQuery, ...params, pageSize, offset);
+
+      for (const row of ftsRows) {
+        if (matchesFilePattern(row.file_path, input.filePattern)) {
+          bm25Scores.set(row.symbol_id, row.bm25_score);
+          if (bm25Scores.size === 400) {
+            break;
+          }
+        }
+      }
+
+      if (ftsRows.length < pageSize) {
+        break;
+      }
+    }
   }
 
   if (queryTerms.length > 0) {
@@ -346,12 +356,6 @@ function loadSymbolRows(
       const wildcard = `%${term}%`;
       params.push(wildcard, wildcard, wildcard, wildcard, wildcard);
     }
-  }
-
-  if (candidateIds && candidateIds.length > 0) {
-    const placeholders = candidateIds.map(() => "?").join(", ");
-    whereClauses.push(`symbols.id IN (${placeholders})`);
-    params.push(...candidateIds);
   }
 
   const rows = typedAll<DbSymbolRow>(
@@ -733,13 +737,12 @@ function sortRankedSymbolEntries(
   left: { row: DbSymbolRow; score: number },
   right: { row: DbSymbolRow; score: number },
 ) {
-  const lexicalOrder =
-    left.row.bm25_score !== undefined && right.row.bm25_score !== undefined
-      ? left.row.bm25_score - right.row.bm25_score
-      : 0;
+  const bm25Order =
+    (left.row.bm25_score ?? Number.POSITIVE_INFINITY) -
+    (right.row.bm25_score ?? Number.POSITIVE_INFINITY);
   return (
-    lexicalOrder ||
     right.score - left.score ||
+    bm25Order ||
     Number(right.row.exported) - Number(left.row.exported) ||
     left.row.file_path.localeCompare(right.row.file_path) ||
     left.row.start_line - right.row.start_line ||

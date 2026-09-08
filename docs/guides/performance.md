@@ -173,6 +173,12 @@ The broader [AGC1 compact-output baseline](../reviews/agc1-compact-output-baseli
 uses four representative fixtures and protects the current serving contract
 without introducing a new wire format.
 
+`bench:search-ranking` measures scoped recall, target recall, first relevant
+rank, false positives, exact response tokens, and retrieval latency on one
+temporary deterministic fixture. See the
+[2026-09-08 search selection and ranking comparison](../reviews/search-selection-ranking-2026-09-08.md)
+for the exact before/after commits and aggregate results.
+
 The same command emits `schemaVersion: 3` trace data. Each fixture has a
 one-shot exploration trace and a repeated symbol/context-read trace. It runs
 against an isolated daemon, so an older globally installed Astrograph does not
