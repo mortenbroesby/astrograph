@@ -98,10 +98,12 @@ CODE_INDEX_PATH="$JCODEMUNCH_BENCHMARK_INDEX" \
   jcodemunch-mcp delete-index local/jcodemunch-benchmark-54b86399 --json
 ```
 
-Read the dated [2026-09-06 comparison](../reviews/jcodemunch-comparison-2026-09-06.md)
-before interpreting results. It separates workflow and exact-source payloads
-from historical fresh-agent sessions and documents catalog, indexing, and
-symbol-ID mismatches.
+Read the current [2026-09-08 baseline](../reviews/jcodemunch-comparison-2026-09-08.md)
+before interpreting results. The earlier
+[2026-09-06 comparison](../reviews/jcodemunch-comparison-2026-09-06.md)
+documents the compact-source and warm-index changes that established it. Both
+separate workflow and exact-source payloads from fresh-agent sessions and
+document catalog, indexing, and symbol-ID mismatches.
 
 Remove the global test setup without touching Astrograph or an older
 `~/.code-index`:
