@@ -23,6 +23,6 @@
 
 ## 5. Deliver and archive
 
-- [ ] 5.1 Commit and push the implementation branch, open the scoped PR, and verify required CI on the exact remote head before merge.
+- [x] 5.1 Commit and push the implementation branch, open the scoped PR, and verify required CI on the exact remote head before merge.
 - [ ] 5.2 Apply the release-decision workflow; when required, merge, publish, verify registry/tag integrity, update the managed global runtime while preserving jCodeMunch, and prove the bounded discovery plus exact-source path from a fresh client.
 - [ ] 5.3 Sync the delta spec and archive the completed change, verify the archive PR on its exact head, merge it, then confirm clean `main`, matching `origin/main`, and removal of only this task's worktrees and branches.
