@@ -20,7 +20,7 @@
 
 ## 3. Benchmark Evidence
 
-- [ ] 3.1 Extend the smallest existing deterministic benchmark fixture needed
+- [x] 3.1 Extend the smallest existing deterministic benchmark fixture needed
   to report target recall, first-relevant rank, false positives, scoped recall,
   exact tokenizer tokens, and retrieval latency; run the same fixture before
   and after on the exact comparison commits and commit only source-free
@@ -28,7 +28,7 @@
 
 ## 4. Delivery
 
-- [ ] 4.1 Run the focused test, `pnpm build`, `pnpm type-lint`,
+- [x] 4.1 Run the focused test, `pnpm build`, `pnpm type-lint`,
   `pnpm check:version-bump --base origin/main`,
   `openspec validate correct-search-selection-ranking --strict`, and
   `pnpm verify:fast`; apply the patch release decision and review the minimal
