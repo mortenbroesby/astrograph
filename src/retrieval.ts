@@ -785,7 +785,9 @@ function makeContextBundleItem(
     reason,
     symbol: mapSymbolRow(row),
     source,
-    tokenCount: estimateTokens(source) + 8,
+    tokenCount: estimateTokens(source)
+      + 8
+      + (relationEvidence ? estimateTokens(JSON.stringify(relationEvidence)) : 0),
     ...(relationEvidence ? { relationEvidence } : {}),
   };
 }

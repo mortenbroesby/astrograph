@@ -18,13 +18,13 @@
 ## 4. Measure Correctness Before Cost
 
 - [x] 4.1 Add the deterministic `bench:relationship-evidence` runner using the existing exact tokenizer, at least three valid runs, stable-order and task-outcome rejection, and source-free aggregate output; verify its benchmark tests pass.
-- [ ] 4.2 Run the identical fixture against exact before and after commits and publish relation recall, precision, false symbol claims, evidence/confidence coverage, exact response tokens, and latency in a source-free review.
+- [x] 4.2 Run the identical fixture against exact before and after commits and publish relation recall, precision, false symbol claims, evidence/confidence coverage, exact response tokens, and latency in a source-free review.
 
 ## 5. Verify and Version
 
 - [x] 5.1 Bump the prerelease version for the observable response change and verify `pnpm check:version-bump` passes against the intended base.
-- [ ] 5.2 Run `pnpm exec vitest run tests/parser.golden.test.ts tests/engine-behavior.test.ts tests/benchmark-scripts.test.ts`, `pnpm build`, `pnpm test`, and `pnpm exec openspec validate make-relationship-evidence-honest --strict`; record any unrelated baseline issue separately.
-- [ ] 5.3 Run the repository packed-artifact verification and confirm the packed MCP/CLI returns the optional evidence contract without relying on source-tree imports.
+- [x] 5.2 Run `pnpm exec vitest run tests/parser.golden.test.ts tests/engine-behavior.test.ts tests/benchmark-scripts.test.ts`, `pnpm build`, `pnpm test`, and `pnpm exec openspec validate make-relationship-evidence-honest --strict`; record any unrelated baseline issue separately.
+- [x] 5.3 Run the repository packed-artifact verification and confirm the packed MCP/CLI returns the optional evidence contract without relying on source-tree imports.
 
 ## 6. Integrate and Read Back
 
