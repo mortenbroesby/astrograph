@@ -1,6 +1,6 @@
 {
   "name": "astrograph",
-  "version": "1.0.2-alpha.250",
+  "version": "1.0.3-alpha.251",
   "type": "module",
   "license": "MIT",
   "description": "Local deterministic context engine for AI-assisted code exploration",
