@@ -13,12 +13,12 @@
 ## 3. Measure before and after
 
 - [x] 3.1 Add a deterministic source-free benchmark using `cl100k_base`, at least three valid runs, a five-result limit, stable ordering, and exact-source fidelity rejection; verify its focused benchmark test passes.
-- [ ] 3.2 Run the identical fixture against exact clean before and after commits and publish discovery bytes/tokens, target rank, exact-source bytes/tokens, fidelity, and latency in a source-free review.
+- [x] 3.2 Run the identical fixture against exact clean before and after commits and publish discovery bytes/tokens, target rank, exact-source bytes/tokens, fidelity, and latency in a source-free review.
 
 ## 4. Verify the release artifact
 
 - [x] 4.1 Bump the prerelease version for the observable signature change and verify `pnpm check:version-bump --base origin/main` passes.
-- [ ] 4.2 Run focused tests, `pnpm build`, `pnpm test`, and `pnpm exec openspec validate bound-json-discovery-records --strict`; record any unrelated baseline issue separately.
+- [x] 4.2 Run focused tests, `pnpm build`, `pnpm test`, and `pnpm exec openspec validate bound-json-discovery-records --strict`; record any unrelated baseline issue separately.
 - [x] 4.3 Run `pnpm test:package-bin` and verify the packed CLI/MCP preserves bounded JSON discovery and lossless explicit source without source-tree imports.
 
 ## 5. Deliver and archive
