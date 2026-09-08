@@ -1385,6 +1385,53 @@ export class Greeter {
     expect(repeated.map((symbol) => symbol.id)).toEqual(naturalLanguage.map((symbol) => symbol.id));
   });
 
+  it("keeps scoped lexical selection and ranking complete and deterministic", async () => {
+    const repoRoot = await createFixtureRepo();
+    await mkdir(path.join(repoRoot, "src", "ranking", "scoped"), { recursive: true });
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "decoys.ts"),
+      Array.from(
+        { length: 401 },
+        (_, index) =>
+          `/** scopedselectionneedle scopedselectionneedle scopedselectionneedle */\nexport function scopedSelectionNeedleDecoy${index}() { return ${index}; }`,
+      ).join("\n"),
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "scoped", "target.ts"),
+      "export function scopedSelectionNeedleTarget() { return true; }\n",
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "lexical.ts"),
+      [
+        "export function lexicalNeedleFtsAnchor() { return true; }",
+        "export function embeddedLexicalNeedleCandidate() { return true; }",
+      ].join("\n"),
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "ranking", "ordering.ts"),
+      [
+        "export function orderingneedle() { return true; }",
+        "/** orderingneedle orderingneedle orderingneedle orderingneedle orderingneedle */",
+        "export function orderingNeedleSummaryChampion() { return true; }",
+      ].join("\n"),
+    );
+    await indexFolder({ repoRoot });
+
+    const scoped = await searchSymbols({
+      repoRoot,
+      query: "scopedselectionneedle",
+      filePattern: "src/ranking/scoped/**",
+    });
+    const lexical = await searchSymbols({ repoRoot, query: "lexicalneedle" });
+    const ranked = await searchSymbols({ repoRoot, query: "orderingneedle" });
+    const repeated = await searchSymbols({ repoRoot, query: "orderingneedle" });
+
+    expect.soft(scoped.map((symbol) => symbol.name)).toContain("scopedSelectionNeedleTarget");
+    expect.soft(lexical.map((symbol) => symbol.name)).toContain("embeddedLexicalNeedleCandidate");
+    expect.soft(ranked[0]?.name).toBe("orderingneedle");
+    expect(repeated.map((symbol) => symbol.id)).toEqual(ranked.map((symbol) => symbol.id));
+  });
+
   it("applies matching repo path presets without replacing generic ranking", async () => {
     const createPresetFixture = async (pathPresets: Record<string, string[]>) => {
       const repoRoot = await createFixtureRepo();
