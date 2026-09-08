@@ -200,11 +200,13 @@ function parseImport(
   const source = nodeText(sourceText, sourceNode.startIndex, sourceNode.endIndex)
     .replace(/^['"]|['"]$/g, "");
   const statementText = nodeText(sourceText, node.startIndex, node.endIndex);
+  const isReexport = /^\s*export\s/u.test(statementText);
   const clauseMatch =
     statementText.match(/^\s*import\s+([\s\S]+?)\s+from\s+['"]/u)
     ?? statementText.match(/^\s*export\s+([\s\S]+?)\s+from\s+['"]/u);
   const specifiers = clauseMatch
-    ? parseImportClauseSpecifiers(clauseMatch[1] ?? "")
+    ? parseImportClauseSpecifiers(clauseMatch[1] ?? "").map((specifier) =>
+        isReexport ? { ...specifier, isReexport: true } : specifier)
     : [];
 
   return {

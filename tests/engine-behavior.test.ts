@@ -1903,10 +1903,18 @@ export function bestFormatter(value: number): string {
     );
     await writeFile(
       path.join(repoRoot, "src", "best-consumer.ts"),
-      `import { bestFormatter } from "./formatters.js";
+      `import { bestFormatter as formatBest } from "./formatters.js";
+
+export function unrelated(value: number): string {
+  return String(value);
+}
 
 export function renderBest(value: number): string {
-  return bestFormatter(value);
+  return formatBest(value);
+}
+
+export function renderBestAgain(value: number): string {
+  return formatBest(value + 1);
 }
 `,
     );
@@ -1916,6 +1924,15 @@ export function renderBest(value: number): string {
 
 export function renderFirst(value: number): string {
   return firstFormatter(value);
+}
+`,
+    );
+    await writeFile(
+      path.join(repoRoot, "src", "barrel.ts"),
+      `export { bestFormatter as publicBestFormatter } from "./formatters.js";
+
+export function barrelMarker(): string {
+  return "barrel";
 }
 `,
     );
@@ -1947,23 +1964,117 @@ export function renderFirst(value: number): string {
             name: "renderBest",
           }),
           reasons: expect.arrayContaining(["references_match"]),
+          relationEvidence: expect.arrayContaining([
+            expect.objectContaining({
+              scope: "symbol",
+              kind: "identifier_mention",
+              confidence: "medium",
+              sourceFile: "src/best-consumer.ts",
+              targetFile: "src/formatters.ts",
+              moduleSpecifier: "./formatters.js",
+              importedName: "bestFormatter",
+              localName: "formatBest",
+            }),
+          ]),
+        }),
+        expect.objectContaining({
+          symbol: expect.objectContaining({
+            name: "renderBestAgain",
+          }),
+          reasons: expect.arrayContaining(["references_match"]),
         }),
       ]),
     );
     expect(
-      discoverResult.matches.some((entry) => entry.symbol.name === "renderFirst"),
+      discoverResult.matches.some((entry) =>
+        entry.symbol.name === "renderFirst" || entry.symbol.name === "unrelated"),
     ).toBe(false);
 
-    const bundle = await getTaskContext({
+    const seedId = discoverResult.matches.find(
+      (entry) => entry.symbol.name === "bestFormatter",
+    )?.symbol.id;
+    expect(seedId).toBeDefined();
+
+    const contextBundle = await getContextBundle({
+      repoRoot,
+      symbolIds: [seedId!],
+      includeDependencies: false,
+      includeReferences: true,
+      relationDepth: 1,
+      tokenBudget: 2_000,
+    });
+    expect(contextBundle.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        symbol: expect.objectContaining({ name: "renderBest" }),
+        relationEvidence: expect.arrayContaining([
+          expect.objectContaining({
+            scope: "symbol",
+            kind: "identifier_mention",
+            confidence: "medium",
+          }),
+        ]),
+      }),
+    ]));
+
+    const taskBundle = await getTaskContext({
       repoRoot,
       query: "bestFormatter",
       includeDependencies: false,
       includeReferences: true,
       relationDepth: 1,
-      payloadTokenBudget: 1_200,
+      payloadTokenBudget: 2_000,
     });
-    expect(bundle.items.some((item) => item.symbol.name === "renderBest")).toBe(true);
-    expect(bundle.items.some((item) => item.symbol.name === "renderFirst")).toBe(false);
+    expect(taskBundle.items).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        symbol: expect.objectContaining({ name: "renderBest" }),
+        relationEvidence: expect.arrayContaining([
+          expect.objectContaining({
+            scope: "symbol",
+            kind: "identifier_mention",
+            confidence: "medium",
+          }),
+        ]),
+      }),
+    ]));
+    expect(taskBundle.items.some((item) => item.symbol.name === "renderFirst")).toBe(false);
+    expect(taskBundle.items.some((item) => item.symbol.name === "unrelated")).toBe(false);
+
+    const importerResult = await queryCode({
+      repoRoot,
+      intent: "discover",
+      query: "bestFormatter",
+      includeDependencies: false,
+      includeImporters: true,
+      relationDepth: 1,
+    });
+    expect(importerResult.intent).toBe("discover");
+    if (importerResult.intent !== "discover") {
+      throw new Error("Expected discover result");
+    }
+    expect(importerResult.matches).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        symbol: expect.objectContaining({ name: "unrelated" }),
+        reasons: expect.arrayContaining(["imported_by_match"]),
+        relationEvidence: expect.arrayContaining([
+          expect.objectContaining({
+            scope: "file",
+            kind: "import_specifier",
+            confidence: "high",
+          }),
+        ]),
+      }),
+      expect.objectContaining({
+        symbol: expect.objectContaining({ name: "barrelMarker" }),
+        reasons: expect.arrayContaining(["reexport_match"]),
+        relationEvidence: expect.arrayContaining([
+          expect.objectContaining({
+            scope: "file",
+            kind: "reexport_specifier",
+            confidence: "high",
+          }),
+        ]),
+      }),
+    ]));
   });
 
   it("expands task context with bounded graph relations", async () => {

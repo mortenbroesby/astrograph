@@ -56,7 +56,7 @@ Compatibility-sensitive file: `src/retrieval.ts`.
 
 ### Benchmark one fixed adversarial relationship fixture
 
-Add `bench:relationship-evidence` using the existing exact tokenizer and benchmark conventions. Its fixture has a target module with two exports, an importer with an aliased import, an unrelated first symbol, and multiple real use-site symbols, plus a barrel re-export. The script accepts an engine root so the verified before and after commits run the same fixture at least three times. It rejects missing expected relations, unexpected symbol claims, missing evidence/confidence, unstable ordering, or source-bearing committed output.
+Add `bench:relationship-evidence` using the existing exact tokenizer and benchmark conventions. Its fixture has a target module with two exports, an importer with an aliased import, an unrelated first symbol, and multiple real use-site symbols, plus a barrel re-export. The script accepts an engine root so the verified before and after commits run the same fixture at least three times. It rejects execution failures, a missing seed outcome, fewer than three runs, unstable repeated ordering, or source-bearing committed output. Incorrect, missing, or unsupported relation evidence remains a valid measured baseline and is reported by the correctness metrics rather than rejected.
 
 Report relation recall, precision, false symbol claims, evidence coverage, confidence coverage, exact response tokens, and latency separately. Add `prebench:relationship-evidence` and restore the missing `prebench:search-ranking` contract before collecting evidence.
 

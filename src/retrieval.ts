@@ -43,6 +43,7 @@ import type {
   QueryCodeSourceResult,
   QueryCodeSymbolMatch,
   QueryCodeTextMatch,
+  RelationEvidence,
   RankedContextCandidate,
   RankedContextResult,
   RankingWeights,
@@ -431,6 +432,7 @@ function normalizeImportSpecifier(
   const kind = "kind" in value ? value.kind : null;
   const importedName = "importedName" in value ? value.importedName : null;
   const localName = "localName" in value ? value.localName : null;
+  const isReexport = "isReexport" in value && value.isReexport === true;
 
   if (
     (kind !== "named" && kind !== "default" && kind !== "namespace" && kind !== "unknown")
@@ -446,6 +448,7 @@ function normalizeImportSpecifier(
     localName: typeof localName === "string" && localName.trim().length > 0
       ? localName.trim()
       : null,
+    ...(isReexport ? { isReexport: true } : {}),
   };
 }
 
@@ -464,10 +467,55 @@ function parseStoredImportSpecifiers(serialized: string): ImportSpecifier[] {
   }
 }
 
+interface RelatedSymbolRow {
+  row: DbSymbolRow;
+  reason: QueryCodeMatchReason;
+  relationEvidence: RelationEvidence[];
+}
+
+function buildFileRelationEvidence(
+  sourceFile: string,
+  targetFile: string,
+  moduleSpecifier: string,
+  specifiers: ImportSpecifier[],
+): RelationEvidence[] {
+  return (specifiers.length > 0 ? specifiers : [null]).map((specifier) => ({
+    scope: "file",
+    kind: specifier?.isReexport ? "reexport_specifier" : "import_specifier",
+    confidence: "high",
+    sourceFile,
+    targetFile,
+    moduleSpecifier,
+    importedName: specifier?.importedName ?? null,
+    localName: specifier?.localName ?? null,
+  }));
+}
+
+function mergeRelationEvidence(
+  current: RelationEvidence[],
+  additions: RelationEvidence[],
+): RelationEvidence[] {
+  const seen = new Set(current.map((evidence) => JSON.stringify(evidence)));
+  return [
+    ...current,
+    ...additions.filter((evidence) => {
+      const key = JSON.stringify(evidence);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }),
+  ];
+}
+
+function sourceMentionsIdentifier(source: string, identifier: string): boolean {
+  const escaped = identifier.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  return new RegExp(`(?<![\\p{ID_Continue}$])${escaped}(?![\\p{ID_Continue}$])`, "u").test(source);
+}
+
 function pickDependencyRows(
   db: IndexBackendConnection,
   seedRow: DbSymbolRow,
-): Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> {
+): RelatedSymbolRow[] {
   const imports = typedAll<{
     target_path: string;
     source: string;
@@ -486,8 +534,7 @@ function pickDependencyRows(
     seedRow.file_path,
   );
 
-  const matches: Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> = [];
-  const seen = new Set<string>();
+  const matches = new Map<string, RelatedSymbolRow>();
 
   for (const importRow of imports) {
     const specifiers = parseStoredImportSpecifiers(importRow.specifiers);
@@ -539,44 +586,57 @@ function pickDependencyRows(
     }
 
     for (const row of picked) {
-      if (seen.has(row.id)) {
-        continue;
+      const relationEvidence = buildFileRelationEvidence(
+        seedRow.file_path,
+        importRow.target_path,
+        importRow.source,
+        specifiers,
+      );
+      const existing = matches.get(row.id);
+      if (existing) {
+        existing.relationEvidence = mergeRelationEvidence(existing.relationEvidence, relationEvidence);
+      } else {
+        matches.set(row.id, {
+          row,
+          reason: specifiers.some((specifier) => specifier.isReexport)
+            ? "reexport_match"
+            : "imports_matched_file",
+          relationEvidence,
+        });
       }
-      seen.add(row.id);
-      matches.push({
-        row,
-        reason: importRow.source.startsWith(".")
-          ? "imports_matched_file"
-          : "reexport_match",
-      });
     }
   }
 
-  return matches;
+  return [...matches.values()];
 }
 
 function pickImporterRows(
   db: IndexBackendConnection,
   seedRow: DbSymbolRow,
-): Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> {
+): RelatedSymbolRow[] {
   const importers = typedAll<{
     importer_path: string;
+    source: string;
+    specifiers: string;
   }>(
     db.prepare(
       `
-        SELECT importer_path
+        SELECT file_dependencies.importer_path AS importer_path,
+          file_dependencies.source AS source, imports.specifiers AS specifiers
         FROM file_dependencies
-        WHERE target_path = ?
-        ORDER BY importer_path ASC
+        INNER JOIN files ON files.id = file_dependencies.importer_file_id
+        INNER JOIN imports ON imports.file_id = files.id AND imports.source = file_dependencies.source
+        WHERE file_dependencies.target_path = ?
+        ORDER BY file_dependencies.importer_path ASC, file_dependencies.source ASC
       `,
     ),
     seedRow.file_path,
   );
 
-  const matches: Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> = [];
-  const seen = new Set<string>();
+  const matches = new Map<string, RelatedSymbolRow>();
 
   for (const importer of importers) {
+    const specifiers = parseStoredImportSpecifiers(importer.specifiers);
     const row = typedGet<DbSymbolRow>(
       db.prepare(
         `
@@ -592,75 +652,125 @@ function pickImporterRows(
       ),
       importer.importer_path,
     );
-    if (!row || seen.has(row.id)) {
+    if (!row) {
       continue;
     }
-    seen.add(row.id);
-    matches.push({
-      row,
-      reason: "imported_by_match",
-    });
+    const relationEvidence = buildFileRelationEvidence(
+      importer.importer_path,
+      seedRow.file_path,
+      importer.source,
+      specifiers,
+    );
+    const existing = matches.get(row.id);
+    if (existing) {
+      existing.relationEvidence = mergeRelationEvidence(existing.relationEvidence, relationEvidence);
+    } else {
+      matches.set(row.id, {
+        row,
+        reason: specifiers.some((specifier) => specifier.isReexport)
+          ? "reexport_match"
+          : "imported_by_match",
+        relationEvidence,
+      });
+    }
   }
 
-  return matches;
+  return [...matches.values()];
 }
 
 function pickReferenceRows(
   db: IndexBackendConnection,
   seedRow: DbSymbolRow,
-): Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> {
+): RelatedSymbolRow[] {
   const importers = typedAll<{
     importer_path: string;
+    source: string;
     specifiers: string;
   }>(
     db.prepare(
       `
-        SELECT file_dependencies.importer_path AS importer_path, imports.specifiers AS specifiers
+        SELECT file_dependencies.importer_path AS importer_path,
+          file_dependencies.source AS source, imports.specifiers AS specifiers
         FROM file_dependencies
         INNER JOIN files ON files.id = file_dependencies.importer_file_id
         INNER JOIN imports ON imports.file_id = files.id AND imports.source = file_dependencies.source
         WHERE file_dependencies.target_path = ?
-        ORDER BY file_dependencies.importer_path ASC
+        ORDER BY file_dependencies.importer_path ASC, file_dependencies.source ASC
       `,
     ),
     seedRow.file_path,
   );
 
-  const matches: Array<{ row: DbSymbolRow; reason: QueryCodeMatchReason }> = [];
-  const seen = new Set<string>();
+  const matches = new Map<string, RelatedSymbolRow>();
 
   for (const importer of importers) {
-    const specifiers = parseStoredImportSpecifiers(importer.specifiers);
-    if (!specifiers.some((specifier) => specifier.importedName === seedRow.name)) {
+    const specifiers = parseStoredImportSpecifiers(importer.specifiers)
+      .filter((specifier) =>
+        !specifier.isReexport && specifier.importedName === seedRow.name);
+    if (specifiers.length === 0) {
       continue;
     }
 
-    const row = typedGet<DbSymbolRow>(
+    const rows = typedAll<DbFileContentRow>(
       db.prepare(
         `
           SELECT
-            id, name, qualified_name, kind, file_path, signature, summary,
-            summary_source,
-            start_line, end_line, start_byte, end_byte, exported
+            symbols.id, symbols.name, symbols.qualified_name, symbols.kind, symbols.file_path,
+            symbols.signature, symbols.summary, symbols.summary_source,
+            symbols.start_line, symbols.end_line, symbols.start_byte, symbols.end_byte,
+            symbols.exported,
+            files.content_hash, files.integrity_hash, files.parser_backend,
+            files.parser_fallback_used, files.parser_fallback_reason,
+            content_blobs.content
           FROM symbols
-          WHERE file_path = ?
-          ORDER BY exported DESC, kind = 'class' DESC, kind = 'function' DESC, start_line ASC
-          LIMIT 1
+          INNER JOIN files ON files.id = symbols.file_id
+          INNER JOIN content_blobs ON content_blobs.file_id = files.id
+          WHERE symbols.file_path = ?
+          ORDER BY symbols.exported DESC, symbols.kind = 'class' DESC,
+            symbols.kind = 'function' DESC, symbols.start_line ASC
         `,
       ),
       importer.importer_path,
     );
-    if (!row || seen.has(row.id)) {
-      continue;
+
+    for (const row of rows) {
+      const source = sliceUtf8Bytes(row.content, row.start_byte, row.end_byte);
+      const matchingSpecifiers = specifiers.filter((specifier) =>
+        sourceMentionsIdentifier(source, specifier.localName ?? specifier.importedName));
+      if (matchingSpecifiers.length === 0) continue;
+
+      const relationEvidence = matchingSpecifiers.flatMap((specifier): RelationEvidence[] => [
+        ...buildFileRelationEvidence(
+          importer.importer_path,
+          seedRow.file_path,
+          importer.source,
+          [specifier],
+        ),
+        {
+          scope: "symbol",
+          kind: "identifier_mention",
+          confidence: "medium",
+          sourceFile: importer.importer_path,
+          targetFile: seedRow.file_path,
+          moduleSpecifier: importer.source,
+          importedName: specifier.importedName,
+          localName: specifier.localName,
+        },
+      ]);
+      const existing = matches.get(row.id);
+      if (existing) {
+        existing.relationEvidence = mergeRelationEvidence(existing.relationEvidence, relationEvidence);
+      } else {
+        matches.set(row.id, {
+          row,
+          reason: "references_match",
+          relationEvidence,
+        });
+      }
     }
-    seen.add(row.id);
-    matches.push({
-      row,
-      reason: "references_match",
-    });
   }
 
-  return matches;
+  return [...matches.values()];
 }
 
 function makeContextBundleItem(
@@ -668,6 +778,7 @@ function makeContextBundleItem(
   source: string,
   role: ContextBundleItemRole,
   reason: string,
+  relationEvidence?: RelationEvidence[],
 ): ContextBundleItem {
   return {
     role,
@@ -675,6 +786,7 @@ function makeContextBundleItem(
     symbol: mapSymbolRow(row),
     source,
     tokenCount: estimateTokens(source) + 8,
+    ...(relationEvidence ? { relationEvidence } : {}),
   };
 }
 
@@ -874,6 +986,7 @@ function buildContextBundleFromSeeds(
             sliceUtf8Bytes(sourceRow.content, sourceRow.start_byte, sourceRow.end_byte),
             "dependency",
             related.reason,
+            related.relationEvidence,
           ),
         );
         if (!visited.has(related.row.id)) {
@@ -967,11 +1080,16 @@ function buildDiscoverGraphMatches(
             existing.reasons.push(related.reason);
           }
           existing.depth = Math.min(existing.depth, entry.depth + 1);
+          existing.relationEvidence = mergeRelationEvidence(
+            existing.relationEvidence ?? [],
+            related.relationEvidence,
+          );
         } else {
           matches.set(related.row.id, {
             symbol: mapSymbolRow(related.row),
             reasons: [related.reason],
             depth: entry.depth + 1,
+            relationEvidence: related.relationEvidence,
           });
         }
 
@@ -1273,6 +1391,7 @@ function makeTaskContextItem(
   row: DbFileContentRow,
   role: TaskContextItemRole,
   reason: string,
+  relationEvidence?: RelationEvidence[],
 ): TaskContextItem {
   const source = sliceUtf8Bytes(row.content, row.start_byte, row.end_byte);
   return {
@@ -1282,6 +1401,7 @@ function makeTaskContextItem(
     source,
     provenance: buildSymbolSourceItem(row, false).provenance,
     sourceTokens: countTokens(source),
+    ...(relationEvidence ? { relationEvidence } : {}),
   };
 }
 
@@ -1385,7 +1505,12 @@ export function getTaskContextFromContext(
           exclusions.set("unsupported", (exclusions.get("unsupported") ?? 0) + 1);
           continue;
         }
-        candidates.push(makeTaskContextItem(sourceRow, "relation", related.reason));
+        candidates.push(makeTaskContextItem(
+          sourceRow,
+          "relation",
+          related.reason,
+          related.relationEvidence,
+        ));
         if (!visited.has(related.row.id)) {
           visited.add(related.row.id);
           nextFrontier.push(related.row);
