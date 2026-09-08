@@ -33,7 +33,7 @@
   `openspec validate correct-search-selection-ranking --strict`, and
   `pnpm verify:fast`; apply the patch release decision and review the minimal
   diff for unrelated or sensitive content.
-- [ ] 4.2 Commit and push the implementation branch, require exact-head CI,
+- [x] 4.2 Commit and push the implementation branch, require exact-head CI,
   merge and verify remote `main`, publish/read back the required immutable npm
   version, validate the installed runtime with a fresh client, sync and archive
   the OpenSpec change, and retire the completed worktree only after no unique
