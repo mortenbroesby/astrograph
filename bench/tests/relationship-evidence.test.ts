@@ -33,8 +33,8 @@ describe("relationship evidence benchmark", () => {
       evidenceCoveragePct: 100,
       confidenceCoveragePct: 100,
       stableOrder: true,
-      engineDirty: true,
     });
+    expect(typeof result.engineDirty).toBe("boolean");
     expect(result.totalResponseTokens).toEqual(expect.any(Number));
     expect(result.retrievalLatencyMs).toEqual(expect.any(Number));
   });

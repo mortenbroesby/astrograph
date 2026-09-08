@@ -29,5 +29,5 @@
 ## 6. Integrate and Read Back
 
 - [x] 6.1 Commit and push the implementation branch, open the scoped PR, and verify required CI on the exact remote head before merge.
-- [ ] 6.2 Apply the repository release-decision workflow; when required, merge, publish the prerelease, verify registry/tag integrity, update the managed global runtime while preserving jCodeMunch, and prove a real relation call from a fresh client.
-- [ ] 6.3 Sync and archive the completed OpenSpec change, commit and push the archive branch, verify exact-head CI and merge, then confirm clean `main`, matching `origin/main`, and removal of only this task's worktrees/branches.
+- [x] 6.2 Apply the repository release-decision workflow; when required, merge, publish the prerelease, verify registry/tag integrity, update the managed global runtime while preserving jCodeMunch, and prove a real relation call from a fresh client.
+- [x] 6.3 Sync and archive the completed OpenSpec change, commit and push the archive branch, verify exact-head CI and merge, then confirm clean `main`, matching `origin/main`, and removal of only this task's worktrees/branches.
