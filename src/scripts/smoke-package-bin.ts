@@ -7,6 +7,9 @@ import path from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
 import { packageManagerInvocation } from "../package-manager.ts";
 
 const execFile = promisify(execFileCallback);
@@ -359,6 +362,15 @@ async function main(): Promise<void> {
       throw new Error(`Expected packaged search result to include Greeter: ${searchOutput}`);
     }
 
+    const largeJsonValues = Object.fromEntries(
+      ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"].map((suffix) => [
+        `setting${suffix}`,
+        suffix.repeat(1_000),
+      ]),
+    );
+    const largeJsonContent = JSON.stringify(largeJsonValues);
+    await mkdir(path.join(fixtureRepo, "config"), { recursive: true });
+    await writeFile(path.join(fixtureRepo, "config", "large.json"), largeJsonContent);
     await writeFile(
       path.join(fixtureRepo, "src", "formatters.ts"),
       "export function bestFormatter(value: number): string { return value.toFixed(2); }\n",
@@ -412,6 +424,138 @@ async function main(): Promise<void> {
       || relationResult.matches?.some((match) => match.symbol?.name === "unrelated")
     ) {
       throw new Error(`Expected packaged relation evidence without a false symbol claim: ${relationOutput}`);
+    }
+
+    const { stdout: jsonOutlineOutput } = await run(
+      "pnpm",
+      [
+        "exec",
+        "astrograph",
+        "cli",
+        "get-file-outline",
+        "--repo",
+        fixtureRepo,
+        "--file",
+        "config/large.json",
+      ],
+      installDir,
+    );
+    const jsonOutline = JSON.parse(jsonOutlineOutput) as {
+      symbols?: Array<{ id?: string; name?: string; signature?: string }>;
+    };
+    if (
+      jsonOutline.symbols?.length !== 5
+      || !jsonOutline.symbols.every((symbol) => symbol.signature === `"${symbol.name}":`)
+    ) {
+      throw new Error(`Expected packaged JSON outline to exclude complete values: ${jsonOutlineOutput}`);
+    }
+    const jsonTarget = jsonOutline.symbols.find((symbol) => symbol.name === "settingGamma");
+    if (!jsonTarget?.id) throw new Error(`Expected packaged JSON target: ${jsonOutlineOutput}`);
+    const { stdout: jsonSourceOutput } = await run(
+      "pnpm",
+      [
+        "exec",
+        "astrograph",
+        "cli",
+        "get-symbol-source",
+        "--repo",
+        fixtureRepo,
+        "--symbol",
+        jsonTarget.id,
+        "--verify",
+        "true",
+      ],
+      installDir,
+    );
+    const jsonSource = JSON.parse(jsonSourceOutput) as {
+      items?: Array<{
+        source?: string;
+        verified?: boolean;
+        provenance?: { range?: { startByte?: number; endByte?: number } };
+      }>;
+    };
+    const expectedJsonSource = `"settingGamma":${JSON.stringify(largeJsonValues.settingGamma)}`;
+    const jsonSourceItem = jsonSource.items?.[0];
+    if (
+      jsonSourceItem?.source !== expectedJsonSource
+      || jsonSourceItem.verified !== true
+      || jsonSourceItem.provenance?.range?.endByte! - jsonSourceItem.provenance?.range?.startByte!
+        !== Buffer.byteLength(expectedJsonSource)
+    ) {
+      throw new Error(`Expected packaged JSON source to remain exact: ${jsonSourceOutput}`);
+    }
+
+    const mcpRuntimeDir = path.join(tempRoot, "mcp-runtime");
+    const transport = new StdioClientTransport({
+      command: globalBin,
+      args: ["mcp"],
+      cwd: installDir,
+      stderr: "pipe",
+      env: {
+        ...process.env,
+        HOME: globalHome,
+        ASTROGRAPH_CACHE_HOME: globalCacheHome,
+        ASTROGRAPH_RUNTIME_DIR: mcpRuntimeDir,
+      },
+    });
+    const client = new Client({ name: "package-smoke", version: "1.0.0" });
+    try {
+      await client.connect(transport);
+      const indexResult = await client.callTool({
+        name: "index_folder",
+        arguments: { repoRoot: fixtureRepo },
+      });
+      if (indexResult.isError) {
+        throw new Error(`Expected packaged MCP index to succeed: ${JSON.stringify(indexResult)}`);
+      }
+      const outlineResult = await client.callTool({
+        name: "get_file_outline",
+        arguments: { repoRoot: fixtureRepo, filePath: "config/large.json", format: "json" },
+      });
+      const outlineText = (outlineResult as { content: Array<{ type: string; text?: string }> })
+        .content.find((item) => item.type === "text")?.text;
+      if (!outlineText) throw new Error("Expected packaged MCP JSON outline text");
+      const outlineEnvelope = JSON.parse(
+        outlineText,
+      ) as { ok?: boolean; data?: typeof jsonOutline };
+      if (
+        outlineEnvelope.ok !== true
+        || outlineEnvelope.data?.symbols?.length !== 5
+        || !outlineEnvelope.data.symbols.every((symbol) => symbol.signature === `"${symbol.name}":`)
+      ) {
+        throw new Error(`Expected packaged MCP JSON outline to exclude complete values: ${JSON.stringify(outlineEnvelope)}`);
+      }
+      const sourceResult = await client.callTool({
+        name: "get_symbol_source",
+        arguments: { repoRoot: fixtureRepo, symbolId: jsonTarget.id, verify: true, format: "json" },
+      });
+      const sourceText = (sourceResult as { content: Array<{ type: string; text?: string }> })
+        .content.find((item) => item.type === "text")?.text;
+      if (!sourceText) throw new Error("Expected packaged MCP JSON source text");
+      const sourceEnvelope = JSON.parse(
+        sourceText,
+      ) as { ok?: boolean; data?: typeof jsonSource };
+      if (
+        sourceEnvelope.ok !== true
+        || sourceEnvelope.data?.items?.[0]?.source !== expectedJsonSource
+        || sourceEnvelope.data.items[0].verified !== true
+      ) {
+        throw new Error(`Expected packaged MCP JSON source to remain exact: ${JSON.stringify(sourceEnvelope)}`);
+      }
+    } finally {
+      await client.close();
+      const daemonStateText = await readFile(path.join(mcpRuntimeDir, "daemon.json"), "utf8")
+        .catch(() => null);
+      const daemonState = daemonStateText
+        ? JSON.parse(daemonStateText) as { pid?: number }
+        : null;
+      if (daemonState?.pid) {
+        try {
+          process.kill(daemonState.pid, "SIGTERM");
+        } catch {
+          // The isolated daemon already exited.
+        }
+      }
     }
 
     const installResult = await run(

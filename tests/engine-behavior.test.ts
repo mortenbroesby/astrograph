@@ -2474,6 +2474,68 @@ export function circleArea(radius: number): number {
     );
   });
 
+  it("keeps JSON discovery bounded while explicit source remains lossless", async () => {
+    const repoRoot = await createFixtureRepo();
+    const values = Object.fromEntries(
+      ["Alpha", "Beta", "Gamma", "Delta", "Epsilon"].map((suffix) => [
+        `setting${suffix}`,
+        suffix.repeat(1_000),
+      ]),
+    );
+    const content = JSON.stringify(values);
+    await mkdir(path.join(repoRoot, "config"), { recursive: true });
+    await writeFile(path.join(repoRoot, "config", "large.json"), content);
+    await indexFolder({ repoRoot });
+
+    const outline = await getFileOutline({ repoRoot, filePath: "config/large.json" });
+    const discovery = await searchSymbolsResult({
+      repoRoot,
+      query: "setting",
+      filePattern: "config/large.json",
+      limit: 5,
+    });
+    expect(outline.symbols.map((symbol) => symbol.signature)).toEqual(
+      outline.symbols.map((symbol) => `"${symbol.name}":`),
+    );
+    expect(discovery.items).toHaveLength(5);
+    expect(Buffer.byteLength(JSON.stringify(discovery))).toBeLessThan(5_000);
+
+    const target = discovery.items.find((symbol) => symbol.name === "settingGamma")!;
+    const expectedSource = `"settingGamma":${JSON.stringify(values.settingGamma)}`;
+    const expectedStartByte = Buffer.from(content).indexOf(expectedSource);
+    const expectedRange = {
+      encoding: "utf8",
+      startByte: expectedStartByte,
+      endByte: expectedStartByte + Buffer.byteLength(expectedSource),
+      startLine: 1,
+      endLine: 1,
+    } as const;
+    const exact = (await getSymbolSource({ repoRoot, symbolId: target.id, verify: true })).items[0]!;
+    const taskItem = (await getTaskContext({
+      repoRoot,
+      symbolIds: [target.id],
+      payloadTokenBudget: 10_000,
+      includeDependencies: false,
+    })).items[0]!;
+
+    expect(exact).toMatchObject({
+      source: expectedSource,
+      verified: true,
+      provenance: {
+        sourceHash: hashString(expectedSource, "integrity"),
+        range: expectedRange,
+      },
+    });
+    expect(taskItem).toMatchObject({
+      source: expectedSource,
+      sourceTokens: countTokens(expectedSource),
+      provenance: {
+        sourceHash: hashString(expectedSource, "integrity"),
+        range: expectedRange,
+      },
+    });
+  });
+
   it("returns UTF-8 and CRLF-correct provenance for exact symbol source", async () => {
     const repoRoot = await createFixtureRepo();
     const content = [

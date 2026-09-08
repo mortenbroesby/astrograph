@@ -179,6 +179,11 @@ temporary deterministic fixture. See the
 [2026-09-08 search selection and ranking comparison](../reviews/search-selection-ranking-2026-09-08.md)
 for the exact before/after commits and aggregate results.
 
+`bench:json-discovery-records` measures a five-result JSON symbol search plus
+lossless explicit source retrieval with exact token accounting. See the
+[2026-09-08 bounded JSON discovery comparison](../reviews/json-discovery-records-2026-09-08.md)
+for the clean before/after commits and source-free aggregate results.
+
 The same command emits `schemaVersion: 3` trace data. Each fixture has a
 one-shot exploration trace and a repeated symbol/context-read trace. It runs
 against an isolated daemon, so an older globally installed Astrograph does not
