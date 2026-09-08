@@ -86,7 +86,7 @@ function extractStructuralSignature(
   sourceText: string,
 ): string {
   const value = node.childForFieldName("value");
-  const body = node.type === "variable_declarator"
+  const body = node.type === "variable_declarator" || node.type === "pair"
     ? value
     : node.childForFieldName("body") ?? value?.childForFieldName("body");
   const endIndex = body && body.startIndex > rangeNode.startIndex

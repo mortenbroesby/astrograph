@@ -48,6 +48,33 @@ describe("astrograph parser golden coverage", () => {
     expect(routes?.endByte).toBe(Buffer.byteLength("export const routes: Record<string, string> = { status: 'getProjectStatus' };"));
   });
 
+  it("keeps large JSON values out of structural signatures without narrowing source ranges", async () => {
+    const values = {
+      largeScalar: "x".repeat(4_000),
+      largeObject: { nested: "y".repeat(4_000) },
+      largeArray: ["z".repeat(4_000)],
+    };
+    const content = JSON.stringify(values);
+    const parsed = await parseSourceFile({
+      relativePath: "config/large.json",
+      language: "json",
+      content,
+    });
+
+    expect(parsed.symbols.map((symbol) => symbol.name)).toEqual([
+      "largeScalar",
+      "largeObject",
+      "largeArray",
+    ]);
+    for (const symbol of parsed.symbols) {
+      const expectedSource = `"${symbol.name}":${JSON.stringify(values[symbol.name as keyof typeof values])}`;
+      expect(symbol.signature).toBe(`"${symbol.name}":`);
+      expect(Buffer.from(content).subarray(symbol.startByte, symbol.endByte).toString("utf8"))
+        .toBe(expectedSource);
+      expect(symbol.endByte - symbol.startByte).toBeGreaterThan(symbol.signature.length + 4_000);
+    }
+  });
+
   it("extracts the accepted tree-sitter-only parser baseline", async () => {
     const parsed = await parseSourceFile({
       relativePath: "src/parser-fixture.ts",
