@@ -359,6 +359,61 @@ async function main(): Promise<void> {
       throw new Error(`Expected packaged search result to include Greeter: ${searchOutput}`);
     }
 
+    await writeFile(
+      path.join(fixtureRepo, "src", "formatters.ts"),
+      "export function bestFormatter(value: number): string { return value.toFixed(2); }\n",
+    );
+    await writeFile(
+      path.join(fixtureRepo, "src", "consumer.ts"),
+      [
+        'import { bestFormatter as formatBest } from "./formatters.js";',
+        "export function unrelated(value: number): string { return String(value); }",
+        "export function renderBest(value: number): string { return formatBest(value); }",
+        "",
+      ].join("\n"),
+    );
+    await run(
+      "pnpm",
+      ["exec", "astrograph", "cli", "index-folder", "--repo", fixtureRepo],
+      installDir,
+    );
+    const { stdout: relationOutput } = await run(
+      "pnpm",
+      [
+        "exec",
+        "astrograph",
+        "cli",
+        "query-code",
+        "--repo",
+        fixtureRepo,
+        "--intent",
+        "discover",
+        "--query",
+        "bestFormatter",
+        "--include-references",
+        "true",
+        "--relation-depth",
+        "1",
+      ],
+      installDir,
+    );
+    const relationResult = JSON.parse(relationOutput) as {
+      matches?: Array<{
+        symbol?: { name?: string };
+        relationEvidence?: Array<{ kind?: string; confidence?: string }>;
+      }>;
+    };
+    const packagedReference = relationResult.matches?.find(
+      (match) => match.symbol?.name === "renderBest",
+    );
+    if (
+      !packagedReference?.relationEvidence?.some((evidence) =>
+        evidence.kind === "identifier_mention" && evidence.confidence === "medium")
+      || relationResult.matches?.some((match) => match.symbol?.name === "unrelated")
+    ) {
+      throw new Error(`Expected packaged relation evidence without a false symbol claim: ${relationOutput}`);
+    }
+
     const installResult = await run(
       "pnpm",
       [

@@ -43,6 +43,7 @@ function hashImports(
             specifier.kind,
             specifier.importedName,
             specifier.localName,
+            specifier.isReexport === true,
           ])
           .sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right))),
       ]),

@@ -53,6 +53,8 @@ describe("astrograph parser golden coverage", () => {
       relativePath: "src/parser-fixture.ts",
       language: "ts",
       content: `
+import { dependency as localDependency } from "./ordinary";
+
 export const toolkit = {
   build: () => "build",
   format() {
@@ -96,6 +98,17 @@ export namespace Shapes {
     expect(parsed.fallbackUsed).toBe(false);
     expect(parsed.fallbackReason).toBeNull();
     expect(parsed.imports.map((entry) => entry.source)).toContain("./dep");
+    expect(parsed.imports.find((entry) => entry.source === "./dep")?.specifiers).toEqual([
+      {
+        kind: "named",
+        importedName: "depThing",
+        localName: "aliasedThing",
+        isReexport: true,
+      },
+    ]);
+    expect(
+      parsed.imports.find((entry) => entry.source === "./ordinary")?.specifiers[0],
+    ).not.toHaveProperty("isReexport");
     expect(parsed.symbols.map((symbol) => ({
       name: symbol.name,
       qualifiedName: symbol.qualifiedName,

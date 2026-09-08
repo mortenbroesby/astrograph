@@ -25,6 +25,7 @@ function normalizeImportSpecifier(value: unknown): ImportSpecifier | null {
   const kind = "kind" in value ? value.kind : null;
   const importedName = "importedName" in value ? value.importedName : null;
   const localName = "localName" in value ? value.localName : null;
+  const isReexport = "isReexport" in value && value.isReexport === true;
 
   if (
     (kind !== "named" && kind !== "default" && kind !== "namespace" && kind !== "unknown")
@@ -40,6 +41,7 @@ function normalizeImportSpecifier(value: unknown): ImportSpecifier | null {
     localName: typeof localName === "string" && localName.trim().length > 0
       ? localName.trim()
       : null,
+    ...(isReexport ? { isReexport: true } : {}),
   };
 }
 

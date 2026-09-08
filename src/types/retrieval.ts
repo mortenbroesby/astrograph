@@ -21,6 +21,7 @@ export interface ImportSpecifier {
   kind: ImportSpecifierKind;
   importedName: string;
   localName: string | null;
+  isReexport?: boolean;
 }
 
 export interface FileTreeEntry {
@@ -257,10 +258,22 @@ export type QueryCodeMatchReason =
   | "references_match"
   | "reexport_match";
 
+export interface RelationEvidence {
+  scope: "file" | "symbol";
+  kind: "import_specifier" | "reexport_specifier" | "identifier_mention";
+  confidence: "high" | "medium";
+  sourceFile: string;
+  targetFile: string;
+  moduleSpecifier: string;
+  importedName: string | null;
+  localName: string | null;
+}
+
 export interface QueryCodeSymbolMatch {
   symbol: SymbolSummary;
   reasons: QueryCodeMatchReason[];
   depth: number;
+  relationEvidence?: RelationEvidence[];
 }
 
 export interface QueryCodeTextMatch {
@@ -295,6 +308,7 @@ export interface ContextBundleItem {
   symbol: SymbolSummary;
   source: string;
   tokenCount: number;
+  relationEvidence?: RelationEvidence[];
 }
 
 export interface ContextBundle {
@@ -336,6 +350,7 @@ export interface TaskContextItem {
   source: string;
   provenance: SymbolSourceItem["provenance"];
   sourceTokens: number;
+  relationEvidence?: RelationEvidence[];
 }
 
 export interface TaskContextExclusion {
